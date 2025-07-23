@@ -4,12 +4,24 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+#Load .env from the directory explicitly
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+print("Looking for .env at:", env_path)
+
+load_dotenv(dotenv_path=env_path)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+print("LOADED DB URL:", DATABASE_URL)  # should NOT be None
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+# Dependency to get database session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
