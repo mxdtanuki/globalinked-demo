@@ -1,0 +1,29 @@
+.upload-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 2rem;
+  padding: 3rem;
+}
+
+.upload-btn {
+  background-color: #8B0000;
+  color: white;
+  border: none;
+  padding: 2rem 4rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.upload-btn:hover {
+  background-color: #a30000;
+}
