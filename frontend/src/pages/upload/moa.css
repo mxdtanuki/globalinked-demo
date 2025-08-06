@@ -1,0 +1,161 @@
+.moa-upload-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 3rem;
+  padding: 2rem 4rem;
+  flex-wrap: wrap;
+}
+
+.initial-form,
+.upload-box {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 2rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+
+.initial-form {
+  max-width: 700px;
+  flex: 1 1 600px;
+}
+
+.upload-box {
+  width: 350px;
+  text-align: center;
+  border-style: dashed;
+  border-color: #ccc;
+}
+
+.form-title {
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem 2rem;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.form-group textarea {
+  resize: none;
+}
+
+.manual-entry-note {
+  font-size: 0.85rem;
+  text-align: center;
+  margin-top: 1rem;
+  color: #800000;
+  cursor: pointer;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0;
+}
+
+.manual-entry-note:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+
+.with-mou-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-top: 0.5rem;
+}
+
+
+.checkbox-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.mou-dropdown {
+  width: 100%;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.file-drop-area {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+}
+
+.file-drop-area p {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.file-drop-area small {
+  display: block;
+  color: #666;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.select-file-btn {
+  background-color: #800000;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.submit-btn {
+  background-color: #800000;
+  color: #fff;
+  padding: 0.6rem;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
