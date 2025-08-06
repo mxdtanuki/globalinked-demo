@@ -1,11 +1,28 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ Added
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MdOutlineManageHistory } from 'react-icons/md';
 import './overviewDash.css';
 
 const OverviewDash = () => {
-  const navigate = useNavigate(); // ✅ Hook for navigation
+  const navigate = useNavigate();
+  const [openMenuIndex, setOpenMenuIndex] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showAudit, setShowAudit] = useState(false);
+  const rowsPerPage = 5;
 
-  // TEMPORARY - Static values - replace with real counts from the database
+  const toggleMenu = (index) => {
+    setOpenMenuIndex(openMenuIndex === index ? null : index);
+  };
+
+  const toggleAudit = () => {
+    setShowAudit(!showAudit);
+  };
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    setOpenMenuIndex(null);
+  };
+
   const stats = [
     { label: 'Total Agreement', count: 2020, route: '/stat/totalAgreement' },
     { label: 'Active Agreement', count: 120, route: '/stat/activeAgreement' },
@@ -13,22 +30,20 @@ const OverviewDash = () => {
     { label: 'Nearing Expiration', count: 12, route: '/stat/nearExpAgreement' }
   ];
 
-  // TEMPORARY Lifecycle stages counts
   const lifecycleStages = [
     { label: 'Endorse to ULCO', count: 5, route: '/lifecycle/ulco' },
-    { label: 'Revert to Initiator', count: 3 ,  route: '/lifecycle/revertIni'},
-    { label: 'For Replication', count: 2,  route: '/lifecycle/replication' },
-    { label: 'For Signature of PUP Official', count: 3,  route: '/lifecycle/forSignPup' },
-    { label: 'Signed by PUP Official', count: 4,  route: '/lifecycle/ulco' },
-    { label: 'For Signature of Partners', count: 6,  route: '/lifecycle/forSignPartner' },
-    { label: 'Signed by Partners', count: 1,  route: '/lifecycle/signedPartners' },
-    { label: 'Completely Signed', count: 2,  route: '/lifecycle/completelySigned' },
-    { label: 'For Notary', count: 0,  route: '/lifecycle/notary' },
-    { label: 'To FFUP Copy', count: 2,  route: '/lifecycle/FFUPCopy' },
-    { label: 'Renewals', count: 1,  route: '/lifecycle/renewals' }
+    { label: 'Revert to Initiator', count: 3 , route: '/lifecycle/revertIni'},
+    { label: 'For Replication', count: 2, route: '/lifecycle/replication' },
+    { label: 'For Signature of PUP Official', count: 3, route: '/lifecycle/forSignPup' },
+    { label: 'Signed by PUP Official', count: 4, route: '/lifecycle/ulco' },
+    { label: 'For Signature of Partners', count: 6, route: '/lifecycle/forSignPartner' },
+    { label: 'Signed by Partners', count: 1, route: '/lifecycle/signedPartners' },
+    { label: 'Completely Signed', count: 2, route: '/lifecycle/completelySigned' },
+    { label: 'For Notary', count: 0, route: '/lifecycle/notary' },
+    { label: 'To FFUP Copy', count: 2, route: '/lifecycle/FFUPCopy' },
+    { label: 'Renewals', count: 1, route: '/lifecycle/renewals' }
   ];
 
-  // TEMPORARY Fake table  just base on the excel file 
   const tableColumns = [
     'Date', 'SOURCE', 'POINT PERSON / POSITION', 'DTS NO.', 'DTS LOCATION',
     "PARTNER'S NAME", 'ENTITY TYPE', 'COUNTRY', 'Region', 'ADDRESS',
@@ -37,9 +52,9 @@ const OverviewDash = () => {
     'VALIDITY PERIOD', 'DATE / YEAR OF SIGNING', 'EXPIRY DATE / YEAR',
     'DATE RECEIVED', 'DATE ENDORSED TO ULCO', "ULCO'S APPROVAL",
     "PUP OFFICIALS' SIGNATURE", 'REMARKS', 'STATUS', 'WEBSITE LINK',
-    'Brief Profile', 'LOGO', 'HARDCOPY LOCATOR'
+    'Brief Profile', 'LOGO', 'HARDCOPY LOCATOR', 'ACTIONS'
   ];
-  // TEMPORARY Fake table data
+
   const tableData = Array(8).fill({
     date: '07/22/25',
     source: 'CTHTM',
@@ -71,32 +86,25 @@ const OverviewDash = () => {
     locator: 'Cabinet A - Shelf 2'
   });
 
+  const totalPages = Math.ceil(tableData.length / rowsPerPage);
+  const paginatedData = tableData.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
   return (
     <div className="overview-container">
-      {/* Overview Cards */}
       <div className="stats-row">
         {stats.map((s, i) => (
-          <button
-            key={i}
-            className="stat-card"
-            onClick={() => navigate(s.route)} 
-          >
+          <button key={i} className="stat-card" onClick={() => navigate(s.route)}>
             <div className="stat-number">{s.count}</div>
             <div className="stat-label">{s.label}</div>
           </button>
         ))}
       </div>
 
-      {/* Lifecycle Agreement Section */}
       <div className="lifecycle-section">
         <h3>Lifecycle Agreement</h3>
         <div className="lifecycle-bar">
           {lifecycleStages.map((stage, i) => (
-            <div
-              key={i}
-              className="lifecycle-box"
-              onClick={() => navigate(stage.route)}  
-            >
+            <div key={i} className="lifecycle-box" onClick={() => navigate(stage.route)}>
               <div className="count">{stage.count}</div>
               <div className="label">{stage.label}</div>
             </div>
@@ -104,18 +112,20 @@ const OverviewDash = () => {
         </div>
       </div>
 
-      {/* Document Table Section */}
       <div className="table-section">
-        <div className="table-header">
-          <div className="search-wrapper">
-            <input type="text" placeholder="Search here" className="search-box" />
-          </div>
-          <div className="table-actions">
-            <button className="btn">Freeze</button>
-            <button className="btn">Filter</button>
-            <button className="btn btn-generate">Generate</button>
+      <div className="table-header">
+        <div className="search-audit-wrapper">
+          <input type="text" placeholder="Search here" className="search-box" />
+          <div className="audit-icon-wrapper" onClick={toggleAudit} title="View Audit Log">
+            <MdOutlineManageHistory className="audit-icon" />
           </div>
         </div>
+        <div className="table-actions">
+          <button className="btn">Freeze</button>
+          <button className="btn">Filter</button>
+          <button className="btn btn-generate">Generate</button>
+        </div>
+      </div>
 
         <div className="table-scroll">
           <table className="document-table">
@@ -127,15 +137,61 @@ const OverviewDash = () => {
               </tr>
             </thead>
             <tbody>
-              {tableData.map((row, rowIndex) => (
+              {paginatedData.map((row, rowIndex) => (
                 <tr key={rowIndex}>
                   {Object.values(row).map((value, i) => (
                     <td key={i}>{value}</td>
                   ))}
+                  <td>
+                    <div className="action-buttons">
+                      <button className="btn-action">Edit</button>
+                      <button className="btn-action delete">Delete</button>
+                      <div className="menu-wrapper">
+                        <button
+                          className="dots-btn"
+                          onClick={() => toggleMenu(rowIndex)}
+                          title="More actions"
+                        >
+                          &#8942;
+                        </button>
+                        {openMenuIndex === rowIndex && (
+                          <div className="dropdown-menu">
+                            <div>View File</div>
+                            <div>View Older File</div>
+                            <div>Upload New File</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="pagination">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => handlePageChange(currentPage - 1)}
+          >
+            &laquo; Prev
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              className={currentPage === i + 1 ? 'active' : ''}
+              onClick={() => handlePageChange(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => handlePageChange(currentPage + 1)}
+          >
+            Next &raquo;
+          </button>
         </div>
 
         <div className="table-footer">
