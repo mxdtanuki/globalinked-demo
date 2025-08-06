@@ -1,0 +1,251 @@
+
+.overview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding: 20px;
+}
+
+/* Stat cards */
+.stats-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background-color: #800000;
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  flex: 1 1 200px; 
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.stat-label {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+/* Lifecycle Agreement Section */
+.lifecycle-section h3 {
+  margin-bottom: 10px;
+  color: #800000;
+  font-weight: 600;
+}
+
+.lifecycle-bar {
+  display: flex;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.lifecycle-box {
+  background-color: #991b1b;
+  color: white;
+  border-radius: 10px;
+  padding: 14px;
+  min-width: 130px;
+  text-align: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.lifecycle-box:hover {
+  transform: scale(1.05);
+  background-color: #b91c1c;
+}
+
+.lifecycle-box .count {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.lifecycle-box .label {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+/* First and last  ends */
+.lifecycle-box:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.lifecycle-box:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Table Section */
+.table-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+
+/* Top bar for search and buttons */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.search-wrapper {
+  flex: 1;
+  min-width: 200px;
+  margin-right: 10px;
+}
+
+.search-box {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.table-actions .btn {
+  margin-left: 8px;
+  padding: 10px 14px;
+  border: none;
+  background-color: #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.table-actions .btn:hover {
+  background-color: #c7c7c7;
+}
+
+.btn-generate {
+  background-color: #800000;
+  color: white;
+}
+
+.btn-generate:hover {
+  background-color: #660000;
+}
+
+
+.document-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.document-table thead {
+  background-color: #f9f9f9;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.document-table th,
+.document-table td {
+  border: 1px solid #eee;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.document-table th {
+  font-weight: 600;
+  color: #333;
+}
+.table-scroll {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.document-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 1200px; 
+}
+
+.document-table th,
+.document-table td {
+  border: 1px solid #eee;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: nowrap; 
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 10px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background-color: #f2f2f2;
+}
+/* Add button */
+.table-footer {
+  text-align: right;
+  margin-top: 15px;
+}
+
+.btn-add {
+  background-color: #800000;
+  color: white;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-add:hover {
+  background-color: #660000;
+}
+
+/* Responsive  */
+@media (max-width: 768px) {
+  .stats-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stat-card {
+    width: 100%;
+  }
+
+  .lifecycle-box {
+    flex: 1 1 100%;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+}
