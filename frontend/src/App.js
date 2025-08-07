@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/login'; 
-import logo from './logo.svg';
 
 //sidebar pages
 import Overview from './pages/overview'; 
@@ -52,25 +51,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <div className="App">
-              <header className="App-header">
-                <img src={logo} className="App-logo" alt="logo" />
-                <p>Edit <code>src/App.js</code> and save to reload.</p>
-                <a
-                  className="App-link"
-                  href="https://reactjs.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Learn React
-                </a>
-              </header>
-            </div>
-          }
-        />
+        <Route path="" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/overview" element={<Overview />} />
         <Route path="/analytics" element={<Analytics />} /> 
