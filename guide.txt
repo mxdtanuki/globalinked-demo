@@ -1,0 +1,22 @@
+For the connection on  JWT authentication with FastAPI backend and React frontend login page
+
+
+make sure that your .env is "DATABASE_URL=postgresql://user:password@localhost:5432/globalinked_db"
+
+ctrl + j in your vscode and go to git bash (open 2 bash)
+
+for backend:
+cd backend
+uvicorn app.main:app --reload
+
+for frontend:
+cd frontend
+npm start (if npm not installed do "npm install")
+
+open login page :  http://localhost:3000/login 
+
+log this from create_test_user.py and see if it works
+Username: admin
+Password: admin123
+
+after this we move on to the next - make a dashboard and the categorization.
