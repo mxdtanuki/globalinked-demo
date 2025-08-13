@@ -1,5 +1,5 @@
 import React from 'react';
-import searchIcon from '../assets/search.png';
+import searchIcon from '../components/assets/search.png';
 
 export default function Hero() {
   return (

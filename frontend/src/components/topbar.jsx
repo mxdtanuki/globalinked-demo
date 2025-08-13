@@ -1,7 +1,19 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './layout.css';
 
 const TopBar = ({ toggleSidebar }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear authentication/session
+    localStorage.removeItem('token'); 
+    sessionStorage.clear();
+
+    // Redirect to public page
+    navigate('/');
+  };
+
   return (
     <div className="topbar">
       <div className="topbar-left">
@@ -12,6 +24,13 @@ const TopBar = ({ toggleSidebar }) => {
       <div className="topbar-right">
         <span className="topbar-icon">🔔</span>
         <span className="topbar-icon">⚙️</span>
+        <span
+          className="topbar-logout"
+          title="Logout"
+          onClick={handleLogout}
+        >
+          LOG OUT
+        </span>
       </div>
     </div>
   );
