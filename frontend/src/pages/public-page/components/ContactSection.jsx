@@ -1,7 +1,7 @@
 import React from 'react';
-import emailIcon from '../assets/email.png';
-import locationIcon from '../assets/location.png';
-import telephoneIcon from '../assets/telephone.png';
+import emailIcon from '../components/assets/email.png';
+import locationIcon from '../components/assets/location.png';
+import telephoneIcon from '../components/assets/telephone.png';
 import './ContactSection.css';
 
 export default function ContactSection() {
@@ -15,7 +15,7 @@ export default function ContactSection() {
           <div className="contact-item">
             <img src={emailIcon} alt="Email icon" />
             <div>
-              <h3>Email</h3>
+              <h3>Email</h3>  
               <p>internationalaffairs@pup.edu.ph</p>
             </div>
           </div>

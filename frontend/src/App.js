@@ -2,7 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/login'; 
 
-//sidebar pages
+//public page
+import PublicPage from './pages/public-page/public-page';
+//sidebar pages 
 import Overview from './pages/overview'; 
 import Analytics from './pages/analytics';
 import DocumentUpload from './pages/docUpload';
@@ -51,7 +53,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="" element={<Login />} />
+       {/* public page routes */}
+        <Route path="/" element={<PublicPage />} />
+      
+        {/* login and admin routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/overview" element={<Overview />} />
         <Route path="/analytics" element={<Analytics />} /> 

@@ -4,9 +4,9 @@ import Intro from './components/Intro';
 import Officials from './components/Officials';
 import ContactSection from './components/ContactSection';
 import Footer from './components/Footer';
-import './index.css';
+import './public-page.css';
 
-export default function App() {
+export default function PublicPage() {
   return (
     <>
       <Header />

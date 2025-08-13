@@ -84,6 +84,10 @@
   font-size: 12px;
   line-height: 1.2;
 }
+.lifecycle-box.active {
+  background-color: #b91c1c;
+  border: 2px solid #48ff00;
+}
 
 /* First and last  ends */
 .lifecycle-box:first-child {
