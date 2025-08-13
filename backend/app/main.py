@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import routers from your controllers
-from app.controllers import auth_controller
+from app.controllers import auth_controller, agreement_controller
 from app.database import Base, engine
 
 # Create database tables
@@ -25,6 +25,7 @@ app.add_middleware(
 
 # Register all routers 
 app.include_router(auth_controller.router)
+app.include_router(agreement_controller.router)
 
 # Root route
 @app.get("/")

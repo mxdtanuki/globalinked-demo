@@ -12,5 +12,5 @@ class AgreementRemarks(Base):
     remark_timestamp = Column(DateTime, nullable=False)
 
     # relationships
-    agreement = relationship("Agreement")
-    user = relationship("User")
+    agreement = relationship("Agreements")
+    user = relationship("Users")

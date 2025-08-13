@@ -1,0 +1,230 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+from datetime import datetime
+
+from app.database import get_db
+from app.models.agreements import Agreements
+from app.models.partners import Partners 
+from app.models.source_units import SourceUnits
+from app.models.contact_persons import ContactPersons
+from app.models.agreement_remarks import AgreementRemarks
+from app.schemas.agreement_schemas import AgreementCreate, AgreementResponse, DashboardSummary
+from app.utils.utils import get_current_user
+from app.models.users import Users
+
+router = APIRouter(
+    prefix="/agreements",
+    tags=["Agreements"]
+)
+
+@router.get("/", response_model=List[AgreementResponse])
+async def get_agreements(
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    # Get all agreements with partner and source unit details
+    try:
+        query = db.query(Agreements, Partners, SourceUnits).join(
+            Partners, Agreements.partner_id == Partners.partner_id
+        ).join(
+            SourceUnits, Agreements.source_unit_id == SourceUnits.unit_id
+        )
+        
+        results = query.all()
+        agreements = []
+
+        for agreement, partner, source_unit in results:
+            # Get contact persons
+            contact_persons = db.query(ContactPersons).filter(
+                ContactPersons.partner_id == partner.partner_id
+            ).all()
+            
+            # Get remarks
+            remarks = db.query(AgreementRemarks).filter(
+                AgreementRemarks.agreement_id == agreement.agreement_id
+            ).all()
+
+            agreements.append(AgreementResponse(
+                agreement_id=agreement.agreement_id,
+                partner_id=partner.partner_id,
+                source_unit_id=source_unit.unit_id,
+                name=partner.name,
+                country=partner.country,
+                region=partner.region,
+                address=partner.address,
+                entity_type=partner.entity_type,
+                website_url=partner.website_url,
+                description=partner.description,
+                logo_path=partner.logo_path, 
+                unit_name=source_unit.unit_name,
+                dts_number=agreement.dts_number,
+                dts_status=agreement.dts_status,
+                entry_date=agreement.entry_date,
+                date_received=agreement.date_received,
+                date_endorsed_to_ulco=agreement.date_endorsed_to_ulco,
+                date_ulco_approved=agreement.date_ulco_approved,
+                date_signed_by_pup=agreement.date_signed_by_pup,
+                date_signed=agreement.date_signed,
+                date_expiry=agreement.date_expiry,
+                document_type=agreement.document_type,
+                partnership_type=agreement.partnership_type,
+                validity_period=agreement.validity_period,
+                event_info=agreement.event_info,
+                signatories_list=agreement.signatories_list,
+                point_persons_list=agreement.point_persons_list,
+                agreement_status=agreement.agreement_status,
+                hardcopy_location=agreement.hardcopy_location,
+                entry_type=agreement.entry_type,
+                renewed_from_agreement_id=agreement.renewed_from_agreement_id,
+                MOU_to_MOA_id=agreement.MOU_to_MOA_id,
+                contact_persons=contact_persons,
+                remarks=remarks,
+                created_at=partner.created_at
+            ))
+        
+        return agreements
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching agreements: {str(e)}"
+        )
+
+
+@router.post("/", response_model=AgreementResponse)
+async def create_agreement(
+    agreement: AgreementCreate,
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    try:
+        partner_id = agreement.partner_id
+        if partner_id:
+        # Checking if partner exists
+            partner = db.query(Partners).filter(Partners.partner_id == partner_id).first()
+            if not partner:
+                raise HTTPException(status_code=404, detail="Partner not found")
+        else:
+        # Create new partner
+            if not agreement.partner_data:
+                raise HTTPException(status_code=400, detail="Partner data required for new partner")
+            
+            partner = Partners(
+                name=agreement.partner_data.name,
+                entity_type=agreement.partner_data.entity_type,
+                country=agreement.partner_data.country,
+                region=agreement.partner_data.region,
+                address=agreement.partner_data.address,
+                website_url=agreement.partner_data.website_url,
+                description=agreement.partner_data.description,
+                logo_path=agreement.partner_data.logo_path,
+                status=agreement.partner_data.status,
+                created_at=datetime.utcnow()
+            )
+
+            db.add(partner)
+            db.flush()  
+            partner_id = partner.partner_id
+
+        # Create contact persons
+            if agreement.partner_data.contact_persons:
+                for contact_data in agreement.partner_data.contact_persons:
+                    contact_person = ContactPersons(
+                        contact_person_position=contact_data.contact_person_position,
+                        contact_person_name=contact_data.contact_person_name,
+                        contact_person_email=contact_data.contact_person_email,
+                        partner_id=partner_id
+                    )
+                    db.add(contact_person)
+
+        # Create agreement
+        agreement_dict = {
+            'source_unit_id': agreement.source_unit_id,
+            'partner_id': partner_id,
+            'dts_number': agreement.dts_number,
+            'dts_status': agreement.dts_status,
+            'entry_date': agreement.entry_date,
+            'date_received': agreement.date_received,
+            'date_endorsed_to_ulco': agreement.date_endorsed_to_ulco,
+            'date_ulco_approved': agreement.date_ulco_approved,
+            'date_signed_by_pup': agreement.date_signed_by_pup,
+            'date_signed': agreement.date_signed,
+            'date_expiry': agreement.date_expiry,
+            'document_type': agreement.document_type,
+            'partnership_type': agreement.partnership_type,
+            'validity_period': agreement.validity_period,
+            'event_info': agreement.event_info,
+            'signatories_list': agreement.signatories_list,
+            'point_persons_list': agreement.point_persons_list,
+            'agreement_status': agreement.agreement_status,
+            'hardcopy_location': agreement.hardcopy_location,
+            'entry_type': agreement.entry_type,
+            'renewed_from_agreement_id': agreement.renewed_from_agreement_id,
+            'MOU_to_MOA_id': agreement.MOU_to_MOA_id
+        }
+
+        new_agreement = Agreements(**agreement_dict)
+        db.add(new_agreement)
+        db.commit()
+        db.refresh(new_agreement)
+
+        if agreement.initial_remarks:
+            for remark_data in agreement.initial_remarks:
+                remark = AgreementRemarks(
+                    agreement_id=new_agreement.agreement_id,
+                    user_id=current_user.user_id,
+                    remark_text=remark_data.remark_text,
+                    remark_timestamp=datetime.utcnow()
+                )
+                db.add(remark)
+
+        db.commit()
+        db.refresh(new_agreement)
+
+        source_unit = db.query(SourceUnits).filter(SourceUnits.unit_id == new_agreement.source_unit_id).first()
+        contact_persons = db.query(ContactPersons).filter(ContactPersons.partner_id == partner_id).all()
+        remarks = db.query(AgreementRemarks).filter(AgreementRemarks.agreement_id == new_agreement.agreement_id).all()
+
+        # Return formatted response
+        return AgreementResponse(
+            agreement_id=new_agreement.agreement_id,
+            partner_id=partner.partner_id,
+            source_unit_id=source_unit.unit_id,
+            name=partner.name,
+            country=partner.country,
+            region=partner.region,
+            address=partner.address,
+            entity_type=partner.entity_type,
+            website_url=partner.website_url,
+            description=partner.description,
+            logo_path=partner.logo_path, 
+            unit_name=source_unit.unit_name,
+            dts_number=new_agreement.dts_number,
+            dts_status=new_agreement.dts_status,
+            entry_date=new_agreement.entry_date,
+            date_received=new_agreement.date_received,
+            date_endorsed_to_ulco=new_agreement.date_endorsed_to_ulco,
+            date_ulco_approved=new_agreement.date_ulco_approved,
+            date_signed_by_pup=new_agreement.date_signed_by_pup,
+            date_signed=new_agreement.date_signed,
+            date_expiry=new_agreement.date_expiry,
+            document_type=new_agreement.document_type,
+            partnership_type=new_agreement.partnership_type,
+            validity_period=new_agreement.validity_period,
+            event_info=new_agreement.event_info,
+            signatories_list=new_agreement.signatories_list,
+            point_persons_list=new_agreement.point_persons_list,
+            agreement_status=new_agreement.agreement_status,
+            hardcopy_location=new_agreement.hardcopy_location,
+            entry_type=new_agreement.entry_type,
+            renewed_from_agreement_id=new_agreement.renewed_from_agreement_id,
+            MOU_to_MOA_id=new_agreement.MOU_to_MOA_id,
+            contact_persons=contact_persons,
+            remarks=remarks,
+            created_at=partner.created_at
+        )
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
