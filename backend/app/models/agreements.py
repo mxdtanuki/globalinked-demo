@@ -30,5 +30,5 @@ class Agreements(Base):
     MOU_to_MOA_id = Column(Integer, ForeignKey("agreements.agreement_id"), nullable=True)
 
     # relationships 
-    source_unit = relationship("SourceUnit")
-    partner = relationship("Partner")
+    source_unit = relationship("SourceUnits")
+    partner = relationship("Partners")

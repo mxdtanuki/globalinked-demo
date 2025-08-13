@@ -48,6 +48,23 @@ body, html, #root {
   cursor: pointer;
 }
 
+.topbar-logout {
+  background-color: #ffffff;
+  color: #800000;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 14px;
+  border: 1px solid #ffffff;
+  transition: all 0.2s ease;
+}
+
+.topbar-logout:hover {
+  background-color: #f4eaea;
+  color: #800000;
+  border-color: #800000;
+}
+
 /* Sidebar + Main */
 .content-body {
   display: flex;
