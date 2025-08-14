@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
-
 from app.database import get_db
 from app.models.agreements import Agreements
 from app.models.partners import Partners 
@@ -12,6 +11,8 @@ from app.models.agreement_remarks import AgreementRemarks
 from app.schemas.agreement_schemas import AgreementCreate, AgreementResponse, DashboardSummary
 from app.utils.utils import get_current_user
 from app.models.users import Users
+from fastapi import Query
+from app.schemas.agreement_schemas import AgreementResponse
 
 router = APIRouter(
     prefix="/agreements",
@@ -227,4 +228,68 @@ async def create_agreement(
 
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/check-duplicate", response_model=AgreementResponse)
+async def check_duplicate_agreement(
+    dts_number: str = Query(..., description="Document Tracking Number"),
+    document_type: str = Query(..., description="Document Type"),
+    partnership_type: str = Query(..., description="Partnership Type"),
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    try:
+        existing = db.query(Agreements).filter(
+            Agreements.dts_number == dts_number,
+            Agreements.document_type == document_type,
+            Agreements.partnership_type == partnership_type
+        ).first()
+
+        if not existing:
+            return None  # No match found
+
+        # get partner and source unit for full details
+        partner = db.query(Partners).filter(Partners.partner_id == existing.partner_id).first()
+        source_unit = db.query(SourceUnits).filter(SourceUnits.unit_id == existing.source_unit_id).first()
+        contact_persons = db.query(ContactPersons).filter(ContactPersons.partner_id == partner.partner_id).all()
+        remarks = db.query(AgreementRemarks).filter(AgreementRemarks.agreement_id == existing.agreement_id).all()
+
+        return AgreementResponse(
+            agreement_id=existing.agreement_id,
+            partner_id=partner.partner_id,
+            source_unit_id=source_unit.unit_id,
+            name=partner.name,
+            country=partner.country,
+            region=partner.region,
+            address=partner.address,
+            entity_type=partner.entity_type,
+            website_url=partner.website_url,
+            description=partner.description,
+            logo_path=partner.logo_path,
+            unit_name=source_unit.unit_name,
+            dts_number=existing.dts_number,
+            dts_status=existing.dts_status,
+            entry_date=existing.entry_date,
+            date_received=existing.date_received,
+            date_endorsed_to_ulco=existing.date_endorsed_to_ulco,
+            date_ulco_approved=existing.date_ulco_approved,
+            date_signed_by_pup=existing.date_signed_by_pup,
+            date_signed=existing.date_signed,
+            date_expiry=existing.date_expiry,
+            document_type=existing.document_type,
+            partnership_type=existing.partnership_type,
+            validity_period=existing.validity_period,
+            event_info=existing.event_info,
+            signatories_list=existing.signatories_list,
+            point_persons_list=existing.point_persons_list,
+            agreement_status=existing.agreement_status,
+            hardcopy_location=existing.hardcopy_location,
+            entry_type=existing.entry_type,
+            renewed_from_agreement_id=existing.renewed_from_agreement_id,
+            MOU_to_MOA_id=existing.MOU_to_MOA_id,
+            contact_persons=contact_persons,
+            remarks=remarks,
+            created_at=partner.created_at
+        )
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

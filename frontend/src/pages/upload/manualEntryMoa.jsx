@@ -3,6 +3,8 @@ import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './manualEntry.css';
+import axios from "axios";
+
 
 const countryOptions = [
   { value: 'Kazakhstan', label: 'Kazakhstan' },
@@ -112,76 +114,107 @@ const ManualEntryMOA = () => {
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedPartnership, setSelectedPartnership] = useState(null);
+  const [dtsNumber, setDtsNumber] = useState("");
+  const [documentType, setDocumentType] = useState("MOA"); // or whatever your default is
+  const [partnershipType, setPartnershipType] = useState("");
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      const form = new FormData(e.target);
-      const data = Object.fromEntries(form);
-      
-      console.log('Form data:', data);
-      
-      const agreementData = {
-        partner_data: {
-          name: data.partnerName,
-          entity_type: data.entityType,
-          country: selectedCountry?.value || "",
-          region: selectedRegion?.value || "", 
-          address: data.address,
-          website_url: data.website || "",
-          description: data.description || "",
-          status: "active",
-          contact_persons: data.contactPersonName ? [{
-            contact_person_name: data.contactPersonName,
-            contact_person_position: data.contactPersonPosition || "",
-            contact_person_email: data.contactPersonEmail || ""
-    }] : []
-        },
-        source_unit_id: parseInt(data.source),
-        dts_number: data.dtsNo,
-        dts_status: data.dtsStatus,
-        document_type: "MOA",
-        partnership_type: selectedPartnership?.value || "",
-        agreement_status: data.status,
-        entry_type: data.entryType,
-        entry_date: data.entryDate || null,
-        date_received: data.dateReceived || null,
-        date_endorsed_to_ulco: data.dateEndorsed || null,
-        date_ulco_approved: data.dateUlcoApproved || null,
-        date_signed_by_pup: data.datePupSigned || null,
-        date_signed: data.dateSigned || null,
-        date_expiry: data.dateExpiry || null,
-        validity_period: data.validity || null,
-        event_info: data.eventInfo || null,
-        signatories_list: data.signatories || null,
-        point_persons_list: data.pointPerson || null,
-        hardcopy_location: data.locator || null,
-        renewed_from_agreement_id: data.renewedFrom ? parseInt(data.renewedFrom) : null,
-        initial_remarks: data.remarks ? [{
-          remark_text: data.remarks
-        }] : []
-      };
-      
-      console.log('Sending to backend:', agreementData);
-      
-      await agreementService.createAgreement(agreementData);
-      setMessage('MOA created successfully!');
-      
-      // Reset everything
-      e.target.reset();
-      setSelectedCountry(null);
-      setSelectedRegion(null);
-      setSelectedPartnership(null);
-      
-    } catch (error) {
-      console.error('Full error:', error);
-      setMessage('Error: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  setLoading(true);
+  setMessage("");
+
+  try {
+    const duplicate = await agreementService.checkDuplicate({
+    dts_number: dtsNumber,
+    document_type: documentType,
+    partnership_type: partnershipType
+  });
+
+if (duplicate) {
+  setMessage(
+    `Duplicate found:
+    Partner: ${duplicate.name}
+    DTS No.: ${duplicate.dts_number}
+    Document Type: ${duplicate.document_type}
+    Partnership Type: ${duplicate.partnership_type}`
+  );
+  setLoading(false);
+  return; // Stop submission
+  }
+
+    const form = new FormData(e.target);
+    const data = Object.fromEntries(form);
+
+    const agreementData = {
+      partner_data: {
+        name: data.partnerName,
+        entity_type: data.entityType,
+        country: selectedCountry?.value || "",
+        region: selectedRegion?.value || "",
+        address: data.address,
+        website_url: data.website || "",
+        description: data.description || "",
+        status: "active",
+        contact_persons: data.contactPersonName
+          ? [
+              {
+                contact_person_name: data.contactPersonName,
+                contact_person_position: data.contactPersonPosition || "",
+                contact_person_email: data.contactPersonEmail || ""
+              }
+            ]
+          : []
+      },
+      source_unit_id: parseInt(data.source),
+      dts_number: dtsNumber,
+      dts_status: data.dtsStatus,
+      document_type: documentType,
+      partnership_type: partnershipType,
+      agreement_status: data.status,
+      entry_type: data.entryType,
+      entry_date: data.entryDate || null,
+      date_received: data.dateReceived || null,
+      date_endorsed_to_ulco: data.dateEndorsed || null,
+      date_ulco_approved: data.dateUlcoApproved || null,
+      date_signed_by_pup: data.datePupSigned || null,
+      date_signed: data.dateSigned || null,
+      date_expiry: data.dateExpiry || null,
+      validity_period: data.validity || null,
+      event_info: data.eventInfo || null,
+      signatories_list: data.signatories || null,
+      point_persons_list: data.pointPerson || null,
+      hardcopy_location: data.locator || null,
+      renewed_from_agreement_id: data.renewedFrom
+        ? parseInt(data.renewedFrom)
+        : null,
+      initial_remarks: data.remarks
+        ? [
+            {
+              remark_text: data.remarks
+            }
+          ]
+        : []
+    };
+
+    await agreementService.createAgreement(agreementData);
+    setMessage("MOA created successfully!");
+
+    // Reset form
+    e.target.reset();
+    setSelectedCountry(null);
+    setSelectedRegion(null);
+    setSelectedPartnership(null);
+    setDtsNumber("");
+    setDocumentType("MOA");
+    setPartnershipType("");
+
+  } catch (error) {
+    console.error("Full error:", error);
+    setMessage("Error: " + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <TopbarSidebar>
@@ -304,22 +337,38 @@ const ManualEntryMOA = () => {
             <label htmlFor="logo">Logo:</label>
             <input id="logo" type="file" />
 
+            {/* DTS No. */}
             <label htmlFor="dtsNo">DTS No.:*</label>
-            <input id="dtsNo" name="dtsNo" type="text" required />
+            <input
+              id="dtsNo"
+              name="dtsNo"
+              type="text"
+              required
+              value={dtsNumber}
+              onChange={(e) => setDtsNumber(e.target.value)}
+            />
 
-            <label htmlFor="dtsStatus">DTS Status:*</label>
-            <select id="dtsStatus" name="dtsStatus" required>
-              <option value="">Select Status</option>
-              <option value="Open - OIA">Open - OIA</option>
-              <option value="Closed - OIA">Closed - OIA</option>
-              <option value="Open - Other Office">Open - Other Office</option>
-              <option value="Closed - Other Office">Closed - Other Office</option>
+            {/* Document Type */}
+            <label htmlFor="docType">Document Type:*</label>
+            <select
+              id="docType"
+              name="docType"
+              required
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value)}
+            >
+              <option value="MOA">MOA</option>
             </select>
 
+            {/* Partnership Type */}
             <label htmlFor="partnershipType">Partnership Type:*</label>
             <Select
-              value={selectedPartnership}
-              onChange={setSelectedPartnership}
+              value={
+                partnershipType
+                  ? { value: partnershipType, label: partnershipType }
+                  : null
+              }
+              onChange={(opt) => setPartnershipType(opt?.value || "")}
               options={partnershipTypeOptions}
               name="partnershipType"
               id="partnershipType"
@@ -328,6 +377,7 @@ const ManualEntryMOA = () => {
               classNamePrefix="react-select"
               placeholder="Select Partnership Type"
             />
+
 
             <label htmlFor="pointPerson">Point Person Position:</label>
             <input id="pointPerson" name="pointPerson" type="text" />
