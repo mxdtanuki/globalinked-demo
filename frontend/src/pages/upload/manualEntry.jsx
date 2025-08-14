@@ -1,7 +1,7 @@
-import React from 'react';
-import TopbarSidebar from '../../components/topbarSidebar';
+import TopbarSidebar from '../../components/topbarSidebar'; 
 import Select from 'react-select';
-import './manualEntry.css';
+import './manualEntry.css'; 
+import React, { useState } from 'react';
 
 // hindi pa complete yung list sa country 
 const countryOptions = [
