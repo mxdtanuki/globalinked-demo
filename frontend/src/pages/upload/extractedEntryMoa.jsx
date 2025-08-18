@@ -1,7 +1,8 @@
-import React from 'react';
+
+import React, { useState } from "react";
 import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
-import './manualEntry.css';
+import './globalUpload.css';
 
 const countryOptions = [
   { value: 'Kazakhstan', label: 'Kazakhstan' },
@@ -106,143 +107,360 @@ const partnershipTypeOptions = [
 ];
 
 const ExtractedEntryMOA = () => {
+  const [contacts, setContacts] = useState([{ position: "", name: "" }]);
+
+  const [pointPersons, setPointPersons] = useState([{ position: "", name: ""}]);
+
+  // Add new contact row
+  const addContact = () => {
+    setContacts([...contacts, { position: "", name: "" }]);
+  };
+
+  // Add new point person row
+  const addPointPerson = () => {
+    setPointPersons([...pointPersons, { position: "", name: ""}]);
+  };
+
+  // Update value in contact row
+  const handleContactChange = (index, field, value) => {
+    const updated = [...contacts];
+    updated[index][field] = value;
+    setContacts(updated);
+  };
+  // Update value in point person row
+  const handlePointPersonChange = (index, field, value) => {
+    const updated = [...pointPersons];
+    updated[index][field] = value;
+    setPointPersons(updated);
+  };
+
   return (
     <TopbarSidebar>
       <div className="manual-entry-wrapper">
         <div className="manual-entry-container">
-          <h2 className="form-title">Extracted Form</h2>
-          <form className="manual-entry-form"> 
-            <label htmlFor="entryDate">Date:</label>
-            <input id="entryDate" type="date" />
+          <h2 className="form-title">MOA Extracted Entry Form</h2>
+          <form className="manual-entry-form">
 
-            <label htmlFor="docType">Document Type:*</label>
-            <select id="docType" name="docType" required value="MOA" disabled>
-            <option value="MOA">MOA</option>
-            </select>
+            {/* DATE */}
+            <div className="form-group">
+              <label htmlFor="entryDate">Date:</label>
+              <input id="entryDate" type="date" />
+            </div>
 
-            <label htmlFor="status">Agreement Status:*</label>
-            <input id="status" type="text" required />
+            {/* DOC TYPE */}
+            <div className="form-group">
+              <label htmlFor="docType">Document Type:*</label>
+              <select id="docType" name="docType" required value="MOU" disabled>
+                <option value="MOU">MOU</option>
+              </select>
+            </div>
 
-            <label htmlFor="entryType">Agreement Entry Type:*</label>
-            <select id="entryType" required>
-              <option value="">Select Entry Type</option>
-              <option value="Renewal">Renewal</option>
-            </select>
+            {/* AGREEMENT STATUS */}
+            <div className="form-group">
+              <label htmlFor="status">Agreement Status:*</label>
+              <select id="status" required>
+                <option value="">Select Agreement Status</option>
+                <option value="Endorse">Endorse to ULCO for review and approval</option>
+                <option value="Revert">Revert to Initiator with comments</option>
+                <option value="Replication">For Replication of Copies (6 set)</option>
+                <option value="SignituresPUP">For Signatures of PUP Officials</option>
+                <option value="SignedPUP">Signed By PUP Officials</option>
+                <option value="SignituresPartner">For Signature of Partner</option>
+                <option value="Complete">Completely Signed</option>
+                <option value="Notary">For Notary</option>
+                <option value="FFUPCopy">For FFUP Copy from college/campus</option>
+                <option value="Renewal">Renewal</option>
+              </select>
+            </div>
 
-            <label htmlFor="renewedFrom">Renewed Agreement from:</label>
-            <input id="renewedFrom" type="text" />
+            {/* AGREEMENT ENTRY TYPE */}
+            <div className="form-group">
+              <label htmlFor="entryType">Agreement Entry Type:*</label>
+              <select id="entryType" required>
+                <option value="">Select Entry Type</option>
+                <option value="Renewal">Renewal</option>
+                <option value="New">New</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
 
-            <label htmlFor="relatedMOU">Related MOU:</label>
-            <input id="relatedMOU" type="file" />
+            {/* RENEWED AGREEMENT */}
+            <div className="form-group">
+              <label htmlFor="renewedFrom">Renewed Agreement from:</label>
+              <input id="renewedFrom" type="text" />
+            </div>
 
-            <label htmlFor="source">Source (Campus/College Dept):*</label>
-            <select id="source" required>
-              <option value="">Select Source</option>
-              <option value="CHTTM">CHTTM</option>
-            </select>
+            {/* RELATED MOU */}
+            <div className="form-group">
+              <label htmlFor="relatedMOU">Related MOU:</label>
+              <input id="relatedMOU" type="file" />
+            </div>
 
-            <label htmlFor="signatories">Signatories:</label>
-            <input id="signatories" type="text" />
+            {/* VALIDITY PERIOD */}
+            <div className="form-group">
+              <label htmlFor="validity">Validity Period:</label>
+              <select id="validity">
+                <option value="">Select Period</option>
+                <option value="5">5</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1</option>
+              </select>
+            </div>
 
-            <label htmlFor="dateReceived">Date Received:*</label>
-            <input id="dateReceived" type="date" required />
+            {/* SOURCE */}
+            <div className="form-group">
+              <label htmlFor="source">Source (Campus/College Dept):*</label>
+              <select id="source" required>
+                <option value="">Select Source</option>
+                <option value="CHTTM">CHTTM</option>
+              </select>
+            </div>
 
-            <label htmlFor="dateExpiry">Date Expiry:</label>
-            <input id="dateExpiry" type="date" />
+            {/* PARTNERSHIP TYPE */}
+            <div className="form-group">
+              <label htmlFor="partnershipType">Partnership Type:*</label>
+              <Select
+                options={partnershipTypeOptions}
+                name="partnershipType"
+                id="partnershipType"
+                required
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select Partnership Type"
+              />
+            </div>
 
-            <label htmlFor="datePupSigned">Date PUP Signed:</label>
-            <input id="datePupSigned" type="date" />
+           {/* DTS NO */}
+            <div className="form-group">
+              <label htmlFor="dtsNo">DTS No.:*</label>
+              <input id="dtsNo" type="text" required />
+            </div>
 
-            <label htmlFor="partnerName">Partner Name:*</label>
-            <input id="partnerName" type="text" required />
+            {/* DTS STATUS */}
+            <div className="form-group">
+              <label htmlFor="dtsStatus">DTS Status:*</label>
+              <select id="dtsStatus" required>
+                <option value="">Select Status</option>
+                <option value="Open - OIA">OPEN - OIA</option>
+                <option value="Closed - OIA">Closed - OIA</option>
+                <option value="Open - Other Office">Open - Other Office</option>
+                <option value="Closed - Other Office">Closed - Other Office</option>
+              </select>
+            </div>
 
-            <label htmlFor="country">Country:*</label>
-            <Select
-              options={countryOptions}
-              name="country"
-              id="country"
-              required
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select Country"
-            />
+            {/* DATE RECEIVED */}
+            <div className="form-group">
+              <label htmlFor="dateReceived">Date Received:*</label>
+              <input id="dateReceived" type="date" required />
+            </div>
 
-            <label htmlFor="address">Address:*</label>
-            <input id="address" type="text" required />
+            {/* DATE EXPIRY */}
+            <div className="form-group">
+              <label htmlFor="dateExpiry">Date Expiry:</label>
+              <input id="dateExpiry" type="date" />
+            </div>
 
-            <label htmlFor="logo">Logo:</label>
-            <input id="logo" type="file" />
+            {/* DATE PUP SIGNED */}
+            <div className="form-group">
+              <label htmlFor="datePupSigned">Date PUP Signed:</label>
+              <input id="datePupSigned" type="date" />
+            </div>
 
-            <label htmlFor="dtsNo">DTS No.:*</label>
-            <input id="dtsNo" type="text" required />
+            {/* DATE SIGNED */}
+            <div className="form-group">
+              <label htmlFor="dateSigned"> Date/Year of Signing :</label>
+              <input id="dateSigned" type="date" />
+            </div>
 
-            <label htmlFor="dtsStatus">DTS Status:*</label>
-            <select id="dtsStatus" required>
-              <option value="">Select Status</option>
-              <option value="OPEN - OIA">OPEN - OIA</option>
-            </select>
+            {/* DATE ENDORSED */}
+            <div className="form-group">
+              <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
+              <input id="dateEndorsed" type="date" />
+            </div>
 
-            <label htmlFor="partnershipType">Partnership Type:*</label>
-            <Select
-              options={partnershipTypeOptions}
-              name="partnershipType"
-              id="partnershipType"
-              required
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select Partnership Type"
-            />
+            {/* DATE ULCO APPROVED */}
+            <div className="form-group">
+              <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
+              <input id="dateUlcoApproved" type="date" />
+            </div>
 
-            <label htmlFor="validity">Validity Period:</label>
-            <select id="validity">
-              <option value="">Select Period</option>
-              <option value="5">5</option>
-            </select>
+            {/* PARTNER NAME */}
+            <div className="form-group">
+              <label htmlFor="partnerName">Partner Name:*</label>
+              <input id="partnerName" type="text" required />
+            </div>
 
-            <label htmlFor="pointPerson">Point Person Position:</label>
-            <input id="pointPerson" type="text" />
+            {/* SIGNATORIES */}
+            <div className="form-group">
+              <label htmlFor="signatories">Signatories:</label>
+              <input id="signatories" type="text" />
+            </div>
 
-            <label htmlFor="locator">Hardcopy Locator:</label>
-            <input id="locator" type="text" />
+            {/* PARTNER NAME */}
+            <div className="form-group">
+              <label htmlFor="partnerName">Partner Name:*</label>
+              <input id="partnerName" type="text" required />
+            </div>
 
-            <label htmlFor="dateSigned">Date Signed:</label>
-            <input id="dateSigned" type="date" />
+            {/* ENTITY TYPE */}
+            <div className="form-group">
+              <label htmlFor="entityType">Entity Type (Univ/Company/Agency):*</label>
+              <input id="entityType" type="text" required />
+            </div>
 
-            <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
-            <input id="dateEndorsed" type="date" />
+            {/* COUNTRY */}
+            <div className="form-group">
+              <label htmlFor="country">Country:*</label>
+              <Select
+                options={countryOptions}
+                name="country"
+                id="country"
+                required
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select Country"
+              />
+            </div>
 
-            <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
-            <input id="dateUlcoApproved" type="date" />
+            {/* REGION */}
+            <div className="form-group full-width">
+              <label htmlFor="region">Region:*</label>
+              <Select
+                options={regionOptions}
+                name="region"
+                id="region"
+                required
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select Region"
+              />
+            </div>
 
-            <label htmlFor="entityType">Entity Type (Univ/Company/Agency):*</label>
-            <input id="entityType" type="text" required />
+            {/* ADDRESS */}
+            <div className="form-group full-width">
+              <label htmlFor="address">Address:*</label>
+              <input id="address" type="text" required />
+            </div>
 
-            <label htmlFor="region">Region:*</label>
-            <Select
-              options={regionOptions}
-              name="region"
-              id="region"
-              required
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select Region"
-            />
+            {/* WEBSITE */}
+            <div className="form-group">
+              <label htmlFor="website">Website Link:</label>
+              <input id="website" type="url" />
+            </div>
 
-            <label htmlFor="website">Website Link:</label>
-            <input id="website" type="url" />
+            {/* LOGO */}
+            <div className="form-group">
+              <label htmlFor="logo">Logo:</label>
+              <input id="logo" type="file" />
+            </div>
 
-            <label htmlFor="eventInfo">Event Info:</label>
-            <textarea id="eventInfo" />
+            {/* POINT PERSON AND ADD POINT PERSON*/}
+            <div className="form-section">
+              <label>Point Person</label>
+              {pointPersons.map((pointPerson, index) => (
+                <div key={index} className="contact-row">
+                  <input
+                    type="text"
+                    placeholder="Position"
+                    value={pointPerson.position}
+                    onChange={(e) =>
+                      handlePointPersonChange(index, "position", e.target.value)
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={pointPerson.name}
+                    onChange={(e) =>
+                      handlePointPersonChange(index, "name", e.target.value)
+                    }
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                className="add-contact-btn"
+                onClick={addPointPerson}
+              >
+                ➕ Add Point Person
+              </button>
+            </div>
 
-            <label htmlFor="description">Brief Description about the partner:</label>
-            <textarea id="description" />
+            {/* CONTACT PERSON AND ADD CONTACT PERSON*/}
+            <div className="form-section">
+              <label>Contact Person</label>
+              {contacts.map((contact, index) => (
+                <div key={index} className="contact-row">
+                  <input
+                    type="text"
+                    placeholder="Position"
+                    value={contact.position}
+                    onChange={(e) =>
+                      handleContactChange(index, "position", e.target.value)
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={contact.name}
+                    onChange={(e) =>
+                      handleContactChange(index, "name", e.target.value)
+                    }
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                className="add-contact-btn"
+                onClick={addContact}
+              >
+                ➕ Add Contact
+              </button>
+            </div>
+    
+            {/* POINT PERSON Email */}
+            <div className="form-group">
+              <label htmlFor="pointPersonEmail">Point Person Email:</label>
+              <input id="pointPersonEmail" type="text" />
+            </div>
 
-            <label htmlFor="remarks">Remarks:</label>
-            <textarea id="remarks" />
+           {/* CONTACT PERSON EMAIL */}
+            <div className="form-group">
+              <label htmlFor="contactPersonEmail">Contact Person Email:</label>
+              <input id="contactPersonEmail" type="email" />
+            </div>
 
+            {/* LOCATOR */}
+            <div className="form-group full-width">
+              <label htmlFor="locator">Hardcopy Locator:</label>
+              <input id="locator" type="text" />
+            </div>
+
+            {/* EVENT INFO */}
+            <div className="form-group full-width">
+              <label htmlFor="eventInfo">Event Info:</label>
+              <textarea id="eventInfo" />
+            </div>
+
+            {/* DESCRIPTION */}
+            <div className="form-group full-width">
+              <label htmlFor="description">Brief Description about the partner:</label>
+              <textarea id="description" />
+            </div>
+
+            {/* REMARKS */}
+            <div className="form-group full-width">
+              <label htmlFor="remarks">Remarks:</label>
+              <textarea id="remarks" />
+            </div>
+
+            {/* SUBMIT BUTTON */}
             <div className="form-actions">
               <button type="submit" className="publish-button">Publish</button>
             </div>
+
           </form>
         </div>
       </div>
