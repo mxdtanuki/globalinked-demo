@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
-import './manualEntry.css';
+import './globalUpload.css';
 
 const countryOptions = [
   { value: 'Kazakhstan', label: 'Kazakhstan' },
