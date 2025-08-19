@@ -22,7 +22,6 @@ class Agreements(Base):
     partnership_type = Column(String(100), nullable=True)
     event_info = Column(String(255), nullable=True)
     signatories_list = Column(Text, nullable=True)
-    point_persons_list = Column(Text, nullable=True)
     agreement_status = Column(String(20), nullable=False)
     hardcopy_location = Column(String(100), nullable=True)
     entry_type = Column(String(10), nullable=False)
