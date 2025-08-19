@@ -15,6 +15,7 @@ const OverviewDash = () => {
   const [error, setError] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [search, setSearch] = useState(''); //Added search state
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [filters, setFilters] = useState({
     documentType: '',
