@@ -114,9 +114,9 @@ export const agreementService = {
 
     return response.json();
   },
-
-  checkDuplicate: async ({ dts_number, document_type, partnership_type }) => {
-  const token = localStorage.getItem("access_token"); // match the other methods
+/*
+  async checkDuplicate({ dts_number, document_type, partnership_type }) {
+  const token = localStorage.getItem("access_token");
   if (!token) {
     throw new Error("Please login first");
   }
@@ -127,16 +127,24 @@ export const agreementService = {
     partnership_type
   });
 
-  const res = await fetch(`${API_BASE_URL}/agreements/check-duplicate?${params.toString()}`, {
+  const response = await fetch(`${API_BASE_URL}/agreements/check-duplicate?${params.toString()}`, {
     method: "GET",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
+      "Authorization": `Bearer ${token}`
     }
   });
 
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error("Failed to check duplicate");
-  return await res.json();
+  if (response.status === 404) {
+    return null; 
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to check duplicate");
+  }
+
+  return await response.json();
 }
+*/
+
 };
