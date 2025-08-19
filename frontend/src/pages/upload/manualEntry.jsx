@@ -1,7 +1,8 @@
-import React from 'react';
+
+import React, { useState } from "react";
 import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
-import './manualEntry.css';
+import './globalUpload.css';
 
 const countryOptions = [
   { value: 'Kazakhstan', label: 'Kazakhstan' },
