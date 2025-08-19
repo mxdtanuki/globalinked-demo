@@ -9,10 +9,16 @@ from app.models.source_units import SourceUnits
 from app.models.contact_persons import ContactPersons
 from app.models.agreement_remarks import AgreementRemarks
 from app.schemas.agreement_schemas import AgreementCreate, AgreementResponse, DashboardSummary
+from pydantic import BaseModel
+from typing import Optional
 from app.utils.utils import get_current_user
 from app.models.users import Users
 from fastapi import Query
 from app.schemas.agreement_schemas import AgreementResponse
+from app.schemas.agreement_schemas import PointPersonResponse #
+from app.schemas.agreement_schemas import ContactPersonResponse #
+from app.models.point_persons import PointPersons
+from app.models.agreement_point_persons import AgreementPointPersons
 
 router = APIRouter(
     prefix="/agreements",
@@ -36,15 +42,35 @@ async def get_agreements(
         agreements = []
 
         for agreement, partner, source_unit in results:
-            # Get contact persons
+            # Get contact persons (direct)
             contact_persons = db.query(ContactPersons).filter(
                 ContactPersons.partner_id == partner.partner_id
             ).all()
+
+            # Get point persons (via bridge)
+            point_persons = (
+                db.query(PointPersons)
+                .join(AgreementPointPersons, AgreementPointPersons.point_person_id == PointPersons.point_person_id)
+                .filter(AgreementPointPersons.agreement_id == agreement.agreement_id)
+                .all()
+            )
             
             # Get remarks
             remarks = db.query(AgreementRemarks).filter(
                 AgreementRemarks.agreement_id == agreement.agreement_id
             ).all()
+
+            # Concatenate into single strings for dashboard display @chez
+            contact_persons_display = ", ".join(
+                f"{cp.contact_person_position}: {cp.contact_person_name} ({cp.contact_person_email})"
+                for cp in contact_persons
+            ) if contact_persons else ""
+            # <td>{agreement.contact_persons_display}</td>
+            point_persons_display = ", ".join(
+                f"{pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})"
+                for pp in point_persons
+            ) if point_persons else ""
+            # <td>{agreement.point_persons_display}</td>
 
             agreements.append(AgreementResponse(
                 agreement_id=agreement.agreement_id,
