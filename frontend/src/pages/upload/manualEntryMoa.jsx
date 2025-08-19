@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
-import './manualEntry.css';
-import axios from "axios";
+import './globalUpload.css';
+//import axios from "axios";
 
 
 const countryOptions = [
