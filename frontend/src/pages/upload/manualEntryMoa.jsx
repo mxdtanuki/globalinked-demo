@@ -113,7 +113,6 @@ const ManualEntryMOA = () => {
   const [message, setMessage] = useState('');
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState(null);
-  const [selectedPartnership, setSelectedPartnership] = useState(null);
   const [dtsNumber, setDtsNumber] = useState("");
   const [documentType, setDocumentType] = useState("MOA"); // or whatever your default is
   const [partnershipType, setPartnershipType] = useState("");
@@ -182,7 +181,15 @@ if (duplicate) {
       validity_period: data.validity || null,
       event_info: data.eventInfo || null,
       signatories_list: data.signatories || null,
-      point_persons_list: data.pointPerson || null,
+      point_persons: data.pointPerson
+        ? [
+            {
+              point_person_name: data.pointPerson,
+              point_person_position: data.pointPersonPosition || "",
+              point_person_email: data.pointPersonEmail || ""
+            }
+          ]
+        : [],
       hardcopy_location: data.locator || null,
       renewed_from_agreement_id: data.renewedFrom
         ? parseInt(data.renewedFrom)
@@ -203,7 +210,6 @@ if (duplicate) {
     e.target.reset();
     setSelectedCountry(null);
     setSelectedRegion(null);
-    setSelectedPartnership(null);
     setDtsNumber("");
     setDocumentType("MOA");
     setPartnershipType("");
