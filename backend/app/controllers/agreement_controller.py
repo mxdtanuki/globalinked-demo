@@ -99,13 +99,22 @@ async def get_agreements(
                 validity_period=agreement.validity_period,
                 event_info=agreement.event_info,
                 signatories_list=agreement.signatories_list,
-                point_persons_list=agreement.point_persons_list,
                 agreement_status=agreement.agreement_status,
                 hardcopy_location=agreement.hardcopy_location,
                 entry_type=agreement.entry_type,
                 renewed_from_agreement_id=agreement.renewed_from_agreement_id,
                 MOU_to_MOA_id=agreement.MOU_to_MOA_id,
-                contact_persons=contact_persons,
+                contact_persons=[
+                    ContactPersonResponse.model_validate(cp, from_attributes=True)
+                    for cp in contact_persons
+                ],
+                point_persons=[
+                    PointPersonResponse.model_validate(pp, from_attributes=True)
+                    for pp in point_persons
+                ],
+                # NEW: pre-concatenated fields
+                contact_persons_display=contact_persons_display,
+                point_persons_display=point_persons_display,
                 remarks=remarks,
                 created_at=partner.created_at
             ))
