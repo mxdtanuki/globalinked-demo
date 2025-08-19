@@ -66,23 +66,23 @@ class AgreementCreate(BaseModel):
     validity_period: Optional[str] = Field(None, max_length=50) 
     event_info: Optional[str] = Field(None, max_length=255)
     signatories_list: Optional[str] = None
-    point_persons_list: Optional[str] = None
+    point_persons: Optional[List[PointPersonCreate]] = []
     agreement_status: str = Field(..., max_length=20) 
     hardcopy_location: Optional[str] = Field(None, max_length=100)
     entry_type: str = Field(..., max_length=10)
     renewed_from_agreement_id: Optional[int] = None
     MOU_to_MOA_id: Optional[int] = None
+    contact_persons: List[ContactPersonCreate] = [] # NEW
     initial_remarks: Optional[List[RemarkCreate]] = []
 
 class AgreementResponse(BaseModel):
     # IDs
     agreement_id: int
     partner_id: int
-
     source_unit_id: int
     
     # Partner info 
-    name: str  # Partner name
+    name: str
     country: Optional[str]
     region: Optional[str]
     address: Optional[str]
@@ -92,7 +92,7 @@ class AgreementResponse(BaseModel):
     logo_path: Optional[str] 
     
     # Source info 
-    unit_name: str  # College/department name
+    unit_name: str
     
     # Agreement info 
     dts_number: str
