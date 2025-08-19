@@ -30,7 +30,6 @@ async def get_agreements(
     db: Session = Depends(get_db),
     current_user: Users = Depends(get_current_user)
 ):
-    # Get all agreements with partner and source unit details
     try:
         query = db.query(Agreements, Partners, SourceUnits).join(
             Partners, Agreements.partner_id == Partners.partner_id
