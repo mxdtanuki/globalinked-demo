@@ -45,6 +45,19 @@ class PartnerCreate(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     contact_persons: Optional[List[ContactPersonCreate]] = []
 
+class PointPersonCreate(BaseModel):
+    point_person_position: str
+    point_person_name: str
+    point_person_email: str
+
+class PointPersonResponse(BaseModel):
+    point_person_id: int
+    point_person_position: str
+    point_person_name: str
+    point_person_email: str
+
+    class Config:
+        from_attributes = True
 class AgreementCreate(BaseModel):
     # IDs
     partner_id: Optional[int] = None
@@ -109,18 +122,25 @@ class AgreementResponse(BaseModel):
     validity_period: Optional[str]
     event_info: Optional[str]
     signatories_list: Optional[str]
-    point_persons_list: Optional[str]
+    
+    # Persons: For their own page
+    point_persons: List[PointPersonResponse] = []
+    contact_persons: List[ContactPersonResponse] = []
+    
+    # NEW pre-concatenated fields for overview
+    point_persons_display: Optional[str] = None
+    contact_persons_display: Optional[str] = None
+
+    # Status/extra
     agreement_status: str
     hardcopy_location: Optional[str]
     entry_type: str
     renewed_from_agreement_id: Optional[int]
     MOU_to_MOA_id: Optional[int]
-    contact_persons: List[ContactPersonResponse] = [] 
-    remarks: List[RemarkResponse] = [] 
+    remarks: List[RemarkResponse] = []
     
     # Metadata (for filtering)
     created_at: Optional[datetime]
-    
     class Config:
         from_attributes = True
 
