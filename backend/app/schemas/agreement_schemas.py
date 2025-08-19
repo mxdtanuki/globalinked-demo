@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import date, datetime
 
-
 class ContactPersonCreate(BaseModel):
     contact_person_position: str
     contact_person_name: str
@@ -14,7 +13,6 @@ class ContactPersonResponse(BaseModel):
     contact_person_name: str
     contact_person_email: str
     partner_id: int
-    
     class Config:
         from_attributes = True
 
@@ -154,7 +152,7 @@ class PartnerResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class DashboardSummary(BaseModel):
+class DashboardSummary(BaseModel): # for analytics
     total_agreements: int
     total_mou: int
     total_moa: int
@@ -165,3 +163,5 @@ class DashboardSummary(BaseModel):
     by_status: dict
     by_country: dict
     recent_agreements: list
+
+
