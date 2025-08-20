@@ -17,6 +17,7 @@ import Email from './pages/email';
 import Notification from './pages/notification';
 import Archive from './pages/archive';
 import Profile from './pages/profile';
+    import UserManagement from './pages/userManagement'; 
 
 // Stat Pages
 import ActiveAgreement from './pages/stat/activeAgreement';
@@ -71,6 +72,7 @@ function App() {
           <Route path="/notification" element={<Notification />} />   
           <Route path="/archive" element={<Archive />} />
           <Route path="/profile" element={<Profile />} />
+               <Route path="/userManagement" element={<UserManagement />} />
 
           {/* Stat routes */}
           <Route path="/stat/activeAgreement" element={<ActiveAgreement />} />
@@ -101,6 +103,7 @@ function App() {
           <Route path="/upload/manualEntryMOA" element={<ManualEntryMoa />} />
           <Route path="/upload/extractedEntryMOA" element={<ExtractedEntryMOA />} />
         </Routes>
+
       </Router>
     </NotificationsProvider>
   );

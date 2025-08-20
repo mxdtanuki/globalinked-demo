@@ -7,7 +7,11 @@ const MOAUpload = () => {
   const navigate = useNavigate();
   const [withMou, setWithMou] = useState(false);
   const [selectedMou, setSelectedMou] = useState('');
-
+  // handle file change 
+  const handleFileChange = (e) => {
+    const fileName = e.target.files[0]?.name || "No file chosen";
+    document.getElementById("fileName").textContent = fileName;
+  };
   const mouOptions = [
     'MOU - Japan Exchange',
     'MOU - CHED Partnership',
@@ -98,6 +102,7 @@ const MOAUpload = () => {
           </p>
         </form>
 
+        {/* Upload Box */}
         <div className="upload-box">
           <h3>Upload File</h3>
           <p>Select MOA file</p>
@@ -105,12 +110,17 @@ const MOAUpload = () => {
           <div className="file-drop-area">
             <p>Select a file</p>
             <small>DOCX, PDF or Scanned PDF, file size no more than 20MB</small>
-            <input type="file" id="moaFile" />
+
+            <label htmlFor="mouFile" className="select-file-btn">
+              Choose File
+            </label>
+            <input type="file" id="mouFile" hidden onChange={handleFileChange} />
+            <p id="fileName" className="file-name">No file chosen</p>
           </div>
 
           <button
             className="submit-btn"
-            onClick={() => navigate('/upload/extractedEntryMoa')}
+            onClick={() => navigate('/upload/extractedEntryMOA')}
           >
             Submit
           </button>

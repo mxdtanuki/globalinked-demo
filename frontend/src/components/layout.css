@@ -128,6 +128,7 @@ body, html, #root {
 .sidebar-link {
   display: flex;
   align-items: center;
+  gap: 12px;  
   color: inherit;
   text-decoration: none;
   width: 100%;
@@ -137,6 +138,10 @@ body, html, #root {
 
 .sidebar-icon {
   font-size: 18px;
+  margin-right: 12px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* COLLAPSE BUTTON */

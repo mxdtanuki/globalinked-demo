@@ -9,10 +9,12 @@
 
 /* Title */
 .notification-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #800000;
+  font-size: 2rem;      
+  font-weight: 700;      
+  color: #800000;        
+  margin-bottom: 20px;  
+  border-bottom: 2px solid #d9b3b3; 
+  padding-bottom: 8px;   
 }
 
 /* Header Tabs */
