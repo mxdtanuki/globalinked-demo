@@ -61,8 +61,12 @@ const Notification = () => {
             </div>
           )}
 
+          <h2 className="notification-title">
+           Notifications
+           </h2>
+           
           <div className="notification-container">
-            <h1 className="notification-title">Notifications</h1>
+
 
             <div className="notification-header">
               <div className="notification-tabs">
