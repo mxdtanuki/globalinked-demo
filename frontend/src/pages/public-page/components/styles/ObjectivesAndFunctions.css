@@ -1,0 +1,160 @@
+/* ObjFunct Section */
+.objectives-functions {
+  padding: 6rem 0;
+  background: linear-gradient(135deg, #F7F2F2 0%, #fff 100%);
+}
+
+/* Layout */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  margin-top: 3rem;
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+
+.section-header h3 {
+  font-size: 2rem;
+  color: #4A1D1D;
+  margin: 0;
+  position: relative;
+}
+
+.section-header h3::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 2px;
+  background: #A63939;
+}
+
+.section-icon {
+  width: 36px;
+  height: 36px;
+}
+
+/* Cards Container */
+.cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Objective and Function Cards */
+.objective-card,
+.function-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(74, 29, 29, 0.1);
+  border-left: 4px solid #A63939;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideInUp 0.6s ease forwards;
+}
+
+/* Hover Effects */
+.objective-card:hover,
+.function-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(74, 29, 29, 0.15);
+}
+
+/* Icon in Cards */
+.card-icon-img {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+/* Text inside Cards */
+.objective-card p,
+.function-card p {
+  margin: 0;
+  color: #333;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* Animation */
+@keyframes slideInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* delay animations */
+.objective-card:nth-child(1) { animation-delay: 0s; }
+.objective-card:nth-child(2) { animation-delay: 0.1s; }
+.objective-card:nth-child(3) { animation-delay: 0.2s; }
+.objective-card:nth-child(4) { animation-delay: 0.3s; }
+.objective-card:nth-child(5) { animation-delay: 0.4s; }
+.objective-card:nth-child(6) { animation-delay: 0.5s; }
+.objective-card:nth-child(7) { animation-delay: 0.6s; }
+.objective-card:nth-child(8) { animation-delay: 0.7s; }
+
+.function-card:nth-child(1) { animation-delay: 0s; }
+.function-card:nth-child(2) { animation-delay: 0.1s; }
+.function-card:nth-child(3) { animation-delay: 0.2s; }
+.function-card:nth-child(4) { animation-delay: 0.3s; }
+.function-card:nth-child(5) { animation-delay: 0.4s; }
+.function-card:nth-child(6) { animation-delay: 0.5s; }
+.function-card:nth-child(7) { animation-delay: 0.6s; }
+.function-card:nth-child(8) { animation-delay: 0.7s; }
+
+
+@media (max-width: 968px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .objectives-functions {
+    padding: 4rem 0;
+  }
+
+  .section-header {
+    flex-direction: column;
+  }
+
+  .section-header h3 {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
+  .section-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .objective-card,
+  .function-card {
+    padding: 1.2rem;
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+
+  .card-icon-img {
+    margin-bottom: 0.75rem;
+  }
+}

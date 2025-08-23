@@ -1,34 +1,74 @@
 import React from 'react';
+import './styles/Officials.css';
 
-const officials = [
-  {
-    name: "Felicitas C. Trinidad, MPsy, RPm, CHRA",
-    role: "Director\nChief, Exchange and Study Program Section (concurrent)"
-  },
-  {
-    name: "Zaila C. Decin, MP (Industrial)",
-    role: "Chief, Partnership and Linkages Section\nChief, Special Internationalization Projects Section (concurrent)"
-  },
-  {
-    name: "Rochelle S. Murao",
-    role: "Administrative Aide VI"
-  },
-  {
-    name: "Marianne P. Enguerra",
-    role: "Emergency Administrative Aide III"
-  }
-];
+import trinidad from './assets/trinidad.jpg';
+import decin from './assets/decin.jpg';
+import sasot from './assets/sasot.jpg';
+import reyes from './assets/reyes.jpg';
+import murao from './assets/murao.jpg';
+import cynthia from './assets/trinidad2.jpg';
+import enguerra from './assets/enguerra.jpg';
 
 export default function Officials() {
+  const officials = [
+    {
+      name: "Felicitas C. Trinidad, MPsy, RPm, CHRA",
+      position: "Director",
+      image: trinidad
+    },
+    {
+      name: "Zaila C. Decin, MP (Industrial)",
+      position: "Chief, Partnership and Linkages Section",
+      image: decin
+    },
+    {
+      name: "Christopher F. Sasot, PhD",
+      position: "Chief, Special Internationalization Projects",
+      image: sasot
+    },
+    {
+      name: "Jinky D. Reyes, PhD",
+      position: "Chief, Study and Exchange Program Section",
+      image: reyes
+    },
+    {
+      name: "Rochelle S. Murao",
+      position: "Administrative Aide VI",
+      image: murao
+    },
+    {
+      name: "Cynthia C. Trinidad",
+      position: "Administrative Aide VI",
+      image: cynthia
+    },
+    {
+      name: "Marianne P. Enguerra",
+      position: "Emergency Administrative Aide III",
+      image: enguerra
+    }
+  ];
+
   return (
-    <section className="officials-section">
+    <section id="officials" className="officials">
       <div className="container">
-        <h2>Officials and Staff</h2>
+        <h2 className="section-title">Officials and Staff</h2>
+        
         <div className="officials-grid">
-          {officials.map((person, idx) => (
-            <div key={idx} className="official-card">
-              <h4>{person.name}</h4>
-              <p>{person.role.split('\n').map((line, i) => <div key={i}>{line}</div>)}</p>
+          {officials.map((official, index) => (
+            <div key={index} className="official-card">
+              <div className="official-image">
+                <img 
+                  src={official.image} 
+                  alt={official.name}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/200x200/4A1D1D/ffffff?text=Photo';
+                  }}
+                />
+              </div>
+              <div className="official-info">
+                <h3>{official.name}</h3>
+                <p>{official.position}</p>
+              </div>
             </div>
           ))}
         </div>
