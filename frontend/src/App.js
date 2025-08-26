@@ -1,12 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './pages/login'; 
+import Login from './pages/login';
 import { NotificationsProvider } from './pages/notificationContext';
 
 //public page
 import PublicPage from './pages/public-page/public-page';
-//sidebar pages 
-import Overview from './pages/overview'; 
+// MOUMOAPage
+import MOUMOAPage from './pages/public-page/components/MOUMOAPage';
+
+//sidebar pages
+import Overview from './pages/overview';
 import Analytics from './pages/analytics';
 import DocumentUpload from './pages/docUpload';
 import PointPerson from './pages/pointPerson';
@@ -22,10 +25,10 @@ import Profile from './pages/profile';
 // Stat Pages
 import ActiveAgreement from './pages/stat/activeAgreement';
 import TotalAgreement from './pages/stat/totalAgreement';
-import ExpiredAgreement from './pages/stat/expiredAgreements';  
+import ExpiredAgreement from './pages/stat/expiredAgreements';
 import NearExpirationAgreement from './pages/stat/nearExpAgreement';
 
-// Lifecycle Pages 
+// Lifecycle Pages
 import EndorseULCO from './pages/lifecycle/ulco';
 import RevertInitiator from './pages/lifecycle/revertIni';
 import Replication from './pages/lifecycle/replication';
@@ -44,7 +47,7 @@ import MOUUpload from './pages/upload/mou';
 
 //extracted entry
 import ExtractedEntry from './pages/upload/extractedEntry';
-import ManualEntry from './pages/upload/manualEntry'; 
+import ManualEntry from './pages/upload/manualEntry';
 import ManualEntryMoa from './pages/upload/manualEntryMoa';
 import ExtractedEntryMOA from './pages/upload/extractedEntryMoa';
 
@@ -52,24 +55,23 @@ import './App.css';
 
 function App() {
   return (
-   
     <NotificationsProvider>
       <Router>
         <Routes>
           {/* public page routes */}
           <Route path="/" element={<PublicPage />} />
-          
+
           {/* login and admin routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/overview" element={<Overview />} />
-          <Route path="/analytics" element={<Analytics />} /> 
-          <Route path="/docUpload" element={<DocumentUpload />} /> 
-          <Route path="/pointPerson" element={<PointPerson />} /> 
-          <Route path="/contactPerson" element={<ContactPerson />} /> 
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/docUpload" element={<DocumentUpload />} />
+          <Route path="/pointPerson" element={<PointPerson />} />
+          <Route path="/contactPerson" element={<ContactPerson />} />
           <Route path="/mobility" element={<Mobility />} />
-          <Route path="/docVer" element={<DocumentVersion />} />    
+          <Route path="/docVer" element={<DocumentVersion />} />
           <Route path="/email" element={<Email />} />
-          <Route path="/notification" element={<Notification />} />   
+          <Route path="/notification" element={<Notification />} />
           <Route path="/archive" element={<Archive />} />
           <Route path="/profile" element={<Profile />} />
                <Route path="/userManagement" element={<UserManagement />} />
@@ -92,16 +94,19 @@ function App() {
           <Route path="/lifecycle/notary" element={<Notary />} />
           <Route path="/lifecycle/FFUPCopy" element={<FFUPCopy />} />
           <Route path="/lifecycle/renewals" element={<Renewals />} />
-          
+
           {/* Upload Document Routes */}
-          <Route path="/document-upload/mou" element={<MOUUpload />} /> 
+          <Route path="/document-upload/mou" element={<MOUUpload />} />
           <Route path="/document-upload/moa" element={<MOAUpload />} />
-          
+
           {/* Upload Document Routes */}
           <Route path="/upload/extractedEntry" element={<ExtractedEntry />} />
           <Route path="/upload/manualEntry" element={<ManualEntry />} />
           <Route path="/upload/manualEntryMOA" element={<ManualEntryMoa />} />
           <Route path="/upload/extractedEntryMOA" element={<ExtractedEntryMOA />} />
+
+          {/* Newly added route */}
+          <Route path="/mou-moa" element={<MOUMOAPage />} />
         </Routes>
 
       </Router>
