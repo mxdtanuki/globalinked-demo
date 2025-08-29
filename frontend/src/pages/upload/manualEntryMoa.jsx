@@ -275,8 +275,6 @@ if (duplicate) {
               <option value="4">CHTTM</option>
             </select>
 
-
-
              <label htmlFor="signatories">Signatories:</label>
             <input id="signatories" name="signatories" type="text" />
 

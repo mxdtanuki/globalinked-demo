@@ -1,8 +1,9 @@
 import React from 'react';
-import emailIcon from '../components/assets/email.png';
-import locationIcon from '../components/assets/location.png';
-import telephoneIcon from '../components/assets/telephone.png';
-import './ContactSection.css';
+import './styles/ContactSection.css';
+
+import emailIcon from './assets/email.png';
+import locationIcon from './assets/location.png';
+import telephoneIcon from './assets/telephone.png';
 
 export default function ContactSection() {
   return (
@@ -44,7 +45,7 @@ export default function ContactSection() {
         {/* Right - Contact Form */}
         <div className="contact-form">
           <form>
-                      <h3>Contact Us</h3>
+            <h3>Contact Us</h3>
             <div className="form-row">
               <div>
                 <label htmlFor="first-name">First Name *</label>

@@ -1,37 +1,105 @@
 .mobility-wrapper {
   background: #fff;
   padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
 }
 
+/* Header section */
 .mobility-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 1.5rem;
-  gap: 10px;
 }
 
 .search-input {
   flex: 1;
-  padding: 12px;
+  padding: 12px 14px;
   border-radius: 6px;
   border: 1px solid #ccc;
   font-size: 14px;
+  transition: all 0.2s ease;
 }
 
+.search-input:focus {
+  outline: none;
+  border-color: #800000;
+  box-shadow: 0 0 6px rgba(128, 0, 0, 0.3);
+}
+
+/* Buttons */
 .filter-btn,
 .generate-btn {
-  background-color: #f5f5f5;
-  color: #888;
-  border: 1px solid #ccc;
-  font-weight: 500;
-  padding: 12px 20px;
+  padding: 10px 18px;
   border-radius: 6px;
-  cursor: not-allowed;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
 }
 
+/* Filter button */
+.filter-btn {
+  background-color: #800000 !important;
+  color: #fff !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.filter-btn:hover {
+  background-color: #a00000 !important;
+}
+
+.filter-btn:active,
+.filter-btn.active {
+  background-color: #800000;
+}
+
+/* Generate button */
+.generate-btn {
+  background-color: #800000; 
+  color: #fff; 
+  cursor: pointer; 
+  border: none;
+}
+
+.generate-btn:hover {
+  background-color: #a00000;
+}
+
+.generate-btn:active {
+  background-color: #5a0000;
+}
+
+
+/* Filters */
+.filters-container {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0 18px;
+  flex-wrap: wrap;
+}
+
+.filters-container select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filters-container select:focus {
+  border-color: #800000;
+  outline: none;
+  box-shadow: 0 0 5px rgba(128, 0, 0, 0.4);
+}
+
+/* Table */
 .table-container {
   overflow-x: auto;
   border: 1px solid #ddd;
@@ -48,39 +116,47 @@
 .mobility-table th,
 .mobility-table td {
   text-align: left;
-  padding: 14px 18px;
-  border-bottom: 1px solid #eee;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
   white-space: nowrap;
 }
 
 .mobility-table th {
-  color: #9b0f0f;
+  background: #fafafa;
+  color: #800000;
   font-weight: 600;
   font-size: 13px;
   text-transform: uppercase;
-  background: #fff;
 }
 
+.mobility-table tbody tr:hover {
+  background-color: #fdf2f2;
+  transition: background 0.2s ease;
+}
+
+/* Action button */
 .view-btn {
   background-color: #f3f3f3;
-  color: #888;
+  color: #555;
   border: none;
   padding: 8px 16px;
   font-weight: 500;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .view-btn:hover {
-  background-color: #e0e0e0;
+  background-color: #e5e5e5;
+  color: #000;
 }
 
+/* Pagination */
 .pagination {
   display: flex;
   justify-content: center;
-  margin-top: 1.5rem;
-  gap: 6px;
+  margin-top: 1.8rem;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -91,10 +167,16 @@
   background-color: #fff;
   color: #333;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #f8e5e5;
+  border-color: #800000;
 }
 
 .pagination button.active {
-  background-color: #9b0f0f;
+  background-color: #800000;
   color: #fff;
   font-weight: bold;
 }
@@ -102,4 +184,14 @@
 .pagination button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Title */
+.mobility-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #800000;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #d9b3b3;
+  padding-bottom: 8px;
 }

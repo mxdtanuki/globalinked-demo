@@ -7,39 +7,43 @@ const ExpiredAgreement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilter, setShowFilter] = useState(false);
   const [filterType, setFilterType] = useState('');
-  const [filterYear, setFilterYear] = useState('');
-  const [appliedFilters, setAppliedFilters] = useState({ type: '', year: '' });
+  const [filterClassification, setFilterClassification] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState({ type: '', classification: '' });
 
   const itemsPerPage = 5;
 
   // Sample Data
   const expiredAgreements = [
-    { dtsNo: 'DTS-20201', partner: 'University of Tokyo', type: 'MOU', startDate: '2020-01-15', endDate: '2024-01-15', status: 'Expired', region: 'Asia / Japan' },
-    { dtsNo: 'DTS-202105', partner: 'Harvard University', type: 'MOA', startDate: '2021-03-10', endDate: '2024-03-10', status: 'Expired', region: 'North America / USA' },
-    { dtsNo: 'DTS-201907', partner: 'University of Melbourne', type: 'MOU', startDate: '2019-05-01', endDate: '2023-05-01', status: 'Expired', region: 'Oceania / Australia' },
-    { dtsNo: 'DTS-202015', partner: 'Oxford University', type: 'MOA', startDate: '2020-09-20', endDate: '2024-09-20', status: 'Expired', region: 'Europe / UK' },
-    { dtsNo: 'DTS-201803', partner: 'National University of Singapore', type: 'MOU', startDate: '2018-07-11', endDate: '2023-07-11', status: 'Expired', region: 'Asia / Singapore' },
-    { dtsNo: 'DTS-201908', partner: 'Seoul National University', type: 'MOA', startDate: '2019-10-05', endDate: '2024-10-05', status: 'Expired', region: 'Asia / South Korea' },
-    { dtsNo: 'DTS-201809', partner: 'University of Toronto', type: 'MOU', startDate: '2018-02-15', endDate: '2023-02-15', status: 'Expired', region: 'North America / Canada' },
-    { dtsNo: 'DTS201711', partner: 'University of Cape Town', type: 'MOA', startDate: '2017-11-23', endDate: '2022-11-23', status: 'Expired', region: 'Africa / South Africa' },
+    { dtsNo: 'DTS-20201', partner: 'University of Tokyo', type: 'MOU', partnerClassification: 'MOU', startDate: '2020-01-15', endDate: '2024-01-15', status: 'Expired', region: 'Asia / Japan' },
+    { dtsNo: 'DTS-202105', partner: 'Harvard University', type: 'MOA', partnerClassification: 'MOA Global Leadership', startDate: '2021-03-10', endDate: '2024-03-10', status: 'Expired', region: 'North America / USA' },
+    { dtsNo: 'DTS-201907', partner: 'University of Melbourne', type: 'MOU', partnerClassification: 'MOU', startDate: '2019-05-01', endDate: '2023-05-01', status: 'Expired', region: 'Oceania / Australia' },
+    { dtsNo: 'DTS-202015', partner: 'Oxford University', type: 'MOA', partnerClassification: 'MOA on Conferences', startDate: '2020-09-20', endDate: '2024-09-20', status: 'Expired', region: 'Europe / UK' },
+    { dtsNo: 'DTS-201803', partner: 'National University of Singapore', type: 'MOU', partnerClassification: 'MOU', startDate: '2018-07-11', endDate: '2023-07-11', status: 'Expired', region: 'Asia / Singapore' },
+    { dtsNo: 'DTS-201908', partner: 'Seoul National University', type: 'MOA', partnerClassification: 'MOA for Donation', startDate: '2019-10-05', endDate: '2024-10-05', status: 'Expired', region: 'Asia / South Korea' },
+    { dtsNo: 'DTS-201809', partner: 'University of Toronto', type: 'MOU', partnerClassification: 'MOU', startDate: '2018-02-15', endDate: '2023-02-15', status: 'Expired', region: 'North America / Canada' },
+    { dtsNo: 'DTS201711', partner: 'University of Cape Town', type: 'MOA', partnerClassification: 'MOA on Academic Partnership', startDate: '2017-11-23', endDate: '2022-11-23', status: 'Expired', region: 'Africa / South Africa' },
   ];
 
-  // Get years from endDate
-  const expiryYears = [...new Set(expiredAgreements.map(a => new Date(a.endDate).getFullYear()))].sort((a, b) => b - a);
+  // Dynamic partner classifications
+  const partnerClassifications = [...new Set(expiredAgreements.map(a => a.partnerClassification))];
 
   // SEARCH & FILTER LOGIC
   const filteredAgreements = expiredAgreements.filter((agreement) => {
     const matchesSearch =
       agreement.dtsNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       agreement.partner.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agreement.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agreement.partnerClassification.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agreement.startDate.includes(searchTerm) ||
+      agreement.endDate.includes(searchTerm) ||
       agreement.region.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesType = appliedFilters.type ? agreement.type === appliedFilters.type : true;
-    const matchesYear = appliedFilters.year
-      ? new Date(agreement.endDate).getFullYear().toString() === appliedFilters.year
+    const matchesClassification = appliedFilters.classification
+      ? agreement.partnerClassification === appliedFilters.classification
       : true;
 
-    return matchesSearch && matchesType && matchesYear;
+    return matchesSearch && matchesType && matchesClassification;
   });
 
   // Pagination
@@ -78,7 +82,7 @@ const ExpiredAgreement = () => {
         {showFilter && (
           <div className="filter-panel">
             <label>
-              Type:
+              Document Type:
               <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                 <option value="">All</option>
                 <option value="MOU">MOU</option>
@@ -86,24 +90,40 @@ const ExpiredAgreement = () => {
               </select>
             </label>
             <label>
-              Expiry Year:
-              <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
+              Partner Classification:
+              <select
+                value={filterClassification}
+                onChange={(e) => setFilterClassification(e.target.value)}
+              >
                 <option value="">All</option>
-                {expiryYears.map((year, i) => (
-                  <option key={i} value={year}>{year}</option>
+                {partnerClassifications.map((cls, i) => (
+                  <option key={i} value={cls}>{cls}</option>
                 ))}
               </select>
             </label>
-            <button
-              className="apply-btn"
-              onClick={() => {
-                setAppliedFilters({ type: filterType, year: filterYear });
-                setCurrentPage(1);
-                setShowFilter(false);
-              }}
-            >
-              Apply
-            </button>
+            <div className="filter-buttons">
+              <button
+                className="apply-btn"
+                onClick={() => {
+                  setAppliedFilters({ type: filterType, classification: filterClassification });
+                  setCurrentPage(1);
+                  setShowFilter(false);
+                }}
+              >
+                Apply
+              </button>
+              <button
+                className="clear-btn"
+                onClick={() => {
+                  setFilterType('');
+                  setFilterClassification('');
+                  setAppliedFilters({ type: '', classification: '' });
+                  setCurrentPage(1);
+                }}
+              >
+                Clear
+              </button>
+            </div>
           </div>
         )}
 
@@ -114,11 +134,12 @@ const ExpiredAgreement = () => {
                 <tr>
                   <th>DTS Number</th>
                   <th>Partner Name</th>
-                  <th>Type</th>
+                  <th>Document Type</th>
+                  <th>Partner Classification</th>
                   <th>Start Date</th>
                   <th>End Date</th>
-                  <th>Status</th>
                   <th>Region / Country</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -128,12 +149,13 @@ const ExpiredAgreement = () => {
                     <td>{agreement.dtsNo}</td>
                     <td>{agreement.partner}</td>
                     <td>{agreement.type}</td>
+                    <td>{agreement.partnerClassification}</td>
                     <td>{agreement.startDate}</td>
                     <td>{agreement.endDate}</td>
+                    <td>{agreement.region}</td>
                     <td>
                       <span className="status-badge expired">{agreement.status}</span>
                     </td>
-                    <td>{agreement.region}</td>
                     <td>
                       <button className="view-btn">View</button>
                       <button className="download-btn">Download</button>
