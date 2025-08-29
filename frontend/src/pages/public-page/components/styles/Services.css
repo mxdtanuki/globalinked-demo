@@ -1,0 +1,171 @@
+/* Import Trajan fonts */
+@font-face {
+  font-family: "Trajan Pro";
+  src: url("../assets/fonts/TrajanPro-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Trajan Pro";
+  src: url("../assets/fonts/TrajanPro-Bold.otf") format("opentype");
+  font-weight: bold;
+  font-style: normal;
+}
+
+/* Services */
+.services {
+  padding: 6rem 0;
+  background: white;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.service-card {
+  background: linear-gradient(135deg, #f7f2f2 0%, #fff 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(74, 29, 29, 0.1);
+  border: 1px solid rgba(74, 29, 29, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.service-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #4a1d1d, #a63939);
+}
+
+.service-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 48px rgba(74, 29, 29, 0.15);
+}
+
+.service-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.service-icon-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.service-header h3 {
+  font-size: 1.5rem;
+  color: #4a1d1d;
+  margin: 0;
+  font-weight: 700;
+}
+
+.service-content {
+  color: #333;
+}
+
+.subsection {
+  margin-bottom: 1.5rem;
+}
+
+.subsection:last-child {
+  margin-bottom: 0;
+}
+
+.subsection h4 {
+  font-size: 1.1rem;
+  color: #712929;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+  border-bottom: 2px solid rgba(166, 57, 57, 0.2);
+  padding-bottom: 0.5rem;
+}
+
+.subsection ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.subsection li {
+  position: relative;
+  padding: 0.5rem 0 0.5rem 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.subsection li::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: #a63939;
+  font-weight: bold;
+}
+
+.subsection li:hover {
+  color: #4a1d1d;
+}
+
+.service-card {
+  opacity: 0;
+  transform: translateY(40px);
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+.service-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.service-card:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .services {
+    padding: 4rem 0;
+  }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .service-card {
+    padding: 1.5rem;
+  }
+
+  .service-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .service-icon {
+    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+  }
+
+  .service-header h3 {
+    font-size: 1.3rem;
+  }
+}
