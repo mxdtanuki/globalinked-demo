@@ -1,4 +1,4 @@
-// src/components/mouTable.jsx
+
 import React from "react";
 import "./mouTable.css"; // 
 

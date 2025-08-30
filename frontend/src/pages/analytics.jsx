@@ -1,4 +1,4 @@
-// src/pages/analytics.jsx
+
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";

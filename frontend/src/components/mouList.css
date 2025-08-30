@@ -33,5 +33,5 @@
 }
 
 .mou-table td:nth-child(2) {
-  text-align: left; /* partner names look better aligned left */
+  text-align: left; 
 }
