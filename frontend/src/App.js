@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/login';
+import Register from './pages/register';
 import { NotificationsProvider } from './pages/notificationContext';
 
 //public page
@@ -58,11 +59,14 @@ function App() {
     <NotificationsProvider>
       <Router>
         <Routes>
-          {/* public page routes */}
+         {/* public page routes */}
           <Route path="/" element={<PublicPage />} />
 
-          {/* login and admin routes */}
+          {/* auth routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} /> 
+
+          {/* admin routes */}
           <Route path="/overview" element={<Overview />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/docUpload" element={<DocumentUpload />} />
@@ -74,7 +78,7 @@ function App() {
           <Route path="/notification" element={<Notification />} />
           <Route path="/archive" element={<Archive />} />
           <Route path="/profile" element={<Profile />} />
-               <Route path="/userManagement" element={<UserManagement />} />
+              <Route path="/userManagement" element={<UserManagement />} />
 
           {/* Stat routes */}
           <Route path="/stat/activeAgreement" element={<ActiveAgreement />} />
