@@ -67,7 +67,7 @@ def _collect_recipient_emails(db: Session, agreement: Agreements, partner: Partn
     except Exception:
         pass
 
-    # agreement point persons via agreement_point_persons to point_persons
+   
     try:
         # import here to avoid circular imports at module import time
         from app.models.agreement_point_persons import AgreementPointPersons
@@ -85,7 +85,7 @@ def _collect_recipient_emails(db: Session, agreement: Agreements, partner: Partn
     except Exception:
         pass
 
-    #  fallback: legacy JSON column on Agreements (if any)
+    #  fallback: column on Agreements (if any)
     try:
         for pp in _parse_point_persons(getattr(agreement, "point_persons_list", None) or []):
             # support multiple possible key names
