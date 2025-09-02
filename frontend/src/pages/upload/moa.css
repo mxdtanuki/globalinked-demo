@@ -16,7 +16,6 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-
 .initial-form {
   max-width: 700px;
   flex: 1 1 600px;
@@ -33,13 +32,13 @@
   font-weight: bold;
   text-align: center;
   margin-bottom: 1.5rem;
+  color: #800000; 
 }
 
-
 .form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem 2rem;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+  gap: 0 rem 1rem !important; 
 }
 
 .form-group.full-width {
@@ -83,10 +82,8 @@
 }
 
 .manual-entry-note:hover {
-  text-decoration: underline;
   opacity: 0.8;
 }
-
 
 .with-mou-section {
   display: flex;
@@ -97,18 +94,68 @@
 }
 
 
+/* Toggle switch for With MOU */
 .checkbox-group-inline {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
+  cursor: pointer;
+  user-select: none;
 }
 
+.checkbox-group-inline input[type="checkbox"] {
+  appearance: none;
+  width: 40px;
+  height: 20px;
+  background: #ccc;
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.3s ease;
+}
+
+.checkbox-group-inline input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 2px;
+  left: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.checkbox-group-inline input[type="checkbox"]:checked {
+  background: #800000;
+}
+
+.checkbox-group-inline input[type="checkbox"]:checked::before {
+  transform: translateX(20px);
+}
+
+/* Dropdown */
 .mou-dropdown {
   width: 100%;
-  animation: fadeIn 0.3s ease-in-out;
 }
 
+.mou-dropdown select {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mou-dropdown select:focus {
+  border-color: #800000;
+  box-shadow: 0 0 4px rgba(128, 0, 0, 0.4);
+  outline: none;
+}
 
 @keyframes fadeIn {
   from {
@@ -126,6 +173,7 @@
   border-radius: 8px;
   padding: 1rem;
   margin: 1.5rem 0;
+  text-align: center; 
 }
 
 .file-drop-area p {
@@ -137,16 +185,25 @@
   display: block;
   color: #666;
   font-size: 0.75rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem; 
 }
 
 .select-file-btn {
   background-color: #800000;
   color: #fff;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.2rem; 
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 0.9rem;
+  transition: 0.2s ease;
+  display: inline-block;
+}
+
+.file-name {
+  margin-top: 0.8rem;
+  font-size: 0.85rem;
+  color: #444;
 }
 
 .submit-btn {

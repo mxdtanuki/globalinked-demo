@@ -107,18 +107,17 @@ const partnershipTypeOptions = [
 ];
 
 const ManualEntry = () => {
-  const [contacts, setContacts] = useState([{ position: "", name: "" }]);
-
-  const [pointPersons, setPointPersons] = useState([{ position: "", name: ""}]);
+  const [contacts, setContacts] = useState([{ position: "", name: "", email: "" }]);
+  const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
 
   // Add new contact row
   const addContact = () => {
-    setContacts([...contacts, { position: "", name: "" }]);
+    setContacts([...contacts, { position: "", name: "", email: "" }]);
   };
 
   // Add new point person row
   const addPointPerson = () => {
-    setPointPersons([...pointPersons, { position: "", name: ""}]);
+    setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
   };
 
   // Update value in contact row
@@ -127,10 +126,25 @@ const ManualEntry = () => {
     updated[index][field] = value;
     setContacts(updated);
   };
+
   // Update value in point person row
   const handlePointPersonChange = (index, field, value) => {
     const updated = [...pointPersons];
     updated[index][field] = value;
+    setPointPersons(updated);
+  };
+
+  // Remove contact row
+  const removeContact = (index) => {
+    const updated = [...contacts];
+    updated.splice(index, 1);
+    setContacts(updated);
+  };
+
+  // Remove point person row
+  const removePointPerson = (index) => {
+    const updated = [...pointPersons];
+    updated.splice(index, 1);
     setPointPersons(updated);
   };
 
@@ -140,7 +154,7 @@ const ManualEntry = () => {
         <div className="manual-entry-container">
           <h2 className="form-title">MOU Manual Entry Form</h2>
           <form className="manual-entry-form">
-
+            
             {/* DATE */}
             <div className="form-group">
               <label htmlFor="entryDate">Date:</label>
@@ -350,11 +364,19 @@ const ManualEntry = () => {
               <input id="logo" type="file" />
             </div>
 
-            {/* POINT PERSON AND ADD POINT PERSON*/}
+            {/* POINT PERSON */}
             <div className="form-section">
               <label>Point Person</label>
               {pointPersons.map((pointPerson, index) => (
                 <div key={index} className="contact-row">
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={pointPerson.name}
+                    onChange={(e) =>
+                      handlePointPersonChange(index, "name", e.target.value)
+                    }
+                  />
                   <input
                     type="text"
                     placeholder="Position"
@@ -364,13 +386,20 @@ const ManualEntry = () => {
                     }
                   />
                   <input
-                    type="text"
-                    placeholder="Name"
-                    value={pointPerson.name}
+                    type="email"
+                    placeholder="Email Address"
+                    value={pointPerson.email}
                     onChange={(e) =>
-                      handlePointPersonChange(index, "name", e.target.value)
+                      handlePointPersonChange(index, "email", e.target.value)
                     }
                   />
+                  <button
+                    type="button"
+                    className="remove-btn"
+                    onClick={() => removePointPerson(index)}
+                  >
+                    ❌
+                  </button>
                 </div>
               ))}
               <button
@@ -382,11 +411,19 @@ const ManualEntry = () => {
               </button>
             </div>
 
-            {/* CONTACT PERSON AND ADD CONTACT PERSON*/}
+            {/* CONTACT PERSON */}
             <div className="form-section">
               <label>Contact Person</label>
               {contacts.map((contact, index) => (
                 <div key={index} className="contact-row">
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={contact.name}
+                    onChange={(e) =>
+                      handleContactChange(index, "name", e.target.value)
+                    }
+                  />
                   <input
                     type="text"
                     placeholder="Position"
@@ -396,13 +433,20 @@ const ManualEntry = () => {
                     }
                   />
                   <input
-                    type="text"
-                    placeholder="Name"
-                    value={contact.name}
+                    type="email"
+                    placeholder="Email Address"
+                    value={contact.email}
                     onChange={(e) =>
-                      handleContactChange(index, "name", e.target.value)
+                      handleContactChange(index, "email", e.target.value)
                     }
                   />
+                  <button
+                    type="button"
+                    className="remove-btn"
+                    onClick={() => removeContact(index)}
+                  >
+                    ❌
+                  </button>
                 </div>
               ))}
               <button
@@ -413,18 +457,7 @@ const ManualEntry = () => {
                 ➕ Add Contact
               </button>
             </div>
-    
-            {/* POINT PERSON Email */}
-            <div className="form-group">
-              <label htmlFor="pointPersonEmail">Point Person Email:</label>
-              <input id="pointPersonEmail" type="text" />
-            </div>
 
-           {/* CONTACT PERSON EMAIL */}
-            <div className="form-group">
-              <label htmlFor="contactPersonEmail">Contact Person Email:</label>
-              <input id="contactPersonEmail" type="email" />
-            </div>
 
             {/* LOCATOR */}
             <div className="form-group full-width">

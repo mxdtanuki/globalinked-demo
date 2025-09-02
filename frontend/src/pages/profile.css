@@ -1,0 +1,143 @@
+.profile-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 3rem;
+}
+
+.profile-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 3rem 2.5rem;
+  width: 600px; 
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.profile-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.profile-title {
+  margin-bottom: 2rem;
+  font-size: 24px; 
+  font-weight: 700;
+  color: #800000;
+  text-align: center;
+}
+
+.profile-pic-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+}
+
+.profile-pic {
+  width: 150px;  
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 5px solid #f3f3f3;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+.camera-icon {
+  position: absolute;
+  bottom: 12px;
+  right: calc(50% - 75px);
+  background: #800000;
+  color: #fff;
+  border-radius: 50%;
+  padding: 10px;
+  border: 3px solid #fff;
+  cursor: pointer;
+  font-size: 18px; 
+  transition: 0.3s ease;
+}
+
+.camera-icon:hover {
+  background: #a52a2a;
+}
+
+.form-group {
+  margin-bottom: 2rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 16px; 
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 14px 16px; 
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  outline: none;
+  font-size: 16px;   
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  border-color: #800000;
+  box-shadow: 0 0 0 4px rgba(128,0,0,0.1);
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.profile-actions button {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;   
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s ease;
+}
+
+.btn-save {
+  background: #800000;
+  color: #fff;
+}
+
+.btn-save:hover {
+  background: #a52a2a;
+}
+
+.btn-cancel {
+  background: #800000;
+  color: #fff;
+}
+
+.btn-cancel:hover {
+  background: #a52a2a;
+}
+
+
+.profile-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-manage {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 1rem;
+  background: #f3f3f3;
+  color: black;
+  width: 100%;
+  text-align: center;
+}
