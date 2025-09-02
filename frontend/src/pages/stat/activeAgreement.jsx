@@ -7,41 +7,93 @@ const ActiveAgreement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilter, setShowFilter] = useState(false);
   const [selectedType, setSelectedType] = useState("");
+  const [selectedClassification, setSelectedClassification] = useState("");
 
   const itemsPerPage = 5;
 
   // Sample Data
   const agreements = [
-    { dtsNo: "DTS-00001", title: "MOA with ABC University", type: "MOA", startDate: "2023-01-15", endDate: "2026-01-14", daysRemaining: 520, status: "Active" },
-    { dtsNo: "DTS-00002", title: "MOU with XYZ Institute", type: "MOU", startDate: "2022-08-10", endDate: "2025-08-09", daysRemaining: 365, status: "Active" },
-    { dtsNo: "DTS-00003", title: "Contract with DEF Corp", type: "MOA", startDate: "2021-05-01", endDate: "2024-04-30", daysRemaining: 260, status: "Active" },
-    { dtsNo: "DTS-00004", title: "MOA with Tech Solutions", type: "MOA", startDate: "2023-06-20", endDate: "2026-06-19", daysRemaining: 670, status: "Active" },
-    { dtsNo: "DTS-00005", title: "MOU with Future Innovations", type: "MOU", startDate: "2023-11-05", endDate: "2026-11-04", daysRemaining: 840, status: "Active" },
-    { dtsNo: "DTS-00006", title: "Contract with Global Ventures", type: "MOU", startDate: "2022-03-15", endDate: "2025-03-14", daysRemaining: 220, status: "Active" },
+    {
+      dtsNo: "DTS-00001",
+      date: "2023-01-15",
+      partnerName: "ABC University",
+      type: "MOA",
+      classification: "MOA on Cultural Exchange",
+      startDate: "2023-01-15",
+      endDate: "2026-01-14",
+      status: "Active",
+    },
+    {
+      dtsNo: "DTS-00002",
+      date: "2022-08-10",
+      partnerName: "XYZ Institute",
+      type: "MOU",
+      classification: "MOU",
+      startDate: "2022-08-10",
+      endDate: "2025-08-09",
+      status: "Active",
+    },
+    {
+      dtsNo: "DTS-00003",
+      date: "2021-05-01",
+      partnerName: "DEF Corp",
+      type: "MOA",
+      classification: "MOA Global Leadership",
+      startDate: "2021-05-01",
+      endDate: "2024-04-30",
+      status: "Active",
+    },
+    
+  ];
+
+  // Get unique partner classifications dynamically
+  const classifications = [
+    ...new Set(agreements.map((a) => a.classification)),
   ];
 
   // Filter logic
   let filteredAgreements = agreements.filter((agreement) =>
-    Object.values(agreement)
+    [
+      agreement.dtsNo,
+      agreement.date,
+      agreement.partnerName,
+      agreement.type,
+      agreement.classification,
+      agreement.startDate,
+      agreement.endDate,
+    ]
       .join(" ")
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
 
   if (selectedType) {
-    filteredAgreements = filteredAgreements.filter(a => a.type === selectedType);
+    filteredAgreements = filteredAgreements.filter(
+      (a) => a.type === selectedType
+    );
+  }
+
+  if (selectedClassification) {
+    filteredAgreements = filteredAgreements.filter(
+      (a) => a.classification === selectedClassification
+    );
   }
 
   // Pagination
   const totalPages = Math.ceil(filteredAgreements.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredAgreements.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedData = filteredAgreements.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   return (
     <TopbarSidebar>
       <div className="expired-wrapper">
         <h2 className="expired-title">Active Agreements</h2>
-        <p className="expired-subtitle">Showing all currently valid agreements.</p>
+        <p className="expired-subtitle">
+          Showing all currently valid agreements.
+        </p>
 
         {/* Search & Filter bar */}
         <div className="search-filter-bar">
@@ -55,7 +107,10 @@ const ActiveAgreement = () => {
               setCurrentPage(1);
             }}
           />
-          <button className="filter-btn" onClick={() => setShowFilter(!showFilter)}>
+          <button
+            className="filter-btn"
+            onClick={() => setShowFilter(!showFilter)}
+          >
             Filter
           </button>
         </div>
@@ -64,7 +119,7 @@ const ActiveAgreement = () => {
         {showFilter && (
           <div className="filter-panel">
             <div>
-              <label>Type:</label>
+              <label>Document Type:</label>
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
@@ -72,6 +127,20 @@ const ActiveAgreement = () => {
                 <option value="">All</option>
                 <option value="MOA">MOA</option>
                 <option value="MOU">MOU</option>
+              </select>
+            </div>
+            <div>
+              <label>Partner Classification:</label>
+              <select
+                value={selectedClassification}
+                onChange={(e) => setSelectedClassification(e.target.value)}
+              >
+                <option value="">All</option>
+                {classifications.map((c, idx) => (
+                  <option key={idx} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="filter-actions">
@@ -86,6 +155,7 @@ const ActiveAgreement = () => {
               <button
                 onClick={() => {
                   setSelectedType("");
+                  setSelectedClassification("");
                   setCurrentPage(1);
                   setShowFilter(false);
                 }}
@@ -102,11 +172,12 @@ const ActiveAgreement = () => {
             <thead>
               <tr>
                 <th>DTS No.</th>
-                <th>Title / Partner</th>
-                <th>Type</th>
+                <th>Date</th>
+                <th>Partner Name</th>
+                <th>Document Type</th>
+                <th>Partner Classification</th>
                 <th>Start Date</th>
                 <th>End Date</th>
-                <th>Days Remaining</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -116,11 +187,12 @@ const ActiveAgreement = () => {
                 paginatedData.map((agreement, index) => (
                   <tr key={index}>
                     <td>{agreement.dtsNo}</td>
-                    <td>{agreement.title}</td>
+                    <td>{agreement.date}</td>
+                    <td>{agreement.partnerName}</td>
                     <td>{agreement.type}</td>
+                    <td>{agreement.classification}</td>
                     <td>{agreement.startDate}</td>
                     <td>{agreement.endDate}</td>
-                    <td>{agreement.daysRemaining}</td>
                     <td>
                       <span className="status-badge active">
                         {agreement.status}
@@ -134,7 +206,7 @@ const ActiveAgreement = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="empty-state">
+                  <td colSpan="9" className="empty-state">
                     No active agreements found.
                   </td>
                 </tr>

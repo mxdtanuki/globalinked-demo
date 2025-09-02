@@ -1,0 +1,61 @@
+/* Card container */
+.mou-table-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Empty state */
+.mou-table-empty {
+  text-align: center;
+  color: #555;
+}
+
+/* Title */
+.mou-table-title {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Table */
+.mou-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.mou-table th {
+  background: #7B0D1E; 
+  color: #fff;
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.mou-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.mou-table tr:nth-child(even) {
+  background: #fdfdfd;
+}
+
+/* Total row */
+.mou-table-total-row {
+  font-weight: bold;
+  background: #f9f9f9;
+}
+
+/* Insights text */
+.mou-table-insights {
+  margin-top: 1rem;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+}

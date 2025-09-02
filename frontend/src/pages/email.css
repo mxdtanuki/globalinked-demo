@@ -1,0 +1,192 @@
+.email-dashboard {
+  padding: 2rem;
+}
+
+.email-title {
+  font-size: 2rem;       
+  font-weight: 700;      
+  color: #800000;        
+  margin-bottom: 20px;  
+  border-bottom: 2px solid #d9b3b3; 
+  padding-bottom: 8px;   
+}
+
+.email-section {
+  background: #fff;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.email-section h2 {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.email-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.email-table th {
+  text-align: left;
+  padding: 0.75rem;
+  color: #8B0000;
+  font-weight: bold;
+}
+
+.email-table td {
+  padding: 0.75rem;
+  border-top: 1px solid #ddd;
+}
+
+.view-btn {
+  background: #f2f2f2;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.view-btn:hover {
+  background: #ddd;
+}
+/* Modal backdrop */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  backdrop-filter: blur(3px); 
+}
+
+/* Modal window */
+.modal-content {
+  background: #fff;
+  width: 700px;
+  max-width: 95%;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  overflow: hidden;
+  animation: fadeInScale 0.25s ease; 
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Header */
+.modal-header {
+  padding: 1rem 1.25rem;
+  background: #8B0000;
+  color: #fff;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #fff;
+  transition: transform 0.2s;
+}
+.close-btn:hover {
+  transform: rotate(90deg);
+}
+
+/* Body */
+.modal-body {
+  padding: 1.25rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.field label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.field input {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input:focus {
+  border-color: #8B0000;
+  box-shadow: 0 0 0 3px rgba(139,0,0,0.1);
+}
+
+/* Quill editor */
+.ql-container {
+  border-radius: 8px;
+  border: 1px solid #ccc !important;
+}
+.ql-editor {
+  min-height: 180px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Footer */
+.modal-footer {
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  background: #fafafa;
+  border-top: 1px solid #eee;
+}
+
+.send-btn,
+.save-btn {
+  padding: 0.55rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.send-btn {
+  background: #8B0000;
+  color: #fff;
+}
+.send-btn:hover {
+  background: #a60000;
+  transform: translateY(-1px);
+}
+
+.save-btn {
+  background: #f2f2f2;
+  color: #333;
+}
+.save-btn:hover {
+  background: #e4e4e4;
+  transform: translateY(-1px);
+}
