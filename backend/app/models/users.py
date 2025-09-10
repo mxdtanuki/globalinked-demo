@@ -10,3 +10,5 @@ class Users(Base):
     user_profile_img = Column(String(255), nullable=True)
     user_position = Column(String(50), nullable=False)
     forgot_pass_token = Column(String(255), nullable=True)
+    user_status = Column(String(10), nullable=True)  # e.g., approved, pending, rejected
+    # Note: add user_status to your db, and if not done yet, drop point_person_list in agreements table 
