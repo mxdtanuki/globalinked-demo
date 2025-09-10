@@ -7,11 +7,19 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import "./mouChart.css";
+import "./mouChart.css"; 
 
-const COLORS = ["#2E86C1", "#9B59B6", "#27AE60", "#F39C12", "#E74C3C", "#FFDE21"];
+const COLORS = [
+  "#2E86C1",
+  "#9B59B6",
+  "#27AE60",
+  "#F39C12",
+  "#E74C3C",
+  "#FFDE21",
+  "#16A085",
+];
 
-const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
+const MOAActivityChart = forwardRef(({ data, onDataUpdate }, ref) => {
   const years = Object.keys(data || {});
   const [filterVisible, setFilterVisible] = useState(false);
 
@@ -76,7 +84,7 @@ const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
 
   return (
     <div className="mou-chart-card" ref={ref}>
-      <h2 className="mou-chart-title">Memorandum of Understanding</h2>
+      <h2 className="mou-chart-title">MOA by Activity/Program</h2>
       <p className="mou-chart-subtitle">
         Showing data for <strong>{rangeLabel}</strong>
       </p>
@@ -89,7 +97,9 @@ const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
             cy="50%"
             outerRadius={100}
             dataKey="value"
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+            label={({ name, percent }) =>
+              `${name} ${(percent * 100).toFixed(1)}%`
+            }
           >
             {chartData.map((entry, idx) => (
               <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
@@ -162,4 +172,4 @@ const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
   );
 });
 
-export default MOUChart;
+export default MOAActivityChart;
