@@ -9,9 +9,9 @@ import {
 } from "recharts";
 import "./mouChart.css";
 
-const COLORS = ["#2E86C1", "#9B59B6", "#27AE60", "#F39C12", "#E74C3C", "#FFDE21"];
+const COLORS = ["#1ABC9C", "#3498DB", "#9B59B6", "#E67E22", "#E74C3C", "#FFDE21"];
 
-const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
+const MOAChart = forwardRef(({ data, onDataUpdate }, ref) => {
   const years = Object.keys(data || {});
   const [filterVisible, setFilterVisible] = useState(false);
 
@@ -76,7 +76,7 @@ const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
 
   return (
     <div className="mou-chart-card" ref={ref}>
-      <h2 className="mou-chart-title">Memorandum of Understanding</h2>
+      <h2 className="mou-chart-title">Memorandum of Agreement</h2>
       <p className="mou-chart-subtitle">
         Showing data for <strong>{rangeLabel}</strong>
       </p>
@@ -162,4 +162,4 @@ const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
   );
 });
 
-export default MOUChart;
+export default MOAChart;

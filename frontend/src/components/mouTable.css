@@ -5,8 +5,16 @@
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  height: 430px; 
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
+.mou-table-wrapper {
+  flex-grow: 1;
+  overflow-y: auto;
+}
 /* Empty state */
 .mou-table-empty {
   text-align: center;
