@@ -1,8 +1,9 @@
+
 import React, { useMemo } from "react";
 import "./mouTable.css";
 
-const MOUTable = ({ data = [] }) => {
-  // Normalize input 
+const MOATable = ({ data = [] }) => {
+  // Normalize input
   const rawRows = useMemo(
     () =>
       Array.isArray(data)
@@ -11,7 +12,7 @@ const MOUTable = ({ data = [] }) => {
             value: Number(r?.value) || 0,
           }))
         : [],
-    [data] 
+    [data]
   );
 
   // Process rows for table
@@ -27,10 +28,8 @@ const MOUTable = ({ data = [] }) => {
         };
       }
 
-      // Sort descending by value
       const sorted = [...rawRows].sort((a, b) => b.value - a.value);
 
-      // Compute min and max values for insights
       const values = rawRows.map((r) => r.value);
       const maxVal = Math.max(...values);
       const minVal = Math.min(...values);
@@ -39,13 +38,13 @@ const MOUTable = ({ data = [] }) => {
       const leastCountries = rawRows.filter((r) => r.value === minVal);
 
       return {
-        processedRows: sorted, 
+        processedRows: sorted,
         topCountries,
         leastCountries,
         maxVal,
         minVal,
       };
-    }, [rawRows]); 
+    }, [rawRows]);
 
   if (!processedRows.length) {
     return (
@@ -58,7 +57,8 @@ const MOUTable = ({ data = [] }) => {
   const displayTotal = processedRows.reduce((sum, r) => sum + r.value, 0);
   const rowsWithPercent = processedRows.map((r) => ({
     ...r,
-    percent: displayTotal > 0 ? Number(((r.value / displayTotal) * 100).toFixed(1)) : 0,
+    percent:
+      displayTotal > 0 ? Number(((r.value / displayTotal) * 100).toFixed(1)) : 0,
   }));
 
   const insightTotal = rawRows.reduce((sum, r) => sum + r.value, 0);
@@ -71,11 +71,12 @@ const MOUTable = ({ data = [] }) => {
     }`;
   };
 
-  const plural = (n, singular, pluralForm) => (n === 1 ? singular : pluralForm);
+  const plural = (n, singular, pluralForm) =>
+    n === 1 ? singular : pluralForm;
 
   return (
     <div className="mou-table-card">
-      <h3 className="mou-table-title">MOU by Country</h3>
+      <h3 className="mou-table-title">MOA by Country</h3>
 
       <div className="mou-table-wrapper">
         <table className="mou-table">
@@ -106,7 +107,7 @@ const MOUTable = ({ data = [] }) => {
       <p className="mou-table-insights">
         Among partner countries, <b>{listNames(topCountries)}</b>{" "}
         {topCountries.length > 1 ? "tie for the highest" : "has the highest"}{" "}
-        number of MOUs with <b>{maxVal}</b>{" "}
+        number of MOAs with <b>{maxVal}</b>{" "}
         {plural(maxVal, "agreement", "agreements")} out of a total of{" "}
         <b>{insightTotal}</b>. In contrast, <b>{listNames(leastCountries)}</b>{" "}
         {leastCountries.length > 1 ? "tie for the lowest" : "has the lowest"}{" "}
@@ -116,4 +117,4 @@ const MOUTable = ({ data = [] }) => {
   );
 };
 
-export default MOUTable;
+export default MOATable;
