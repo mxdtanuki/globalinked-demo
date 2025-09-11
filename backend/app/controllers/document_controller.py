@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from datetime import datetime
-
 from database import get_db
 from models.agreements import Agreements
 from models.document_versions import DocumentVersions

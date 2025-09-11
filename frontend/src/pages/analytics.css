@@ -1,4 +1,4 @@
-/* Main container – same as Archive */
+/* Main container */
 .dashboard-container {
   display: flex;
   flex-direction: column;
@@ -31,7 +31,7 @@
   z-index: 90;
 }
 
-/* Floating toggle button (same as Archive) */
+/* Floating toggle button  */
 .floating-toggle-btn {
   position: absolute;
   top: 1rem;
@@ -70,7 +70,8 @@
 .analytics-chart-table {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 2rem;
+  gap: 20px;
+  margin-top: 20px; 
 }
 
 /* Partner list section */
