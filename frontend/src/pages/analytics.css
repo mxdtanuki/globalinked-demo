@@ -1,0 +1,80 @@
+/* Main container */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Content body with sidebar + main */
+.content-body {
+  display: flex;
+  flex: 1;
+}
+
+/* Main content area */
+.main-content {
+  flex: 1;
+  position: relative;
+  background-color: #fdf6f6;
+  padding: 30px;
+  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Mobile backdrop */
+.mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+}
+
+/* Floating toggle button  */
+.floating-toggle-btn {
+  position: absolute;
+  top: 1rem;
+  left: -0.8rem;
+  background: #fff;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  padding: 0.4rem;
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.3s ease;
+}
+.floating-toggle-btn.collapsed {
+  left: 3.5rem;
+}
+
+/* Page Title */
+.analytics-title {
+  color: #800000;
+  margin-bottom: 1.5rem;
+}
+
+/* Page content */
+.analytics-content {
+  padding: 1rem;
+}
+
+/* Placeholder for map */
+.analytics-map-placeholder {
+  margin-bottom: 2rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Chart + Table layout */
+.analytics-chart-table {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-top: 20px; 
+}
+
+/* Partner list section */
+.analytics-partner-list {
+  margin-top: 2rem;
+}
