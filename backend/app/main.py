@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Import routers from your controllers
-from app.controllers import auth_controller, agreement_controller
+from app.controllers import auth_controller, agreement_controller, notification_controller
 from app.database import Base, engine
+from app.models.notification import Notification
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -26,13 +26,15 @@ app.add_middleware(
 # Register all routers 
 app.include_router(auth_controller.router)
 app.include_router(agreement_controller.router)
+app.include_router(notification_controller.router)
 
 # Root route
-@app.get("/")
-def root():
-    return {"message": "Globalinked backend is running."}
+@app.on_event("startup")
+def on_startup():
+    from app.scheduler import start_scheduler
+    start_scheduler()
 
-# Health check
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
+@app.on_event("shutdown")
+def on_shutdown():
+    from app.scheduler import shutdown_scheduler
+    shutdown_scheduler()
