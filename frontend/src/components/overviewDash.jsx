@@ -165,7 +165,7 @@ const OverviewDash = () => {
     const isEditing = editingRow === agreement.agreement_id;
 
     const editableFields = [
-      'entry_date', 'unit_name', 'dts_number', 'dts_status',
+      'entry_date', 'unit_name', 'dts_number', 'dts_status', 'agreement_status',
       'name', 'entity_type', 'country', 'region', 'address', 'signatories_list','partnership_type',
       'contact_persons', 'document_type', 'partnership_type', 'event_info',
       'validity_period', 'date_signed', 'date_expiry', 'date_received',
@@ -370,7 +370,7 @@ const OverviewDash = () => {
     }
 
     // Special handling for different field types
-    if (field === 'agreement_status') {
+    if (field === 'agreement_status' || field === 'dts_status') {
       return (
         <select
           value={editedData[field] || ''}
@@ -378,16 +378,18 @@ const OverviewDash = () => {
           className="edit-input"
         >
           <option value="">Select Status</option>
-          <option value="Endorse">Endorse to ULCO</option>
-          <option value="Revert">Revert to Initiator</option>
-          <option value="Replication">For Replication</option>
-          <option value="SignituresPUP">For Signature of PUP Official</option>
-          <option value="SignedPUP">Signed by PUP Official</option>
-          <option value="SignituresPartner">For Signature of Partners</option>
-          <option value="Complete">Complete</option>
+          <option value="Endorse">Endorse to ULCO for Review and Approval</option>
+          <option value="Revert">Revert To Initiator with Comments</option>
+          <option value="Replication">Replication of Copies (8 sets)</option>
+          <option value="SignituresPUP">For Signatures of PUP Officials</option>
+          <option value="SignedPUP">Signed by PUP Officials</option>
+          <option value="SignituresPartner">For Signatures of Partner</option>
+          <option value="SignedPartner">Signed by Partner Institution</option>
+          <option value="Complete">Completely Signed</option>
           <option value="Notary">For Notary</option>
-          <option value="FFUPCopy">To FFUP Copy</option>
-          <option value="Renewal">Renewals</option>
+          <option value="FFUPCopy">FFUP Copy From College/Campus</option>
+          <option value="Renewal">Renewal</option>
+          <option value="Expired">Expired</option>
         </select>
       );
     } else if (field === 'document_type') {
