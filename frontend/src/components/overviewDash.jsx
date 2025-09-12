@@ -15,7 +15,6 @@ const OverviewDash = () => {
   const [error, setError] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [search, setSearch] = useState(''); //Added search state
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [filters, setFilters] = useState({
     documentType: '',
@@ -23,7 +22,14 @@ const OverviewDash = () => {
     validityPeriod: '',
     country: ''
   });
-  const rowsPerPage = 10;
+
+  // New states for editing functionality
+  const [editingRow, setEditingRow] = useState(null);
+  const [editedData, setEditedData] = useState({});
+  const [savingRows, setSavingRows] = useState(new Set());
+  const [deletingRows, setDeletingRows] = useState(new Set());
+
+  const rowsPerPage = 20;
 
   useEffect(() => {
     fetchAgreements();
@@ -38,6 +44,383 @@ const OverviewDash = () => {
       setError('Failed to fetch agreements: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Start editing a specific row
+  const startEditing = (agreement) => {
+    setEditingRow(agreement.agreement_id);
+    setEditedData({ ...agreement });
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingRow(null);
+    setEditedData({});
+  };
+
+  // Handle input changes in edit mode
+  const handleInputChange = (field, value) => {
+    setEditedData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const deleteRow = async (agreementId) => {
+      const proceed = window.confirm('Are you sure you want to delete this agreement? This action cannot be undone.');
+      if (!proceed) return;
+
+      try {
+        setDeletingRows(prev => new Set(prev).add(agreementId));
+
+        await agreementService.deleteAgreement(agreementId);
+
+        // Remove from local state
+        setAgreements(prev => prev.filter(a => a.agreement_id !== agreementId));
+        setFilteredAgreements(prev => prev.filter(a => a.agreement_id !== agreementId));
+
+        // Clear edit state if the deleted row was being 
+        if (editingRow === agreementId) {
+          setEditingRow(null);
+          setEditedData({});
+        }
+
+        alert('Agreement deleted successfully.');
+      } catch (err) {
+        console.error('Error deleting agreement:', err);
+        alert('Failed to delete agreement: ' + err.message);
+      } finally {
+        setDeletingRows(prev => {
+          const s = new Set(prev);
+          s.delete(agreementId);
+          return s;
+        });
+      }
+    };
+
+
+  // Save changes to a specific row
+  const saveRow = async (agreementId) => {
+    try {
+      setSavingRows(prev => new Set(prev).add(agreementId));
+
+      // Update the agreement
+      await agreementService.updateAgreement(agreementId, editedData);
+
+      // Update local state
+      setAgreements(prev => prev.map(agreement =>
+        agreement.agreement_id === agreementId ? editedData : agreement
+      ));
+      setFilteredAgreements(prev => prev.map(agreement =>
+        agreement.agreement_id === agreementId ? editedData : agreement
+      ));
+
+      setEditingRow(null);
+      setEditedData({});
+
+      // Show success message (put css here frontend!!)
+      alert('Agreement updated successfully!');
+
+    } catch (error) {
+      console.error('Error saving agreement:', error);
+      alert('Failed to save changes: ' + error.message);
+    } finally {
+      setSavingRows(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(agreementId);
+        return newSet;
+      });
+    }
+  };
+
+  // Helper functions for list editing -WIPPP
+  const upsertListItem = (field, idx, key, val) => {
+    setEditedData(prev => {
+      const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
+      const item = { ...(list[idx] || {}) };
+      item[key] = val;
+      list[idx] = item;
+      return { ...prev, [field]: list };
+    });
+  };
+
+  const addListItem = (field, template) => {
+    setEditedData(prev => {
+      const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
+      return { ...prev, [field]: [...list, template] };
+    });
+  };
+
+  const removeListItem = (field, idx) => {
+    setEditedData(prev => {
+      const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
+      list.splice(idx, 1);
+      return { ...prev, [field]: list };
+    });
+  };
+
+  // Render editable cell
+  const renderEditableCell = (agreement, field, value) => {
+    const isEditing = editingRow === agreement.agreement_id;
+
+    const editableFields = [
+      'entry_date', 'unit_name', 'dts_number', 'dts_status',
+      'name', 'entity_type', 'country', 'region', 'address', 'signatories_list','partnership_type',
+      'contact_persons', 'document_type', 'partnership_type', 'event_info',
+      'validity_period', 'date_signed', 'date_expiry', 'date_received',
+      'date_endorsed_to_ulco', 'date_ulco_approved', 'date_signed_by_pup',
+      'agreement_status', 'website_url', 'description', 'hardcopy_location', 'remarks'
+    ];
+
+    const isEditable = editableFields.includes(field);
+
+    // Display/edit for POINT PERSONS
+    if (field === 'point_persons') {
+      if (!isEditing) {
+        if (Array.isArray(value) && value.length > 0) {
+          return (
+            <div>
+              {value.map((pp, idx) => (
+                <div key={idx}>
+                  {pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})
+                </div>
+              ))}
+            </div>
+          );
+        }
+        return '-';
+      }
+
+      const list = Array.isArray(editedData.point_persons) && editedData.point_persons.length > 0
+        ? editedData.point_persons
+        : [{ point_person_position: '', point_person_name: '', point_person_email: '' }];
+
+      return (
+        <div className="list-editor">
+          {list.map((pp, idx) => (
+            <div key={idx} className="list-row" style={{ marginBottom: '8px', display: 'flex', gap: '4px' }}>
+              <input
+                type="text"
+                className="edit-input"
+                placeholder="Position"
+                style={{ flex: 1, minWidth: '80px' }}
+                value={pp.point_person_position || ''}
+                onChange={(e) => upsertListItem('point_persons', idx, 'point_person_position', e.target.value)}
+              />
+              <input
+                type="text"
+                className="edit-input"
+                placeholder="Name"
+                style={{ flex: 1, minWidth: '100px' }}
+                value={pp.point_person_name || ''}
+                onChange={(e) => upsertListItem('point_persons', idx, 'point_person_name', e.target.value)}
+              />
+              <input
+                type="email"
+                className="edit-input"
+                placeholder="Email"
+                style={{ flex: 1, minWidth: '120px' }}
+                value={pp.point_person_email || ''}
+                onChange={(e) => upsertListItem('point_persons', idx, 'point_person_email', e.target.value)}
+              />
+              <button 
+                type="button" 
+                onClick={() => removeListItem('point_persons', idx)}
+                style={{ padding: '4px 8px', fontSize: '12px' }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => addListItem('point_persons', { point_person_position: '', point_person_name: '', point_person_email: '' })}
+            style={{ padding: '4px 8px', fontSize: '12px', marginTop: '4px' }}
+          >
+            + Add
+          </button>
+        </div>
+      );
+    }
+
+    // Display/edit for CONTACT PERSONS
+    if (field === 'contact_persons') {
+      if (!isEditing) {
+        if (Array.isArray(value) && value.length > 0) {
+          return (
+            <div>
+              {value.map((cp, idx) => (
+                <div key={idx}>
+                  {cp.contact_person_position}: {cp.contact_person_name} ({cp.contact_person_email})
+                </div>
+              ))}
+            </div>
+          );
+        }
+        return '-';
+      }
+
+      const list = Array.isArray(editedData.contact_persons) && editedData.contact_persons.length > 0
+        ? editedData.contact_persons
+        : [{ contact_person_position: '', contact_person_name: '', contact_person_email: '' }];
+
+      return (
+        <div className="list-editor">
+          {list.map((cp, idx) => (
+            <div key={idx} className="list-row" style={{ marginBottom: '8px', display: 'flex', gap: '4px' }}>
+              <input
+                type="text"
+                className="edit-input"
+                placeholder="Position"
+                style={{ flex: 1, minWidth: '80px' }}
+                value={cp.contact_person_position || ''}
+                onChange={(e) => upsertListItem('contact_persons', idx, 'contact_person_position', e.target.value)}
+              />
+              <input
+                type="text"
+                className="edit-input"
+                placeholder="Name"
+                style={{ flex: 1, minWidth: '100px' }}
+                value={cp.contact_person_name || ''}
+                onChange={(e) => upsertListItem('contact_persons', idx, 'contact_person_name', e.target.value)}
+              />
+              <input
+                type="email"
+                className="edit-input"
+                placeholder="Email"
+                style={{ flex: 1, minWidth: '120px' }}
+                value={cp.contact_person_email || ''}
+                onChange={(e) => upsertListItem('contact_persons', idx, 'contact_person_email', e.target.value)}
+              />
+              <button 
+                type="button" 
+                onClick={() => removeListItem('contact_persons', idx)}
+                style={{ padding: '4px 8px', fontSize: '12px' }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => addListItem('contact_persons', { contact_person_position: '', contact_person_name: '', contact_person_email: '' })}
+            style={{ padding: '4px 8px', fontSize: '12px', marginTop: '4px' }}
+          >
+            + Add
+          </button>
+        </div>
+      );
+    }
+
+    // Display/edit for REMARKS
+    if (field === 'remarks') {
+      if (!isEditing) {
+        if (Array.isArray(value) && value.length > 0) {
+          return (
+            <div>
+              {value.map((r, idx) => (
+                <div key={idx}>{r.remark_text}</div>
+              ))}
+            </div>
+          );
+        }
+        return '-';
+      }
+
+      const list = Array.isArray(editedData.remarks) && editedData.remarks.length > 0
+        ? editedData.remarks
+        : [{ remark_text: '' }];
+
+      return (
+        <div className="list-editor">
+          {list.map((r, idx) => (
+            <div key={idx} className="list-row" style={{ marginBottom: '8px', display: 'flex', gap: '4px' }}>
+              <input
+                type="text"
+                className="edit-input"
+                placeholder="Remark"
+                style={{ flex: 1 }}
+                value={r.remark_text || ''}
+                onChange={(e) => upsertListItem('remarks', idx, 'remark_text', e.target.value)}
+              />
+              <button 
+                type="button" 
+                onClick={() => removeListItem('remarks', idx)}
+                style={{ padding: '4px 8px', fontSize: '12px' }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => addListItem('remarks', { remark_text: '' })}
+            style={{ padding: '4px 8px', fontSize: '12px', marginTop: '4px' }}
+          >
+            + Add
+          </button>
+        </div>
+      );
+    }
+
+    // Generic display (not editing or not editable)
+    if (!isEditable || !isEditing) {
+      return value || '-';
+    }
+
+    // Special handling for different field types
+    if (field === 'agreement_status') {
+      return (
+        <select
+          value={editedData[field] || ''}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          className="edit-input"
+        >
+          <option value="">Select Status</option>
+          <option value="Endorse">Endorse to ULCO</option>
+          <option value="Revert">Revert to Initiator</option>
+          <option value="Replication">For Replication</option>
+          <option value="SignituresPUP">For Signature of PUP Official</option>
+          <option value="SignedPUP">Signed by PUP Official</option>
+          <option value="SignituresPartner">For Signature of Partners</option>
+          <option value="Complete">Complete</option>
+          <option value="Notary">For Notary</option>
+          <option value="FFUPCopy">To FFUP Copy</option>
+          <option value="Renewal">Renewals</option>
+        </select>
+      );
+    } else if (field === 'document_type') {
+      return (
+        <select
+          value={editedData[field] || ''}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          className="edit-input"
+        >
+          <option value="">Select Type</option>
+          <option value="MOA">MOA</option>
+          <option value="MOU">MOU</option>
+        </select>
+      );
+    } else if (field.includes('date')) {
+      return (
+        <input
+          type="date"
+          value={editedData[field] || ''}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          className="edit-input"
+        />
+      );
+    } else {
+      return (
+        <input
+          type="text"
+          value={editedData[field] || ''}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          className="edit-input"
+          placeholder={`Enter ${field.replace('_', ' ')}`}
+        />
+      );
     }
   };
 
@@ -193,7 +576,6 @@ const OverviewDash = () => {
             </div>
           </div>
           <div className="table-actions">
-            <button className="btn">Freeze</button>
             <button className="btn" onClick={() => setShowFilterPanel(!showFilterPanel)}>Filter</button>
             <button className="btn btn-generate">Generate</button>
           </div>
@@ -278,59 +660,86 @@ const OverviewDash = () => {
                 </tr>
               ) : (
                 paginatedData.map((agreement, rowIndex) => (
-                  <tr key={agreement.agreement_id}>
-                    <td>{agreement.entry_date || '-'}</td>
-                    <td>{agreement.unit_name}</td>
-                    <td>{agreement.point_persons_list || '-'}</td>
-                    <td>{agreement.dts_number}</td>
-                    <td>{agreement.dts_status}</td>
-                    <td>{agreement.name}</td>
-                    <td>{agreement.entity_type || '-'}</td>
-                    <td>{agreement.country || '-'}</td>
-                    <td>{agreement.region || '-'}</td>
-                    <td>{agreement.address || '-'}</td>
-                    <td>{agreement.signatories_list || '-'}</td>
+                  <tr key={agreement.agreement_id}
+                    className={editingRow === agreement.agreement_id ? 'editing-row' : ''}>
+                    <td>{renderEditableCell(agreement, 'entry_date', agreement.entry_date)}</td>
+                    <td>{renderEditableCell(agreement, 'unit_name', agreement.unit_name)}</td>
+                    <td>{renderEditableCell(agreement, 'point_persons', agreement.point_persons)}</td>
+                    <td>{renderEditableCell(agreement, 'dts_number', agreement.dts_number)}</td>
+                    <td>{renderEditableCell(agreement, 'dts_status', agreement.dts_status)}</td>
+                    <td>{renderEditableCell(agreement, 'name', agreement.name)}</td>
+                    <td>{renderEditableCell(agreement, 'entity_type', agreement.entity_type)}</td>
+                    <td>{renderEditableCell(agreement, 'country', agreement.country)}</td>
+                    <td>{renderEditableCell(agreement, 'region', agreement.region)}</td>
+                    <td>{renderEditableCell(agreement, 'address', agreement.address)}</td>
+                    <td>{renderEditableCell(agreement, 'signatories_list', agreement.signatories_list)}</td>
+                    <td>{renderEditableCell(agreement, 'contact_persons', agreement.contact_persons)}</td>
+                    <td>{renderEditableCell(agreement, 'document_type', agreement.document_type)}</td>
+                    <td>{renderEditableCell(agreement, 'partnership_type', agreement.partnership_type)}</td>
+                    <td>{renderEditableCell(agreement, 'event_info', agreement.event_info)}</td>
+                    <td>{renderEditableCell(agreement, 'validity_period', agreement.validity_period)}</td>
+                    <td>{renderEditableCell(agreement, 'date_signed', agreement.date_signed)}</td>
+                    <td>{renderEditableCell(agreement, 'date_expiry', agreement.date_expiry)}</td>
+                    <td>{renderEditableCell(agreement, 'date_received', agreement.date_received)}</td>
+                    <td>{renderEditableCell(agreement, 'date_endorsed_to_ulco', agreement.date_endorsed_to_ulco)}</td>
+                    <td>{renderEditableCell(agreement, 'date_ulco_approved', agreement.date_ulco_approved)}</td>
+                    <td>{renderEditableCell(agreement, 'date_signed_by_pup', agreement.date_signed_by_pup)}</td>
+                    <td>{renderEditableCell(agreement, 'agreement_status', agreement.agreement_status)}</td>
                     <td>
-                      {agreement.contact_persons && agreement.contact_persons.length > 0
-                        ? agreement.contact_persons.map(cp =>
-                            `${cp.contact_person_position},${cp.contact_person_name}, ${cp.contact_person_email}`
-                          ).join(' | ')
-                        : '-'}
+                      {editingRow === agreement.agreement_id ?
+                        renderEditableCell(agreement, 'website_url', agreement.website_url) :
+                        (agreement.website_url ? (
+                          <a href={agreement.website_url} target="_blank" rel="noopener noreferrer">
+                            Link
+                          </a>
+                        ) : '-')
+                      }
                     </td>
-                    <td>{agreement.document_type}</td>
-                    <td>{agreement.partnership_type || '-'}</td>
-                    <td>{agreement.event_info || '-'}</td>
-                    <td>{agreement.validity_period || '-'}</td>
-                    <td>{agreement.date_signed || '-'}</td>
-                    <td>{agreement.date_expiry || '-'}</td>
-                    <td>{agreement.date_received || '-'}</td>
-                    <td>{agreement.date_endorsed_to_ulco || '-'}</td>
-                    <td>{agreement.date_ulco_approved || '-'}</td>
-                    <td>{agreement.date_signed_by_pup || '-'}</td>
-                    <td>{agreement.agreement_status}</td>
-                    <td>
-                      {agreement.website_url ? (
-                        <a href={agreement.website_url} target="_blank" rel="noopener noreferrer">
-                          Link
-                        </a>
-                      ) : '-'}
-                    </td>
-                    <td>{agreement.description || '-'}</td>
+                    <td>{renderEditableCell(agreement, 'description', agreement.description)}</td>
                     <td>{agreement.logo_url ? (
                       <a href={agreement.logo_url} target="_blank" rel="noopener noreferrer">
                         View Logo
                       </a>
                     ) : '-'}</td>
-                    <td>{agreement.hardcopy_location || '-'}</td>
-                    <td>
-                      {agreement.remarks && agreement.remarks.length > 0
-                        ? agreement.remarks.map(remark => remark.remark_text).join(' | ')
-                        : '-'}
-                    </td>
+                    <td>{renderEditableCell(agreement, 'hardcopy_location', agreement.hardcopy_location)}</td>
+                    <td>{renderEditableCell(agreement, 'remarks', agreement.remarks)}</td>
                     <td>
                       <div className="action-buttons">
-                        <button className="btn-action">Edit</button>
-                        <button className="btn-action delete">Delete</button>
+                        {editingRow === agreement.agreement_id ? (
+                          // Show Save/Cancel buttons when editing
+                          <>
+                            <button
+                              className="btn-action save"
+                              onClick={() => saveRow(agreement.agreement_id)}
+                              disabled={savingRows.has(agreement.agreement_id)}
+                            >
+                              {savingRows.has(agreement.agreement_id) ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              className="btn-action cancel"
+                              onClick={cancelEditing}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          // Show Edit/Delete buttons when not editing
+                          <>
+                            <button
+                              className="btn-action"
+                              onClick={() => startEditing(agreement)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn-action delete"
+                              onClick={() => deleteRow(agreement.agreement_id)}
+                              disabled={deletingRows.has(agreement.agreement_id)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
                         <div className="menu-wrapper">
                           <button
                             className="dots-btn"
@@ -389,4 +798,3 @@ const OverviewDash = () => {
 };
 
 export default OverviewDash;
-

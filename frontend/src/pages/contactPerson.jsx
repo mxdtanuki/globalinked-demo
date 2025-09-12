@@ -3,55 +3,8 @@ import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import './contactPerson.css';
+import { agreementService } from '../services/agreementService';
 
-// Mock data for contact persons
-const mockData = Array.from({ length: 42 }, (_, i) => ({
-  partnerName: 'PAUL BAKERY MALAYSIA',
-  entityType: 'CORPORATION',
-  position: i % 2 === 0 ? 'DEAN' : 'CHAIRPERSON', 
-  name: `Contact ${i + 1}`,
-  email: `contact${i + 1}@gmail.com`,
-}));
-
-// Mock data agreements 
-const mockAgreements = [
-  {
-    id: 1,
-    title: 'MOU with PUP',
-    status: 'Active',
-    contactEmail: 'contact1@gmail.com',
-    documentType: 'MOU',
-    partnerClassification: 'Research Agreement',
-    fileUrl: '/mock-files/mou-pup.pdf',
-  },
-  {
-    id: 2,
-    title: 'MOA with UP',
-    status: 'Expired',
-    contactEmail: 'contact2@gmail.com',
-    documentType: 'MOA',
-    partnerClassification: 'Contract Agreement',
-    fileUrl: '/mock-files/moa-up.pdf',
-  },
-  {
-    id: 3,
-    title: 'MOU with Ateneo',
-    status: 'Pending',
-    contactEmail: 'contact1@gmail.com',
-    documentType: 'MOU',
-    partnerClassification: 'Collaboration',
-    fileUrl: '/mock-files/mou-ateneo.pdf',
-  },
-  {
-    id: 4,
-    title: 'Collaboration with DLSU',
-    status: 'Signed',
-    contactEmail: 'contact3@gmail.com',
-    documentType: 'Contract',
-    partnerClassification: 'Partnership',
-    fileUrl: '/mock-files/contract-dlsu.pdf',
-  },
-];
 
 const ContactPerson = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -61,10 +14,10 @@ const ContactPerson = () => {
   const itemsPerPage = 10;
 
   const [searchText, setSearchText] = useState("");
-
-  // Modal state
+  const [rows, setRows] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [agreements, setAgreements] = useState([]);
+
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
@@ -79,9 +32,35 @@ const ContactPerson = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+// Load agreements and flatten contact persons into table rows
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await agreementService.getAgreements();
+        setAgreements(data);
+        const flattened = [];
+        data.forEach(a => {
+          (a.contact_persons || []).forEach(cp => {
+            flattened.push({
+              partnerName: a.name || '',
+              entityType: a.entity_type || '',
+              position: cp.contact_person_position || '',
+              name: cp.contact_person_name || '',
+              email: cp.contact_person_email || '',
+              agreementId: a.agreement_id,
+            });
+          });
+        });
+        setRows(flattened);
+      } catch (e) {
+        console.error('Failed to load contact persons', e);
+      }
+    })();
+  }, []);
+
   // Filter logic
-  const filteredData = mockData.filter((person) => {
-    const term = searchText.toLowerCase();
+  const filteredData = rows.filter((person) => {
+  const term = searchText.toLowerCase();
     return (
       person.partnerName.toLowerCase().includes(term) ||
       person.entityType.toLowerCase().includes(term) ||
@@ -105,8 +84,15 @@ const ContactPerson = () => {
   // View agreements
   const handleViewAgreements = (person) => {
     setSelectedPerson(person);
-    const related = mockAgreements.filter((a) => a.contactEmail === person.email);
-    setAgreements(related);
+   const seen = new Set();
+   const related = rows
+   .filter(r => r.email === person.email && !seen.has(r.agreementId) && seen.add(r.agreementId))
+     .map(r => ({
+       agreement_id: r.agreementId,
+       document_type: r.documentType,
+       partnership_type: r.partnershipType,
+     }));
+   setAgreements(related);
   };
 
   return (
@@ -216,7 +202,7 @@ const ContactPerson = () => {
                 </thead>
                 <tbody>
                   {agreements.map((a) => (
-                    <tr key={a.id}>
+                    <tr key={a.id}>s
                       <td>{a.documentType}</td>
                       <td>{a.partnerClassification}</td>
                       <td>

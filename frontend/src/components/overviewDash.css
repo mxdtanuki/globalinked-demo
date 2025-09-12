@@ -243,6 +243,85 @@
 .btn-add:hover {
   background-color: #660000;
 }
+/* Editable cell styles */
+.edit-textarea {
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  box-sizing: border-box;
+  min-width: 150px;
+  resize: vertical;
+  font-family: inherit;
+  background-color: white;
+}
+
+.edit-textarea:focus {
+  outline: none;
+  border-color: none;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive adjustments for textarea */
+@media (max-width: 768px) {
+  .edit-textarea {
+    min-width: 120px;
+    font-size: 11px;
+  }
+}
+
+/* Existing edit input styles for regular fields */
+.editing-row {
+  background-color: #fff3cd !important;
+  border: none;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  box-sizing: border-box;
+  min-width: 100px;
+  background-color: white;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: none;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-action.save {
+  background-color: #28a745;
+  color: white;
+  border: 1px solid #28a745;
+}
+
+.btn-action.save:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+.btn-action.save:disabled {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.btn-action.cancel {
+  background-color: #6c757d;
+  color: white;
+  border: 1px solid #6c757d;
+}
+
+.btn-action.cancel:hover {
+  background-color: #545b62;
+  border-color: #4e555b;
+}
 
 /* Action column buttons */
 .action-buttons {

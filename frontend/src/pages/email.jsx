@@ -6,6 +6,8 @@ import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import "../components/layout.css";
 import "./email.css";
+import { emailService } from "../services/emailService";
+import { agreementService } from '../services/agreementService';
 
 const Email = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -20,8 +22,55 @@ const Email = () => {
   const [subject, setSubject] = useState("");
   const [currentTemplate, setCurrentTemplate] = useState(null);
 
+  const [templates, setTemplates] = useState([]);
+  const [agreements, setAgreements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedAgreement, setSelectedAgreement] = useState(null);
+
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
+
+  //Fetch templates and agreements on mount
+  useEffect(() => {
+    fetchTemplates();
+    fetchAgreements();
+  }, []);
+
+  useEffect(() => {
+    const savedDrafts = localStorage.getItem('emailDrafts');
+    if (savedDrafts) {
+      try {
+        const parsedDrafts = JSON.parse(savedDrafts);
+        setDrafts(parsedDrafts);
+        console.log('Loaded drafts from localStorage:', parsedDrafts);
+      } catch (error) {
+        console.error('Failed to load drafts:', error);
+      }
+    }
+  }, []);
+
+  //Fetch templates from backend
+  const fetchTemplates = async () => {
+    try {
+      const data = await emailService.getTemplates();
+      setTemplates(data);
+    } catch (err) {
+      setError('Failed to fetch templates: ' + err.message);
+    }
+  };
+
+  //Fetch agreements for email context
+  const fetchAgreements = async () => {
+    try {
+      const data = await agreementService.getAgreements();
+      setAgreements(data);
+    } catch (err) {
+      setError('Failed to fetch agreements: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -34,139 +83,119 @@ const Email = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-// Example templates
-const templates = [
-  {
-    id: 1,
-    status: "Endorse To ULCO for Review and Approval",
-    text: `DEAR (POINT PERSON),\n\nWE WOULD LIKE TO INFORM YOU THAT THE (DOCUMENT TYPE) WITH (PARTNER NAME) HAS BEEN ENDORSED TO ULCO FOR REVIEW AND APPROVAL.\n\nCURRENT STATUS: ENDORSE TO ULCO FOR REVIEW AND APPROVAL\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 2,
-    status: "Revert To Initiator with Comments",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) HAS BEEN REVERTED TO THE INITIATOR WITH COMMENTS FOR REVISION.\n\nCURRENT STATUS: REVERT TO INITIATOR WITH COMMENTS\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 3,
-    status: "Replication of Copies (6 sets)",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) IS NOW FOR REPLICATION OF COPIES (6 SETS).\n\nCURRENT STATUS: FOR REPLICATION OF COPIES (6 SETS)\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 4,
-    status: "For Signitures of PUP Officials",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) IS NOW AWAITING SIGNATURES FROM PUP OFFICIALS.\n\nCURRENT STATUS: FOR SIGNATURES OF PUP OFFICIALS\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 5,
-    status: "Signed by PUP Officials",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) HAS BEEN SIGNED BY PUP OFFICIALS.\n\nCURRENT STATUS: SIGNED BY PUP OFFICIALS\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 6,
-    status: "For Signitures of Partner",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) IS NOW FOR SIGNATURE OF THE PARTNER.\n\nCURRENT STATUS: FOR SIGNATURE OF PARTNER\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 7,
-    status: "SignedPartnerInstitution",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) HAS BEEN SIGNED BY THE PARTNER INSTITUTION.\n\nCURRENT STATUS: SIGNED BY PARTNER INSTITUTION\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-    {
-    id: 8,
-    status: "Completely Signed",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) HAS BEEN COMPLETELY SIGNED AND FINALIZED.\n\nCURRENT STATUS: COMPLETELY SIGNED\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 9,
-    status: "For Notary",
-    text: `DEAR (POINT PERSON),\n\nWE WOULD LIKE TO INFORM YOU THAT THE (DOCUMENT TYPE) WITH (PARTNER NAME) HAS NOW REACHED THE NOTARIZATION STAGE.\n\nCURRENT STATUS: FOR NOTARY\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 10,
-    status: "FFUP Copy From College/Campus",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) IS NOW FOR FORWARDING OF FFUP COPY FROM THE COLLEGE/CAMPUS.\n\nCURRENT STATUS: FOR FFUP COPY FROM COLLEGE/CAMPUS\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 11,
-    status: "Renewal",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) IS NOW DUE FOR RENEWAL.\n\nCURRENT STATUS: RENEWAL\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-  {
-    id: 12,
-    status: "Expired",
-    text: `DEAR (POINT PERSON),\n\nTHE (DOCUMENT TYPE) WITH (PARTNER NAME) HAS EXPIRED AND IS NO LONGER VALID.\n\nCURRENT STATUS: EXPIRED\n\nPLEASE INITIATE ACTIONS FOR RENEWAL IF NECESSARY.\n\nTHANK YOU.\n\nBEST REGARDS,\nOFFICE OF INTERNATIONAL AFFAIRS, PUP`,
-  },
-];
-
   // Open template
-  const handleOpenTemplate = (tpl) => {
-    setSelectedEmail({ type: "template", data: tpl });
-    setEditorContent(tpl.text);
-    setSubject(tpl.status); 
+  const handleOpenTemplate = (template) => {
+    setCurrentTemplate(template);
+    setSelectedEmail(template);
+    setEditorContent(template.body_html); 
+    setSubject(template.subject || `Status Update: ${template.template_name}`); // Use template subject
     setTo("");
     setEditingDraftId(null);
-    setCurrentTemplate(tpl);
   };
 
   // Open draft
   const handleOpenDraft = (draft) => {
     setSelectedEmail({ type: "draft", data: draft });
-    setEditorContent(draft.text);
+    setEditorContent(draft.content);
     setTo(draft.to || "");
     setSubject(draft.subject || "");
     setEditingDraftId(draft.id);
     setCurrentTemplate(null);
   };
 
-  const handleSend = () => {
-    console.log("Sending email:", { to, subject, body: editorContent });
-    alert("Email Sent! (Check console for content)");
-    setSelectedEmail(null);
-    setEditingDraftId(null);
-    setTo("");
-    setSubject("");
-    setEditorContent("");
-    setCurrentTemplate(null);
+  const handleDeleteDraft = (draftId) => {
+    if (window.confirm("Are you sure you want to delete this draft?")) { // Changed from confirm to window.confirm
+      const updatedDrafts = drafts.filter(d => d.id !== draftId);
+      setDrafts(updatedDrafts);
+      localStorage.setItem('emailDrafts', JSON.stringify(updatedDrafts));
+      alert("Draft deleted!");
+    }
   };
 
-  const handleSaveDraft = () => {
-    if (!editorContent.trim()) {
-      alert("Cannot save empty draft.");
+  const handleSend = async () => {
+    if (!to || !subject || !editorContent.trim()) {
+      alert("Please fill in all fields");
       return;
     }
 
-    if (editingDraftId) {
-      // Update existing draft
-      setDrafts((prev) =>
-        prev.map((d) =>
-          d.id === editingDraftId
-            ? { ...d, text: editorContent, to, subject }
-            : d
-        )
-      );
-      alert("Draft Updated!");
-    } else {
-      // Create new draft
-      const newDraft = {
-        id: Date.now(),
-        date: new Date().toISOString().split("T")[0],
-        partnerName: "PAUL BAKERY MALAYSIA", // these should be later changed to dynamic inputs
-        status: currentTemplate?.status || "Unknown Status", // comes from template, or kasama din dapat to? dapat dynamic  sha every time may update na change ng status tatanong yung user if want nya mag send ng email?
-        text: editorContent,
-        to,
-        subject,
+    try {
+      const emailData = {
+        recipient_email: to,
+        custom_subject: subject,        
+        custom_body: editorContent,
+        template_id: currentTemplate?.template_id || null,
+        agreement_id: selectedAgreement?.agreement_id || null
       };
-      setDrafts((prev) => [...prev, newDraft]);
-      alert("Draft Saved!");
+
+      await emailService.sendEmail(emailData);
+      alert("Email sent successfully!");
+      
+      setSelectedEmail(null);
+      setEditorContent("");
+      setSubject("");
+      setTo("");
+      setCurrentTemplate(null);
+      setSelectedAgreement(null);
+      
+    } catch (error) {
+      alert("Failed to send email: " + error.message);
+    }
+  };
+
+  const handleSaveDraft = () => {
+    if (!to || !subject || !editorContent.trim()) {
+      alert("Please fill in required fields to save draft");
+      return;
     }
 
+    const draftData = {
+      id: editingDraftId || Date.now(),
+      to,
+      subject,
+      content: editorContent,
+      date: new Date().toLocaleDateString(),
+      partnerName: selectedAgreement?.partner_name || selectedAgreement?.name || "Unknown Partner", // Fixed this line
+      status: currentTemplate?.template_name || "Custom Email"
+    };
+
+    let updatedDrafts;
+    if (editingDraftId) {
+      updatedDrafts = drafts.map(d => d.id === editingDraftId ? draftData : d);
+      setDrafts(updatedDrafts);
+    } else {
+      updatedDrafts = [...drafts, draftData];
+      setDrafts(updatedDrafts);
+    }
+
+    // Save to localStorage
+    localStorage.setItem('emailDrafts', JSON.stringify(updatedDrafts));
+    console.log('Saved draft to localStorage:', draftData);
+
+    alert(editingDraftId ? "Draft updated!" : "Draft saved!");
     setSelectedEmail(null);
-    setEditingDraftId(null);
-    setTo("");
-    setSubject("");
     setEditorContent("");
+    setSubject("");
+    setTo("");
     setCurrentTemplate(null);
+    setEditingDraftId(null);
   };
+
+  // Function to preview template with agreement data
+  const previewTemplateWithAgreement = (template, agreement) => {
+    if (!agreement) return template.body_html;
+    
+    let preview = template.body_html;
+    preview = preview.replace(/\{\{PARTNER_NAME\}\}/g, agreement.partner_name || '');
+    preview = preview.replace(/\{\{DOCUMENT_TYPE\}\}/g, agreement.document_type || '');
+    preview = preview.replace(/\{\{DTS_NUMBER\}\}/g, agreement.dts_number || '');
+    preview = preview.replace(/\{\{AGREEMENT_STATUS\}\}/g, agreement.agreement_status || '');
+    preview = preview.replace(/\{\{EXPIRY_DATE\}\}/g, agreement.date_expiry || '');
+    
+    return preview;
+  };
+
+  // Loading state
+  if (loading) return <div className="dashboard-container">Loading email data...</div>;
 
   return (
     <div className="dashboard-container">
@@ -197,9 +226,16 @@ const templates = [
           )}
 
           <div className="email-dashboard">
-          <h2 className="email-title">
-           Email Dashboard
-           </h2>
+            <h2 className="email-title">
+              Email Dashboard
+            </h2>
+
+            {/* Error display can be changed */}
+            {error && (
+              <div style={{ color: 'red', padding: '10px', marginBottom: '20px' }}>
+                {error}
+              </div>
+            )}
 
             {/* Drafts Section */}
             <div className="email-section">
@@ -233,6 +269,13 @@ const templates = [
                           >
                             View Draft
                           </button>
+                          <button
+                            className="delete-btn"
+                            onClick={() => handleDeleteDraft(draft.id)}
+                            style={{ marginLeft: '5px', backgroundColor: '#800000', color: 'white' }}
+                          >
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -253,20 +296,28 @@ const templates = [
                   </tr>
                 </thead>
                 <tbody>
-                  {templates.map((tpl, idx) => (
-                    <tr key={tpl.id}>
-                      <td>{idx + 1}</td>
-                      <td>{tpl.status}</td>
-                      <td>
-                        <button
-                          className="view-btn"
-                          onClick={() => handleOpenTemplate(tpl)}
-                        >
-                          View Template
-                        </button>
+                  {templates.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" style={{ textAlign: "center" }}>
+                        No Templates Available
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    templates.map((tpl, idx) => (
+                      <tr key={tpl.template_id}>
+                        <td>{idx + 1}</td>
+                        <td>{tpl.template_name}</td>
+                        <td>
+                          <button
+                            className="view-btn"
+                            onClick={() => handleOpenTemplate(tpl)}
+                          >
+                            View Template
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -293,6 +344,30 @@ const templates = [
                 </div>
 
                 <div className="modal-body">
+                  {/* Agreement Selection */}
+                  {currentTemplate && (
+                    <div className="field">
+                      <label>Related Agreement (optional):</label>
+                      <select
+                        value={selectedAgreement?.agreement_id || ''}
+                        onChange={(e) => {
+                          const agreement = agreements.find(a => a.agreement_id === parseInt(e.target.value));
+                          setSelectedAgreement(agreement);
+                          if (agreement && currentTemplate) {
+                            setEditorContent(previewTemplateWithAgreement(currentTemplate, agreement));
+                          }
+                        }}
+                      >
+                        <option value="">Select Agreement (for auto-fill)</option>
+                        {agreements.map(agreement => (
+                          <option key={agreement.agreement_id} value={agreement.agreement_id}>
+                            {agreement.dts_number} - {agreement.partner_name || agreement.name || 'Unknown Partner'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {/* To */}
                   <div className="field">
                     <label>To:</label>
