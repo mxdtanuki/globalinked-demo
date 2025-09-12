@@ -114,37 +114,5 @@ export const agreementService = {
 
     return response.json();
   },
-/*
-  async checkDuplicate({ dts_number, document_type, partnership_type }) {
-  const token = localStorage.getItem("access_token");
-  if (!token) {
-    throw new Error("Please login first");
-  }
-
-  const params = new URLSearchParams({
-    dts_number,
-    document_type,
-    partnership_type
-  });
-
-  const response = await fetch(`${API_BASE_URL}/agreements/check-duplicate?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${token}`
-    }
-  });
-
-  if (response.status === 404) {
-    return null; 
-  }
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || "Failed to check duplicate");
-  }
-
-  return await response.json();
-}
-*/
 
 };
