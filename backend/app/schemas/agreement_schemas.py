@@ -30,7 +30,7 @@ class RemarkResponse(BaseModel):
         from_attributes = True
 
 class PartnerCreate(BaseModel):
-    #Partnet info 
+    #Partner info 
     name: str = Field(..., max_length=150)
     entity_type: Optional[str] = Field(None, max_length=50)
     country: Optional[str] = Field(None, max_length=75)
@@ -165,3 +165,31 @@ class DashboardSummary(BaseModel): # for analytics
     recent_agreements: list
 
 
+class AgreementUpdateSimple(BaseModel):
+    # Basic agreement fields that can be updated directly
+    entry_date: Optional[date] = None
+    unit_name: Optional[str] = None
+    dts_number: Optional[str] = None
+    dts_status: Optional[str] = None
+    name: Optional[str] = None
+    entity_type: Optional[str] = None
+    country: Optional[str] = None
+    region: Optional[str] = None
+    address: Optional[str] = None
+    signatories_list: Optional[str] = None
+    contact_persons: Optional[List[dict]] = None
+    document_type: Optional[str] = None
+    partnership_type: Optional[str] = None
+    event_info: Optional[str] = None
+    validity_period: Optional[str] = None
+    date_signed: Optional[date] = None
+    date_expiry: Optional[date] = None
+    date_received: Optional[date] = None
+    date_endorsed_to_ulco: Optional[date] = None
+    date_ulco_approved: Optional[date] = None
+    date_signed_by_pup: Optional[date] = None
+    agreement_status: Optional[str] = None
+    website_url: Optional[str] = None
+    description: Optional[str] = None
+    hardcopy_location: Optional[str] = None
+    remarks: Optional[List[dict]] = None
