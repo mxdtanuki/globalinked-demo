@@ -7,200 +7,40 @@ import './globalUpload.css';
 
 
 const countryOptions = [
-  { value: 'Afghanistan', label: 'Afghanistan' },
-  { value: 'Albania', label: 'Albania' },
-  { value: 'Algeria', label: 'Algeria' },
-  { value: 'Andorra', label: 'Andorra' },
-  { value: 'Angola', label: 'Angola' },
-  { value: 'Antigua and Barbuda', label: 'Antigua and Barbuda' },
-  { value: 'Argentina', label: 'Argentina' },
-  { value: 'Armenia', label: 'Armenia' },
-  { value: 'Australia', label: 'Australia' },
-  { value: 'Austria', label: 'Austria' },
-  { value: 'Azerbaijan', label: 'Azerbaijan' },
-  { value: 'Bahamas', label: 'Bahamas' },
-  { value: 'Bahrain', label: 'Bahrain' },
-  { value: 'Bangladesh', label: 'Bangladesh' },
-  { value: 'Barbados', label: 'Barbados' },
-  { value: 'Belarus', label: 'Belarus' },
-  { value: 'Belgium', label: 'Belgium' },
-  { value: 'Belize', label: 'Belize' },
-  { value: 'Benin', label: 'Benin' },
-  { value: 'Bhutan', label: 'Bhutan' },
-  { value: 'Bolivia', label: 'Bolivia' },
-  { value: 'Bosnia and Herzegovina', label: 'Bosnia and Herzegovina' },
-  { value: 'Botswana', label: 'Botswana' },
-  { value: 'Brazil', label: 'Brazil' },
-  { value: 'Brunei', label: 'Brunei' },
-  { value: 'Bulgaria', label: 'Bulgaria' },
-  { value: 'Burkina Faso', label: 'Burkina Faso' },
-  { value: 'Burundi', label: 'Burundi' },
-  { value: 'Cabo Verde', label: 'Cabo Verde' },
-  { value: 'Cambodia', label: 'Cambodia' },
-  { value: 'Cameroon', label: 'Cameroon' },
-  { value: 'Canada', label: 'Canada' },
-  { value: 'Central African Republic', label: 'Central African Republic' },
-  { value: 'Chad', label: 'Chad' },
-  { value: 'Chile', label: 'Chile' },
-  { value: 'China', label: 'China' },
-  { value: 'Colombia', label: 'Colombia' },
-  { value: 'Comoros', label: 'Comoros' },
-  { value: 'Congo', label: 'Congo' },
-  { value: 'Costa Rica', label: 'Costa Rica' },
-  { value: 'Croatia', label: 'Croatia' },
-  { value: 'Cuba', label: 'Cuba' },
-  { value: 'Cyprus', label: 'Cyprus' },
-  { value: 'Czech Republic', label: 'Czech Republic' },
-  { value: 'Denmark', label: 'Denmark' },
-  { value: 'Djibouti', label: 'Djibouti' },
-  { value: 'Dominica', label: 'Dominica' },
-  { value: 'Dominican Republic', label: 'Dominican Republic' },
-  { value: 'Ecuador', label: 'Ecuador' },
-  { value: 'Egypt', label: 'Egypt' },
-  { value: 'El Salvador', label: 'El Salvador' },
-  { value: 'Equatorial Guinea', label: 'Equatorial Guinea' },
-  { value: 'Eritrea', label: 'Eritrea' },
-  { value: 'Estonia', label: 'Estonia' },
-  { value: 'Eswatini', label: 'Eswatini' },
-  { value: 'Ethiopia', label: 'Ethiopia' },
-  { value: 'Fiji', label: 'Fiji' },
-  { value: 'Finland', label: 'Finland' },
-  { value: 'France', label: 'France' },
-  { value: 'Gabon', label: 'Gabon' },
-  { value: 'Gambia', label: 'Gambia' },
-  { value: 'Georgia', label: 'Georgia' },
-  { value: 'Germany', label: 'Germany' },
-  { value: 'Ghana', label: 'Ghana' },
-  { value: 'Greece', label: 'Greece' },
-  { value: 'Grenada', label: 'Grenada' },
-  { value: 'Guatemala', label: 'Guatemala' },
-  { value: 'Guinea', label: 'Guinea' },
-  { value: 'Guinea-Bissau', label: 'Guinea-Bissau' },
-  { value: 'Guyana', label: 'Guyana' },
-  { value: 'Haiti', label: 'Haiti' },
-  { value: 'Honduras', label: 'Honduras' },
-  { value: 'Hungary', label: 'Hungary' },
-  { value: 'Iceland', label: 'Iceland' },
-  { value: 'India', label: 'India' },
-  { value: 'Indonesia', label: 'Indonesia' },
-  { value: 'Iran', label: 'Iran' },
-  { value: 'Iraq', label: 'Iraq' },
-  { value: 'Ireland', label: 'Ireland' },
-  { value: 'Israel', label: 'Israel' },
-  { value: 'Italy', label: 'Italy' },
-  { value: 'Jamaica', label: 'Jamaica' },
-  { value: 'Japan', label: 'Japan' },
-  { value: 'Jordan', label: 'Jordan' },
   { value: 'Kazakhstan', label: 'Kazakhstan' },
-  { value: 'Kenya', label: 'Kenya' },
-  { value: 'Kiribati', label: 'Kiribati' },
-  { value: 'Kuwait', label: 'Kuwait' },
-  { value: 'Kyrgyzstan', label: 'Kyrgyzstan' },
-  { value: 'Laos', label: 'Laos' },
-  { value: 'Latvia', label: 'Latvia' },
-  { value: 'Lebanon', label: 'Lebanon' },
-  { value: 'Lesotho', label: 'Lesotho' },
-  { value: 'Liberia', label: 'Liberia' },
-  { value: 'Libya', label: 'Libya' },
-  { value: 'Liechtenstein', label: 'Liechtenstein' },
-  { value: 'Lithuania', label: 'Lithuania' },
-  { value: 'Luxembourg', label: 'Luxembourg' },
-  { value: 'Madagascar', label: 'Madagascar' },
-  { value: 'Malawi', label: 'Malawi' },
-  { value: 'Malaysia', label: 'Malaysia' },
-  { value: 'Maldives', label: 'Maldives' },
-  { value: 'Mali', label: 'Mali' },
-  { value: 'Malta', label: 'Malta' },
-  { value: 'Marshall Islands', label: 'Marshall Islands' },
-  { value: 'Mauritania', label: 'Mauritania' },
-  { value: 'Mauritius', label: 'Mauritius' },
-  { value: 'Mexico', label: 'Mexico' },
-  { value: 'Micronesia', label: 'Micronesia' },
-  { value: 'Moldova', label: 'Moldova' },
-  { value: 'Monaco', label: 'Monaco' },
-  { value: 'Mongolia', label: 'Mongolia' },
-  { value: 'Montenegro', label: 'Montenegro' },
-  { value: 'Morocco', label: 'Morocco' },
-  { value: 'Mozambique', label: 'Mozambique' },
-  { value: 'Myanmar', label: 'Myanmar' },
-  { value: 'Namibia', label: 'Namibia' },
-  { value: 'Nauru', label: 'Nauru' },
-  { value: 'Nepal', label: 'Nepal' },
-  { value: 'Netherlands', label: 'Netherlands' },
-  { value: 'New Zealand', label: 'New Zealand' },
-  { value: 'Nicaragua', label: 'Nicaragua' },
-  { value: 'Niger', label: 'Niger' },
-  { value: 'Nigeria', label: 'Nigeria' },
-  { value: 'North Korea', label: 'North Korea' },
-  { value: 'North Macedonia', label: 'North Macedonia' },
-  { value: 'Norway', label: 'Norway' },
-  { value: 'Oman', label: 'Oman' },
-  { value: 'Pakistan', label: 'Pakistan' },
-  { value: 'Palau', label: 'Palau' },
-  { value: 'Palestine', label: 'Palestine' },
-  { value: 'Panama', label: 'Panama' },
-  { value: 'Papua New Guinea', label: 'Papua New Guinea' },
-  { value: 'Paraguay', label: 'Paraguay' },
-  { value: 'Peru', label: 'Peru' },
-  { value: 'Philippines', label: 'Philippines' },
-  { value: 'Poland', label: 'Poland' },
-  { value: 'Portugal', label: 'Portugal' },
-  { value: 'Qatar', label: 'Qatar' },
-  { value: 'Romania', label: 'Romania' },
-  { value: 'Russia', label: 'Russia' },
-  { value: 'Rwanda', label: 'Rwanda' },
-  { value: 'Saint Kitts and Nevis', label: 'Saint Kitts and Nevis' },
-  { value: 'Saint Lucia', label: 'Saint Lucia' },
-  { value: 'Saint Vincent and the Grenadines', label: 'Saint Vincent and the Grenadines' },
-  { value: 'Samoa', label: 'Samoa' },
-  { value: 'San Marino', label: 'San Marino' },
-  { value: 'Sao Tome and Principe', label: 'Sao Tome and Principe' },
-  { value: 'Saudi Arabia', label: 'Saudi Arabia' },
-  { value: 'Senegal', label: 'Senegal' },
-  { value: 'Serbia', label: 'Serbia' },
-  { value: 'Seychelles', label: 'Seychelles' },
-  { value: 'Sierra Leone', label: 'Sierra Leone' },
-  { value: 'Singapore', label: 'Singapore' },
-  { value: 'Slovakia', label: 'Slovakia' },
-  { value: 'Slovenia', label: 'Slovenia' },
-  { value: 'Solomon Islands', label: 'Solomon Islands' },
-  { value: 'Somalia', label: 'Somalia' },
-  { value: 'South Africa', label: 'South Africa' },
-  { value: 'South Korea', label: 'South Korea' },
-  { value: 'South Sudan', label: 'South Sudan' },
-  { value: 'Spain', label: 'Spain' },
-  { value: 'Sri Lanka', label: 'Sri Lanka' },
-  { value: 'Sudan', label: 'Sudan' },
-  { value: 'Suriname', label: 'Suriname' },
-  { value: 'Sweden', label: 'Sweden' },
-  { value: 'Switzerland', label: 'Switzerland' },
-  { value: 'Syria', label: 'Syria' },
-  { value: 'Taiwan', label: 'Taiwan' },
+  { value: 'Kyrgzstan', label: 'Kyrgzstan' },
   { value: 'Tajikistan', label: 'Tajikistan' },
-  { value: 'Tanzania', label: 'Tanzania' },
+  { value: 'Turkmenistan', label: 'Turkmenistan' },
+  { value: 'Uzbekistan', label: 'Uzbekistan' },
+  { value: 'Taiwan', label: 'Taiwan' },
+  { value: 'China', label: 'China' },
+  { value: 'HongKong', label: 'HongKong' },
+  { value: 'China, Macao', label: 'China, Macao' },
+  { value: 'Japan', label: 'Japan' },
+  { value: 'Mongolia', label: 'Mongolia' },
+  { value: 'South Korea', label: 'South Korea' },
+  { value: 'North Korea', label: 'North Korea' },
+  { value: 'Afghanistan', label: 'Afghanistan' },
+  { value: 'Bangladesh', label: 'Bangladesh' },
+  { value: 'Bhutan', label: 'Bhutan' },
+  { value: 'India', label: 'India' },
+  { value: 'Iran', label: 'Iran' },
+  { value: 'Maldives', label: 'Maldives' },
+  { value: 'Nepal', label: 'Nepal' },
+  { value: 'Pakistan', label: 'Pakistan' },
+  { value: 'Sri Lanka', label: 'Sri Lanka' },
+  { value: 'Brunei', label: 'Brunei' },
+  { value: 'Cambodia', label: 'Cambodia' },
+  { value: 'Indonesia', label: 'Indonesia' },
+  { value: 'Laos', label: 'Laos' },
+  { value: 'Malaysia', label: 'Malaysia' },
+  { value: 'Myanmar', label: 'Myanmar' },
+  { value: 'Philippines', label: 'Philippines' },
+  { value: 'Singapore', label: 'Singapore' },
   { value: 'Thailand', label: 'Thailand' },
   { value: 'Timor-Leste', label: 'Timor-Leste' },
-  { value: 'Togo', label: 'Togo' },
-  { value: 'Tonga', label: 'Tonga' },
-  { value: 'Trinidad and Tobago', label: 'Trinidad and Tobago' },
-  { value: 'Tunisia', label: 'Tunisia' },
-  { value: 'Turkey', label: 'Turkey' },
-  { value: 'Turkmenistan', label: 'Turkmenistan' },
-  { value: 'Tuvalu', label: 'Tuvalu' },
-  { value: 'Uganda', label: 'Uganda' },
-  { value: 'Ukraine', label: 'Ukraine' },
-  { value: 'United Arab Emirates', label: 'United Arab Emirates' },
-  { value: 'United Kingdom', label: 'United Kingdom' },
-  { value: 'United States', label: 'United States' },
-  { value: 'Uruguay', label: 'Uruguay' },
-  { value: 'Uzbekistan', label: 'Uzbekistan' },
-  { value: 'Vanuatu', label: 'Vanuatu' },
-  { value: 'Vatican City', label: 'Vatican City' },
-  { value: 'Venezuela', label: 'Venezuela' },
   { value: 'Vietnam', label: 'Vietnam' },
-  { value: 'Yemen', label: 'Yemen' },
-  { value: 'Zambia', label: 'Zambia' },
-  { value: 'Zimbabwe', label: 'Zimbabwe' }
+  { value: 'Finland', label: 'Finland' },
 ];
 
 const regionOptions = [
@@ -270,520 +110,392 @@ const partnershipTypeOptions = [
 
 const ManualEntryMOA = () => {
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [dtsNumber, setDtsNumber] = useState("");
-  const [documentType, setDocumentType] = useState("MOA"); // or whatever your default is
+  const [documentType, setDocumentType] = useState("MOA");
   const [partnershipType, setPartnershipType] = useState("");
-  const [contacts, setContacts] = useState([{ position: "", name: "", email: "" }]);
-  const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
 
-  // Add new contact row
-  const addContact = () => {
-    setContacts([...contacts, { position: "", name: "", email: "" }]);
-  };
+  // New state for multiple point persons
+  const [pointPersons, setPointPersons] = useState([
+    { name: "", position: "", email: "" }
+  ]);
 
-  // Add new point person row
   const addPointPerson = () => {
-    setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
+    setPointPersons([...pointPersons, { name: "", position: "", email: "" }]);
   };
 
-  // Update value in contact row
-  const handleContactChange = (index, field, value) => {
-    const updated = [...contacts];
-    updated[index][field] = value;
-    setContacts(updated);
-  };
-
-  // Update value in point person row
   const handlePointPersonChange = (index, field, value) => {
     const updated = [...pointPersons];
     updated[index][field] = value;
     setPointPersons(updated);
   };
 
-  // Remove contact row
-  const removeContact = (index) => {
-    const updated = [...contacts];
-    updated.splice(index, 1);
-    setContacts(updated);
-  };
-
-  // Remove point person row
-  const removePointPerson = (index) => {
-    const updated = [...pointPersons];
-    updated.splice(index, 1);
-    setPointPersons(updated);
-  };
-
-
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setMessage("");
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
 
-  try {
-    const form = new FormData(e.target);
-    const data = Object.fromEntries(form);
+    try {
+      const form = new FormData(e.target);
+      const data = Object.fromEntries(form);
 
+      const agreementData = {
+        partner_data: {
+          name: data.partnerName,
+          entity_type: data.entityType,
+          country: selectedCountry?.value || "",
+          region: selectedRegion?.value || "",
+          address: data.address,
+          website_url: data.website || "",
+          description: data.description || "",
+          status: "active",
+          contact_persons: data.contactPersonName
+            ? [
+                {
+                  contact_person_name: data.contactPersonName,
+                  contact_person_position: data.contactPersonPosition || "",
+                  contact_person_email: data.contactPersonEmail || ""
+                }
+              ]
+            : []
+        },
+        source_unit_id: parseInt(data.source),
+        dts_number: dtsNumber,
+        dts_status: data.dtsStatus,
+        document_type: documentType,
+        partnership_type: partnershipType,
+        agreement_status: data.status,
+        entry_type: data.entryType,
+        entry_date: data.entryDate || null,
+        date_received: data.dateReceived || null,
+        date_endorsed_to_ulco: data.dateEndorsed || null,
+        date_ulco_approved: data.dateUlcoApproved || null,
+        date_signed_by_pup: data.datePupSigned || null,
+        date_signed: data.dateSigned || null,
+        date_expiry: data.dateExpiry || null,
+        validity_period: data.validity || null,
+        event_info: data.eventInfo || null,
+        signatories_list: data.signatories || null,
 
-    // Duplicate pre-check
-    const duplicate = await agreementService.checkDuplicate({
-      dts_number: dtsNumber,
-      document_type: documentType,
-      partnership_type: partnershipType
-    });
-  if (duplicate) {
-    setMessage(
-      `Duplicate found:
-      Partner: ${duplicate.name}
-      DTS No.: ${duplicate.dts_number}
-      Document Type: ${duplicate.document_type}
-      Partnership Type: ${duplicate.partnership_type}`
-    );
-      setLoading(false);
-      return; // Stop submission
-    }
+        // Build point persons array from state
+        point_persons: pointPersons
+          .filter((pp) => pp.name)
+          .map((pp) => ({
+            point_person_name: pp.name,
+            point_person_position: pp.position || "",
+            point_person_email: pp.email || ""
+          })),
 
-    const agreementData = {
-      partner_data: {
-        name: data.partnerName,
-        entity_type: data.entityType,
-        country: selectedCountry?.value || "",
-        region: selectedRegion?.value || "",
-        address: data.address,
-        website_url: data.website || "",
-        description: data.description || "",
-        status: "active",
-        contact_persons: data.contactPersonName
+        hardcopy_location: data.locator || null,
+        renewed_from_agreement_id: data.renewedFrom
+          ? parseInt(data.renewedFrom)
+          : null,
+        initial_remarks: data.remarks
           ? [
               {
-                contact_person_name: data.contactPersonName,
-                contact_person_position: data.contactPersonPosition || "",
-                contact_person_email: data.contactPersonEmail || ""
+                remark_text: data.remarks
               }
             ]
           : []
-      },
-      source_unit_id: parseInt(data.source),
-      dts_number: dtsNumber,
-      dts_status: data.dtsStatus,
-      document_type: documentType,
-      partnership_type: partnershipType,
-      agreement_status: data.status,
-      entry_type: data.entryType,
-      entry_date: data.entryDate || null,
-      date_received: data.dateReceived || null,
-      date_endorsed_to_ulco: data.dateEndorsed || null,
-      date_ulco_approved: data.dateUlcoApproved || null,
-      date_signed_by_pup: data.datePupSigned || null,
-      date_signed: data.dateSigned || null,
-      date_expiry: data.dateExpiry || null,
-      validity_period: data.validity || null,
-      event_info: data.eventInfo || null,
-      signatories_list: data.signatories || null,
-      point_persons: data.pointPerson
-        ? [
-            {
-              point_person_name: data.pointPerson,
-              point_person_position: data.pointPersonPosition || "",
-              point_person_email: data.pointPersonEmail || ""
-            }
-          ]
-        : [],
-      hardcopy_location: data.locator || null,
-      renewed_from_agreement_id: data.renewedFrom
-        ? parseInt(data.renewedFrom)
-        : null,
-      initial_remarks: data.remarks
-        ? [
-            {
-              remark_text: data.remarks
-            }
-          ]
-        : []
-    };
+      };
 
-    const res = await agreementService.createAgreement(agreementData);
-    setMessage("MOA created successfully!");
+      // Only call createAgreement, b.e. handles duplicates
+      const response = await agreementService.createAgreement(agreementData);
 
-     if (res?.status === 'duplicate') {
-      const dup = res.agreement || {};
-      setMessage(
-        `Duplicate found:
-        Partner: ${dup.name || 'N/A'}
-        DTS No.: ${dup.dts_number || dtsNumber}
-        Document Type: ${dup.document_type || documentType}
-        Partnership Type: ${dup.partnership_type || partnershipType}`
-      );
+      if (response.status === "duplicate") {
+        setMessage(
+          `Duplicate found:
+           Partner: ${response.agreement.name}
+           DTS No.: ${response.agreement.dts_number}
+           Document Type: ${response.agreement.document_type}
+           Partnership Type: ${response.agreement.partnership_type}`
+        );
+        return;
+      }
+
+      if (response.status === "created") {
+        setMessage("MOA created successfully!");
+        e.target.reset();
+        setSelectedCountry(null);
+        setSelectedRegion(null);
+        setDtsNumber("");
+        setDocumentType("MOA");
+        setPartnershipType("");
+        setPointPersons([{ name: "", position: "", email: "" }]); // reset
+      }
+    } catch (error) {
+      console.error("Full error:", error);
+      setMessage("Error: " + error.message);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Reset form
-    e.target.reset();
-    setSelectedCountry(null);
-    setSelectedRegion(null);
-    setDtsNumber("");
-    setDocumentType("MOA");
-    setPartnershipType("");
-
-  } catch (error) {
-    console.error("Full error:", error);
-    setMessage("Error: " + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  
+  };
+ 
   return (
-    <TopbarSidebar>
-      <div className="manual-entry-wrapper">
-        <div className="manual-entry-container">
-          <h2 className="form-title">Manual Entry Form</h2>
-          {message && <div style={{padding: '10px', margin: '10px 0', backgroundColor: message.includes('Error') ? '#ffebee' : '#e8f5e8'}}>{message}</div>}
-          <form className="manual-entry-form" onSubmit={handleSubmit}>
+  <TopbarSidebar>
+    <div className="manual-entry-wrapper">
+      <div className="manual-entry-container">
+        <h2 className="form-title">Manual Entry Form</h2>
+        {message && (
+          <div
+            style={{
+              padding: "10px",
+              margin: "10px 0",
+              backgroundColor: message.includes("Error")
+                ? "#ffebee"
+                : "#e8f5e8"
+            }}
+          >
+            {message}
+          </div>
+        )}
+        <form className="manual-entry-form" onSubmit={handleSubmit}>
+          <label htmlFor="entryDate">Date:</label>
+          <input id="entryDate" name="entryDate" type="date" />
 
-            {/* DATE */}
-            <div className="form-group">
-              <label htmlFor="entryDate">Date:</label>
-              <input id="entryDate" type="date" />
-            </div>
+          <label htmlFor="docType">Document Type:*</label>
+          <select id="docType" name="docType" required defaultValue="MOA">
+            <option value="MOA">MOA</option>
+          </select>
 
-             {/* DOC TYPE */}
-            <div className="form-group">
-              <label htmlFor="docType">Document Type:*</label>
-              <select id="docType" name="docType" required value="MOA" disabled>
-                <option value="MOA">MOA</option>
-              </select>
-            </div>
+          <label htmlFor="status">Agreement Status:*</label>
+          <select id="status" name="status" required>
+            <option value="">Select Agreement Status</option>
+            <option value="Endorse">Endorse to ULCO for review and approval</option>
+            <option value="Revert">Revert to Initiator with comments</option>
+            <option value="Replication">For Replication of Copies (6 set)</option>
+            <option value="SignituresPUP">For Signitures of PUP Officials</option>
+            <option value="SignedPUP">Signed By PUP Officials</option>
+            <option value="SignituresPartner">For Signiture of Partner</option>
+            <option value="Complete">Completly Signed</option>
+            <option value="Notary">For Notary</option>
+            <option value="FFUPCopy">For FFUP Copy from college/campus</option>
+            <option value="Renewal">Renewal</option>
+          </select>
 
-            {/* AGREEMENT STATUS */}
-            <div className="form-group">
-              <label htmlFor="status">Agreement Status:*</label>
-              <select id="status" required>
-                <option value="">Select Agreement Status</option>
-                <option value="Endorse">Endorse to ULCO for review and approval</option>
-                <option value="Revert">Revert to Initiator with comments</option>
-                <option value="Replication">For Replication of Copies (6 set)</option>
-                <option value="SignituresPUP">For Signatures of PUP Officials</option>
-                <option value="SignedPUP">Signed By PUP Officials</option>
-                <option value="SignituresPartner">For Signature of Partner</option>
-                <option value="Complete">Completely Signed</option>
-                <option value="Notary">For Notary</option>
-                <option value="FFUPCopy">For FFUP Copy from college/campus</option>
-                <option value="Renewal">Renewal</option>
-              </select>
-            </div>
+          <label htmlFor="entryType">Agreement Entry Type:*</label>
+          <select id="entryType" name="entryType" required>
+            <option value="">Select Entry Type</option>
+            <option value="Renewal">Renewal</option>
+            <option value="New">New</option>
+            <option value="Other">Other</option>
+          </select>
 
-            {/* AGREEMENT ENTRY TYPE */}
-            <div className="form-group">
-              <label htmlFor="entryType">Agreement Entry Type:*</label>
-              <select id="entryType" required>
-                <option value="">Select Entry Type</option>
-                <option value="Renewal">Renewal</option>
-                <option value="New">New</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+          <label htmlFor="renewedFrom">Renewed Agreement from:</label>
+          <input id="renewedFrom" name="renewedFrom" type="text" />
 
-            {/* RENEWED AGREEMENT */}
-            <div className="form-group">
-              <label htmlFor="renewedFrom">Renewed Agreement from:</label>
-              <input id="renewedFrom" type="text" />
-            </div>
+          <label htmlFor="relatedMOU">Related MOU:</label>
+          <input id="relatedMOU" type="file" />
 
-            {/* VALIDITY PERIOD */}
-            <div className="form-group">
-              <label htmlFor="validity">Validity Period:</label>
-              <select id="validity">
-                <option value="">Select Period</option>
-                <option value="5">5</option>
-                <option value="4">4</option>
-                <option value="3">3</option>
-                <option value="2">2</option>
-                <option value="1">1</option>
-              </select>
-            </div>
+          <label htmlFor="source">Source (Campus/College Dept):*</label>
+          <select id="source" name="source" required>
+            <option value="">Select Source</option>
+            <option value="1">College of Engineering</option>
+            <option value="2">College of Business</option>
+            <option value="3">International Affairs Office</option>
+            <option value="4">CHTTM</option>
+          </select>
 
-            {/* SOURCE */}
-            <div className="form-group">
-              <label htmlFor="source">Source (Campus/College Dept):*</label>
-              <select id="source" required>
-                <option value="">Select Source</option>
-                <option value="CHTTM">CHTTM</option>
-              </select>
-            </div>
+          <label htmlFor="signatories">Signatories:</label>
+          <input id="signatories" name="signatories" type="text" />
 
-            {/* PARTNERSHIP TYPE */}
-            <div className="form-group">
-              <label htmlFor="partnershipType">Partnership Type:*</label>
-              <Select
-                options={partnershipTypeOptions}
-                name="partnershipType"
-                id="partnershipType"
+          <label htmlFor="dateReceived">Date Received:*</label>
+          <input id="dateReceived" name="dateReceived" type="date" required />
+
+          <label htmlFor="validity">Validity Period:</label>
+          <select id="validity" name="validity">
+            <option value="">Select Period</option>
+            <option value="5">5</option>
+            <option value="4">4</option>
+            <option value="3">3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+          </select>
+
+          <label htmlFor="dateExpiry">Date Expiry:</label>
+          <input id="dateExpiry" name="dateExpiry" type="date" />
+
+          <label htmlFor="datePupSigned">Date PUP Signed:</label>
+          <input id="datePupSigned" name="datePupSigned" type="date" />
+
+          <label htmlFor="partnerName">Partner Name:*</label>
+          <input id="partnerName" name="partnerName" type="text" required />
+
+          <label htmlFor="contactPersonName">Contact Person Name:</label>
+          <input
+            id="contactPersonName"
+            name="contactPersonName"
+            type="text"
+            placeholder="Enter contact person's full name"
+          />
+
+          <label htmlFor="contactPersonPosition">Contact Person Position:</label>
+          <input
+            id="contactPersonPosition"
+            name="contactPersonPosition"
+            type="text"
+            placeholder="Enter their position/title"
+          />
+
+          <label htmlFor="contactPersonEmail">Contact Person Email:</label>
+          <input
+            id="contactPersonEmail"
+            name="contactPersonEmail"
+            type="email"
+            placeholder="Enter their email address"
+          />
+
+          <label htmlFor="country">Country:*</label>
+          <Select
+            value={selectedCountry}
+            onChange={setSelectedCountry}
+            options={countryOptions}
+            name="country"
+            id="country"
+            required
+            className="react-select-container"
+            classNamePrefix="react-select"
+            placeholder="Select Country"
+          />
+
+          <label htmlFor="region">Region:*</label>
+          <Select
+            value={selectedRegion}
+            onChange={setSelectedRegion}
+            options={regionOptions}
+            name="region"
+            id="region"
+            required
+            className="react-select-container"
+            classNamePrefix="react-select"
+            placeholder="Select Region"
+          />
+
+          <label htmlFor="address">Address:*</label>
+          <input id="address" name="address" type="text" required />
+
+          <label htmlFor="logo">Logo:</label>
+          <input id="logo" type="file" />
+
+          {/* DTS No. */}
+          <label htmlFor="dtsNo">DTS No.:*</label>
+          <input
+            id="dtsNo"
+            name="dtsNo"
+            type="text"
+            required
+            value={dtsNumber}
+            onChange={(e) => setDtsNumber(e.target.value)}
+          />
+
+          {/* Document Type */}
+          <label htmlFor="docType">Document Type:*</label>
+          <select
+            id="docType"
+            name="docType"
+            required
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value)}
+          >
+            <option value="MOA">MOA</option>
+          </select>
+
+          {/* Partnership Type */}
+          <label htmlFor="partnershipType">Partnership Type:*</label>
+          <Select
+            value={
+              partnershipType
+                ? { value: partnershipType, label: partnershipType }
+                : null
+            }
+            onChange={(opt) => setPartnershipType(opt?.value || "")}
+            options={partnershipTypeOptions}
+            name="partnershipType"
+            id="partnershipType"
+            required
+            className="react-select-container"
+            classNamePrefix="react-select"
+            placeholder="Select Partnership Type"
+          />
+
+          {/* 🔹 New stackable point persons */}
+          <label>Point Persons:</label>
+          {pointPersons.map((pp, index) => (
+            <div key={index} className="point-person-row">
+              <input
+                type="text"
+                placeholder="Name"
+                value={pp.name}
+                onChange={(e) =>
+                  handlePointPersonChange(index, "name", e.target.value)
+                }
                 required
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select Partnership Type"
+              />
+              <input
+                type="text"
+                placeholder="Position"
+                value={pp.position}
+                onChange={(e) =>
+                  handlePointPersonChange(index, "position", e.target.value)
+                }
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={pp.email}
+                onChange={(e) =>
+                  handlePointPersonChange(index, "email", e.target.value)
+                }
               />
             </div>
+          ))}
+          <button type="button" onClick={addPointPerson}>
+            + Add Point Person
+          </button>
 
-           {/* DTS NO */}
-            <div className="form-group">
-              <label htmlFor="dtsNo">DTS No.:*</label>
-              <input id="dtsNo" type="text" required />
-            </div>
+          <label htmlFor="locator">Hardcopy Locator:</label>
+          <input id="locator" name="locator" type="text" />
 
-            {/* DTS STATUS */}
-            <div className="form-group">
-              <label htmlFor="dtsStatus">DTS Status:*</label>
-              <select id="dtsStatus" required>
-                <option value="">Select Status</option>
-                <option value="Open - OIA">OPEN - OIA</option>
-                <option value="Closed - OIA">Closed - OIA</option>
-                <option value="Open - Other Office">Open - Other Office</option>
-                <option value="Closed - Other Office">Closed - Other Office</option>
-              </select>
-            </div>
+          <label htmlFor="dateSigned">Date Signed:</label>
+          <input id="dateSigned" name="dateSigned" type="date" />
 
-            {/* DATE RECEIVED */}
-            <div className="form-group">
-              <label htmlFor="dateReceived">Date Received:*</label>
-              <input id="dateReceived" type="date" required />
-            </div>
+          <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
+          <input id="dateEndorsed" name="dateEndorsed" type="date" />
 
-            {/* DATE EXPIRY */}
-            <div className="form-group">
-              <label htmlFor="dateExpiry">Date Expiry:</label>
-              <input id="dateExpiry" type="date" />
-            </div>
+          <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
+          <input id="dateUlcoApproved" name="dateUlcoApproved" type="date" />
 
-            {/* DATE PUP SIGNED */}
-            <div className="form-group">
-              <label htmlFor="datePupSigned">Date PUP Signed:</label>
-              <input id="datePupSigned" type="date" />
-            </div>
+          <label htmlFor="entityType">
+            Entity Type (Univ/Company/Agency):*
+          </label>
+          <input id="entityType" name="entityType" type="text" required />
 
-            {/* DATE SIGNED */}
-            <div className="form-group">
-              <label htmlFor="dateSigned"> Date/Year of Signing :</label>
-              <input id="dateSigned" type="date" />
-            </div>
+          <label htmlFor="website">Website Link:</label>
+          <input id="website" name="website" type="url" />
 
-            {/* DATE ENDORSED */}
-            <div className="form-group">
-              <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
-              <input id="dateEndorsed" type="date" />
-            </div>
+          <label htmlFor="eventInfo">Event Info:</label>
+          <textarea id="eventInfo" name="eventInfo" />
 
-            {/* DATE ULCO APPROVED */}
-            <div className="form-group">
-              <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
-              <input id="dateUlcoApproved" type="date" />
-            </div>
+          <label htmlFor="description">
+            Brief Description about the partner:
+          </label>
+          <textarea id="description" name="description" />
 
-            {/* PARTNER NAME */}
-            <div className="form-group">
-              <label htmlFor="partnerName">Partner Name:*</label>
-              <input id="partnerName" type="text" required />
-            </div>
+          <label htmlFor="remarks">Remarks:</label>
+          <textarea id="remarks" name="remarks" />
 
-            {/* SIGNATORIES */}
-            <div className="form-group">
-              <label htmlFor="signatories">Signatories:</label>
-              <input id="signatories" type="text" />
-            </div>
-
-            {/* PARTNER NAME */}
-            <div className="form-group">
-              <label htmlFor="partnerName">Partner Name:*</label>
-              <input id="partnerName" type="text" required />
-            </div>
-
-            {/* ENTITY TYPE */}
-            <div className="form-group">
-              <label htmlFor="entityType">Entity Type (Univ/Company/Agency):*</label>
-              <input id="entityType" type="text" required />
-            </div>
-
-            {/* COUNTRY */}
-            <div className="form-group">
-              <label htmlFor="country">Country:*</label>
-              <Select
-                options={countryOptions}
-                name="country"
-                id="country"
-                required
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select Country"
-              />
-            </div>
-
-            {/* REGION */}
-            <div className="form-group">
-              <label htmlFor="region">Region:*</label>
-              <Select
-                options={regionOptions}
-                name="region"
-                id="region"
-                required
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select Region"
-              />
-            </div>
-
-            {/* ADDRESS */}
-            <div className="form-group full-width">
-              <label htmlFor="address">Address:*</label>
-              <input id="address" type="text" required />
-            </div>
-
-            {/* WEBSITE */}
-            <div className="form-group">
-              <label htmlFor="website">Website Link:</label>
-              <input id="website" type="url" />
-            </div>
-
-            {/* LOGO */}
-            <div className="form-group">
-              <label htmlFor="logo">Logo:</label>
-              <input id="logo" type="file" />
-            </div>
-
-            {/* POINT PERSON */}
-            <div className="form-section">
-              <label>Point Person</label>
-              {pointPersons.map((pointPerson, index) => (
-                <div key={index} className="contact-row">
-                  <input
-                    type="text"
-                    placeholder="Name"
-                    value={pointPerson.name}
-                    onChange={(e) =>
-                      handlePointPersonChange(index, "name", e.target.value)
-                    }
-                  />
-                  <input
-                    type="text"
-                    placeholder="Position"
-                    value={pointPerson.position}
-                    onChange={(e) =>
-                      handlePointPersonChange(index, "position", e.target.value)
-                    }
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    value={pointPerson.email}
-                    onChange={(e) =>
-                      handlePointPersonChange(index, "email", e.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="remove-btn"
-                    onClick={() => removePointPerson(index)}
-                  >
-                    ❌
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="add-contact-btn"
-                onClick={addPointPerson}
-              >
-                ➕ Add Point Person
-              </button>
-            </div>
-
-            {/* CONTACT PERSON */}
-            <div className="form-section">
-              <label>Contact Person</label>
-              {contacts.map((contact, index) => (
-                <div key={index} className="contact-row">
-                  <input
-                    type="text"
-                    placeholder="Name"
-                    value={contact.name}
-                    onChange={(e) =>
-                      handleContactChange(index, "name", e.target.value)
-                    }
-                  />
-                  <input
-                    type="text"
-                    placeholder="Position"
-                    value={contact.position}
-                    onChange={(e) =>
-                      handleContactChange(index, "position", e.target.value)
-                    }
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    value={contact.email}
-                    onChange={(e) =>
-                      handleContactChange(index, "email", e.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="remove-btn"
-                    onClick={() => removeContact(index)}
-                  >
-                    ❌
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="add-contact-btn"
-                onClick={addContact}
-              >
-                ➕ Add Contact
-              </button>
-            </div>
-
-
-            {/* LOCATOR */}
-            <div className="form-group full-width">
-              <label htmlFor="locator">Hardcopy Locator:</label>
-              <input id="locator" type="text" />
-            </div>
-
-            {/* EVENT INFO */}
-            <div className="form-group full-width">
-              <label htmlFor="eventInfo">Event Info:</label>
-              <textarea id="eventInfo" />
-            </div>
-
-            {/* DESCRIPTION */}
-            <div className="form-group full-width">
-              <label htmlFor="description">Brief Description about the partner:</label>
-              <textarea id="description" />
-            </div>
-
-            {/* REMARKS */}
-            <div className="form-group full-width">
-              <label htmlFor="remarks">Remarks:</label>
-              <textarea id="remarks" />
-            </div>
-
-            <div className="form-actions">
-              <button type="submit" className="publish-button" disabled={loading}>
-                {loading ? 'Creating...' : 'Publish'}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="form-actions">
+            <button type="submit" className="publish-button" disabled={loading}>
+              {loading ? "Creating..." : "Publish"}
+            </button>
+          </div>
+        </form>
       </div>
-    </TopbarSidebar>
-  );
+    </div>
+  </TopbarSidebar>
+);
 };
 
 export default ManualEntryMOA;
