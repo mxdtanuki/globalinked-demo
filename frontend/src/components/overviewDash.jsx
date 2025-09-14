@@ -532,6 +532,9 @@ const OverviewDash = () => {
 
   const totalPages = Math.ceil(filteredAgreements.length / rowsPerPage);
   const paginatedData = filteredAgreements.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [selectedAgreement, setSelectedAgreement] = useState(null);
+
 
   if (loading) return <div className="overview-container">Loading agreements...</div>;
   if (error) return <div className="overview-container">Error: {error}</div>;
@@ -751,12 +754,20 @@ const OverviewDash = () => {
                             &#8942;
                           </button>
                           {openMenuIndex === rowIndex && (
-                            <div className="dropdown-menu">
-                              <div>View File</div>
-                              <div>View Older File</div>
-                              <div>Upload New File</div>
+                          <div className="dropdown-menu">
+                            <div>View File</div>
+                            <div>View Older File</div>
+                            <div
+                              onClick={() => {
+                                setSelectedAgreement(agreement);
+                                setShowUploadForm(true);
+                              }}
+                              className="dropdown-item"
+                            >
+                              Upload New File
                             </div>
-                          )}
+                          </div>
+                        )}
                         </div>
                       </div>
                     </td>
@@ -795,8 +806,66 @@ const OverviewDash = () => {
           <button className="btn-add" onClick={() => navigate('/upload/manualEntryMoa')}> + Add Document</button>
         </div>
       </div>
-    </div>
-  );
+
+    {/* Upload New File Modal */}
+    {showUploadForm && (
+      <div className="overview-upload-form-overlay">
+        <div className="overview-upload-form-modal">
+          <h3>Upload New File</h3>
+
+          {selectedAgreement && (
+            <p className="overview-upload-form-info">
+              For: <strong>{selectedAgreement.name}</strong>
+            </p>
+          )}
+
+          <form>
+            <div className="overview-upload-form-group">
+              <label>Upload File:</label>
+              <input type="file" />
+            </div>
+
+            <div className="overview-upload-form-group">
+              <label>Status:</label>
+              <select>
+                <option value="">Select Status</option>
+                <option value="Endorse">Endorse to ULCO for review and approval</option>
+                <option value="Revert">Revert to Initiator with comments</option>
+                <option value="Replication">For Replication of Copies (6 set)</option>
+                <option value="SignituresPUP">For Signitures of PUP Officials</option>
+                <option value="SignedPUP">Signed By PUP Officials</option>
+                <option value="SignituresPartner">For Signiture of Partner</option>
+                <option value="Complete">Completly Signed</option>
+                <option value="Notary">For Notary</option>
+                <option value="FFUPCopy">For FFUP Copy from college/campus</option>
+                <option value="Renewal">Renewal</option>
+              </select>
+            </div>
+
+            <div className="overview-upload-form-group">
+              <label>Comments:</label>
+              <textarea placeholder="Enter comments here"></textarea>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={() => {
+                  setShowUploadForm(false);
+                  setSelectedAgreement(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button type="button" className="submit-button">Submit</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+  </div>
+);
 };
 
 export default OverviewDash;
