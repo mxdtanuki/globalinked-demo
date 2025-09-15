@@ -117,20 +117,29 @@ const ManualEntryMOA = () => {
   const [documentType, setDocumentType] = useState("MOA");
   const [partnershipType, setPartnershipType] = useState("");
 
-  // New state for multiple point persons
-  const [pointPersons, setPointPersons] = useState([
-    { name: "", position: "", email: "" }
-  ]);
 
-  const addPointPerson = () => {
-    setPointPersons([...pointPersons, { name: "", position: "", email: "" }]);
-  };
+      //contacts & point persons 
+      const [contacts, setContacts] = useState([{ position: "", name: "", email: "" }]);
+      const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
 
-  const handlePointPersonChange = (index, field, value) => {
-    const updated = [...pointPersons];
-    updated[index][field] = value;
-    setPointPersons(updated);
-  };
+      // contact functions
+      const addContact = () => setContacts([...contacts, { position: "", name: "", email: "" }]);
+      const handleContactChange = (i, field, val) => {
+        const updated = [...contacts];
+        updated[i][field] = val;
+        setContacts(updated);
+      };
+      const removeContact = (i) => setContacts(contacts.filter((_, idx) => idx !== i));
+
+      // point person functions
+      const addPointPerson = () => setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
+      const handlePointPersonChange = (i, field, val) => {
+        const updated = [...pointPersons];
+        updated[i][field] = val;
+        setPointPersons(updated);
+      };
+      const removePointPerson = (i) => setPointPersons(pointPersons.filter((_, idx) => idx !== i));
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -232,12 +241,12 @@ const ManualEntryMOA = () => {
       setLoading(false);
     }
   };
- 
+
   return (
   <TopbarSidebar>
     <div className="manual-entry-wrapper">
       <div className="manual-entry-container">
-        <h2 className="form-title">Manual Entry Form</h2>
+        <h2 className="form-title">MOA Manual Entry Form</h2>
         {message && (
           <div
             style={{
@@ -252,14 +261,29 @@ const ManualEntryMOA = () => {
           </div>
         )}
         <form className="manual-entry-form" onSubmit={handleSubmit}>
-          <label htmlFor="entryDate">Date:</label>
-          <input id="entryDate" name="entryDate" type="date" />
 
+          {/* DATE */}
+            <div className="form-group" onSubmit={handleSubmit}>
+              <label htmlFor="entryDate">Date:</label>
+              <input id="entryDate" type="date" />
+            </div>
+
+          {/* Document Type */}
+          <div className="form-group">
           <label htmlFor="docType">Document Type:*</label>
-          <select id="docType" name="docType" required defaultValue="MOA">
+          <select
+            id="docType"
+            name="docType"
+            required
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value)}
+          >
             <option value="MOA">MOA</option>
           </select>
+          </div>
 
+          {/* AGREEMENT STATUS */}
+          <div className="form-group">
           <label htmlFor="status">Agreement Status:*</label>
           <select id="status" name="status" required>
             <option value="">Select Agreement Status</option>
@@ -274,7 +298,10 @@ const ManualEntryMOA = () => {
             <option value="FFUPCopy">For FFUP Copy from college/campus</option>
             <option value="Renewal">Renewal</option>
           </select>
+          </div>
 
+          {/* AGREEMENT ENTRY TYPE */}
+          <div className="form-group">
           <label htmlFor="entryType">Agreement Entry Type:*</label>
           <select id="entryType" name="entryType" required>
             <option value="">Select Entry Type</option>
@@ -282,28 +309,16 @@ const ManualEntryMOA = () => {
             <option value="New">New</option>
             <option value="Other">Other</option>
           </select>
+          </div>
 
-          <label htmlFor="renewedFrom">Renewed Agreement from:</label>
-          <input id="renewedFrom" name="renewedFrom" type="text" />
-
-          <label htmlFor="relatedMOU">Related MOU:</label>
-          <input id="relatedMOU" type="file" />
-
-          <label htmlFor="source">Source (Campus/College Dept):*</label>
-          <select id="source" name="source" required>
-            <option value="">Select Source</option>
-            <option value="1">College of Engineering</option>
-            <option value="2">College of Business</option>
-            <option value="3">International Affairs Office</option>
-            <option value="4">CHTTM</option>
-          </select>
-
-          <label htmlFor="signatories">Signatories:</label>
-          <input id="signatories" name="signatories" type="text" />
-
-          <label htmlFor="dateReceived">Date Received:*</label>
-          <input id="dateReceived" name="dateReceived" type="date" required />
-
+           {/* RENEWED AGREEMENT */}
+            <div className="form-group">
+              <label htmlFor="renewedFrom">Renewed Agreement from:</label>
+              <input id="renewedFrom" name="renewedFrom" type="text" />
+            </div>
+            
+          {/* VALIDITY PERIOD*/}
+          <div className="form-group">
           <label htmlFor="validity">Validity Period:</label>
           <select id="validity" name="validity">
             <option value="">Select Period</option>
@@ -313,96 +328,28 @@ const ManualEntryMOA = () => {
             <option value="2">2</option>
             <option value="1">1</option>
           </select>
+          </div>
 
-          <label htmlFor="dateExpiry">Date Expiry:</label>
-          <input id="dateExpiry" name="dateExpiry" type="date" />
+          {/* RELATED MOU */}
+          <div className="form-group full-width">
+          <label htmlFor="relatedMOU">Related MOU:</label>
+          <input id="relatedMOU" type="file" />
+          </div>
 
-          <label htmlFor="datePupSigned">Date PUP Signed:</label>
-          <input id="datePupSigned" name="datePupSigned" type="date" />
-
-          <label htmlFor="partnerName">Partner Name:*</label>
-          <input id="partnerName" name="partnerName" type="text" required />
-
-          <label htmlFor="contactPersonName">Contact Person Name:</label>
-          <input
-            id="contactPersonName"
-            name="contactPersonName"
-            type="text"
-            placeholder="Enter contact person's full name"
-          />
-
-          <label htmlFor="contactPersonPosition">Contact Person Position:</label>
-          <input
-            id="contactPersonPosition"
-            name="contactPersonPosition"
-            type="text"
-            placeholder="Enter their position/title"
-          />
-
-          <label htmlFor="contactPersonEmail">Contact Person Email:</label>
-          <input
-            id="contactPersonEmail"
-            name="contactPersonEmail"
-            type="email"
-            placeholder="Enter their email address"
-          />
-
-          <label htmlFor="country">Country:*</label>
-          <Select
-            value={selectedCountry}
-            onChange={setSelectedCountry}
-            options={countryOptions}
-            name="country"
-            id="country"
-            required
-            className="react-select-container"
-            classNamePrefix="react-select"
-            placeholder="Select Country"
-          />
-
-          <label htmlFor="region">Region:*</label>
-          <Select
-            value={selectedRegion}
-            onChange={setSelectedRegion}
-            options={regionOptions}
-            name="region"
-            id="region"
-            required
-            className="react-select-container"
-            classNamePrefix="react-select"
-            placeholder="Select Region"
-          />
-
-          <label htmlFor="address">Address:*</label>
-          <input id="address" name="address" type="text" required />
-
-          <label htmlFor="logo">Logo:</label>
-          <input id="logo" type="file" />
-
-          {/* DTS No. */}
-          <label htmlFor="dtsNo">DTS No.:*</label>
-          <input
-            id="dtsNo"
-            name="dtsNo"
-            type="text"
-            required
-            value={dtsNumber}
-            onChange={(e) => setDtsNumber(e.target.value)}
-          />
-
-          {/* Document Type */}
-          <label htmlFor="docType">Document Type:*</label>
-          <select
-            id="docType"
-            name="docType"
-            required
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-          >
-            <option value="MOA">MOA</option>
+          {/*SOURCE */}
+          <div className="form-group">
+          <label htmlFor="source">Source (Campus/College Dept):*</label>
+          <select id="source" name="source" required>
+            <option value="">Select Source</option>
+            <option value="1">College of Engineering</option>
+            <option value="2">College of Business</option>
+            <option value="3">International Affairs Office</option>
+            <option value="4">CHTTM</option>
           </select>
+          </div>
 
           {/* Partnership Type */}
+          <div className="form-group">
           <label htmlFor="partnershipType">Partnership Type:*</label>
           <Select
             value={
@@ -419,72 +366,260 @@ const ManualEntryMOA = () => {
             classNamePrefix="react-select"
             placeholder="Select Partnership Type"
           />
+          </div>
 
-          {/* 🔹 New stackable point persons */}
-          <label>Point Persons:</label>
-          {pointPersons.map((pp, index) => (
-            <div key={index} className="point-person-row">
-              <input
-                type="text"
-                placeholder="Name"
-                value={pp.name}
-                onChange={(e) =>
-                  handlePointPersonChange(index, "name", e.target.value)
-                }
-                required
-              />
-              <input
-                type="text"
-                placeholder="Position"
-                value={pp.position}
-                onChange={(e) =>
-                  handlePointPersonChange(index, "position", e.target.value)
-                }
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={pp.email}
-                onChange={(e) =>
-                  handlePointPersonChange(index, "email", e.target.value)
-                }
-              />
+          {/* DTS No. */}
+          <div className="form-group">
+          <label htmlFor="dtsNo">DTS No.:*</label>
+          <input
+            id="dtsNo"
+            name="dtsNo"
+            type="text"
+            required
+            value={dtsNumber}
+            onChange={(e) => setDtsNumber(e.target.value)}
+          />
+          </div>
+
+           {/* DTS STATUS */}
+            <div className="form-group">
+              <label htmlFor="dtsStatus">DTS Status:*</label>
+              <select id="dtsStatus" required>
+                <option value="">Select Status</option>
+                <option value="Open - OIA">OPEN - OIA</option>
+                <option value="Closed - OIA">Closed - OIA</option>
+                <option value="Open - Other Office">Open - Other Office</option>
+                <option value="Closed - Other Office">Closed - Other Office</option>
+              </select>
             </div>
-          ))}
-          <button type="button" onClick={addPointPerson}>
-            + Add Point Person
-          </button>
 
-          <label htmlFor="locator">Hardcopy Locator:</label>
-          <input id="locator" name="locator" type="text" />
+          {/* DATE RECEIVED */}
+          <div className="form-group">
+          <label htmlFor="dateReceived">Date Received:*</label>
+          <input id="dateReceived" name="dateReceived" type="date" required />
+          </div>
 
-          <label htmlFor="dateSigned">Date Signed:</label>
+          {/* DATE EXPIRY */}
+          <div className="form-group">
+          <label htmlFor="dateExpiry">Date Expiry:</label>
+          <input id="dateExpiry" name="dateExpiry" type="date" />
+          </div>
+
+          {/* DATE PUP SIGNED */}
+          <div className="form-group">
+          <label htmlFor="datePupSigned">Date PUP Signed:</label>
+          <input id="datePupSigned" name="datePupSigned" type="date" />
+          </div>
+
+           {/* DATE SIGNED */}
+          <div className="form-group">
+          <label htmlFor="dateSigned">Date/Year of Signing:</label>
           <input id="dateSigned" name="dateSigned" type="date" />
+          </div>
 
+          {/* DATE ENDORSED */}
+          <div className="form-group">
           <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
           <input id="dateEndorsed" name="dateEndorsed" type="date" />
+          </div>
 
+          {/* DATE ULCO APPROVED */}
+          <div className="form-group">
           <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
           <input id="dateUlcoApproved" name="dateUlcoApproved" type="date" />
+          </div>
 
+          {/* PARTNER NAME */}
+          <div className="form-group">
+          <label htmlFor="partnerName">Partner Name:*</label>
+          <input id="partnerName" name="partnerName" type="text" required />
+          </div>
+ 
+          {/* SIGNATORIES */}
+          <div className="form-group">
+          <label htmlFor="signatories">Signatories:</label>
+          <input id="signatories" name="signatories" type="text" />
+          </div>
+
+         {/* ENTITY TYPE */}
+          <div className="form-group full-width">
           <label htmlFor="entityType">
             Entity Type (Univ/Company/Agency):*
           </label>
           <input id="entityType" name="entityType" type="text" required />
+          </div>
 
+         {/* COUNTRY*/}
+          <div className="form-group">
+          <label htmlFor="country">Country:*</label>
+          <Select
+            value={selectedCountry}
+            onChange={setSelectedCountry}
+            options={countryOptions}
+            name="country"
+            id="country"
+            required
+            className="react-select-container"
+            classNamePrefix="react-select"
+            placeholder="Select Country"
+          />
+          </div>
+
+          {/* REGION */}
+          <div className="form-group">
+          <label htmlFor="region">Region:*</label>
+          <Select
+            value={selectedRegion}
+            onChange={setSelectedRegion}
+            options={regionOptions}
+            name="region"
+            id="region"
+            required
+            className="react-select-container"
+            classNamePrefix="react-select"
+            placeholder="Select Region"
+          />
+          </div>
+
+          {/* ADDRESS */}
+          <div className="form-group full-width">
+          <label htmlFor="address">Address:*</label>
+          <input id="address" name="address" type="text" required />
+          </div>
+
+          {/* WEBSITE LINK */}
+          <div className="form-group">
           <label htmlFor="website">Website Link:</label>
           <input id="website" name="website" type="url" />
+          </div>
 
+          {/* LOGO */}
+          <div className="form-group">
+          <label htmlFor="logo">Logo:</label>
+          <input id="logo" type="file" />
+          </div>
+
+           {/* CONTACT PERSON */}
+            <div className="form-section">
+              <label>Contact Person</label>
+              {contacts.map((contact, index) => (
+                <div key={index} className="contact-row">
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={contact.name}
+                    onChange={(e) =>
+                      handleContactChange(index, "name", e.target.value)
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Position"
+                    value={contact.position}
+                    onChange={(e) =>
+                      handleContactChange(index, "position", e.target.value)
+                    }
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    value={contact.email}
+                    onChange={(e) =>
+                      handleContactChange(index, "email", e.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="remove-btn"
+                    onClick={() => removeContact(index)}
+                  >
+                    ❌
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="add-contact-btn"
+                onClick={addContact}
+              >
+                ➕ Add Contact
+              </button>
+            </div>
+
+          {/* POINT PERSON */}
+          <div className="form-section">
+            <label>Point Persons</label>
+            {pointPersons.map((pp, index) => (
+              <div key={index} className="contact-row">
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={pp.name}
+                  onChange={(e) =>
+                    handlePointPersonChange(index, "name", e.target.value)
+                  }
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Position"
+                  value={pp.position}
+                  onChange={(e) =>
+                    handlePointPersonChange(index, "position", e.target.value)
+                  }
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={pp.email}
+                  onChange={(e) =>
+                    handlePointPersonChange(index, "email", e.target.value)
+                  }
+                />
+                <button
+                  type="button"
+                  className="remove-btn"
+                  onClick={() => removePointPerson(index)}
+                >
+                  ❌
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="add-contact-btn"
+              onClick={addPointPerson}
+            >
+              ➕ Add Point Person
+            </button>
+          </div>
+
+          {/* HARDCOPY LOCATOR */}
+          <div className="form-group full-width">
+          <label htmlFor="locator">Hardcopy Locator:</label>
+          <input id="locator" name="locator" type="text" />
+          </div>
+
+          {/* EVENT INFO */}
+          <div className="form-group full-width">
           <label htmlFor="eventInfo">Event Info:</label>
           <textarea id="eventInfo" name="eventInfo" />
+          </div>  
 
+          {/* DESCRIPTION */}
+          <div className="form-group full-width">
           <label htmlFor="description">
             Brief Description about the partner:
           </label>
           <textarea id="description" name="description" />
+          </div>
 
+          {/* REMARKS */}
+          <div className="form-group full-width">
           <label htmlFor="remarks">Remarks:</label>
           <textarea id="remarks" name="remarks" />
+          </div>
 
           <div className="form-actions">
             <button type="submit" className="publish-button" disabled={loading}>

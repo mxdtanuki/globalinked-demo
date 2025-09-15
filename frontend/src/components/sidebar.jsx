@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom'; 
+import { Link, useLocation } from 'react-router-dom';
 import {
   FiHome,
   FiBarChart2,
@@ -11,11 +11,11 @@ import {
   FiMail,
   FiBell,
   FiArchive,
-  FiSettings
+  FiSettings,
 } from 'react-icons/fi';
 import './layout.css';
 
-const Sidebar = ({ collapsed, toggleCollapse, mobileShow }) => {
+const Sidebar = ({ mobileShow }) => {
   const location = useLocation();
 
   const menuItems = [
@@ -29,21 +29,24 @@ const Sidebar = ({ collapsed, toggleCollapse, mobileShow }) => {
     { label: 'Email', path: '/email', icon: <FiMail /> },
     { label: 'Notification', path: '/notification', icon: <FiBell /> },
     { label: 'Archive', path: '/archive', icon: <FiArchive /> },
-    { label: 'Profile', path: '/profile', icon: <FiSettings /> }
+    { label: 'Profile', path: '/profile', icon: <FiSettings /> },
   ];
 
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileShow ? 'show' : ''}`}>
+    <aside className={`sidebar ${mobileShow ? 'show' : ''}`}>
       <ul className="sidebar-menu">
         {menuItems.map((item, idx) => {
           const isActive = location.pathname === item.path;
           return (
-          <li key={idx} className={`sidebar-item ${isActive ? 'active' : ''}`} title={collapsed ? item.label : ''}>
-            <Link to={item.path} className="sidebar-link">
-              <span className="sidebar-icon">{item.icon}</span>
-              {!collapsed && <span className="sidebar-label">{item.label}</span>}
-            </Link>
-          </li>
+            <li
+              key={idx}
+              className={`sidebar-item ${isActive ? 'active' : ''}`}
+            >
+              <Link to={item.path} className="sidebar-link">
+                <span className="sidebar-icon">{item.icon}</span>
+                <span className="sidebar-label">{item.label}</span>
+              </Link>
+            </li>
           );
         })}
       </ul>

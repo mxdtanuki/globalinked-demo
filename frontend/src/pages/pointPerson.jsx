@@ -3,38 +3,8 @@ import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import './pointPerson.css'; 
+import { agreementService } from '../services/agreementService';
 
-/* Mock data */
-const mockData = Array.from({ length: 23 }, (_, i) => ({ 
-  position: i % 2 === 0 ? 'DEAN' : 'CHAIRPERSON',
-  name: `Person ${i + 1}`,
-  email: `person${i + 1}@gmail.com`,
-}));
-
-/* Mock agreements */
-const mockAgreements = [
-  {
-    id: 1,
-    documentType: 'MOU',
-    partnerClassification: 'Research Agreement',
-    contactEmail: 'person1@gmail.com',
-    fileUrl: '/mock-files/mou-person1.pdf',
-  },
-  {
-    id: 2,
-    documentType: 'MOA',
-    partnerClassification: 'Contract Agreement',
-    contactEmail: 'person2@gmail.com',
-    fileUrl: '/mock-files/moa-person2.pdf',
-  },
-  {
-    id: 3,
-    documentType: 'MOU',
-    partnerClassification: 'Collaboration',
-    contactEmail: 'person1@gmail.com',
-    fileUrl: '/mock-files/mou-person1-2.pdf',
-  },
-];
 
 const PointPerson = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -45,6 +15,7 @@ const PointPerson = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [rows, setRows] = useState([]);
   // Modal state
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [agreements, setAgreements] = useState([]);
@@ -62,8 +33,32 @@ const PointPerson = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await agreementService.getAgreements();
+        const flattened = [];
+        data.forEach(a => {
+          (a.point_persons || []).forEach(pp => {
+            flattened.push({
+              position: pp.point_person_position || '',
+              name: pp.point_person_name || '',
+              email: pp.point_person_email || '',
+              agreementId: a.agreement_id,
+              documentType: a.document_type,
+              partnershipType: a.partnership_type || '-',
+            });
+          });
+        });
+        setRows(flattened);
+      } catch (e) {
+        console.error('Failed to load point persons', e);
+      }
+    })();
+  }, []);
+
   // FILTER
-  const filteredData = mockData.filter((person) => {
+  const filteredData = rows.filter((person) => {
     const term = searchText.toLowerCase();
     return (
       person.name.toLowerCase().includes(term) ||
@@ -86,7 +81,14 @@ const PointPerson = () => {
   // Handle View Agreements
   const handleViewAgreements = (person) => {
     setSelectedPerson(person);
-    const related = mockAgreements.filter(a => a.contactEmail === person.email);
+    const seen = new Set();
+    const related = rows
+      .filter(r => r.email === person.email && !seen.has(r.agreementId) && seen.add(r.agreementId))
+      .map(r => ({
+        agreement_id: r.agreementId,
+        document_type: r.documentType,
+        partnership_type: r.partnershipType,
+      }));
     setAgreements(related);
   };
 
