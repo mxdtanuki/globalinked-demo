@@ -1,39 +1,27 @@
-import os
-import smtplib
+from jinja2 import Template
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import smtplib
 
-SMTP_HOST = os.getenv("SMTP_HOST")
-SMTP_PORT = int(os.getenv("SMTP_PORT") or 587)
-SMTP_USER = os.getenv("SMTP_USER")
-SMTP_PASS = os.getenv("SMTP_PASS")
-SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@globalinked.local")
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_USER = "pup.international.affairs@gmail.com"
+SMTP_PASS = "epcs mqnp cpun pxin"
 
-def send_email(recipients, subject, body):
-    """
-    Send a plain-text email to recipients (list of addresses).
-    If SMTP not configured, print to stdout (safe for dev).
-    """
-    if not recipients:
-        return
+def render_template(body_html: str, context: dict) -> str:
+    """Render DB template with Jinja2 placeholders like {{ name }}"""
+    template = Template(body_html)
+    return template.render(context)
 
-    if not (SMTP_HOST and SMTP_USER and SMTP_PASS):
-        # dev fallback
-        print("[EmailService] SMTP not configured, would send:")
-        print("To:", recipients)
-        print("Subject:", subject)
-        print(body)
-        return
-
-    msg = MIMEText(body, "plain", "utf-8")
+def send_email(to: str, subject: str, body: str):
+    """Send email via SMTP"""
+    msg = MIMEMultipart("alternative")
+    msg["From"] = SMTP_USER
+    msg["To"] = to
     msg["Subject"] = subject
-    msg["From"] = SMTP_FROM
-    msg["To"] = ", ".join(recipients)
+    msg.attach(MIMEText(body, "html"))
 
-    try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
-            smtp.starttls()
-            smtp.login(SMTP_USER, SMTP_PASS)
-            smtp.sendmail(SMTP_FROM, recipients, msg.as_string())
-    except Exception as exc:
-        # Do not raise in scheduler; just log
-        print("[EmailService] send_email error:", exc)
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.sendmail(SMTP_USER, to, msg.as_string())

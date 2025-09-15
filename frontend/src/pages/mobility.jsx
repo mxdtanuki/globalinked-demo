@@ -5,6 +5,7 @@ import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable"; 
 import "./mobility.css";
+import { agreementService } from '../services/agreementService';
 
 const Mobility = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -21,8 +22,29 @@ const Mobility = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [agreements, setAgreements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
+
+    useEffect(() => {
+    fetchAgreements();
+  }, []);
+
+  //fetch agreements from backend
+  const fetchAgreements = async () => {
+    try {
+      setLoading(true);
+      const data = await agreementService.getAgreements();
+      setAgreements(data);
+    } catch (err) {
+      setError('Failed to fetch agreements: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -35,29 +57,17 @@ const Mobility = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  /* Mock data */
-  const data = Array(34).fill({
-    partnersClassification: "MOA ON CONFERENCE",
-    partnersName: "PAUL BAKERY MALAYSIA",
-    entityType: "CORPORATION",
-    country: "MALAYSIA",
-    validity: "5 YEARS",
-    expiryDate: "JULY 2030",
-    pointPerson: "LIZBETTE R. VERGARA",
-    contactPerson: "SIR MECMAC",
-  });
-
   const dynamicOptions = {
     partnersClassification: [
-      ...new Set(data.map((d) => d.partnersClassification)),
+      ...new Set(agreements.map((d) => d.partnersClassification)),
     ],
-    entityType: [...new Set(data.map((d) => d.entityType))],
-    country: [...new Set(data.map((d) => d.country))],
-    validity: [...new Set(data.map((d) => d.validity))],
+    entityType: [...new Set(agreements.map((d) => d.entity_type).filter(Boolean))],
+    country: [...new Set(agreements.map((d) => d.country).filter(Boolean))],
+    validity: [...new Set(agreements.map((d) => d.validity_period).filter(Boolean))],
   };
 
   // Apply search and filters
-  const filteredData = data.filter((item) => {
+  const filteredData = agreements.filter((item) => {
     const matchesSearch = Object.values(item)
       .join(" ")
       .toLowerCase()
@@ -65,10 +75,10 @@ const Mobility = () => {
 
     const matchesFilters =
       (!filters.partnersClassification ||
-        item.partnersClassification === filters.partnersClassification) &&
-      (!filters.entityType || item.entityType === filters.entityType) &&
+        item.partners_type === filters.partnersClassification) &&
+      (!filters.entityType || item.entity_type === filters.entityType) &&
       (!filters.country || item.country === filters.country) &&
-      (!filters.validity || item.validity === filters.validity);
+      (!filters.validity || item.validity_period === filters.validity);
 
     return matchesSearch && matchesFilters;
   });
@@ -78,6 +88,23 @@ const Mobility = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  //function to format point persons display
+  const formatPointPersons = (pointPersons) => {
+    if (!Array.isArray(pointPersons) || pointPersons.length === 0) return '-';
+    return pointPersons.map(pp => 
+      `${pp.point_person_position || ''}: ${pp.point_person_name || ''} (${pp.point_person_email || ''})`
+    ).join('; ');
+  };
+
+  // function to format contact persons display  
+  const formatContactPersons = (contactPersons) => {
+    if (!Array.isArray(contactPersons) || contactPersons.length === 0) return '-';
+    return contactPersons.map(cp => 
+      `${cp.contact_person_position || ''}: ${cp.contact_person_name || ''} (${cp.contact_person_email || ''})`
+    ).join('; ');
+  };
+
 
   // PDF Generator
   const handleGeneratePDF = () => {
@@ -96,7 +123,7 @@ const Mobility = () => {
       "Contact Person",
     ];
 
-    // Export only filtered data if filter/search applied, otherwise all data
+    // Export only filtered agreements if filter/search applied, otherwise all data
     const dataToExport =
       searchTerm ||
       filters.partnersClassification ||
@@ -104,17 +131,17 @@ const Mobility = () => {
       filters.country ||
       filters.validity
         ? filteredData
-        : data;
+        : agreements;
 
     const rows = dataToExport.map((item) => [
-      item.partnersClassification,
-      item.partnersName,
-      item.entityType,
-      item.country,
-      item.validity,
-      item.expiryDate,
-      item.pointPerson,
-      item.contactPerson,
+      item.partnership_type || '-',
+      item.name || '-',
+      item.entity_type || '-',
+      item.country || '-',
+      item.validity_period || '-',
+      item.date_expiry || '-',
+      formatPointPersons(item.point_persons),
+      formatContactPersons(item.contact_persons),
     ]);
 
     autoTable(doc, {
@@ -127,6 +154,10 @@ const Mobility = () => {
 
     doc.save("mobility-report.pdf");
   };
+
+  // Loading and error states
+  if (loading) return <div className="dashboard-container">Loading agreements...</div>;
+  if (error) return <div className="dashboard-container">Error: {error}</div>;
 
   return (
     <div className="dashboard-container">
@@ -275,16 +306,16 @@ const Mobility = () => {
                 </thead>
                 <tbody>
                   {paginatedData.map((row, idx) => (
-                    <tr key={idx}>
-                      <td>{row.partnersClassification}</td>
-                      <td>{row.partnersName}</td>
-                      <td>{row.entityType}</td>
-                      <td>{row.country}</td>
-                      <td>{row.validity}</td>
-                      <td>{row.expiryDate}</td>
-                      <td>{row.pointPerson}</td>
-                      <td>{row.contactPerson}</td>
-                      <td>
+                    <tr key={row.agreement_id || idx}>
+                      <td>{row.partnership_type || '-'}</td>
+                        <td>{row.name || '-'}</td>
+                        <td>{row.entity_type || '-'}</td>
+                        <td>{row.country || '-'}</td>
+                        <td>{row.validity_period || '-'}</td>
+                        <td>{row.date_expiry || '-'}</td>
+                        <td>{formatPointPersons(row.point_persons)}</td>
+                        <td>{formatContactPersons(row.contact_persons)}</td>
+                        <td>
                         <button className="view-btn">View File</button>
                       </td>
                     </tr>

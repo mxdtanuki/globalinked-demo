@@ -6,4 +6,5 @@ class EmailTemplates(Base):
 
     template_id = Column(Integer, primary_key=True, index=True)
     template_name = Column(String, nullable=False)
+    subject = Column(String(200), nullable=False)   # Subject line for the email
     body_html = Column(Text, nullable=False)
