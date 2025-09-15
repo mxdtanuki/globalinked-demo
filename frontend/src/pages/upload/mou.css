@@ -1,31 +1,22 @@
 .mou-upload-container {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start; 
   align-items: flex-start;
-  gap: 3rem;
+  gap: 2rem;
   padding: 2rem 4rem;
-  flex-wrap: wrap;;
-}
-
-.initial-form,
-.upload-box {
-  background: #fff ;
-  border: 1px solid #ccc ;
-  border-radius: 10px ;
-  padding: 2rem ;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) ;
+  flex-wrap: nowrap; 
 }
 
 .initial-form {
-  max-width: 700px ;
-  flex: 1 1 600px ;
+  max-width: 700px;
+  flex: 1; 
 }
 
 .upload-box {
-  width: 350px ;
-  text-align: center ;
-  border-style: dashed ;
-  border-color: #ccc ;
+  flex: 0 0 350px; 
+  text-align: center;
+  border-style: dashed;
+  border-color: #ccc;
 }
 
 .form-grid {
