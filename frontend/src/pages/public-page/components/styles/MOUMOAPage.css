@@ -68,10 +68,9 @@
 
 /* Hero Section */
 .hero-section {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background-color: var(--off-white);
   padding: 120px 0 60px;
   text-align: center;
-  border-bottom: 1px solid var(--light-gray);
 }
 
 .hero-content {
@@ -161,7 +160,7 @@
 /* Main Container */
 .main-container {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 0px auto 0;
   padding: 0 24px 60px;
 }
 
@@ -170,6 +169,7 @@
   display: flex;
   justify-content: center;
   gap: 8px;
+  margin-top: -50px;
   margin-bottom: 40px;
   border-bottom: 2px solid var(--light-gray);
   padding-bottom: 0;
