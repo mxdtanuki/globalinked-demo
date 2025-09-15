@@ -324,7 +324,7 @@ const ManualEntry = () => {
             {/* DOC TYPE */}
             <div className="form-group">
               <label htmlFor="docType">Document Type:*</label>
-              <select id="docType" name="docType" required value="MOU" disabled>
+              <select id="docType" name="docType" required value="MOU" >
                 <option value="MOU">MOU</option>
               </select>
             </div>
@@ -466,14 +466,8 @@ const ManualEntry = () => {
               <input id="signatories" type="text" />
             </div>
 
-            {/* PARTNER NAME */}
-            <div className="form-group">
-              <label htmlFor="partnerName">Partner Name:*</label>
-              <input id="partnerName" type="text" required />
-            </div>
-
             {/* ENTITY TYPE */}
-            <div className="form-group">
+            <div className="form-group full-width">
               <label htmlFor="entityType">Entity Type (Univ/Company/Agency):*</label>
               <input id="entityType" type="text" required />
             </div>
@@ -491,7 +485,7 @@ const ManualEntry = () => {
                 placeholder="Select Country"
               />
             </div>
-
+ 
             {/* REGION */}
             <div className="form-group">
               <label htmlFor="region">Region:*</label>
