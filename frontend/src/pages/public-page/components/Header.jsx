@@ -16,25 +16,21 @@ export default function Header() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (isSearchOpen && !event.target.closest('.search-modal')) {
+      if (isSearchOpen && !event.target.closest(".search-modal")) {
         setIsSearchOpen(false);
       }
     };
-
     if (isSearchOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isSearchOpen]);
 
@@ -73,7 +69,7 @@ export default function Header() {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch();
     }
   };
@@ -113,12 +109,18 @@ export default function Header() {
               <Link to="/mou-moa" className="nav-item">
                 MOUs/MOAs
               </Link>
+
+              <Link to="/templates" className="nav-item">
+                TEMPLATES
+              </Link>
+
               <button
                 className="nav-item"
                 onClick={() => scrollToSection("contact")}
               >
                 CONTACT US
               </button>
+
               <Link to="/login" className="nav-item admin-btn">
                 ADMIN
               </Link>
@@ -144,7 +146,6 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Search Modal */}
       {isSearchOpen && (
         <div className="search-overlay">
           <div className="search-modal">
@@ -171,10 +172,7 @@ export default function Header() {
                 placeholder="Enter search keywords..."
                 autoFocus
               />
-              <button
-                className="search-submit"
-                onClick={handleSearch}
-              >
+              <button className="search-submit" onClick={handleSearch}>
                 SEARCH
               </button>
             </div>

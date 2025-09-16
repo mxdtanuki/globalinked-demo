@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
@@ -242,6 +242,56 @@ const ManualEntryMOA = () => {
     }
   };
 
+    // NEW STATE FOR PARTNER ENTRY
+  const [partnerEntryType, setPartnerEntryType] = useState("New"); 
+  const [existingPartners, setExistingPartners] = useState([]);
+  const [selectedPartner, setSelectedPartner] = useState(null);
+
+  // Partner details state
+  const [partnerData, setPartnerData] = useState({
+    name: "",
+    entityType: "",
+    address: "",
+    website: "",
+    description: "",
+    logo: null,
+  });
+
+  // Fetch partners on load
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        const response = await agreementService.getPartners();
+        const options = response.map(p => ({
+          value: p.id,
+          label: p.name,
+          ...p
+        }));
+        setExistingPartners(options);
+      } catch (error) {
+        console.error("Failed to load partners", error);
+      }
+    };
+    fetchPartners();
+  }, []);
+
+  // Handle selecting an existing partner
+  const handleExistingPartnerChange = (opt) => {
+    setSelectedPartner(opt);
+    if (opt) {
+      setPartnerData({
+        name: opt.name,
+        entityType: opt.entity_type,
+        address: opt.address,
+        website: opt.website_url,
+        description: opt.description,
+        logo: opt.logo || null,
+      });
+      setSelectedCountry({ value: opt.country, label: opt.country });
+      setSelectedRegion({ value: opt.region, label: opt.region });
+    }
+  };
+
   return (
   <TopbarSidebar>
     <div className="manual-entry-wrapper">
@@ -330,44 +380,6 @@ const ManualEntryMOA = () => {
           </select>
           </div>
 
-          {/* RELATED MOU */}
-          <div className="form-group full-width">
-          <label htmlFor="relatedMOU">Related MOU:</label>
-          <input id="relatedMOU" type="file" />
-          </div>
-
-          {/*SOURCE */}
-          <div className="form-group">
-          <label htmlFor="source">Source (Campus/College Dept):*</label>
-          <select id="source" name="source" required>
-            <option value="">Select Source</option>
-            <option value="1">College of Engineering</option>
-            <option value="2">College of Business</option>
-            <option value="3">International Affairs Office</option>
-            <option value="4">CHTTM</option>
-          </select>
-          </div>
-
-          {/* Partnership Type */}
-          <div className="form-group">
-          <label htmlFor="partnershipType">Partnership Type:*</label>
-          <Select
-            value={
-              partnershipType
-                ? { value: partnershipType, label: partnershipType }
-                : null
-            }
-            onChange={(opt) => setPartnershipType(opt?.value || "")}
-            options={partnershipTypeOptions}
-            name="partnershipType"
-            id="partnershipType"
-            required
-            className="react-select-container"
-            classNamePrefix="react-select"
-            placeholder="Select Partnership Type"
-          />
-          </div>
-
           {/* DTS No. */}
           <div className="form-group">
           <label htmlFor="dtsNo">DTS No.:*</label>
@@ -393,158 +405,159 @@ const ManualEntryMOA = () => {
               </select>
             </div>
 
-          {/* DATE RECEIVED */}
-          <div className="form-group">
-          <label htmlFor="dateReceived">Date Received:*</label>
-          <input id="dateReceived" name="dateReceived" type="date" required />
-          </div>
+            {/* SOURCE UNIT */}
+            <div className="form-group">
+              <label htmlFor="source">Source (Campus/College Dept):*</label>
+              <input id="source" name="source" type="text" required />
+            </div>
 
-          {/* DATE EXPIRY */}
-          <div className="form-group">
-          <label htmlFor="dateExpiry">Date Expiry:</label>
-          <input id="dateExpiry" name="dateExpiry" type="date" />
-          </div>
+            {/* PARTNERSHIP TYPE */}
+            <div className="form-group">
+              <label htmlFor="partnershipType">Partnership Type:*</label>
+              <Select
+                options={partnershipTypeOptions}
+                name="partnershipType"
+                id="partnershipType"
+                required
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select Partnership Type"
+              />
+            </div>
 
-          {/* DATE PUP SIGNED */}
-          <div className="form-group">
-          <label htmlFor="datePupSigned">Date PUP Signed:</label>
-          <input id="datePupSigned" name="datePupSigned" type="date" />
-          </div>
+            {/* Partner Entry Type */}
+            <div className="form-group">
+              <label htmlFor="partnerEntryType">Partner Entry Type:*</label>
+              <select
+                id="partnerEntryType"
+                value={partnerEntryType}
+                onChange={(e) => setPartnerEntryType(e.target.value)}
+              >
+                <option value="New">New</option>
+                <option value="Existing">Existing</option>
+              </select>
+            </div>
 
-           {/* DATE SIGNED */}
-          <div className="form-group">
-          <label htmlFor="dateSigned">Date/Year of Signing:</label>
-          <input id="dateSigned" name="dateSigned" type="date" />
-          </div>
+            {/* Partner Fields */}
+            <div className="form-group">
+              <label>Partner Name:*</label>
+              {partnerEntryType === "New" ? (
+                <input
+                  type="text"
+                  value={partnerData.name}
+                  onChange={(e) =>
+                    setPartnerData({ ...partnerData, name: e.target.value })
+                  }
+                  required
+                />
+              ) : (
+                <Select
+                  value={selectedPartner}
+                  onChange={handleExistingPartnerChange}
+                  options={existingPartners}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Existing Partner"
+                />
+              )}
+            </div>
 
-          {/* DATE ENDORSED */}
-          <div className="form-group">
-          <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
-          <input id="dateEndorsed" name="dateEndorsed" type="date" />
-          </div>
+            <div className="form-group">
+              <label>Entity Type:*</label>
+              <input
+                type="text"
+                value={partnerData.entityType}
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, entityType: e.target.value })
+                }
+                required
+                readOnly={partnerEntryType === "Existing"}
+              />
+            </div>
 
-          {/* DATE ULCO APPROVED */}
-          <div className="form-group">
-          <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
-          <input id="dateUlcoApproved" name="dateUlcoApproved" type="date" />
-          </div>
+            <div className="form-group">
+              <label>Country:*</label>
+              {partnerEntryType === "New" ? (
+                <Select
+                  value={selectedCountry}
+                  onChange={setSelectedCountry}
+                  options={countryOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Country"
+                />
+              ) : (
+                <input type="text" value={selectedCountry?.label || ""} readOnly />
+              )}
+            </div>
 
-          {/* PARTNER NAME */}
-          <div className="form-group">
-          <label htmlFor="partnerName">Partner Name:*</label>
-          <input id="partnerName" name="partnerName" type="text" required />
-          </div>
- 
+            <div className="form-group">
+              <label>Region:*</label>
+              {partnerEntryType === "New" ? (
+                <Select
+                  value={selectedRegion}
+                  onChange={setSelectedRegion}
+                  options={regionOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Region"
+                />
+              ) : (
+                <input type="text" value={selectedRegion?.label || ""} readOnly />
+              )}
+            </div>
+
+            <div className="form-group">
+              <label>Address:</label>
+              <input
+                type="text"
+                value={partnerData.address}
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, address: e.target.value })
+                }
+                readOnly={partnerEntryType === "Existing"}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Logo:</label>
+              <input
+                type="file"
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, logo: e.target.files[0] })
+                }
+                disabled={partnerEntryType === "Existing"}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Website:</label>
+              <input
+                type="url"
+                value={partnerData.website}
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, website: e.target.value })
+                }
+                readOnly={partnerEntryType === "Existing"}
+              />
+            </div>
+
+            <div className="form-group full-width">
+              <label>Partner Description:</label>
+              <textarea
+                value={partnerData.description}
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, description: e.target.value })
+                }
+                readOnly={partnerEntryType === "Existing"}
+              />
+            </div>
+
           {/* SIGNATORIES */}
-          <div className="form-group">
+          <div className="form-group full-width">
           <label htmlFor="signatories">Signatories:</label>
           <input id="signatories" name="signatories" type="text" />
           </div>
-
-         {/* ENTITY TYPE */}
-          <div className="form-group full-width">
-          <label htmlFor="entityType">
-            Entity Type (Univ/Company/Agency):*
-          </label>
-          <input id="entityType" name="entityType" type="text" required />
-          </div>
-
-         {/* COUNTRY*/}
-          <div className="form-group">
-          <label htmlFor="country">Country:*</label>
-          <Select
-            value={selectedCountry}
-            onChange={setSelectedCountry}
-            options={countryOptions}
-            name="country"
-            id="country"
-            required
-            className="react-select-container"
-            classNamePrefix="react-select"
-            placeholder="Select Country"
-          />
-          </div>
-
-          {/* REGION */}
-          <div className="form-group">
-          <label htmlFor="region">Region:*</label>
-          <Select
-            value={selectedRegion}
-            onChange={setSelectedRegion}
-            options={regionOptions}
-            name="region"
-            id="region"
-            required
-            className="react-select-container"
-            classNamePrefix="react-select"
-            placeholder="Select Region"
-          />
-          </div>
-
-          {/* ADDRESS */}
-          <div className="form-group full-width">
-          <label htmlFor="address">Address:*</label>
-          <input id="address" name="address" type="text" required />
-          </div>
-
-          {/* WEBSITE LINK */}
-          <div className="form-group">
-          <label htmlFor="website">Website Link:</label>
-          <input id="website" name="website" type="url" />
-          </div>
-
-          {/* LOGO */}
-          <div className="form-group">
-          <label htmlFor="logo">Logo:</label>
-          <input id="logo" type="file" />
-          </div>
-
-           {/* CONTACT PERSON */}
-            <div className="form-section">
-              <label>Contact Person</label>
-              {contacts.map((contact, index) => (
-                <div key={index} className="contact-row">
-                  <input
-                    type="text"
-                    placeholder="Name"
-                    value={contact.name}
-                    onChange={(e) =>
-                      handleContactChange(index, "name", e.target.value)
-                    }
-                  />
-                  <input
-                    type="text"
-                    placeholder="Position"
-                    value={contact.position}
-                    onChange={(e) =>
-                      handleContactChange(index, "position", e.target.value)
-                    }
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    value={contact.email}
-                    onChange={(e) =>
-                      handleContactChange(index, "email", e.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="remove-btn"
-                    onClick={() => removeContact(index)}
-                  >
-                    ❌
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="add-contact-btn"
-                onClick={addContact}
-              >
-                ➕ Add Contact
-              </button>
-            </div>
 
           {/* POINT PERSON */}
           <div className="form-section">
@@ -595,6 +608,118 @@ const ManualEntryMOA = () => {
             </button>
           </div>
 
+           {/* CONTACT PERSON */}
+            <div className="form-section">
+              <label>Contact Person</label>
+              {contacts.map((contact, index) => (
+                <div key={index} className="contact-row">
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={contact.name}
+                    onChange={(e) =>
+                      handleContactChange(index, "name", e.target.value)
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Position"
+                    value={contact.position}
+                    onChange={(e) =>
+                      handleContactChange(index, "position", e.target.value)
+                    }
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    value={contact.email}
+                    onChange={(e) =>
+                      handleContactChange(index, "email", e.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="remove-btn"
+                    onClick={() => removeContact(index)}
+                  >
+                    ❌
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="add-contact-btn"
+                onClick={addContact}
+              >
+                ➕ Add Contact
+              </button>
+            </div>
+
+          
+          {/* DATE RECEIVED */}
+          <div className="form-group">
+          <label htmlFor="dateReceived">Date Received:*</label>
+          <input id="dateReceived" name="dateReceived" type="date" required />
+          </div>
+
+          {/* DATE EXPIRY */}
+          <div className="form-group">
+          <label htmlFor="dateExpiry">Date Expiry:</label>
+          <input id="dateExpiry" name="dateExpiry" type="date" />
+          </div>
+
+          {/* DATE PUP SIGNED */}
+          <div className="form-group">
+          <label htmlFor="datePupSigned">Date PUP Signed:</label>
+          <input id="datePupSigned" name="datePupSigned" type="date" />
+          </div>
+
+           {/* DATE SIGNED */}
+          <div className="form-group">
+          <label htmlFor="dateSigned">Date/Year of Signing:</label>
+          <input id="dateSigned" name="dateSigned" type="date" />
+          </div>
+
+          {/* DATE ENDORSED */}
+          <div className="form-group">
+          <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
+          <input id="dateEndorsed" name="dateEndorsed" type="date" />
+          </div>
+
+          {/* DATE ULCO APPROVED */}
+          <div className="form-group">
+          <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
+          <input id="dateUlcoApproved" name="dateUlcoApproved" type="date" />
+          </div>
+
+            {/* DEADLINE DATE */}
+            <div className="form-group full-width">
+              <label htmlFor="entryDate">Deadline Date:</label>
+              <input id="entryDate" type="date" />
+            </div>
+
+            {/* REMINDER INTERVAL*/}
+            <div className="form-group full-width">
+              <label>Reminder Interval:</label>
+              <div className="deadline-selects">
+                <select name="days">
+                  {[...Array(31).keys()].map((d) => (
+                    <option key={d} value={d}>{d} days</option>
+                  ))}
+                </select>
+                <select name="hours">
+                  {[...Array(24).keys()].map((h) => (
+                    <option key={h} value={h}>{h} hours</option>
+                  ))}
+                </select>
+                <select name="minutes">
+                  {[...Array(60).keys()].map((m) => (
+                    <option key={m} value={m}>{m} minutes</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
           {/* HARDCOPY LOCATOR */}
           <div className="form-group full-width">
           <label htmlFor="locator">Hardcopy Locator:</label>
@@ -606,14 +731,6 @@ const ManualEntryMOA = () => {
           <label htmlFor="eventInfo">Event Info:</label>
           <textarea id="eventInfo" name="eventInfo" />
           </div>  
-
-          {/* DESCRIPTION */}
-          <div className="form-group full-width">
-          <label htmlFor="description">
-            Brief Description about the partner:
-          </label>
-          <textarea id="description" name="description" />
-          </div>
 
           {/* REMARKS */}
           <div className="form-group full-width">
