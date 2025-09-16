@@ -231,44 +231,6 @@ const MOUMOAPage = () => {
           </button>
         </nav>
 
-        {/* Search n Filter Bar */}
-        <div className="controls-bar">
-          <div className="search-wrapper">
-            <img
-              src={searchIcon}
-              alt=""
-              className="search-icon"
-              aria-hidden="true"
-            />
-            <input
-              type="text"
-              placeholder="Search countries..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-              aria-label="Search countries"
-            />
-          </div>
-
-          <div className="filter-controls">
-            <select
-      value={sortBy}
-      onChange={(e) => setSortBy(e.target.value)}
-      className="sort-select"
-      aria-label="Sort data by"
-    >
-      <option value="" disabled>
-        Sort By
-      </option>
-      <option value="name">Name</option>
-      <option value="mou">MOU</option>
-      <option value="moa">MOA</option>
-      <option value="total">Total</option>
-    </select>
-    <img src={sortIcon} alt="Sort Icon" className="custom-sort-icon" />
-  </div>
-        </div>
-
         {/* Content Views */}
         <div className="content-area">
           {selectedView === "overview" && (
@@ -278,6 +240,49 @@ const MOUMOAPage = () => {
               aria-labelledby="overview-tab"
             >
               <h2 className="section-title">Partnership Distribution</h2>
+
+              {/*Search n Filter Bar */}
+              <div className="controls-bar">
+                <div className="search-wrapper">
+                  <img
+                    src={searchIcon}
+                    alt=""
+                    className="search-icon"
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search countries..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="search-input"
+                    aria-label="Search countries"
+                  />
+                </div>
+
+                <div className="filter-controls">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="sort-select"
+                    aria-label="Sort data by"
+                  >
+                    <option value="" disabled>
+                      Sort By
+                    </option>
+                    <option value="name">Name</option>
+                    <option value="mou">MOU</option>
+                    <option value="moa">MOA</option>
+                    <option value="total">Total</option>
+                  </select>
+                  <img
+                    src={sortIcon}
+                    alt="Sort Icon"
+                    className="custom-sort-icon"
+                  />
+                </div>
+              </div>
+
               <div className="chart-section">
                 {filteredData.length > 0 ? (
                   filteredData.map((item) => (

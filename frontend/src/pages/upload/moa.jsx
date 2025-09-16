@@ -5,19 +5,12 @@ import './moa.css';
 
 const MOAUpload = () => {
   const navigate = useNavigate();
-  const [withMou, setWithMou] = useState(false);
-  const [selectedMou, setSelectedMou] = useState('');
+
   // handle file change 
   const handleFileChange = (e) => {
     const fileName = e.target.files[0]?.name || "No file chosen";
     document.getElementById("fileName").textContent = fileName;
   };
-  const mouOptions = [
-    'MOU - Japan Exchange',
-    'MOU - CHED Partnership',
-    'MOU - Local Internship',
-    'MOU - ASEAN Cooperation',
-  ];
 
   return (
     <TopbarSidebar>
@@ -65,33 +58,6 @@ const MOAUpload = () => {
               <label>Remarks:</label>
               <textarea rows="3" />
             </div>
-
-            <div className="form-group full-width with-mou-section">
-            <div className="checkbox-group-inline">
-              <input
-                type="checkbox"
-                id="withMou"
-                checked={withMou}
-                onChange={() => setWithMou(!withMou)}
-              />
-              <label htmlFor="withMou">With MOU</label>
-            </div>
-
-            {withMou && (
-              <div className="form-group mou-dropdown">
-                <label>Select Related MOU</label>
-                <select
-                  value={selectedMou}
-                  onChange={(e) => setSelectedMou(e.target.value)}
-                >
-                  <option value="" disabled>Select MOU</option>
-                  {mouOptions.map((option, index) => (
-                    <option key={index} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
           </div>
 
           <p
