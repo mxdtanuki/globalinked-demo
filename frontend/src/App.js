@@ -8,6 +8,8 @@ import { NotificationsProvider } from './pages/notificationContext';
 import PublicPage from './pages/public-page/public-page';
 // MOUMOAPage
 import MOUMOAPage from './pages/public-page/components/MOUMOAPage';
+// templates
+import TemplatesPage from './pages/public-page/components/TemplatesPage';
 
 //sidebar pages
 import Overview from './pages/overview';
@@ -21,7 +23,7 @@ import Email from './pages/email';
 import Notification from './pages/notification';
 import Archive from './pages/archive';
 import Profile from './pages/profile';
-    import UserManagement from './pages/userManagement'; 
+import UserManagement from './pages/userManagement'; 
 
 // Stat Pages
 import ActiveAgreement from './pages/stat/activeAgreement';
@@ -59,8 +61,9 @@ function App() {
     <NotificationsProvider>
       <Router>
         <Routes>
-         {/* public page routes */}
+          {/* public page routes */}
           <Route path="/" element={<PublicPage />} />
+          <Route path="/templates" element={<TemplatesPage />} />
 
           {/* auth routes */}
           <Route path="/login" element={<Login />} />
@@ -78,7 +81,7 @@ function App() {
           <Route path="/notification" element={<Notification />} />
           <Route path="/archive" element={<Archive />} />
           <Route path="/profile" element={<Profile />} />
-              <Route path="/userManagement" element={<UserManagement />} />
+          <Route path="/userManagement" element={<UserManagement />} />
 
           {/* Stat routes */}
           <Route path="/stat/activeAgreement" element={<ActiveAgreement />} />
@@ -102,17 +105,14 @@ function App() {
           {/* Upload Document Routes */}
           <Route path="/document-upload/mou" element={<MOUUpload />} />
           <Route path="/document-upload/moa" element={<MOAUpload />} />
-
-          {/* Upload Document Routes */}
           <Route path="/upload/extractedEntry" element={<ExtractedEntry />} />
           <Route path="/upload/manualEntry" element={<ManualEntry />} />
           <Route path="/upload/manualEntryMOA" element={<ManualEntryMoa />} />
           <Route path="/upload/extractedEntryMOA" element={<ExtractedEntryMOA />} />
 
-          {/* Newly added route */}
+          {/* Existing MOUMOAPage route */}
           <Route path="/mou-moa" element={<MOUMOAPage />} />
         </Routes>
-
       </Router>
     </NotificationsProvider>
   );

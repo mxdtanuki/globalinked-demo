@@ -111,12 +111,12 @@
 }
 
 .admin-btn {
-  background-color: #4a1d1d;
+  background-color: #712929;
   color: white !important;
 }
 
 .admin-btn:hover {
-  background-color: #712929;
+  background-color: #4a1d1d;
   color: white !important;
 }
 
