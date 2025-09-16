@@ -1,7 +1,7 @@
 /* ObjFunct Section */
 .objectives-functions {
-  padding: 6rem 0;
-  background: linear-gradient(135deg, #F7F2F2 0%, #fff 100%);
+  padding: 4rem 0 4rem;
+  background: linear-gradient(135deg, #f7f2f2 0%, #fff 100%);
 }
 
 /* Layout */
@@ -23,20 +23,20 @@
 
 .section-header h3 {
   font-size: 2rem;
-  color: #4A1D1D;
+  color: #4a1d1d;
   margin: 0;
   position: relative;
 }
 
 .section-header h3::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -8px;
   left: 50%;
   transform: translateX(-50%);
   width: 50px;
   height: 2px;
-  background: #A63939;
+  background: #a63939;
 }
 
 .section-icon {
@@ -58,7 +58,7 @@
   padding: 1.5rem;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(74, 29, 29, 0.1);
-  border-left: 4px solid #A63939;
+  border-left: 4px solid #a63939;
   transition: all 0.3s ease;
   display: flex;
   align-items: flex-start;
@@ -69,18 +69,19 @@
 }
 
 /* Hover Effects */
-.objective-card:hover,
-.function-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(74, 29, 29, 0.15);
+.objective-card,
+.function-card {
+  display: flex;
+  align-items: center !important;
+  gap: 1rem;
 }
 
 /* Icon in Cards */
-.card-icon-img {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  margin-top: 4px;
+.objective-card .card-icon-img,
+.function-card .card-icon-img {
+  width: 30px !important;
+  height: 30px !important;
+  margin-top: 0 !important;
 }
 
 /* Text inside Cards */
@@ -101,24 +102,55 @@
 }
 
 /* delay animations */
-.objective-card:nth-child(1) { animation-delay: 0s; }
-.objective-card:nth-child(2) { animation-delay: 0.1s; }
-.objective-card:nth-child(3) { animation-delay: 0.2s; }
-.objective-card:nth-child(4) { animation-delay: 0.3s; }
-.objective-card:nth-child(5) { animation-delay: 0.4s; }
-.objective-card:nth-child(6) { animation-delay: 0.5s; }
-.objective-card:nth-child(7) { animation-delay: 0.6s; }
-.objective-card:nth-child(8) { animation-delay: 0.7s; }
+.objective-card:nth-child(1) {
+  animation-delay: 0s;
+}
+.objective-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.objective-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.objective-card:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.objective-card:nth-child(5) {
+  animation-delay: 0.4s;
+}
+.objective-card:nth-child(6) {
+  animation-delay: 0.5s;
+}
+.objective-card:nth-child(7) {
+  animation-delay: 0.6s;
+}
+.objective-card:nth-child(8) {
+  animation-delay: 0.7s;
+}
 
-.function-card:nth-child(1) { animation-delay: 0s; }
-.function-card:nth-child(2) { animation-delay: 0.1s; }
-.function-card:nth-child(3) { animation-delay: 0.2s; }
-.function-card:nth-child(4) { animation-delay: 0.3s; }
-.function-card:nth-child(5) { animation-delay: 0.4s; }
-.function-card:nth-child(6) { animation-delay: 0.5s; }
-.function-card:nth-child(7) { animation-delay: 0.6s; }
-.function-card:nth-child(8) { animation-delay: 0.7s; }
-
+.function-card:nth-child(1) {
+  animation-delay: 0s;
+}
+.function-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.function-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.function-card:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.function-card:nth-child(5) {
+  animation-delay: 0.4s;
+}
+.function-card:nth-child(6) {
+  animation-delay: 0.5s;
+}
+.function-card:nth-child(7) {
+  animation-delay: 0.6s;
+}
+.function-card:nth-child(8) {
+  animation-delay: 0.7s;
+}
 
 @media (max-width: 968px) {
   .content-grid {
