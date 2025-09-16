@@ -1,6 +1,6 @@
 /* ObjFunct Section */
 .objectives-functions {
-  padding: 5rem 0 5rem;
+  padding: 4rem 0 4rem;
   background: linear-gradient(135deg, #f7f2f2 0%, #fff 100%);
 }
 
@@ -69,18 +69,19 @@
 }
 
 /* Hover Effects */
-.objective-card:hover,
-.function-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(74, 29, 29, 0.15);
+.objective-card,
+.function-card {
+  display: flex;
+  align-items: center !important;
+  gap: 1rem;
 }
 
 /* Icon in Cards */
-.card-icon-img {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  margin-top: 4px;
+.objective-card .card-icon-img,
+.function-card .card-icon-img {
+  width: 30px !important;
+  height: 30px !important;
+  margin-top: 0 !important;
 }
 
 /* Text inside Cards */

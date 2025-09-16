@@ -37,58 +37,58 @@ const cardVariants = {
 const ObjectivesAndFunctions = () => {
   const objectives = [
     {
-      text: "Promote PUP as a premier institution of higher learning in the Asia-Pacific Region",
+      text: "Promote PUP as a premier institution of higher learning in the Asia-Pacific Region.",
       icon: gradCapIcon,
     },
     {
-      text: "Underscore productive collaboration with international institutions, linkages and affiliations",
+      text: "Underscore productive collaboration with international institutions, linkages and affiliations.",
       icon: collaborationIcon,
     },
     {
-      text: "Prepare stakeholder to meet the challenges of global competition",
+      text: "Prepare stakeholder to meet the challenges of global competition.",
       icon: trophyIcon,
     },
     {
-      text: "Offer wider opportunities for educational, cultural and scientific exchange",
+      text: "Offer wider opportunities for educational, cultural and scientific exchange.",
       icon: learningIcon,
     },
     {
-      text: "Increase PUP's international exposure and participation",
+      text: "Increase PUP's international exposure and participation.",
       icon: locationIcon,
     },
     {
-      text: "Attract a greater number of international visitors",
+      text: "Attract a greater number of international visitors.",
       icon: passportIcon,
     },
   ];
 
   const functions = [
     {
-      text: "Explore, establish and administer the forging of linkages with overseas universities",
+      text: "Explore, establish and administer the forging of linkages with overseas universities.",
       icon: universityNetworkIcon,
     },
     {
-      text: "Ensure the smooth and efficient implementation and execution of PUP's responsibilities specified in agreements/understandings entered into with international institutions/agencies",
+      text: "Ensure the smooth and efficient implementation and execution of PUP's responsibilities specified in agreements/understandings entered into with international institutions/agencies.",
       icon: agreementIcon,
     },
     {
-      text: "Provide information and assist grantees/recipients of academic exchanges, study tours and presentation of papers and researches in international fora/conferences",
+      text: "Provide information and assist grantees/recipients of academic exchanges, study tours and presentation of papers and researches in international fora/conferences.",
       icon: feedbackIcon,
     },
     {
-      text: "Facilitate, oversee and monitor entry and departure of international students in coordination with the Office of the Vice President for Student Services and other concerned offices inside and outside of PUP",
+      text: "Facilitate, oversee and monitor entry and departure of international students in coordination with the Office of the Vice President for Student Services and other concerned offices inside and outside of PUP.",
       icon: studentIcon,
     },
     {
-      text: "Coordinate and assist international visits to the campus",
+      text: "Coordinate and assist international visits to the campus.",
       icon: tourIcon,
     },
     {
-      text: "Assist in holding international conferences",
+      text: "Assist in holding international conferences.",
       icon: conferenceIcon,
     },
     {
-      text: "Provide the PUP president and other executive officials, education agencies and foreign institutions with progress reports, feedback and other pertinent information about international programs, projects and activities of the University",
+      text: "Provide the PUP president and other executive officials, education agencies and foreign institutions with progress reports, feedback and other pertinent information about international programs, projects and activities of the University.",
       icon: partnershipIcon,
     },
   ];
