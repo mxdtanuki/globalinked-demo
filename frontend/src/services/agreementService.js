@@ -1,6 +1,25 @@
 const API_BASE_URL = 'http://localhost:8000';
 
 export const agreementService = {
+  async getPartners() {
+    const token = localStorage.getItem("access_token");
+
+    const response = await fetch(`${API_BASE_URL}/partners`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Failed to load partners", error);
+      throw error;
+    }
+
+    return response.json();
+  },
+
   async createAgreement(formData) {
     const token = localStorage.getItem('access_token');
     
@@ -20,9 +39,9 @@ export const agreementService = {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('API Error:', errorData);
-      throw new Error(errorData.detail || 'Failed to create agreement');
+      const error = await response.json();
+      console.error("API Error: ", error);
+      throw error;
     }
 
     return response.json();
