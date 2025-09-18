@@ -324,7 +324,7 @@ const ExtractedEntryMOA = () => {
             {/* DOC TYPE */}
             <div className="form-group">
               <label htmlFor="docType">Document Type:*</label>
-              <select id="docType" name="docType" required value="MOA" disabled>
+              <select id="docType" name="docType" required value="MOA" >
                 <option value="MOU">MOA</option>
               </select>
             </div>
@@ -364,12 +364,6 @@ const ExtractedEntryMOA = () => {
               <input id="renewedFrom" type="text" />
             </div>
 
-            {/* RELATED MOU */}
-            <div className="form-group">
-              <label htmlFor="relatedMOU">Related MOU:</label>
-              <input id="relatedMOU" type="file" />
-            </div>
-
             {/* VALIDITY PERIOD */}
             <div className="form-group">
               <label htmlFor="validity">Validity Period:</label>
@@ -381,6 +375,12 @@ const ExtractedEntryMOA = () => {
                 <option value="2">2</option>
                 <option value="1">1</option>
               </select>
+            </div>
+
+            {/* RELATED MOU */}
+            <div className="form-group full-width">
+              <label htmlFor="relatedMOU">Related MOU:</label>
+              <input id="relatedMOU" type="file" />
             </div>
 
             {/* SOURCE */}
@@ -472,14 +472,8 @@ const ExtractedEntryMOA = () => {
               <input id="signatories" type="text" />
             </div>
 
-            {/* PARTNER NAME */}
-            <div className="form-group">
-              <label htmlFor="partnerName">Partner Name:*</label>
-              <input id="partnerName" type="text" required />
-            </div>
-
             {/* ENTITY TYPE */}
-            <div className="form-group">
+            <div className="form-group full-width">
               <label htmlFor="entityType">Entity Type (Univ/Company/Agency):*</label>
               <input id="entityType" type="text" required />
             </div>
@@ -499,7 +493,7 @@ const ExtractedEntryMOA = () => {
             </div>
 
             {/* REGION */}
-            <div className="form-group full-width">
+            <div className="form-group">
               <label htmlFor="region">Region:*</label>
               <Select
                 options={regionOptions}

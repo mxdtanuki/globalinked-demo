@@ -1,88 +1,137 @@
 const API_BASE_URL = 'http://localhost:8000';
 
 export const agreementService = {
+  async getPartners() {
+    const token = localStorage.getItem("access_token");
+
+    const response = await fetch(`${API_BASE_URL}/partners`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Failed to load partners", error);
+      throw error;
+    }
+
+    return response.json();
+  },
+
   async createAgreement(formData) {
     const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
+    
+    if (!token) {
+      throw new Error('Please login first');
+    }
+    
+    console.log('Sending agreement data:', formData);
 
-    const res = await fetch(`${API_BASE_URL}/agreements/`, {
+    const response = await fetch(`${API_BASE_URL}/agreements/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(formData)
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to create agreement');
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("API Error: ", error);
+      throw error;
     }
-    return res.json();
+
+    return response.json();
   },
 
   async getAgreements(filters = {}) {
     const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
-
-    const qs = new URLSearchParams(filters).toString();
-    const res = await fetch(`${API_BASE_URL}/agreements/?${qs}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+    
+    if (!token) {
+      throw new Error('Please login first');
+    }
+    
+    const queryParams = new URLSearchParams(filters).toString();
+    
+    const response = await fetch(`${API_BASE_URL}/agreements/?${queryParams}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
-    if (!res.ok) throw new Error('Failed to fetch agreements');
-    return res.json();
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch agreements');
+    }
+
+    return response.json();
   },
 
   async getAgreementById(id) {
     const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
+    
+    if (!token) {
+      throw new Error('Please login first');
+    }
 
-    const res = await fetch(`${API_BASE_URL}/agreements/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+    const response = await fetch(`${API_BASE_URL}/agreements/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
-    if (!res.ok) throw new Error('Failed to fetch agreement');
-    return res.json();
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch agreement');
+    }
+
+    return response.json();
   },
 
   async updateAgreement(id, formData) {
     const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
+    
+    if (!token) {
+      throw new Error('Please login first');
+    }
 
-    const res = await fetch(`${API_BASE_URL}/agreements/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/agreements/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(formData)
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to update agreement');
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to update agreement');
     }
-    return res.json();
+
+    return response.json();
   },
 
   async deleteAgreement(id) {
     const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
+    
+    if (!token) {
+      throw new Error('Please login first');
+    }
 
-    const res = await fetch(`${API_BASE_URL}/agreements/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/agreements/${id}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
-    if (res.status === 204) return { status: 'deleted' };
-    if (!res.ok) throw new Error('Failed to delete agreement');
-    return res.json();
+
+    if (!response.ok) {
+      throw new Error('Failed to delete agreement');
+    }
+
+    return response.json();
   },
 
-  async checkDuplicate({ dts_number, document_type, partnership_type }) {
-    const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
-
-    const params = new URLSearchParams({ dts_number, document_type, partnership_type });
-    const res = await fetch(`${API_BASE_URL}/agreements/check-duplicate?${params.toString()}`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to check duplicate');
-    }
-    return res.json();
-  }
 };

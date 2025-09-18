@@ -2,10 +2,12 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import date, datetime
 
+
 class ContactPersonCreate(BaseModel):
     contact_person_position: str
     contact_person_name: str
     contact_person_email: str
+
 
 class ContactPersonResponse(BaseModel):
     contact_person_id: int
@@ -13,11 +15,15 @@ class ContactPersonResponse(BaseModel):
     contact_person_name: str
     contact_person_email: str
     partner_id: int
+    agreement_id: int
+
     class Config:
         from_attributes = True
 
+
 class RemarkCreate(BaseModel):
     remark_text: str
+
 
 class RemarkResponse(BaseModel):
     remark_id: int
@@ -29,8 +35,9 @@ class RemarkResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class PartnerCreate(BaseModel):
-    #Partner info 
+    # Partner info 
     name: str = Field(..., max_length=150)
     entity_type: Optional[str] = Field(None, max_length=50)
     country: Optional[str] = Field(None, max_length=75)
@@ -41,26 +48,47 @@ class PartnerCreate(BaseModel):
     logo_path: Optional[str] = Field(None, max_length=255)
     status: str = Field(default="active", max_length=20)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    contact_persons: Optional[List[ContactPersonCreate]] = []
+    contact_persons: List[ContactPersonCreate] = Field(default_factory=list)
+
 
 class PointPersonCreate(BaseModel):
     point_person_position: str
     point_person_name: str
     point_person_email: str
 
+
 class PointPersonResponse(BaseModel):
     point_person_id: int
     point_person_position: str
     point_person_name: str
     point_person_email: str
+    agreement_id: int
 
     class Config:
         from_attributes = True
+
+
+class TimerCreate(BaseModel):
+    deadline: Optional[datetime] = None
+    days: Optional[int] = None
+    hours: Optional[int] = None
+    minutes: Optional[int] = None
+
+class TimerResponse(BaseModel):
+    deadline: Optional[date] = None
+    days: Optional[int] = None
+    hours: Optional[int] = None
+    minutes: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
 class AgreementCreate(BaseModel):
     # IDs
     partner_id: Optional[int] = None
     partner_data: Optional[PartnerCreate] = None
-    source_unit_id: int  #which dept/college
+    source_unit: Optional[str] = None  # now a plain string field
+    timer: Optional[TimerCreate] = None
 
     # Agreement info
     dts_number: str = Field(..., max_length=50)
@@ -77,21 +105,22 @@ class AgreementCreate(BaseModel):
     validity_period: Optional[str] = Field(None, max_length=50) 
     event_info: Optional[str] = Field(None, max_length=255)
     signatories_list: Optional[str] = None
-    point_persons: Optional[List[PointPersonCreate]] = []
+    point_persons: List[PointPersonCreate] = Field(default_factory=list)
     agreement_status: str = Field(..., max_length=20) 
     hardcopy_location: Optional[str] = Field(None, max_length=100)
     entry_type: str = Field(..., max_length=10)
-    renewed_from_agreement_id: Optional[int] = None
+    renewed_from_agreement_id: Optional[str] = None
     MOU_to_MOA_id: Optional[int] = None
-    contact_persons: List[ContactPersonCreate] = [] # NEW
-    initial_remarks: Optional[List[RemarkCreate]] = []
+    contact_persons: List[ContactPersonCreate] = Field(default_factory=list)
+    initial_remarks: List[RemarkCreate] = Field(default_factory=list)
+
 
 class AgreementResponse(BaseModel):
     # IDs
     agreement_id: int
     partner_id: int
-    source_unit_id: int
-    
+    source_unit: Optional[str] = None   # now string, not ID
+
     # Partner info 
     name: str
     country: Optional[str]
@@ -101,10 +130,7 @@ class AgreementResponse(BaseModel):
     website_url: Optional[str]
     description: Optional[str]
     logo_path: Optional[str] 
-    
-    # Source info 
-    unit_name: str
-    
+
     # Agreement info 
     dts_number: str
     dts_status: str
@@ -121,11 +147,11 @@ class AgreementResponse(BaseModel):
     event_info: Optional[str]
     signatories_list: Optional[str]
     
-    # Persons: For their own page
-    point_persons: List[PointPersonResponse] = []
-    contact_persons: List[ContactPersonResponse] = []
+    # Persons
+    point_persons: List[PointPersonResponse] = Field(default_factory=list)
+    contact_persons: List[ContactPersonResponse] = Field(default_factory=list)
     
-    # NEW pre-concatenated fields for overview
+    # Pre-concatenated overview fields
     point_persons_display: Optional[str] = None
     contact_persons_display: Optional[str] = None
 
@@ -133,42 +159,21 @@ class AgreementResponse(BaseModel):
     agreement_status: str
     hardcopy_location: Optional[str]
     entry_type: str
-    renewed_from_agreement_id: Optional[int]
+    renewed_from_agreement_id: Optional[str] 
     MOU_to_MOA_id: Optional[int]
-    remarks: List[RemarkResponse] = []
+    remarks: List[RemarkResponse] = Field(default_factory=list)
     
-    # Metadata (for filtering)
+    # Metadata
     created_at: Optional[datetime]
+
     class Config:
         from_attributes = True
-
-class PartnerResponse(BaseModel):
-    partner_id: int
-    name: str
-    country: Optional[str]
-    entity_type: Optional[str]
-    status: str
-    
-    class Config:
-        from_attributes = True
-
-class DashboardSummary(BaseModel): # for analytics
-    total_agreements: int
-    total_mou: int
-    total_moa: int
-    active_agreements: int
-    expired_agreements: int
-    pending_approval: int
-    signed_agreements: int
-    by_status: dict
-    by_country: dict
-    recent_agreements: list
 
 
 class AgreementUpdateSimple(BaseModel):
     # Basic agreement fields that can be updated directly
     entry_date: Optional[date] = None
-    unit_name: Optional[str] = None
+    source_unit: Optional[str] = None  # string instead of unit_name
     dts_number: Optional[str] = None
     dts_status: Optional[str] = None
     name: Optional[str] = None
@@ -193,3 +198,27 @@ class AgreementUpdateSimple(BaseModel):
     description: Optional[str] = None
     hardcopy_location: Optional[str] = None
     remarks: Optional[List[dict]] = None
+
+
+class PartnerResponse(BaseModel):
+    partner_id: int
+    name: str
+    country: Optional[str]
+    entity_type: Optional[str]
+    status: str
+    
+    class Config:
+        from_attributes = True
+
+
+class DashboardSummary(BaseModel):  # for analytics
+    total_agreements: int
+    total_mou: int
+    total_moa: int
+    active_agreements: int
+    expired_agreements: int
+    pending_approval: int
+    signed_agreements: int
+    by_status: dict
+    by_country: dict
+    recent_agreements: list

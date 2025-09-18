@@ -7,10 +7,13 @@ import './docVer.css';
 // Mock data 
 const mockDocuments = Array.from({ length: 23 }, (_, i) => ({
   date: '05/25/25',
+  dtsNum: `DTS-${1000 + i}`,
   partnerName: 'PAUL BAKERY MALAYSIA',
   docType: i % 2 === 0 ? 'MOA' : 'MOU',
   partnershipType: i % 2 === 0 ? 'Contract Agreement' : 'Cooperation Agreement',
   version: i % 2 === 0 ? 'V1.0' : 'V2.0',
+  comments: i % 2 === 0 ? 'Reviewed' : 'Pending',
+  status: i % 3 === 0 ? 'Endorse' : 'For Signing',
 }));
 
 const DocumentVersion = () => {
@@ -23,6 +26,7 @@ const DocumentVersion = () => {
   const [filterDocType, setFilterDocType] = useState('');
   const [filterPartnershipType, setFilterPartnershipType] = useState('');
   const [filterVersion, setFilterVersion] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
   const itemsPerPage = 10;
@@ -40,9 +44,10 @@ const DocumentVersion = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // get unique dynamic values for dropdown filters
+  //dynamic values for dropdown filters
   const partnershipTypes = [...new Set(mockDocuments.map(d => d.partnershipType))];
   const versions = [...new Set(mockDocuments.map(d => d.version))];
+  const statuses = [...new Set(mockDocuments.map(d => d.status))];
 
   // filter + search logic
   const filteredDocuments = mockDocuments.filter((doc) => {
@@ -52,13 +57,15 @@ const DocumentVersion = () => {
       doc.partnerName.toLowerCase().includes(query) ||
       doc.docType.toLowerCase().includes(query) ||
       doc.partnershipType.toLowerCase().includes(query) ||
-      doc.version.toLowerCase().includes(query);
+      doc.version.toLowerCase().includes(query) ||
+      doc.dtsNum.toLowerCase().includes(query);
 
     const matchesDocType = filterDocType ? doc.docType === filterDocType : true;
     const matchesPartnershipType = filterPartnershipType ? doc.partnershipType === filterPartnershipType : true;
     const matchesVersion = filterVersion ? doc.version === filterVersion : true;
+    const matchesStatus = filterStatus ? doc.status === filterStatus : true;
 
-    return matchesSearch && matchesDocType && matchesPartnershipType && matchesVersion;
+    return matchesSearch && matchesDocType && matchesPartnershipType && matchesVersion && matchesStatus;
   });
 
   const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
@@ -99,7 +106,6 @@ const DocumentVersion = () => {
                   setCurrentPage(1);
                 }}
               />
-
               <button
                 className="filter-btn"
                 onClick={() => setShowFilters(!showFilters)}
@@ -130,18 +136,29 @@ const DocumentVersion = () => {
                     <option key={i} value={v}>{v}</option>
                   ))}
                 </select>
+
+                <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}>
+                  <option value="">All Status</option>
+                  {statuses.map((s, i) => (
+                    <option key={i} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
             )}
 
+            {/* Table */}
             <div className="table-container">
               <table className="contact-person-table">
                 <thead>
                   <tr>
                     <th>DATE</th>
+                    <th>DTS NUMBER</th>
                     <th>PARTNER NAME</th>
                     <th>DOCUMENT TYPE</th>
                     <th>PARTNERSHIP TYPE</th>
                     <th>VERSION</th>
+                    <th>COMMENTS</th>
+                    <th>STATUS</th>
                     <th>ACTION</th>
                   </tr>
                 </thead>
@@ -150,10 +167,13 @@ const DocumentVersion = () => {
                     currentData.map((doc, index) => (
                       <tr key={index}>
                         <td>{doc.date}</td>
+                        <td>{doc.dtsNum}</td>
                         <td>{doc.partnerName}</td>
                         <td>{doc.docType}</td>
                         <td>{doc.partnershipType}</td>
                         <td>{doc.version}</td>
+                        <td>{doc.comments}</td>
+                        <td>{doc.status}</td>
                         <td>
                           <button className="view-btn">View File</button>
                         </td>
@@ -161,7 +181,7 @@ const DocumentVersion = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center' }}>No records found</td>
+                      <td colSpan="9" style={{ textAlign: 'center' }}>No records found</td>
                     </tr>
                   )}
                 </tbody>
