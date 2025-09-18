@@ -208,9 +208,12 @@ def agreement_notification_job():
     db = _open_session()
     try:
         today = datetime.utcnow()
+        print(f"[Scheduler] Running agreement notification job at {today}")
 
         # 1) Expiring soon
         horizon = today + timedelta(minutes=EXPIRY_WINDOW_DAYS)  # Changed to minutes
+        print(f"[Scheduler] Checking agreements expiring between {today.date()} and {horizon.date()}")
+        
         expiring = (
             db.query(Agreements, Partners)
               .join(Partners, Agreements.partner_id == Partners.partner_id)
@@ -219,11 +222,15 @@ def agreement_notification_job():
               .filter(Agreements.date_expiry <= horizon.date())
               .all()
         )
+        print(f"[Scheduler] Found {len(expiring)} expiring agreements")
+        
         for a, p in expiring:
             category = "expiring_soon"
-            f"{a.document_type} '{a.dts_number}' with partner '{p.name}' expires on {a.date_expiry}."
+            msg = f"{a.document_type} '{a.dts_number}' with partner '{p.name}' expires on {a.date_expiry}."  # ✅ Fixed: Added missing 'msg ='
             actions = _recommended_actions_for_category(category)
             notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
+            print(f"[Scheduler] Created expiring notification for agreement {a.agreement_id}: {'Yes' if notif else 'No (duplicate)'}")
+            
             # send email to recipients (optional)
             recipients = _collect_recipient_emails(db, a, p)
             if notif and recipients:
@@ -237,10 +244,13 @@ def agreement_notification_job():
         # 2) Pending statuses with timeframe
         pending_statuses = list(STATUS_THRESHOLD_DAYS.keys())
         threshold_map = STATUS_THRESHOLD_DAYS
+        print(f"[Scheduler] Checking pending statuses: {pending_statuses}")
 
         for status in pending_statuses:
             minutes_threshold = threshold_map.get(status, PENDING_DAYS_DEFAULT)  # Now in minutes
             cutoff = today - timedelta(minutes=minutes_threshold)  # Change to minutes
+            print(f"[Scheduler] Checking {status} agreements older than {cutoff}")
+            
             pending_rows = (
                 db.query(Agreements, Partners)
                   .join(Partners, Agreements.partner_id == Partners.partner_id)
@@ -249,12 +259,16 @@ def agreement_notification_job():
                   .filter(Agreements.entry_date <= cutoff.date())
                   .all()
             )
+            print(f"[Scheduler] Found {len(pending_rows)} pending {status} agreements")
+            
             for a, p in pending_rows:
                 category = "pending_long"
                 minutes_pending = int((today - datetime.combine(a.entry_date, datetime.min.time())).total_seconds() / 60) if a.entry_date else None
                 msg = f"{a.document_type} for {p.name} - '{a.dts_number}' has been in status '{a.agreement_status}' for {minutes_pending} minutes."
                 actions = _recommended_actions_for_category(category, a.agreement_status)
                 notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
+                print(f"[Scheduler] Created pending notification for agreement {a.agreement_id}: {'Yes' if notif else 'No (duplicate)'}")
+                
                 recipients = _collect_recipient_emails(db, a, p)
                 if notif and recipients:
                     try:
@@ -266,6 +280,8 @@ def agreement_notification_job():
 
         # 3) Dormant / renewal needed: expired more than DORMANT_DAYS ago
         cutoff_expired = today - timedelta(minutes=DORMANT_DAYS)  # Change to minutes
+        print(f"[Scheduler] Checking agreements expired before {cutoff_expired.date()}")
+        
         dormant = (
             db.query(Agreements, Partners)
               .join(Partners, Agreements.partner_id == Partners.partner_id)
@@ -273,12 +289,16 @@ def agreement_notification_job():
               .filter(Agreements.date_expiry <= cutoff_expired.date())
               .all()
         )
+        print(f"[Scheduler] Found {len(dormant)} dormant agreements")
+        
         for a, p in dormant:
             category = "renewal_needed"
             minutes_expired = int((today - datetime.combine(a.date_expiry, datetime.min.time())).total_seconds() / 60) if a.date_expiry else None
             msg = f"{a.document_type} of {p.name} -'{a.dts_number}' expired on {a.date_expiry} ({minutes_expired} minutes ago)."
             actions = _recommended_actions_for_category(category)
             notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
+            print(f"[Scheduler] Created renewal notification for agreement {a.agreement_id}: {'Yes' if notif else 'No (duplicate)'}")
+            
             recipients = _collect_recipient_emails(db, a, p)
             if notif and recipients:
                 try:
@@ -288,8 +308,12 @@ def agreement_notification_job():
                 except Exception as e:
                     print("[Scheduler] email send failed:", e)
 
+        print("[Scheduler] Agreement notification job completed")
+        
     except Exception as exc:
         print("[Scheduler] agreement_notification_job error:", exc)
+        import traceback
+        traceback.print_exc()
     finally:
         db.close()
 
