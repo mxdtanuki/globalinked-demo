@@ -7,11 +7,20 @@ from app.schemas.registration_schemas import UserCreate, UserResponse, UserUpdat
 from datetime import datetime
 from app.utils.utils import get_current_user, hash_password
 from app.services.email_service import send_email
+from app.services.notif_service import create_notification_if_new
 
 router = APIRouter(
     prefix="/registration",
     tags=["Registration"]
 )
+
+def get_role_from_position(position: str) -> str:
+    """Determine access role based on job position"""
+    admin_positions = [
+        "Director",
+        "Partnership and Linkages Section"
+    ]
+    return "admin" if position in admin_positions else "staff"
 
 # Cr
 @router.post("/", response_model=UserResponse)
@@ -24,6 +33,8 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
             detail="Username already exists"
         )
     
+    user_role = get_role_from_position(user.user_position)
+
     if hasattr(user, 'user_email') and user.user_email:
         existing_email = db.query(Users).filter(Users.user_email == user.user_email).first()
         if existing_email:
@@ -37,6 +48,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
         user_pass=hash_password(user.user_pass), # Hash the password before storing
         user_profile_img=user.user_profile_img,
         user_position=user.user_position,
+        user_role=user_role, 
         user_status="pending"  # default until admin approval
     )
 
@@ -47,31 +59,27 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    # Send notification to admins (if email functionality is available)
+    # Send notification to system
     try:
-        admin_users = db.query(Users).filter(Users.user_position.ilike("admin")).all()
+        # Get all admin users
+        admin_users = db.query(Users).filter(Users.user_role == "admin").all()
+        
         for admin in admin_users:
-            # Only send email if admin has email and new user has email
-            if hasattr(admin, 'user_email') and admin.user_email and hasattr(new_user, 'user_email'):
-                await send_email(
-                    recipient_email=admin.user_email,
-                    subject="New User Registration Request",
-                    custom_body=f"""
-                    <h2>👤 New User Registration Request</h2>
-                    <p>A new user has requested access to the Globalinked Partnerships System:</p>
-                    <ul>
-                        <li><strong>Name:</strong> {new_user.user_name}</li>
-                        <li><strong>Email:</strong> {getattr(new_user, 'user_email', 'N/A')}</li>
-                        <li><strong>Position:</strong> {new_user.user_position}</li>
-                        <li><strong>Registration Date:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</li>
-                    </ul>
-                    <p>Please review and approve this request in the User Management dashboard.</p>
-                    """
-                )
-                print(f"✅ Admin notification sent to {admin.user_email}")
+            # Create notification for each admin
+            create_notification_if_new(
+                db=db,
+                agreement_id=None,  # Not related to agreement
+                category="user_registration",
+                message=f"New user registration request from {new_user.user_name} ({new_user.user_position}) - {new_user.user_role} access level",
+                recommended_action=f"Review and approve/reject {new_user.user_name}'s registration request in User Management",
+                user_id=admin.user_id
+            )
+        
+        print(f"✅ System notifications created for {len(admin_users)} admins about new user: {new_user.user_name}")
+        
     except Exception as e:
-        print(f"❌ Failed to send admin notification: {e}")
-        # Don't fail registration if email fails # checking only
+        print(f"❌ Failed to create admin notifications: {e}")
+        # Don't fail registration if notification creation fails
 
     return new_user
 
@@ -80,7 +88,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[UserResponse])
 async def list_users(db: Session = Depends(get_db), current_user: Users = Depends(get_current_user)):
     # only admins can see the registration list
-    if current_user.user_position.lower() != "admin":
+    if current_user.user_role.lower() != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
     users = db.query(Users).all()
@@ -95,7 +103,7 @@ async def update_user(user_id: int, user_update: UserUpdate, db: Session = Depen
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     # Allow self-update OR admin update
-    if current_user.user_id != user_id and current_user.user_position.lower() != "admin":
+    if current_user.user_id != user_id and current_user.user_role.lower() != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
     for field, value in user_update.dict(exclude_unset=True).items():
@@ -113,7 +121,7 @@ async def delete_user(user_id: int, db: Session = Depends(get_db), current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     # Allow self-delete OR admin delete
-    if current_user.user_id != user_id and current_user.user_position.lower() != "admin":
+    if current_user.user_id != user_id and current_user.user_role.lower() != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
     db.delete(user)
@@ -126,7 +134,7 @@ async def get_pending_users(
     db: Session = Depends(get_db), 
     current_user: Users = Depends(get_current_user)
 ):
-    if current_user.user_position.lower() != "admin":
+    if current_user.user_role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
 
     return db.query(Users).filter(Users.user_status == "pending").all()
@@ -136,7 +144,7 @@ async def get_pending_users(
 @router.put("/{user_id}/approve", response_model=UserResponse)
 async def approve_user(user_id: int, db: Session = Depends(get_db), current_user: Users = Depends(get_current_user)):
     # only admins can approve
-    if current_user.user_position.lower() != "admin":
+    if current_user.user_role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
 
     user = db.query(Users).filter(Users.user_id == user_id).first()
@@ -174,6 +182,7 @@ async def approve_user(user_id: int, db: Session = Depends(get_db), current_user
                 <p><strong>Account Details:</strong></p>
                 <ul>
                     <li>Position: {user.user_position}</li>
+                    <li>Role: {user.user_role}</li>
                     <li>Approved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</li>
                 </ul>
                 
@@ -191,7 +200,7 @@ async def approve_user(user_id: int, db: Session = Depends(get_db), current_user
 #Reject
 @router.put("/{user_id}/reject", response_model=UserResponse)
 async def reject_user(user_id: int, db: Session = Depends(get_db), current_user: Users = Depends(get_current_user)):
-    if current_user.user_position.lower() != "admin":
+    if current_user.user_role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
 
     user = db.query(Users).filter(Users.user_id == user_id).first()
@@ -206,41 +215,29 @@ async def reject_user(user_id: int, db: Session = Depends(get_db), current_user:
     try:
         if hasattr(user, 'user_email') and user.user_email:
             send_email(
-                to=user.user_email,
-                subject="🎉 Account Approved - You Can Now Login",
+                recipient_email=user.user_email,
+                subject="Registration Request Rejected",
                 body=f"""
-                <h2>🎉 Your Account Has Been Approved!</h2>
+                <h2>Registration Request Rejected</h2>
                 <p>Dear {user.user_name},</p>
-                <p>Great news! Your registration for the Global Partnerships System has been approved by our administrator.</p>
-                
-                <h3>🔑 You can now login to the system:</h3>
-                <ul>
-                    <li><strong>Username:</strong> {user.user_name}</li>
-                    <li><strong>Use the password you created during registration</strong></li>
-                </ul>
-                
-                <div style="text-align: center; margin: 30px 0;">
-                    <a href="http://localhost:3000/login" 
-                       style="background-color: #2E86C1; color: white; padding: 12px 24px; 
-                              text-decoration: none; border-radius: 5px; font-weight: bold;">
-                        🔑 Login Now
-                    </a>
-                </div>
+                <p>We regret to inform you that your registration request for the Global Partnerships System has been rejected by our administrator.</p>
                 
                 <p><strong>Account Details:</strong></p>
                 <ul>
+                    <li>Username: {user.user_name}</li>
                     <li>Position: {user.user_position}</li>
-                    <li>Approved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</li>
+                    <li>Role: {user.user_role}</li>
+                    <li>Rejected on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</li>
                 </ul>
                 
-                <p>Welcome to the Globalinked Partnerships System!</p>
+                <p>If you believe this was done in error or have questions about the rejection, please contact the administrator.</p>
                 <p><em>- The Globalinked Partnerships Team</em></p>
                 """
             )
-            print(f"✅ Approval email sent to {user.user_email}")
+            print(f"✅ Rejection email sent to {user.user_email}")
     except Exception as e:
-        print(f"❌ Failed to send approval email: {e}")
-        # Don't fail the approval process if email fails # checking only
+        print(f"❌ Failed to send rejection email: {e}")
+        # Don't fail the rejection process if email fails # checking only
     
     return user
 

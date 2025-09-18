@@ -9,21 +9,21 @@ from app.models.partners import Partners
 from app.models.contact_persons import ContactPersons
 
 # Timeframe constants (tweak as needed or move to .env)
-EXPIRY_WINDOW_DAYS = int(__import__("os").environ.get("EXPIRY_WINDOW_DAYS", "30"))
-PENDING_DAYS_DEFAULT = int(__import__("os").environ.get("PENDING_DAYS_DEFAULT", "7"))
-DORMANT_DAYS = int(__import__("os").environ.get("DORMANT_DAYS", "30"))
+EXPIRY_WINDOW_DAYS = int(__import__("os").environ.get("EXPIRY_WINDOW_DAYS", "30"))  # minutes for testing
+PENDING_DAYS_DEFAULT = int(__import__("os").environ.get("PENDING_DAYS_DEFAULT", "7"))  # minutes for testing
+DORMANT_DAYS = int(__import__("os").environ.get("DORMANT_DAYS", "30"))  # minutes for testing
 
 # Mapping for per-status thresholds (optional override)
 STATUS_THRESHOLD_DAYS = {
-    # status -> days before the alert
-    "Endorse": 7,
-    "Revert": 7,
-    "Replication": 14,
-    "SignituresPUP": 7,
-    "SignedPUP": 7,
-    "SignituresPartner": 7,
-    "Notary": 7,
-    "FFUPCopy": 7,
+    # status -> minutes before the alert (for testing)
+    "Endorse": 1,
+    "Revert": 1,
+    "Replication": 2,
+    "SignituresPUP": 1,
+    "SignedPUP": 1,
+    "SignituresPartner": 1,
+    "Notary": 1,
+    "FFUPCopy": 1,
 }
 
 scheduler = BackgroundScheduler(timezone="UTC")
@@ -123,7 +123,7 @@ Recommended actions:
 """
 
 
-def _recommended_actions_for_category(category):
+def _recommended_actions_for_category(category, status=None):
     if category == "expiring_soon":
         return [
             "Prepare renewal documents and notify partner contacts.",
@@ -178,18 +178,20 @@ def _recommended_actions_for_category(category):
         
         # Default pending if status not found
         return [
-            "Review current status and identify blockers.",
-            "Follow up with responsible parties for next steps.",
-            "Escalate if no response within agreed timeframe."
+            "Review current agreement status and determine next steps.",
+            "Contact relevant parties to clarify processing requirements.",
+            "Set follow-up timeline to prevent further delays."
         ]
+    
     if category == "renewal_needed":
         return [
-            "Initiate renewal workflow or archive agreement.",
-            "Notify partner and responsible unit to decide on next steps."
-            "Assess impact on current projects before closure."
+            "Initiate renewal process immediately.",
+            "Contact partner to confirm renewal interest.",
+            "Prepare new agreement documents and timeline."
         ]
-    return ["Review and act accordingly."]
-
+    
+    # Default actions for any other category
+    return ["Review agreement details and take appropriate action."]
 
 def agreement_notification_job():
     #  service imports to avoid circular import at module import time
@@ -205,16 +207,16 @@ def agreement_notification_job():
     """
     db = _open_session()
     try:
-        today = datetime.utcnow().date()
+        today = datetime.utcnow()
 
         # 1) Expiring soon
-        horizon = today + timedelta(days=EXPIRY_WINDOW_DAYS)
+        horizon = today + timedelta(minutes=EXPIRY_WINDOW_DAYS)  # Changed to minutes
         expiring = (
             db.query(Agreements, Partners)
               .join(Partners, Agreements.partner_id == Partners.partner_id)
               .filter(Agreements.date_expiry != None)
-              .filter(Agreements.date_expiry >= today)
-              .filter(Agreements.date_expiry <= horizon)
+              .filter(Agreements.date_expiry >= today.date())
+              .filter(Agreements.date_expiry <= horizon.date())
               .all()
         )
         for a, p in expiring:
@@ -237,21 +239,21 @@ def agreement_notification_job():
         threshold_map = STATUS_THRESHOLD_DAYS
 
         for status in pending_statuses:
-            days_threshold = threshold_map.get(status, PENDING_DAYS_DEFAULT)
-            cutoff = today - timedelta(days=days_threshold)
+            minutes_threshold = threshold_map.get(status, PENDING_DAYS_DEFAULT)  # Now in minutes
+            cutoff = today - timedelta(minutes=minutes_threshold)  # Change to minutes
             pending_rows = (
                 db.query(Agreements, Partners)
                   .join(Partners, Agreements.partner_id == Partners.partner_id)
                   .filter(Agreements.agreement_status == status)
                   .filter(Agreements.entry_date != None)
-                  .filter(Agreements.entry_date <= cutoff)
+                  .filter(Agreements.entry_date <= cutoff.date())
                   .all()
             )
             for a, p in pending_rows:
                 category = "pending_long"
-                days_pending = (today - a.entry_date).days if a.entry_date else None
-                msg = f"{a.document_type} for {p.name} - '{a.dts_number}' has been in status '{a.agreement_status}' for {days_pending} days."
-                actions = _recommended_actions_for_category(category)
+                minutes_pending = int((today - datetime.combine(a.entry_date, datetime.min.time())).total_seconds() / 60) if a.entry_date else None
+                msg = f"{a.document_type} for {p.name} - '{a.dts_number}' has been in status '{a.agreement_status}' for {minutes_pending} minutes."
+                actions = _recommended_actions_for_category(category, a.agreement_status)
                 notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
                 recipients = _collect_recipient_emails(db, a, p)
                 if notif and recipients:
@@ -263,18 +265,18 @@ def agreement_notification_job():
                         print("[Scheduler] email send failed:", e)
 
         # 3) Dormant / renewal needed: expired more than DORMANT_DAYS ago
-        cutoff_expired = today - timedelta(days=DORMANT_DAYS)
+        cutoff_expired = today - timedelta(minutes=DORMANT_DAYS)  # Change to minutes
         dormant = (
             db.query(Agreements, Partners)
               .join(Partners, Agreements.partner_id == Partners.partner_id)
               .filter(Agreements.date_expiry != None)
-              .filter(Agreements.date_expiry <= cutoff_expired)
+              .filter(Agreements.date_expiry <= cutoff_expired.date())
               .all()
         )
         for a, p in dormant:
             category = "renewal_needed"
-            days_expired = (today - a.date_expiry).days if a.date_expiry else None
-            msg = f"{a.document_type} of {p.name} -'{a.dts_number}' expired on {a.date_expiry} ({days_expired} days ago)."
+            minutes_expired = int((today - datetime.combine(a.date_expiry, datetime.min.time())).total_seconds() / 60) if a.date_expiry else None
+            msg = f"{a.document_type} of {p.name} -'{a.dts_number}' expired on {a.date_expiry} ({minutes_expired} minutes ago)."
             actions = _recommended_actions_for_category(category)
             notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
             recipients = _collect_recipient_emails(db, a, p)
