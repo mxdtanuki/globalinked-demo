@@ -25,6 +25,7 @@ def get_role_from_position(position: str) -> str:
 # Cr
 @router.post("/", response_model=UserResponse)
 async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+
     # Check if username already exists
     existing = db.query(Users).filter(Users.user_name == user.user_name).first()
     if existing:
@@ -64,22 +65,22 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
         # Get all admin users
         admin_users = db.query(Users).filter(Users.user_role == "admin").all()
         
+        notification_count = 0
+        
         for admin in admin_users:
-            # Create notification for each admin
+            # Create notification for admin
             create_notification_if_new(
                 db=db,
-                agreement_id=None,  # Not related to agreement
+                agreement_id=None, 
                 category="user_registration",
                 message=f"New user registration request from {new_user.user_name} ({new_user.user_position}) - {new_user.user_role} access level",
                 recommended_action=f"Review and approve/reject {new_user.user_name}'s registration request in User Management",
                 user_id=admin.user_id
             )
-        
-        print(f"✅ System notifications created for {len(admin_users)} admins about new user: {new_user.user_name}")
+            notification_count += 1 
         
     except Exception as e:
-        print(f"❌ Failed to create admin notifications: {e}")
-        # Don't fail registration if notification creation fails
+        print(f"Failed to create admin notifications: {e}")
 
     return new_user
 
@@ -215,7 +216,7 @@ async def reject_user(user_id: int, db: Session = Depends(get_db), current_user:
     try:
         if hasattr(user, 'user_email') and user.user_email:
             send_email(
-                recipient_email=user.user_email,
+                to=user.user_email,
                 subject="Registration Request Rejected",
                 body=f"""
                 <h2>Registration Request Rejected</h2>
