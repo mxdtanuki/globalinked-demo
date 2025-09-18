@@ -53,7 +53,8 @@
 }
 
 .approve-btn,
-.delete-btn {
+.delete-btn,
+.reject-btn {
   border: none;
   padding: 6px 12px;
   margin-right: 8px;
@@ -72,6 +73,17 @@
   background-color: #a52a2a;
 }
 
+.reject-btn {
+  background-color: #f5f5f5;
+  color: #800000;
+  border: 1px solid #800000;
+}
+
+.reject-btn:hover {
+  background-color: #800000;
+  color: #fff;
+}
+
 .delete-btn {
   background-color: #f5f5f5;
   color: #800000;
@@ -81,4 +93,67 @@
 .delete-btn:hover {
   background-color: #800000;
   color: #fff;
+}
+
+/* Success and Error Messages */
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 12px;
+  border-radius: 5px;
+  border: 1px solid #c3e6cb;
+  margin-bottom: 20px;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 5px;
+  border: 1px solid #f5c6cb;
+  margin-bottom: 20px;
+}
+
+.access-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.access-badge.admin {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.access-badge.staff {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #ce93d8;
+}
+
+/* Loading state styles */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
+
+.loading-content {
+  text-align: center;
+  font-size: 18px;
+}
+
+.loading-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-top: 10px;
+}
+
+/* No requests message */
+.no-requests-message {
+  text-align: center;
 }

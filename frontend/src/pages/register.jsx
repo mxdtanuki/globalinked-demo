@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { FaUser, FaEnvelope, FaLock } from "react-icons/fa"; 
 import "./login.css"; 
+import { registerUser } from '../services/registrationService'; 
 
 const Register = () => {
   const navigate = useNavigate();
@@ -14,6 +15,16 @@ const Register = () => {
     position: "",
   });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const getPositionRole = (position) => {
+    const adminPositions = [
+      "Director", 
+      "Partnership and Linkages Section"
+    ];
+    
+    return adminPositions.includes(position) ? "admin" : "staff";
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -23,15 +34,39 @@ const Register = () => {
     setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-    console.log("Registration Data:", formData);
-    alert("Registered successfully. Please wait for account approval.");
-    navigate("/login");
+
+    try {
+      setLoading(true);
+      setError("");
+
+      // Get the role equivalent instead yung position title
+      const roleEquivalent = getPositionRole(formData.position);
+
+      // Prepare data for backend
+      const userData = {
+        user_name: `${formData.firstName} ${formData.lastName}`.trim(),
+        user_email: formData.email,  
+        user_pass: formData.password,
+        user_position: roleEquivalent // Send "admin" or "staff"
+      };
+
+      await registerUser(userData);
+
+      alert("Registered successfully. Please wait for account approval.");
+      navigate("/login");
+      
+    } catch (err) {
+      console.error('Registration failed:', err);
+      setError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false); 
+    }
   };
 
   return (
@@ -69,6 +104,7 @@ const Register = () => {
                   value={formData.firstName}
                   onChange={handleChange}
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="input-group">
@@ -80,6 +116,7 @@ const Register = () => {
                   value={formData.lastName}
                   onChange={handleChange}
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -93,6 +130,7 @@ const Register = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -105,6 +143,7 @@ const Register = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -117,6 +156,7 @@ const Register = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -125,13 +165,16 @@ const Register = () => {
               value={formData.position}
               onChange={handleChange}
               required
+              disabled={loading}
             >
               <option value="">Select Position</option>
-              <option value="Director">Director</option>
-              <option value="Mobility">Mobility</option>
-              <option value="Partnership and Linkages Section">
-                Partnership and Linkages Section
+              <option value="Director">
+                Director {getPositionRole("Director") === "admin" && "(Admin Access)"}
               </option>
+              <option value="Partnership and Linkages Section">
+                Partnership and Linkages Section {getPositionRole("Partnership and Linkages Section") === "admin" && "(Admin Access)"}
+              </option>
+              <option value="Mobility">Mobility</option>
               <option value="Special Internationalization Projects">
                 Special Internationalization Projects
               </option>
@@ -146,7 +189,22 @@ const Register = () => {
               </option>
             </select>
 
-            <button type="submit">Register</button>
+            {/* Show selected role preview */}
+            {formData.position && (
+              <div style={{ 
+                padding: '10px', 
+                marginTop: '10px', 
+                backgroundColor: getPositionRole(formData.position) === 'admin' ? '#e3f2fd' : '#f3e5f5',
+                borderRadius: '5px',
+                fontSize: '14px'
+              }}>
+                <strong>Role Assignment:</strong> {getPositionRole(formData.position)} access
+              </div>
+            )}
+
+            <button type="submit" disabled={loading}>
+              {loading ? "Registering..." : "Register"}
+            </button>
           </form>
 
           <p className="switch-text">

@@ -509,7 +509,7 @@ const OverviewDash = () => {
     { label: 'For Signature of PUP Official', status: 'SignituresPUP' },
     { label: 'Signed by PUP Official', status: 'SignedPUP' },
     { label: 'For Signature of Partners', status: 'SignituresPartner' },
-    { label: 'Signed by Partners', status: 'Complete' },
+    { label: 'Signed by Partners', status: 'SignedPartners' },
     { label: 'Completely Signed', status: 'Complete' },
     { label: 'For Notary', status: 'Notary' },
     { label: 'To FFUP Copy', status: 'FFUPCopy' },
