@@ -3,7 +3,7 @@ import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './globalUpload.css';
-//import axios from "axios";
+import axios from "axios";
 
 
 const countryOptions = [
@@ -108,7 +108,7 @@ const partnershipTypeOptions = [
   { value: 'MOA on Faculty and Student Exchange', label: 'MOA on Faculty and Student Exchange' },
 ];
 
-const ManualEntryMOA = () => {
+  const ManualEntryMOA = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [selectedCountry, setSelectedCountry] = useState(null);
@@ -117,137 +117,10 @@ const ManualEntryMOA = () => {
   const [documentType, setDocumentType] = useState("MOA");
   const [partnershipType, setPartnershipType] = useState("");
 
-
-      //contacts & point persons 
-      const [contacts, setContacts] = useState([{ position: "", name: "", email: "" }]);
-      const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
-
-      // contact functions
-      const addContact = () => setContacts([...contacts, { position: "", name: "", email: "" }]);
-      const handleContactChange = (i, field, val) => {
-        const updated = [...contacts];
-        updated[i][field] = val;
-        setContacts(updated);
-      };
-      const removeContact = (i) => setContacts(contacts.filter((_, idx) => idx !== i));
-
-      // point person functions
-      const addPointPerson = () => setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
-      const handlePointPersonChange = (i, field, val) => {
-        const updated = [...pointPersons];
-        updated[i][field] = val;
-        setPointPersons(updated);
-      };
-      const removePointPerson = (i) => setPointPersons(pointPersons.filter((_, idx) => idx !== i));
-
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-
-    try {
-      const form = new FormData(e.target);
-      const data = Object.fromEntries(form);
-
-      const agreementData = {
-        partner_data: {
-          name: data.partnerName,
-          entity_type: data.entityType,
-          country: selectedCountry?.value || "",
-          region: selectedRegion?.value || "",
-          address: data.address,
-          website_url: data.website || "",
-          description: data.description || "",
-          status: "active",
-          contact_persons: data.contactPersonName
-            ? [
-                {
-                  contact_person_name: data.contactPersonName,
-                  contact_person_position: data.contactPersonPosition || "",
-                  contact_person_email: data.contactPersonEmail || ""
-                }
-              ]
-            : []
-        },
-        source_unit_id: parseInt(data.source),
-        dts_number: dtsNumber,
-        dts_status: data.dtsStatus,
-        document_type: documentType,
-        partnership_type: partnershipType,
-        agreement_status: data.status,
-        entry_type: data.entryType,
-        entry_date: data.entryDate || null,
-        date_received: data.dateReceived || null,
-        date_endorsed_to_ulco: data.dateEndorsed || null,
-        date_ulco_approved: data.dateUlcoApproved || null,
-        date_signed_by_pup: data.datePupSigned || null,
-        date_signed: data.dateSigned || null,
-        date_expiry: data.dateExpiry || null,
-        validity_period: data.validity || null,
-        event_info: data.eventInfo || null,
-        signatories_list: data.signatories || null,
-
-        // Build point persons array from state
-        point_persons: pointPersons
-          .filter((pp) => pp.name)
-          .map((pp) => ({
-            point_person_name: pp.name,
-            point_person_position: pp.position || "",
-            point_person_email: pp.email || ""
-          })),
-
-        hardcopy_location: data.locator || null,
-        renewed_from_agreement_id: data.renewedFrom
-          ? parseInt(data.renewedFrom)
-          : null,
-        initial_remarks: data.remarks
-          ? [
-              {
-                remark_text: data.remarks
-              }
-            ]
-          : []
-      };
-
-      // Only call createAgreement, b.e. handles duplicates
-      const response = await agreementService.createAgreement(agreementData);
-
-      if (response.status === "duplicate") {
-        setMessage(
-          `Duplicate found:
-           Partner: ${response.agreement.name}
-           DTS No.: ${response.agreement.dts_number}
-           Document Type: ${response.agreement.document_type}
-           Partnership Type: ${response.agreement.partnership_type}`
-        );
-        return;
-      }
-
-      if (response.status === "created") {
-        setMessage("MOA created successfully!");
-        e.target.reset();
-        setSelectedCountry(null);
-        setSelectedRegion(null);
-        setDtsNumber("");
-        setDocumentType("MOA");
-        setPartnershipType("");
-        setPointPersons([{ name: "", position: "", email: "" }]); // reset
-      }
-    } catch (error) {
-      console.error("Full error:", error);
-      setMessage("Error: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-    // NEW STATE FOR PARTNER ENTRY
+  // Partner state
   const [partnerEntryType, setPartnerEntryType] = useState("New"); 
   const [existingPartners, setExistingPartners] = useState([]);
   const [selectedPartner, setSelectedPartner] = useState(null);
-
-  // Partner details state
   const [partnerData, setPartnerData] = useState({
     name: "",
     entityType: "",
@@ -257,13 +130,35 @@ const ManualEntryMOA = () => {
     logo: null,
   });
 
-  // Fetch partners on load
+  // Contacts & point persons
+  const [contacts, setContacts] = useState([{ position: "", name: "", email: "" }]);
+  const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
+
+  // Contact functions
+  const addContact = () => setContacts([...contacts, { position: "", name: "", email: "" }]);
+  const handleContactChange = (i, field, val) => {
+    const updated = [...contacts];
+    updated[i][field] = val;
+    setContacts(updated);
+  };
+  const removeContact = (i) => setContacts(contacts.filter((_, idx) => idx !== i));
+
+  // Point person functions
+  const addPointPerson = () => setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
+  const handlePointPersonChange = (i, field, val) => {
+    const updated = [...pointPersons];
+    updated[i][field] = val;
+    setPointPersons(updated);
+  };
+  const removePointPerson = (i) => setPointPersons(pointPersons.filter((_, idx) => idx !== i));
+
+  // Fetch existing partners
   useEffect(() => {
     const fetchPartners = async () => {
       try {
         const response = await agreementService.getPartners();
         const options = response.map(p => ({
-          value: p.id,
+          value: p.partner_id,
           label: p.name,
           ...p
         }));
@@ -292,7 +187,119 @@ const ManualEntryMOA = () => {
     }
   };
 
-  return (
+  // Submit handler
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setMessage("");
+
+  try {
+    const form = new FormData(e.target);
+    const data = Object.fromEntries(form);
+
+    let agreementData = {
+      source_unit: data.source,
+      dts_number: dtsNumber,
+      dts_status: data.dtsStatus,
+      document_type: documentType,
+      partnership_type: partnershipType,
+      agreement_status: data.status,
+      entry_type: data.entryType,
+      entry_date: data.entryDate || null,
+      date_received: data.dateReceived || null,
+      date_endorsed_to_ulco: data.dateEndorsed || null,
+      date_ulco_approved: data.dateUlcoApproved || null,
+      date_signed_by_pup: data.datePupSigned || null,
+      date_signed: data.dateSigned || null,
+      date_expiry: data.dateExpiry || null,
+      validity_period: data.validity || null,
+      event_info: data.eventInfo || null,
+      signatories_list: data.signatories || null,
+
+      // Point persons array from state
+      point_persons: pointPersons
+        .filter((pp) => pp.name)
+        .map((pp) => ({
+          point_person_name: pp.name,
+          point_person_position: pp.position || "",
+          point_person_email: pp.email || "",
+        })),
+
+      // Timer data
+      timer: {
+        deadline: data.deadlineDate || null,
+        days: parseInt(data.days) || 0,
+        hours: parseInt(data.hours) || 0,
+        minutes: parseInt(data.minutes) || 0,
+      },
+
+      hardcopy_location: data.locator || null,
+      renewed_from_agreement_id: data.renewedFrom
+        ? String(data.renewedFrom)
+        : null,
+      initial_remarks: data.remarks
+        ? [{ remark_text: data.remarks }]
+        : [],
+    };
+
+    // 🔑 Handle partner differently for existing vs new
+    if (partnerEntryType === "Existing") {
+      agreementData.partner_id = selectedPartner?.value || null;
+    } else {
+      agreementData.partner_data = {
+        name: partnerData.name,
+        entity_type: partnerData.entityType,
+        country: selectedCountry?.value || "",
+        region: selectedRegion?.value || "",
+        address: partnerData.address,
+        website_url: partnerData.website || "",
+        description: partnerData.description || "",
+        status: "active",
+        contact_persons: contacts
+          .filter((c) => c.name)
+          .map((c) => ({
+            contact_person_name: c.name,
+            contact_person_position: c.position || "",
+            contact_person_email: c.email || "",
+          })),
+      };
+    }
+
+    // Send request
+    const response = await agreementService.createAgreement(agreementData);
+
+    if (response.status === "duplicate") {
+      setMessage(
+        `Duplicate found:
+         Partner: ${response.agreement.name}
+         DTS No.: ${response.agreement.dts_number}
+         Document Type: ${response.agreement.document_type}
+         Partnership Type: ${response.agreement.partnership_type}`
+      );
+      return;
+    }
+
+    if (response.status === "created") {
+      setMessage("MOA created successfully!");
+      e.target.reset();
+      setSelectedCountry(null);
+      setSelectedRegion(null);
+      setDtsNumber("");
+      setDocumentType("MOA");
+      setPartnershipType("");
+      setPointPersons([{ name: "", position: "", email: "" }]);
+      setContacts([{ name: "", position: "", email: "" }]);
+    }
+  } catch (error) {
+    console.error("Full error:", error);
+    setMessage("Error: " + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+    return (
   <TopbarSidebar>
     <div className="manual-entry-wrapper">
       <div className="manual-entry-container">
@@ -313,10 +320,10 @@ const ManualEntryMOA = () => {
         <form className="manual-entry-form" onSubmit={handleSubmit}>
 
           {/* DATE */}
-            <div className="form-group" onSubmit={handleSubmit}>
-              <label htmlFor="entryDate">Date:</label>
-              <input id="entryDate" type="date" />
-            </div>
+          <div className="form-group" onSubmit={handleSubmit}>
+            <label htmlFor="entryDate">Date:</label>
+            <input id="entryDate" name="entryDate" type="date" required />
+          </div>
 
           {/* Document Type */}
           <div className="form-group">
@@ -361,11 +368,11 @@ const ManualEntryMOA = () => {
           </select>
           </div>
 
-           {/* RENEWED AGREEMENT */}
-            <div className="form-group">
-              <label htmlFor="renewedFrom">Renewed Agreement from:</label>
-              <input id="renewedFrom" name="renewedFrom" type="text" />
-            </div>
+          {/* RENEWED AGREEMENT */}
+          <div className="form-group">
+            <label htmlFor="renewedFrom">Renewed Agreement from (DTS Number Format):</label>
+            <input id="renewedFrom" name="renewedFrom" type="text" />
+          </div>
             
           {/* VALIDITY PERIOD*/}
           <div className="form-group">
@@ -393,165 +400,166 @@ const ManualEntryMOA = () => {
           />
           </div>
 
-           {/* DTS STATUS */}
-            <div className="form-group">
-              <label htmlFor="dtsStatus">DTS Status:*</label>
-              <select id="dtsStatus" required>
-                <option value="">Select Status</option>
-                <option value="Open - OIA">OPEN - OIA</option>
-                <option value="Closed - OIA">Closed - OIA</option>
-                <option value="Open - Other Office">Open - Other Office</option>
-                <option value="Closed - Other Office">Closed - Other Office</option>
-              </select>
-            </div>
+          {/* DTS STATUS */}
+          <div className="form-group">
+            <label htmlFor="dtsStatus">DTS Status:*</label>
+            <select id="dtsStatus" name="dtsStatus" required>
+              <option value="">Select Status</option>
+              <option value="Open - OIA">OPEN - OIA</option>
+              <option value="Closed - OIA">Closed - OIA</option>
+              <option value="Open - Other Office">Open - Other Office</option>
+              <option value="Closed - Other Office">Closed - Other Office</option>
+            </select>
+          </div>
 
-            {/* SOURCE UNIT */}
-            <div className="form-group">
-              <label htmlFor="source">Source (Campus/College Dept):*</label>
-              <input id="source" name="source" type="text" required />
-            </div>
+          {/* SOURCE UNIT */}
+          <div className="form-group">
+            <label htmlFor="source">Source (Campus/College Dept):*</label>
+            <input id="source" name="source" type="text" required />
+          </div>
 
-            {/* PARTNERSHIP TYPE */}
-            <div className="form-group">
-              <label htmlFor="partnershipType">Partnership Type:*</label>
-              <Select
-                options={partnershipTypeOptions}
-                name="partnershipType"
-                id="partnershipType"
+          {/* PARTNERSHIP TYPE */}
+          <div className="form-group">
+            <label htmlFor="partnershipType">Partnership Type:*</label>
+            <Select
+              options={partnershipTypeOptions}
+              name="partnershipType"
+              id="partnershipType"
+              required
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select Partnership Type"
+              onChange={(opt) => setPartnershipType(opt?.value || "")}
+            />
+          </div>
+
+          {/* Partner Entry Type */}
+          <div className="form-group">
+            <label htmlFor="partnerEntryType">Partner Entry Type:*</label>
+            <select
+              id="partnerEntryType"
+              value={partnerEntryType}
+              onChange={(e) => setPartnerEntryType(e.target.value)}
+            >
+              <option value="New">New</option>
+              <option value="Existing">Existing</option>
+            </select>
+          </div>
+
+          {/* Partner Fields */}
+          <div className="form-group">
+            <label>Partner Name:*</label>
+            {partnerEntryType === "New" ? (
+              <input
+                type="text"
+                value={partnerData.name}
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, name: e.target.value })
+                }
                 required
+              />
+            ) : (
+              <Select
+                value={selectedPartner}
+                onChange={handleExistingPartnerChange}
+                options={existingPartners}
                 className="react-select-container"
                 classNamePrefix="react-select"
-                placeholder="Select Partnership Type"
+                placeholder="Select Existing Partner"
               />
-            </div>
+            )}
+          </div>
 
-            {/* Partner Entry Type */}
-            <div className="form-group">
-              <label htmlFor="partnerEntryType">Partner Entry Type:*</label>
-              <select
-                id="partnerEntryType"
-                value={partnerEntryType}
-                onChange={(e) => setPartnerEntryType(e.target.value)}
-              >
-                <option value="New">New</option>
-                <option value="Existing">Existing</option>
-              </select>
-            </div>
+          <div className="form-group">
+            <label>Entity Type:*</label>
+            <input
+              type="text"
+              value={partnerData.entityType}
+              onChange={(e) =>
+                setPartnerData({ ...partnerData, entityType: e.target.value })
+              }
+              required
+              readOnly={partnerEntryType === "Existing"}
+            />
+          </div>
 
-            {/* Partner Fields */}
-            <div className="form-group">
-              <label>Partner Name:*</label>
-              {partnerEntryType === "New" ? (
-                <input
-                  type="text"
-                  value={partnerData.name}
-                  onChange={(e) =>
-                    setPartnerData({ ...partnerData, name: e.target.value })
-                  }
-                  required
-                />
-              ) : (
-                <Select
-                  value={selectedPartner}
-                  onChange={handleExistingPartnerChange}
-                  options={existingPartners}
-                  className="react-select-container"
-                  classNamePrefix="react-select"
-                  placeholder="Select Existing Partner"
-                />
-              )}
-            </div>
-
-            <div className="form-group">
-              <label>Entity Type:*</label>
-              <input
-                type="text"
-                value={partnerData.entityType}
-                onChange={(e) =>
-                  setPartnerData({ ...partnerData, entityType: e.target.value })
-                }
-                required
-                readOnly={partnerEntryType === "Existing"}
+          <div className="form-group">
+            <label>Country:*</label>
+            {partnerEntryType === "New" ? (
+              <Select
+                value={selectedCountry}
+                onChange={setSelectedCountry}
+                options={countryOptions}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select Country"
               />
-            </div>
+            ) : (
+              <input type="text" value={selectedCountry?.label || ""} readOnly />
+            )}
+          </div>
 
-            <div className="form-group">
-              <label>Country:*</label>
-              {partnerEntryType === "New" ? (
-                <Select
-                  value={selectedCountry}
-                  onChange={setSelectedCountry}
-                  options={countryOptions}
-                  className="react-select-container"
-                  classNamePrefix="react-select"
-                  placeholder="Select Country"
-                />
-              ) : (
-                <input type="text" value={selectedCountry?.label || ""} readOnly />
-              )}
-            </div>
-
-            <div className="form-group">
-              <label>Region:*</label>
-              {partnerEntryType === "New" ? (
-                <Select
-                  value={selectedRegion}
-                  onChange={setSelectedRegion}
-                  options={regionOptions}
-                  className="react-select-container"
-                  classNamePrefix="react-select"
-                  placeholder="Select Region"
-                />
-              ) : (
-                <input type="text" value={selectedRegion?.label || ""} readOnly />
-              )}
-            </div>
-
-            <div className="form-group">
-              <label>Address:</label>
-              <input
-                type="text"
-                value={partnerData.address}
-                onChange={(e) =>
-                  setPartnerData({ ...partnerData, address: e.target.value })
-                }
-                readOnly={partnerEntryType === "Existing"}
+          <div className="form-group">
+            <label>Region:*</label>
+            {partnerEntryType === "New" ? (
+              <Select
+                value={selectedRegion}
+                onChange={setSelectedRegion}
+                options={regionOptions}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select Region"
               />
-            </div>
+            ) : (
+              <input type="text" value={selectedRegion?.label || ""} readOnly />
+            )}
+          </div>
 
-            <div className="form-group">
-              <label>Logo:</label>
-              <input
-                type="file"
-                onChange={(e) =>
-                  setPartnerData({ ...partnerData, logo: e.target.files[0] })
-                }
-                disabled={partnerEntryType === "Existing"}
-              />
-            </div>
+          <div className="form-group">
+            <label>Address:</label>
+            <input
+              type="text"
+              value={partnerData.address}
+              onChange={(e) =>
+                setPartnerData({ ...partnerData, address: e.target.value })
+              }
+              readOnly={partnerEntryType === "Existing"}
+            />
+          </div>
 
-            <div className="form-group">
-              <label>Website:</label>
-              <input
-                type="url"
-                value={partnerData.website}
-                onChange={(e) =>
-                  setPartnerData({ ...partnerData, website: e.target.value })
-                }
-                readOnly={partnerEntryType === "Existing"}
-              />
-            </div>
+          <div className="form-group">
+            <label>Logo:</label>
+            <input
+              type="file"
+              onChange={(e) =>
+                setPartnerData({ ...partnerData, logo: e.target.files[0] })
+              }
+              disabled={partnerEntryType === "Existing"}
+            />
+          </div>
 
-            <div className="form-group full-width">
-              <label>Partner Description:</label>
-              <textarea
-                value={partnerData.description}
-                onChange={(e) =>
-                  setPartnerData({ ...partnerData, description: e.target.value })
-                }
-                readOnly={partnerEntryType === "Existing"}
-              />
-            </div>
+          <div className="form-group">
+            <label>Website:</label>
+            <input
+              type="url"
+              value={partnerData.website}
+              onChange={(e) =>
+                setPartnerData({ ...partnerData, website: e.target.value })
+              }
+              readOnly={partnerEntryType === "Existing"}
+            />
+          </div>
+
+          <div className="form-group full-width">
+            <label>Partner Description:</label>
+            <textarea
+              value={partnerData.description}
+              onChange={(e) =>
+                setPartnerData({ ...partnerData, description: e.target.value })
+              }
+              readOnly={partnerEntryType === "Existing"}
+            />
+          </div>
 
           {/* SIGNATORIES */}
           <div className="form-group full-width">
@@ -694,8 +702,8 @@ const ManualEntryMOA = () => {
 
             {/* DEADLINE DATE */}
             <div className="form-group full-width">
-              <label htmlFor="entryDate">Deadline Date:</label>
-              <input id="entryDate" type="date" />
+              <label htmlFor="deadlineDate">Deadline Date:</label>
+              <input id="deadlineDate" name="deadlineDate" type="date" />
             </div>
 
             {/* REMINDER INTERVAL*/}
