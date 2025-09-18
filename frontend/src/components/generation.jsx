@@ -110,6 +110,11 @@ const ReportGenerator = ({
   mouData = [],
   moaData = [],
   moaActivityData = [],
+  agreements = [],
+  mouAgreements = [],
+  moaAgreements = [],
+  chartRefs = {},
+
 }) => {
   const years = useMemo(() => {
     const extracted = extractYearsFlexible(
