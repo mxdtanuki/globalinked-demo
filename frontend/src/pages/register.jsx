@@ -17,13 +17,13 @@ const Register = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const getPositionRole = (position) => {
-    const adminPositions = [
+  const getPositionRole = (role) => {
+    const adminRoles = [
       "Director", 
       "Partnership and Linkages Section"
     ];
     
-    return adminPositions.includes(position) ? "admin" : "staff";
+    return adminRoles.includes(role) ? "admin" : "staff";
   };
 
   const handleChange = (e) => {
@@ -45,15 +45,12 @@ const Register = () => {
       setLoading(true);
       setError("");
 
-      // Get the role equivalent instead yung position title
-      const roleEquivalent = getPositionRole(formData.position);
-
       // Prepare data for backend
       const userData = {
         user_name: `${formData.firstName} ${formData.lastName}`.trim(),
         user_email: formData.email,  
         user_pass: formData.password,
-        user_position: roleEquivalent // Send "admin" or "staff"
+        user_position: formData.position 
       };
 
       await registerUser(userData);
