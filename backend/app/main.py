@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.controllers import auth_controller, agreement_controller, notification_controller, email_controller
+from app.controllers import auth_controller, agreement_controller, notification_controller, email_controller, registration_controller
 from app.database import Base, engine
 from app.models.notification import Notification
 
@@ -28,6 +28,7 @@ app.include_router(auth_controller.router)
 app.include_router(agreement_controller.router)
 app.include_router(notification_controller.router)
 app.include_router(email_controller.router)
+app.include_router(registration_controller.router)
 
 # Root route
 @app.on_event("startup")
