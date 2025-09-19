@@ -9,7 +9,7 @@ from app.models.agreements import Agreements
 from app.models.partners import Partners
 from app.models.contact_persons import ContactPersons
 
-# Timeframe constants (tweak as needed or move to .env)
+# Timeframe constants
 EXPIRY_WINDOW_DAYS = int(__import__("os").environ.get("EXPIRY_WINDOW_DAYS", "30"))
 PENDING_DAYS_DEFAULT = int(__import__("os").environ.get("PENDING_DAYS_DEFAULT", "7"))
 DORMANT_DAYS = int(__import__("os").environ.get("DORMANT_DAYS", "30"))
@@ -74,7 +74,6 @@ def _collect_recipient_emails(db: Session, agreement: Agreements, partner: Partn
 
    
     try:
-        # import here to avoid circular imports at module import time
         from app.models.agreement_point_persons import AgreementPointPersons
         from app.models.point_persons import PointPersons
 
@@ -197,7 +196,7 @@ def _recommended_actions_for_category(category, status=None):
 
 
 def agreement_notification_job():
-    #  service imports to avoid circular import at module import time
+    #  service imports
     from app.services.notif_service import create_notification_if_new
     from app.services.email_service import send_email
 

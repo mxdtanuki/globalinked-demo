@@ -34,7 +34,7 @@ def list_notifications(db: Session = Depends(get_db), current_user: Users = Depe
             "category": n.category,
             "message": n.message,
             "recommended_action": n.recommended_action,
-            "created_at": n.created_at.strftime("%Y-%m-%d %H:%M:%S"),  # ✅ Nice PH format
+            "created_at": n.created_at.strftime("%Y-%m-%d %H:%M:%S"),  
             "is_read": n.is_read,
         }
         for n in unique_notifs
