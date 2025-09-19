@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
 import './globalUpload.css';
@@ -266,9 +266,11 @@ const partnershipTypeOptions = [
   { value: 'MOA on Faculty and Student Exchange', label: 'MOA on Faculty and Student Exchange' }
 ];
 
+
 const ExtractedEntryMOA = () => {
   const [contacts, setContacts] = useState([{ position: "", name: "", email: "" }]);
   const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
+  const [documentType, setDocumentType] = useState("");
 
   // Add new contact row
   const addContact = () => {
@@ -308,11 +310,127 @@ const ExtractedEntryMOA = () => {
     setPointPersons(updated);
   };
 
+  const [partnerType, setPartnerType] = useState("new"); 
+    const [existingPartners, setExistingPartners] = useState([]);
+    const [selectedPartner, setSelectedPartner] = useState(null);
+  
+    // Partner details state
+    const [partnerDetails, setPartnerDetails] = useState({
+      entityType: "",
+      country: "",
+      region: "",
+      address: "",
+      website: "",
+      status: "",
+      description: ""
+    });
+  
+    // Mock Data
+    const fetchExistingPartners = async () => {
+      return [
+        {
+          value: "partner1",
+          label: "Harvard University",
+          entityType: "University",
+          country: "United States",
+          region: "Central Asia",
+          address: "Cambridge, MA, USA",
+          website: "https://www.harvard.edu",
+          status: "Active",
+          description: "An Ivy League research university known globally for excellence in academics.",
+          logo: "https://upload.wikimedia.org/wikipedia/en/2/29/Harvard_shield_wreath.svg",
+        },
+        {
+          value: "partner2",
+          label: "Toyota Motor Corporation",
+          entityType: "Company",
+          country: "Japan",
+          region: "Southern Asia",
+          address: "Toyota City, Aichi Prefecture, Japan",
+          website: "https://www.toyota-global.com",
+          status: "Active",
+          description: "A global leader in automotive manufacturing and sustainable mobility.",
+          logo: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Toyota_logo.png",
+        },
+        {
+          value: "partner3",
+          label: "UNESCO",
+          entityType: "International Organization",
+          country: "France",
+          region: "Eastern Asia",
+          address: "7 Place de Fontenoy, 75007 Paris, France",
+          website: "https://www.unesco.org",
+          status: "Active",
+          description: "United Nations agency promoting education, science, and cultural cooperation.",
+          logo: "https://upload.wikimedia.org/wikipedia/commons/0/07/UNESCO_logo.svg",
+        },
+        {
+          value: "partner4",
+          label: "Samsung Electronics",
+          entityType: "Company",
+          country: "South Korea",
+          region: "Central Asia",
+          address: "Suwon-si, Gyeonggi-do, South Korea",
+          website: "https://www.samsung.com",
+          status: "Inactive",
+          description: "A multinational electronics company leading in smartphones and semiconductors.",
+          logo: "https://upload.wikimedia.org/wikipedia/commons/2/24/Samsung_Logo.svg",
+        },
+      ];
+    };
+  
+        useEffect(() => {
+          const loadData = async () => {
+            setExistingPartners(await fetchExistingPartners());
+          };
+          loadData();
+        }, []);
+  
+        // When switching between new/existing reset form
+        useEffect(() => {
+          if (partnerType === "new") {
+            setSelectedPartner(null);
+            setPartnerDetails({
+              entityType: "",
+              country: "",
+              region: "",
+              address: "",
+              website: "",
+              status: "",
+              description: ""
+            });
+          }
+        }, [partnerType]);
+  
+        // Handle partner selection
+        const handleExistingPartnerChange = (option) => {
+          setSelectedPartner(option);
+          if (option) {
+            setPartnerDetails({
+              entityType: option.entityType,
+              country: option.country,
+              region: option.region,
+              address: option.address,
+              website: option.website,
+              status: option.status,
+              description: option.description,
+            });
+          }
+        };
+  
+        // Handle input change (only for "new" type OR editable fields)
+        const handleInputChange = (field, value) => {
+          setPartnerDetails((prev) => ({
+            ...prev,
+            [field]: value,
+          }));
+        };
+        
   return (
     <TopbarSidebar>
       <div className="manual-entry-wrapper">
         <div className="manual-entry-container">
-          <h2 className="form-title"> MOA Extracted Entry Form</h2>
+          <h2 className="form-title"> Extracted Entry Form</h2>
           <form className="manual-entry-form">
 
             {/* DATE */}
@@ -321,13 +439,24 @@ const ExtractedEntryMOA = () => {
               <input id="entryDate" type="date" />
             </div>
 
-            {/* DOC TYPE */}
-            <div className="form-group">
-              <label htmlFor="docType">Document Type:*</label>
-              <select id="docType" name="docType" required value="MOA" >
-                <option value="MOU">MOA</option>
-              </select>
-            </div>
+          {/* Document Type */}
+          <div className="form-group">
+          <label htmlFor="docType">Document Type:*</label>
+          <select
+            id="docType"
+            name="docType"
+            required
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value)}
+          >
+            <option value="" disabled>
+              Select Document Type
+            </option>
+            <option value="MOA">MOA</option>
+            <option value="MOU">MOU</option>
+          </select>
+          </div>
+
 
             {/* AGREEMENT STATUS */}
             <div className="form-group">
@@ -377,35 +506,6 @@ const ExtractedEntryMOA = () => {
               </select>
             </div>
 
-            {/* RELATED MOU */}
-            <div className="form-group full-width">
-              <label htmlFor="relatedMOU">Related MOU:</label>
-              <input id="relatedMOU" type="file" />
-            </div>
-
-            {/* SOURCE */}
-            <div className="form-group">
-              <label htmlFor="source">Source (Campus/College Dept):*</label>
-              <select id="source" required>
-                <option value="">Select Source</option>
-                <option value="CHTTM">CHTTM</option>
-              </select>
-            </div>
-
-            {/* PARTNERSHIP TYPE */}
-            <div className="form-group">
-              <label htmlFor="partnershipType">Partnership Type:*</label>
-              <Select
-                options={partnershipTypeOptions}
-                name="partnershipType"
-                id="partnershipType"
-                required
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select Partnership Type"
-              />
-            </div>
-
            {/* DTS NO */}
             <div className="form-group">
               <label htmlFor="dtsNo">DTS No.:*</label>
@@ -424,104 +524,173 @@ const ExtractedEntryMOA = () => {
               </select>
             </div>
 
-            {/* DATE RECEIVED */}
+
+            {/* SOURCE */}
             <div className="form-group">
-              <label htmlFor="dateReceived">Date Received:*</label>
-              <input id="dateReceived" type="date" required />
+              <label htmlFor="Source-Unit"> Source (Campus/College Dept):*</label>
+              <input id="Source-Unit" type="text" required />
             </div>
 
-            {/* DATE EXPIRY */}
+            {/* PARTNERSHIP TYPE */}
             <div className="form-group">
-              <label htmlFor="dateExpiry">Date Expiry:</label>
-              <input id="dateExpiry" type="date" />
+              <label htmlFor="partnershipType">Partnership Type:*</label>
+              <Select
+                options={partnershipTypeOptions}
+                name="partnershipType"
+                id="partnershipType"
+                required
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select Partnership Type"
+              />
             </div>
 
-            {/* DATE PUP SIGNED */}
+            {/* Partner Type Toggle */}
             <div className="form-group">
-              <label htmlFor="datePupSigned">Date PUP Signed:</label>
-              <input id="datePupSigned" type="date" />
+              <label>Partner Entry Type:</label>
+              <select
+                value={partnerType}
+                onChange={(e) => setPartnerType(e.target.value)}
+              >
+                <option value="new">New Partner</option>
+                <option value="existing">Existing Partner</option>
+              </select>
             </div>
 
-            {/* DATE SIGNED */}
-            <div className="form-group">
-              <label htmlFor="dateSigned"> Date/Year of Signing :</label>
-              <input id="dateSigned" type="date" />
-            </div>
+          {/* Partner Name */}
+          <div className="form-group">
+            <label>Partner Name:</label>
+            {partnerType === "new" ? (
+              <input
+                type="text"
+                value={partnerDetails.name || ""}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Enter new Partner Name"
+              />
+            ) : (
+              <Select
+                options={existingPartners}
+                value={selectedPartner}
+                onChange={handleExistingPartnerChange}
+                placeholder="Choose existing Partner"
+              />
+            )}
+          </div>
 
-            {/* DATE ENDORSED */}
-            <div className="form-group">
-              <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
-              <input id="dateEndorsed" type="date" />
-            </div>
+          {/* Partner Fields */}
+          <div className="form-group">
+            <label>Entity Type:</label>
+            <input
+              type="text"
+              value={partnerDetails.entityType}
+              onChange={(e) => handleInputChange("entityType", e.target.value)}
+              disabled={partnerType === "existing"}
+            />
+          </div>
 
-            {/* DATE ULCO APPROVED */}
-            <div className="form-group">
-              <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
-              <input id="dateUlcoApproved" type="date" />
-            </div>
+          <div className="form-group">
+            <label htmlFor="country">Country:*</label>
+            <Select
+              options={countryOptions}
+              name="country"
+              id="country"
+              required
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select Country"
+              value={countryOptions.find(opt => opt.value === partnerDetails.country) || null}
+              onChange={(option) => handleInputChange("country", option ? option.value : "")}
+              isDisabled={partnerType === "existing"}
+            />
+          </div>
 
-            {/* PARTNER NAME */}
-            <div className="form-group">
-              <label htmlFor="partnerName">Partner Name:*</label>
-              <input id="partnerName" type="text" required />
+          {/* REGION */}
+          <div className="form-group">
+            <label htmlFor="region">Region:*</label>
+            <Select
+              options={regionOptions}
+              name="region"
+              id="region"
+              required
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select Region"
+              value={regionOptions.find(opt => opt.value === partnerDetails.region) || null}
+              onChange={(option) => handleInputChange("region", option ? option.value : "")}
+              isDisabled={partnerType === "existing"}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Address:</label>
+            <input
+              type="text"
+              value={partnerDetails.address}
+              onChange={(e) => handleInputChange("address", e.target.value)}
+              disabled={partnerType === "existing"}
+            />
+          </div>
+
+          {/* LOGO */}
+          <div className="form-group">
+            <label htmlFor="logo">Logo:</label>
+            <input
+              id="logo"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  handleInputChange("logo", file);
+                }
+              }}
+              disabled={partnerType === "existing"}
+            />
+
+          {partnerDetails.logo && typeof partnerDetails.logo !== "string" && (
+            <div style={{ marginTop: "10px" }}>
+              <img
+                src={URL.createObjectURL(partnerDetails.logo)}
+                alt="Logo Preview"
+                style={{ maxHeight: "80px", border: "1px solid #ccc", padding: "4px" }}
+              />
             </div>
+          )}
+
+          {partnerType === "existing" && partnerDetails.logo && typeof partnerDetails.logo === "string" && (
+            <div style={{ marginTop: "10px" }}>
+              <img
+                src={partnerDetails.logo}
+                alt="Existing Logo"
+                style={{ maxHeight: "80px", border: "1px solid #ccc", padding: "4px" }}
+              />
+            </div>
+          )}
+        </div>
+
+         <div className="form-group">
+            <label>Website:</label>
+            <input
+              type="text"
+              value={partnerDetails.website}
+              onChange={(e) => handleInputChange("website", e.target.value)}
+              disabled={partnerType === "existing"}
+            />
+          </div>
+
+          <div className="form-group full-width">
+            <label>Partner Description:</label>
+            <textarea
+              value={partnerDetails.description}
+              onChange={(e) => handleInputChange("description", e.target.value)}
+              disabled={partnerType === "existing"}
+            />
+          </div>
 
             {/* SIGNATORIES */}
-            <div className="form-group">
+            <div className="form-group full-width">
               <label htmlFor="signatories">Signatories:</label>
               <input id="signatories" type="text" />
-            </div>
-
-            {/* ENTITY TYPE */}
-            <div className="form-group full-width">
-              <label htmlFor="entityType">Entity Type (Univ/Company/Agency):*</label>
-              <input id="entityType" type="text" required />
-            </div>
-
-            {/* COUNTRY */}
-            <div className="form-group">
-              <label htmlFor="country">Country:*</label>
-              <Select
-                options={countryOptions}
-                name="country"
-                id="country"
-                required
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select Country"
-              />
-            </div>
-
-            {/* REGION */}
-            <div className="form-group">
-              <label htmlFor="region">Region:*</label>
-              <Select
-                options={regionOptions}
-                name="region"
-                id="region"
-                required
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select Region"
-              />
-            </div>
-
-            {/* ADDRESS */}
-            <div className="form-group full-width">
-              <label htmlFor="address">Address:*</label>
-              <input id="address" type="text" required />
-            </div>
-
-            {/* WEBSITE */}
-            <div className="form-group">
-              <label htmlFor="website">Website Link:</label>
-              <input id="website" type="url" />
-            </div>
-
-            {/* LOGO */}
-            <div className="form-group">
-              <label htmlFor="logo">Logo:</label>
-              <input id="logo" type="file" />
             </div>
 
             {/* POINT PERSON */}
@@ -618,6 +787,69 @@ const ExtractedEntryMOA = () => {
               </button>
             </div>
 
+            {/* DATE RECEIVED */}
+            <div className="form-group">
+              <label htmlFor="dateReceived">Date Received:*</label>
+              <input id="dateReceived" type="date" required />
+            </div>
+
+            {/* DATE EXPIRY */}
+            <div className="form-group">
+              <label htmlFor="dateExpiry">Date Expiry:</label>
+              <input id="dateExpiry" type="date" />
+            </div>
+
+            {/* DATE PUP SIGNED */}
+            <div className="form-group">
+              <label htmlFor="datePupSigned">Date PUP Signed:</label>
+              <input id="datePupSigned" type="date" />
+            </div>
+
+            {/* DATE SIGNED */}
+            <div className="form-group">
+              <label htmlFor="dateSigned"> Date/Year of Signing :</label>
+              <input id="dateSigned" type="date" />
+            </div>
+
+            {/* DATE ENDORSED */}
+            <div className="form-group">
+              <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
+              <input id="dateEndorsed" type="date" />
+            </div>
+
+            {/* DATE ULCO APPROVED */}
+            <div className="form-group">
+              <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
+              <input id="dateUlcoApproved" type="date" />
+            </div>
+
+             {/* DEADLINE DATE */}
+            <div className="form-group full-width">
+              <label htmlFor="entryDate">Deadline Date:</label>
+              <input id="entryDate" type="date" />
+            </div>
+
+            {/* REMINDER INTERVAL */}
+            <div className="form-group full-width">
+              <label>Reminder Interval:</label>
+              <div className="deadline-selects">
+                <select name="days">
+                  {[...Array(31).keys()].map((d) => (
+                    <option key={d} value={d}>{d} days</option>
+                  ))}
+                </select>
+                <select name="hours">
+                  {[...Array(24).keys()].map((h) => (
+                    <option key={h} value={h}>{h} hours</option>
+                  ))}
+                </select>
+                <select name="minutes">
+                  {[...Array(60).keys()].map((m) => (
+                    <option key={m} value={m}>{m} minutes</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             {/* LOCATOR */}
             <div className="form-group full-width">
@@ -629,12 +861,6 @@ const ExtractedEntryMOA = () => {
             <div className="form-group full-width">
               <label htmlFor="eventInfo">Event Info:</label>
               <textarea id="eventInfo" />
-            </div>
-
-            {/* DESCRIPTION */}
-            <div className="form-group full-width">
-              <label htmlFor="description">Brief Description about the partner:</label>
-              <textarea id="description" />
             </div>
 
             {/* REMARKS */}

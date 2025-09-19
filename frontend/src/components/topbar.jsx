@@ -29,7 +29,6 @@ const TopBar = ({ toggleSidebar }) => {
       </div>
 
       <div className="topbar-right">
-      
         <div className="notification-wrapper">
           <span className="topbar-icon" onClick={toggleDropdown}>
             🔔
@@ -38,7 +37,7 @@ const TopBar = ({ toggleSidebar }) => {
             )}
           </span>
 
-          {/* Dropdown for Notif*/}
+          {/* Dropdown for Notifications */}
           {showDropdown && (
             <div className="notif-dropdown">
               {unreadNotifications.length > 0 ? (
@@ -64,8 +63,15 @@ const TopBar = ({ toggleSidebar }) => {
           )}
         </div>
 
-        {/* Settings Icon */}
-        <span className="topbar-icon">⚙️</span>
+        {/* Settings Icon (Navigate to Profile) */}
+        <span
+          className="topbar-icon"
+          onClick={() => navigate('/profile')}
+          style={{ cursor: 'pointer' }}
+          title="Profile Settings"
+        >
+          ⚙️
+        </span>
 
         {/* Logout */}
         <span className="topbar-logout" title="Logout" onClick={handleLogout}>

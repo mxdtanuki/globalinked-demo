@@ -114,7 +114,7 @@ const partnershipTypeOptions = [
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [dtsNumber, setDtsNumber] = useState("");
-  const [documentType, setDocumentType] = useState("MOA");
+  const [documentType, setDocumentType] = useState("");
   const [partnershipType, setPartnershipType] = useState("");
 
   // Partner state
@@ -298,12 +298,11 @@ const handleSubmit = async (e) => {
   }
 };
 
-
     return (
   <TopbarSidebar>
     <div className="manual-entry-wrapper">
       <div className="manual-entry-container">
-        <h2 className="form-title">MOA Manual Entry Form</h2>
+        <h2 className="form-title">Manual Entry Form</h2>
         {message && (
           <div
             style={{
@@ -335,7 +334,11 @@ const handleSubmit = async (e) => {
             value={documentType}
             onChange={(e) => setDocumentType(e.target.value)}
           >
+            <option value="" disabled>
+              Select Document Type
+            </option>
             <option value="MOA">MOA</option>
+            <option value="MOU">MOU</option>
           </select>
           </div>
 
@@ -673,7 +676,7 @@ const handleSubmit = async (e) => {
           {/* DATE EXPIRY */}
           <div className="form-group">
           <label htmlFor="dateExpiry">Date Expiry:</label>
-          <input id="dateExpiry" name="dateExpiry" type="date" />
+          <input id="dateExpiry" name="dateExpiry" type="date" required/>
           </div>
 
           {/* DATE PUP SIGNED */}
