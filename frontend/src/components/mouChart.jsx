@@ -9,14 +9,30 @@ import {
 } from "recharts";
 import "./mouChart.css";
 
-const COLORS = ["#2E86C1", "#9B59B6", "#27AE60", "#F39C12", "#E74C3C", "#FFDE21"];
+const COLORS = [
+  "#2E86C1",
+  "#9B59B6",
+  "#27AE60",
+  "#F39C12",
+  "#E74C3C",
+  "#FFDE21",
+  "#16A085",
+  "#8E44AD",
+  "#F1948A",
+  "#85C1E9",
+  "#AED6F1",
+  "#F8C471",
+  "#82E0AA",
+  "#BB8FCE"
+];
 
 const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
   const years = Object.keys(data || {});
   const [filterVisible, setFilterVisible] = useState(false);
 
   const [selectedYear, setSelectedYear] = useState(years[0] || "");
-  const months = selectedYear && data[selectedYear] ? Object.keys(data[selectedYear]) : [];
+  const months =
+    selectedYear && data[selectedYear] ? Object.keys(data[selectedYear]) : [];
   const [startMonth, setStartMonth] = useState(months[0] || "");
   const [endMonth, setEndMonth] = useState(months[0] || "");
   const [chartData, setChartData] = useState([]);
@@ -24,22 +40,38 @@ const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
     months[0] ? `${months[0]} ${years[0]}` : "No Data"
   );
 
-  const groupTop5 = (arr) => {
+  // Show ALL data instead of grouping top 5
+  const processAllData = (arr) => {
     if (!Array.isArray(arr)) return [];
-    if (arr.length <= 5) return arr;
-    const sorted = [...arr].sort((a, b) => b.value - a.value);
-    const top5 = sorted.slice(0, 5);
-    const othersTotal = sorted.slice(5).reduce((sum, item) => sum + item.value, 0);
-    return [...top5, { name: "Others", value: othersTotal }];
+    return arr.sort((a, b) => b.value - a.value);
   };
 
   useEffect(() => {
     if (selectedYear && months.length > 0) {
       const initialArr = data[selectedYear][months[0]];
-      setChartData(groupTop5(initialArr));
+      setChartData(processAllData(initialArr));
       onDataUpdate(initialArr);
     }
-  }, []); 
+  }, []);
+
+  useEffect(() => {
+    if (data && Object.keys(data).length > 0) {
+      const years = Object.keys(data);
+      const latestYear = years.sort().reverse()[0];
+      const months = Object.keys(data[latestYear]);
+      const latestMonth = months.sort().reverse()[0];
+
+      setSelectedYear(latestYear);
+      setStartMonth(latestMonth);
+      setEndMonth(latestMonth);
+
+      const latestArr = data[latestYear][latestMonth] || [];
+      setChartData(processAllData(latestArr));
+      onDataUpdate(latestArr);
+
+      setRangeLabel(`${latestMonth} ${latestYear}`);
+    }
+  }, [data]);
 
   const handleApplyFilter = () => {
     if (!selectedYear || months.length === 0) return;
@@ -60,9 +92,12 @@ const MOUChart = forwardRef(({ data, onDataUpdate }, ref) => {
       });
     });
 
-    const result = Object.entries(combined).map(([name, value]) => ({ name, value }));
+    const result = Object.entries(combined).map(([name, value]) => ({
+      name,
+      value,
+    }));
 
-    setChartData(groupTop5(result));
+    setChartData(processAllData(result));
     onDataUpdate(result);
 
     setRangeLabel(

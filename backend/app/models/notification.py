@@ -2,7 +2,9 @@ from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Foreign
 from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
+PH_TZ = ZoneInfo("Asia/Manila")
 class Notification(Base):
     __tablename__ = "notifications"
 
@@ -12,7 +14,7 @@ class Notification(Base):
     category = Column(String(50), nullable=False)  # e.g., 'expiring', 'pending', 'renewal'
     message = Column(Text, nullable=False)
     recommended_action = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(PH_TZ))
     is_read = Column(Boolean, default=False)
 
     agreement = relationship("Agreements")
