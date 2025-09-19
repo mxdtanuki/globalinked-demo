@@ -72,7 +72,7 @@ function App() {
           {/* admin routes */}
           <Route path="/overview" element={<Overview />} />
           <Route path="/analytics" element={<Analytics />} />
-          <Route path="/docUpload" element={<DocumentUpload />} />
+          <Route path="/docUpload" element={< MOAUpload />} />
           <Route path="/pointPerson" element={<PointPerson />} />
           <Route path="/contactPerson" element={<ContactPerson />} />
           <Route path="/mobility" element={<Mobility />} />
@@ -112,6 +112,7 @@ function App() {
 
           {/* Existing MOUMOAPage route */}
           <Route path="/mou-moa" element={<MOUMOAPage />} />
+
         </Routes>
       </Router>
     </NotificationsProvider>

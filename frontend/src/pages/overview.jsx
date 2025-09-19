@@ -2,15 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
 import '../components/layout.css';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import OverviewDash from '../components/overviewDash'; 
 
 const Overview = () => {
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
-  const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
 
   useEffect(() => {
@@ -31,25 +28,12 @@ const Overview = () => {
       {mobileShow && <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />}
 
       <div className="content-body">
-        <Sidebar
-          collapsed={collapsed}
-          toggleCollapse={toggleCollapse}
-          mobileShow={mobileShow}
-        />
+        <Sidebar mobileShow={mobileShow} />
 
         <div
           className="main-content"
           onClick={() => mobileShow && setMobileShow(false)}
         >
-          {isDesktop && (
-            <div
-              className={`floating-toggle-btn ${collapsed ? 'collapsed' : ''}`}
-              onClick={toggleCollapse}
-            >
-              {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-            </div>
-          )}
-
           <OverviewDash /> 
         </div>
       </div>
