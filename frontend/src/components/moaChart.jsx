@@ -39,7 +39,7 @@ const MOAChart = forwardRef(({ data, onDataUpdate }, ref) => {
     months[0] ? `${months[0]} ${years[0]}` : "No Data"
   );
 
-  // Show ALL data instead of grouping top 5
+  // Show ALL data
   const processAllData = (arr) => {
     if (!Array.isArray(arr)) return [];
     return arr.sort((a, b) => b.value - a.value);
@@ -56,9 +56,9 @@ const MOAChart = forwardRef(({ data, onDataUpdate }, ref) => {
   useEffect(() => {
     if (data && Object.keys(data).length > 0) {
       const years = Object.keys(data);
-      const latestYear = years.sort().reverse()[0]; // pick latest year
+      const latestYear = years.sort().reverse()[0]; 
       const months = Object.keys(data[latestYear]);
-      const latestMonth = months.sort().reverse()[0]; // pick latest month
+      const latestMonth = months.sort().reverse()[0]; 
 
       // Reset selected year/months
       setSelectedYear(latestYear);

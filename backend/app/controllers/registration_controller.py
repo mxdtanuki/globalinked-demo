@@ -209,8 +209,7 @@ async def approve_user(user_id: int, db: Session = Depends(get_db), current_user
             )
             print(f"✅ Approval email sent to {user.user_email}")
     except Exception as e:
-        print(f"❌ Failed to send approval email: {e}")
-        # Don't fail the approval process if email fails # checking only
+        print(f"Failed to send approval email: {e}")
 
     return user
 
@@ -228,7 +227,7 @@ async def reject_user(user_id: int, db: Session = Depends(get_db), current_user:
     db.commit()
     db.refresh(user)
     
-    # Send rejection email (if user has email)
+    # Send rejection email
     try:
         if hasattr(user, 'user_email') and user.user_email:
             send_email(
@@ -253,8 +252,8 @@ async def reject_user(user_id: int, db: Session = Depends(get_db), current_user:
             )
             print(f"✅ Rejection email sent to {user.user_email}")
     except Exception as e:
-        print(f"❌ Failed to send rejection email: {e}")
-        # Don't fail the rejection process if email fails # checking only
+        print(f"Failed to send rejection email: {e}")
+         # checking only
     
     return user
 

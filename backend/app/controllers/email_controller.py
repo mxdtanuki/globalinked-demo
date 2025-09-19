@@ -82,7 +82,7 @@ def send_email_endpoint(email_data: dict, db: Session = Depends(get_db)):
             body = email_data["custom_body"]
             print("DEBUG: Using custom email content")
         elif email_data.get("template_id"):
-            # Use original template (fallback)
+            # Use original template
             template = db.query(EmailTemplates).filter(
                 EmailTemplates.template_id == email_data["template_id"]
             ).first()
