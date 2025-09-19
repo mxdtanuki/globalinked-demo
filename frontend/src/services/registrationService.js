@@ -24,11 +24,11 @@ export async function registerUser(userData) {
     }
 
     const result = await response.json();
-    console.log('✅ Registration successful:', result);
+    console.log(' Registration successful:', result);
     return result;
     
   } catch (error) {
-    console.error('❌ Registration error:', error);
+    console.error('Registration error:', error);
     throw error;
   }
 }

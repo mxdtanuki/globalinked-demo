@@ -64,23 +64,39 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     try:
         # Get all admin users
         admin_users = db.query(Users).filter(Users.user_role == "admin").all()
+        print(f"🔍 Found {len(admin_users)} admin users for notification")
+        
+        if len(admin_users) == 0:
+            print("WARNING: No admin users found - no notifications will be created!")
         
         notification_count = 0
         
         for admin in admin_users:
-            # Create notification for admin
-            create_notification_if_new(
+            print(f"Creating notification for admin: {admin.user_name} (ID: {admin.user_id})")
+            
+            # Create notification for each admin
+            result = create_notification_if_new(
                 db=db,
                 agreement_id=None, 
                 category="user_registration",
-                message=f"New user registration request from {new_user.user_name} ({new_user.user_position}) - {new_user.user_role} access level",
-                recommended_action=f"Review and approve/reject {new_user.user_name}'s registration request in User Management",
-                user_id=admin.user_id
+                message=...,
+                recommended_action=...,
+                user_id=None
             )
-            notification_count += 1 
+            
+            if result:
+                notification_count += 1
+                print(f"Notification created successfully (ID: {result.notification_id})")
+            else:
+                print(f"Notification already exists or failed for admin {admin.user_name}")
+        
+        print(f"🎉 TOTAL: {notification_count} new notifications created for {len(admin_users)} admins")
         
     except Exception as e:
         print(f"Failed to create admin notifications: {e}")
+        import traceback
+        print(f"Full error: {traceback.format_exc()}")
+        # Don't fail registration if notification creation fails
 
     return new_user
 
