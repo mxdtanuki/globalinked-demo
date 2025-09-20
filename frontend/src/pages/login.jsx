@@ -33,6 +33,7 @@ const Login = () => {
         const data = await response.json();
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('token_type', data.token_type);
+        localStorage.setItem("user", JSON.stringify(data.user));
 
         alert(`Welcome ${form.username}! Login successful!`);
         navigate('/overview');
@@ -101,7 +102,7 @@ const Login = () => {
             </div>
 
             <div className="form-footer">
-              <a href="#">Forgot Password?</a>
+              <a href="/forgot-password">Forgot Password?</a>
             </div>
 
             <button type="submit" disabled={loading}>

@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import "./mouTable.css";
 
 const MOUTable = ({ data = [] }) => {
-  // Normalize input 
+  
   const rawRows = useMemo(
     () =>
       Array.isArray(data)

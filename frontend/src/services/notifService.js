@@ -10,6 +10,8 @@ export const notificationService = {
     return res.json();
   },
 
+  
+
   async markAsRead(id) {
     const token = localStorage.getItem("access_token");
     const res = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
@@ -19,4 +21,15 @@ export const notificationService = {
     if (!res.ok) throw new Error("Failed to mark read");
     return res.json();
   },
+
+async deleteNotification(id) {
+    const token = localStorage.getItem("access_token");
+    const res = await fetch(`${API_BASE_URL}/notifications/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Failed to delete notification");
+    return res.json();
+  },
 };
+

@@ -4,17 +4,21 @@ import TopBar from '../components/topbar';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import './notification.css';
 import { useNotifications } from '../pages/notificationContext';
+import { notificationService } from '../services/notifService';
 
 const Notification = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  const [selected, setSelected] = useState([]);
 
   const { notifications, markAsRead, markAllAsRead } = useNotifications();
 
   const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
+
+  const userRole = localStorage.getItem("user_role") || "staff";
 
   useEffect(() => {
     const handleResize = () => {
@@ -39,6 +43,32 @@ const Notification = () => {
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
+
+  const handleSelect = (id) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selected.length === paginatedNotifications.length) {
+      setSelected([]);
+    } else {
+      setSelected(paginatedNotifications.map(n => n.id));
+    }
+  };
+
+  const handleDelete = async () => {
+    for (const id of selected) {
+      try {
+        await notificationService.deleteNotification(id);
+      } catch (err) {
+        console.error('Failed to delete notification', id, err);
+      }
+    }
+    setSelected([]);
+    window.location.reload();
+  };
 
   const goToPage = (page) => {
     if (page < 1 || page > totalPages) return;
@@ -83,8 +113,21 @@ const Notification = () => {
                   Unread
                 </button>
               </div>
-              <button className="mark-all-btn" onClick={markAllAsRead}>
+              <button className="mark-all-btn" onClick={markAllAsRead} disabled={userRole !== "admin"}>
                 Mark all as read
+              </button>
+             </div>
+
+            <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="checkbox"
+                checked={selected.length === paginatedNotifications.length && paginatedNotifications.length > 0}
+                onChange={handleSelectAll}
+                style={{ marginRight: 4 }}
+              />
+              <span>Select All</span>
+              <button onClick={handleDelete} disabled={selected.length === 0}>
+                Delete Selected
               </button>
             </div>
 
@@ -94,12 +137,18 @@ const Notification = () => {
               )}
               {paginatedNotifications.map(n => (
                 <li key={n.id} className={`notification-card ${n.read ? 'read' : 'unread'}`}>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(n.id)}
+                    onChange={() => handleSelect(n.id)}
+                    style={{ marginRight: 8 }}
+                  />
                   <div className="notification-top">
                     <span className="notification-text">{n.title}</span>
                     <div className="notification-actions">
                       <span className="notification-time">{n.time}</span>
                       {!n.read && (
-                        <button className="mark-btn" onClick={() => markAsRead(n.id)}>
+                        <button className="mark-btn" onClick={() => markAsRead(n.id)} disabled={localStorage.getItem("user_role") !== "admin"}>
                           Mark as Read
                         </button>
                       )}
@@ -128,6 +177,6 @@ const Notification = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Notification;

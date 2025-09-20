@@ -82,7 +82,7 @@ def send_email_endpoint(email_data: dict, db: Session = Depends(get_db)):
             body = email_data["custom_body"]
             print("DEBUG: Using custom email content")
         elif email_data.get("template_id"):
-            # Use original template (fallback)
+            # Use original template
             template = db.query(EmailTemplates).filter(
                 EmailTemplates.template_id == email_data["template_id"]
             ).first()
@@ -93,22 +93,21 @@ def send_email_endpoint(email_data: dict, db: Session = Depends(get_db)):
             body = template.body_html
             
             # Get agreement data for template rendering
-            context = {}
-            if email_data.get("agreement_id"):
-                agreement = db.query(Agreements).filter(
-                    Agreements.agreement_id == email_data["agreement_id"]
-                ).first()
-                if agreement:
-                    partner = db.query(Partners).filter(
-                        Partners.partner_id == agreement.partner_id
-                    ).first()
-                    
-                    context = {
-                        "PARTNER_NAME": agreement.partner_name if partner else "N/A",
-                        "DOCUMENT_TYPE": agreement.agreement_type or "Agreement",
-                        "POINT_PERSON": email_data.get("placeholders", {}).get("POINT_PERSON", "")
-                    }
-
+        context = {}
+        if email_data.get("agreement_id"):
+            agreement = db.query(Agreements, Partners).join(
+                Partners, Agreements.partner_id == Partners.partner_id
+            ).filter(Agreements.agreement_id == email_data["agreement_id"]).first()
+            
+            if agreement:
+                agreement_obj, partner_obj = agreement
+                context = {
+                    "PARTNER_NAME": partner_obj.name or "N/A",  # Use partner.name
+                    "DOCUMENT_TYPE": agreement_obj.document_type or "Agreement",
+                    "DTS_NUMBER": agreement_obj.dts_number or "N/A",
+                    "AGREEMENT_STATUS": agreement_obj.agreement_status or "N/A",
+                    "EXPIRY_DATE": str(agreement_obj.date_expiry) if agreement_obj.date_expiry else "N/A"
+                }
             # Render template with context using email service
             subject = render_template(subject, context)
             body = render_template(body, context)

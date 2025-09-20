@@ -5,7 +5,7 @@ import './layout.css';
 
 const TopBar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
-  const { notifications, markAsRead } = useNotifications();
+  const { notifications, markAsRead, refresh } = useNotifications();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const unreadNotifications = notifications.filter((n) => !n.read);
@@ -30,6 +30,15 @@ const TopBar = ({ toggleSidebar }) => {
 
       <div className="topbar-right">
         <div className="notification-wrapper">
+          <span 
+            className="topbar-icon" 
+            onClick={() => refresh()} 
+            title="Refresh notifications"
+            style={{ marginRight: '5px', fontSize: '14px' }}
+          >
+            🟢
+          </span>
+          
           <span className="topbar-icon" onClick={toggleDropdown}>
             🔔
             {unreadNotifications.length > 0 && (
