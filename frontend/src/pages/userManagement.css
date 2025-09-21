@@ -157,3 +157,33 @@
 .no-requests-message {
   text-align: center;
 }
+
+/* Access denied styling */
+.access-denied-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.access-denied-content {
+  text-align: center;
+  background: #fff;
+  padding: 3rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  max-width: 500px;
+}
+
+.access-denied-content h2 {
+  color: #800000;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.access-denied-content p {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}

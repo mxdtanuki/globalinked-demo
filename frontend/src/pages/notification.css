@@ -156,3 +156,118 @@
   margin: 0 8px;
   font-size: 14px;
 }
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Modal Content */
+.modal-content {
+  background: #fff;
+  padding: 25px 30px;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  position: relative;
+  animation: scaleUp 0.2s ease-in-out;
+}
+
+/* Header */
+.modal-content h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: #800000;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 2px solid #d9b3b3;
+  padding-bottom: 8px;
+}
+
+/* Body text */
+.modal-content p {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+}
+
+/* Footer Button */
+.modal-content button {
+  display: block;
+  margin: 15px auto 0;
+  padding: 8px 16px;
+  background: #800000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-content button:hover {
+  background: #a00000;
+}
+
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.bulk-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.bulk-delete-btn:hover {
+  background: #c0392b;
+}
+
+.delete-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 1.1rem;
+  margin-left: 8px;
+}
+
+.delete-btn:hover {
+  color: #e74c3c;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
