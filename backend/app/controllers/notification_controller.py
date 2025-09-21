@@ -11,14 +11,15 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 @router.get("/", response_model=List[dict])
 def list_notifications(db: Session = Depends(get_db), current_user: Users = Depends(get_current_user)):
+
     user_notifs = get_notifications_for_user(db, user_id=current_user.user_id)
+    system_notifs = get_notifications_for_user(db, user_id=None)
 
     if current_user.user_role.lower() == "admin":
-        system_notifs = get_notifications_for_user(db, user_id=None)
         all_notifs = list(user_notifs) + list(system_notifs)
     else:
-        # Staff: filter out registration notifications
-        all_notifs = [n for n in user_notifs if n.category != "user_registration"]
+        # Staff: show all system notifications except registration notifications
+        all_notifs = [n for n in (list(user_notifs) + list(system_notifs)) if n.category != "user_registration"]
 
     seen_ids = set()
     unique_notifs = []

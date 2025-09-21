@@ -41,7 +41,6 @@ def create_template(template: dict, db: Session = Depends(get_db)):
     db.refresh(new_template)
     return new_template
 
-
 # Update template
 @router.put("/templates/{template_id}")
 def update_template(template_id: int, template: dict, db: Session = Depends(get_db)):
@@ -72,11 +71,9 @@ def delete_template(template_id: int, db: Session = Depends(get_db)):
 @router.post("/send")
 def send_email_endpoint(email_data: dict, db: Session = Depends(get_db)):
     try:
-        print(f"DEBUG: Received email data: {email_data}")
         
         # Validate required fields
         if not email_data.get("recipient_email"):
-            print("DEBUG: Missing recipient_email")
             raise HTTPException(status_code=400, detail="recipient_email is required")
 
         # Check if custom content is provided
@@ -91,12 +88,10 @@ def send_email_endpoint(email_data: dict, db: Session = Depends(get_db)):
                 EmailTemplates.template_id == email_data["template_id"]
             ).first()
             if not template:
-                print(f"DEBUG: Template not found for ID: {email_data['template_id']}")
                 raise HTTPException(status_code=404, detail="Template not found")
             
             subject = template.subject
             body = template.body_html
-            print(f"DEBUG: Using template ID {email_data['template_id']}")
             
             # Get agreement data for template rendering
             context = {}
@@ -114,14 +109,12 @@ def send_email_endpoint(email_data: dict, db: Session = Depends(get_db)):
                         "AGREEMENT_STATUS": agreement_obj.agreement_status or "N/A",
                         "EXPIRY_DATE": str(agreement_obj.date_expiry) if agreement_obj.date_expiry else "N/A"
                     }
-                    print(f"DEBUG: Template context: {context}")
                     
             # Render template with context using email service
             subject = render_template(subject, context)
             body = render_template(body, context)
             
         else:
-            print("DEBUG: Neither custom content nor template_id provided")
             raise HTTPException(status_code=400, detail="Either custom content (custom_subject + custom_body) or template_id is required")
 
         # Send email using email service

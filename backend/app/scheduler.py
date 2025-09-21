@@ -21,14 +21,14 @@ scheduler = BackgroundScheduler(timezone=PH_TZ)
 # Mapping for per-status thresholds
 STATUS_THRESHOLD_DAYS = {
     # status -> days before the alert
-    "Endorse": 7,
-    "Revert": 7,
-    "Replication": 14,
-    "SignituresPUP": 7,
-    "SignedPUP": 7,
-    "SignituresPartner": 7,
-    "Notary": 7,
-    "FFUPCopy": 7,
+    "Endorse": 1,
+    "Revert": 1,
+    "Replication": 1,
+    "SignituresPUP": 1,
+    "SignedPUP": 1,
+    "SignituresPartner": 1,
+    "Notary": 1,
+    "FFUPCopy": 1,
 }
 
 
@@ -114,17 +114,18 @@ def _format_subject(category: str, a: Agreements, partner_name: str):
 
 def _format_body(category: str, a: Agreements, partner_name: str, recommended_actions):
     expiry = a.date_expiry.isoformat() if a.date_expiry else "-"
+    actions_str = "\n- ".join(recommended_actions)
     return f"""Partner: {partner_name}
-DTS: {a.dts_number}
-Type: {a.document_type}
-Name: {partner_name}
-Status: {a.agreement_status or '-'}
-Entry: {a.entry_date}
-Expiry: {expiry}
+    DTS: {a.dts_number}
+    Type: {a.document_type}
+    Name: {partner_name}
+    Status: {a.agreement_status or '-'}
+    Entry: {a.entry_date}
+    Expiry: {expiry}
 
-Recommended actions:
-- {"\n- ".join(recommended_actions)}
-"""
+    Recommended actions:
+    - {actions_str}
+    """
 
 
 def _recommended_actions_for_category(category, status=None):
