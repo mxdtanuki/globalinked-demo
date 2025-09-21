@@ -17,7 +17,12 @@ def notification_exists(db: Session, agreement_id: int, category: str, user_id: 
         query = query.filter(Notification.user_id == user_id)
 
     if category == "user_registration" and message:
-        query = query.filter(Notification.message.contains(message.split()[5]))
+        # Try to extract the username 
+        try:
+            username = message.split()[3]  # Should be the username
+            query = query.filter(Notification.message.contains(username))
+        except Exception:
+            pass  
 
     return query.first() is not None
 
