@@ -3,7 +3,7 @@ const API_BASE_URL = "http://localhost:8000";
 export const notificationService = {
   async fetchNotifications() {
     const token = localStorage.getItem("access_token");
-    const res = await fetch(`${API_BASE_URL}/notifications`, {
+    const res = await fetch(`${API_BASE_URL}/notifications/`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error("Failed to fetch notifications");
