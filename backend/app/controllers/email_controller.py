@@ -130,8 +130,6 @@ def send_email_endpoint(email_data: dict, db: Session = Depends(get_db)):
             subject=subject,
             body=body
         )
-
-        print(f"DEBUG: Email sent successfully to {email_data['recipient_email']}")
         
         return {
             "message": "Email sent successfully",

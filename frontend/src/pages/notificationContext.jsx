@@ -45,10 +45,10 @@ const refresh = async () => {
   useEffect(() => {
     refresh();
 
-    // Poll for new notifications every 1 hr
+    // Poll for new notifications every 10 seconds #change later!!!
     const interval = setInterval(() => {
       refresh();
-    }, 3600000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);

@@ -17,7 +17,8 @@ def list_notifications(db: Session = Depends(get_db), current_user: Users = Depe
         system_notifs = get_notifications_for_user(db, user_id=None)
         all_notifs = list(user_notifs) + list(system_notifs)
     else:
-        all_notifs = user_notifs
+        # Staff: filter out registration notifications
+        all_notifs = [n for n in user_notifs if n.category != "user_registration"]
 
     seen_ids = set()
     unique_notifs = []
