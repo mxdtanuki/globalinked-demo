@@ -21,7 +21,7 @@ const Sidebar = ({ mobileShow }) => {
   const menuItems = [
     { label: 'Overview', path: '/overview', icon: <FiHome /> },
     { label: 'Analytics', path: '/analytics', icon: <FiBarChart2 /> },
-    { label: 'Document Upload', path: '/docUpload', icon: <FiUpload /> },
+    { label: 'Document Entry', path: '/docUpload', icon: <FiUpload /> },
     { label: 'Point Person', path: '/pointPerson', icon: <FiUser /> },
     { label: 'Contact Person', path: '/contactPerson', icon: <FiUsers /> },
     { label: 'Mobility', path: '/mobility', icon: <FiMap /> },

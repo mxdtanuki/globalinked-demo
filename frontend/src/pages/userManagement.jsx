@@ -18,6 +18,20 @@ const UserManagement = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [processingUserId, setProcessingUserId] = useState(null);
 
+  // Get current user info from localStorage
+  const getCurrentUser = () => {
+    try {
+      const userStr = localStorage.getItem("user");
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (err) {
+      console.error("Error parsing user from localStorage:", err);
+      return null;
+    }
+  };
+
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser && currentUser.user_role && currentUser.user_role.toLowerCase() === 'admin';
+
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
 
@@ -41,6 +55,14 @@ const UserManagement = () => {
     try {
       setLoading(true);
       setError('');
+      
+      // Check if user is admin before making the API call
+      if (!isAdmin) {
+        setError('Access denied: Only administrators can view user management.');
+        setLoading(false);
+        return;
+      }
+      
       console.log('📋 Fetching all users...');
       
       const allUsers = await getAllUsers();
@@ -174,6 +196,26 @@ const UserManagement = () => {
                 <div className="loading-subtitle">
                   Fetching all user accounts...
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Access denied state for non-admin users
+  if (!isAdmin) {
+    return (
+      <div className="dashboard-container">
+        <TopBar toggleSidebar={toggleMobileSidebar} />
+        <div className="content-body">
+          <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
+          <div className="main-content">
+            <div className="access-denied-container">
+              <div className="access-denied-content">
+                <h2>🔒 Access Restricted</h2>
+                <p>This page is only available to administrators.</p>
               </div>
             </div>
           </div>

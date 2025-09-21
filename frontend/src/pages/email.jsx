@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import "../components/layout.css";
@@ -12,7 +11,6 @@ import { agreementService } from '../services/agreementService';
 const Email = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [editorContent, setEditorContent] = useState("");
@@ -74,17 +72,6 @@ const Email = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const handleResize = () => {
-      const isNowDesktop = window.innerWidth >= 768;
-      setIsDesktop(isNowDesktop);
-      if (isNowDesktop) setMobileShow(false);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   // Open template
   const handleOpenTemplate = (template) => {
@@ -171,38 +158,46 @@ const Email = () => {
     return [];
   };
 
-  const handleSend = async () => {
-    if (!to || !subject || !editorContent.trim()) {
-      alert("Please fill in all fields");
-      return;
-    }
+      const handleSend = async () => {
+        if (!to || !subject || !editorContent.trim()) {
+          alert("Please fill in all fields");
+          return;
+        }
 
-    try {
-      const emailData = {
-        recipient_email: to,
-        custom_subject: subject,        
-        custom_body: editorContent,
-        template_id: currentTemplate?.template_id || null,
-        agreement_id: selectedAgreement?.agreement_id || null
+        const emailData = {
+          recipient_email: to,
+          custom_subject: subject,        
+          custom_body: editorContent,
+          template_id: currentTemplate?.template_id || null,
+          agreement_id: selectedAgreement?.agreement_id || null
+        };
+
+        try {
+          await emailService.sendEmail(emailData);
+          alert("Email sent successfully!");
+
+          // Remove draft from list if it's being edited
+          if (editingDraftId) {
+            const updatedDrafts = drafts.filter(d => d.id !== editingDraftId);
+            setDrafts(updatedDrafts);
+            localStorage.setItem('emailDrafts', JSON.stringify(updatedDrafts));
+          }
+
+          // Reset all fields
+          setSelectedEmail(null);
+          setEditorContent("");
+          setSubject("");
+          setTo("");
+          setCurrentTemplate(null);
+          setSelectedAgreement(null);
+          setSelectedPersonType('');
+          setSelectedPersons([]);
+          setEditingDraftId(null);
+
+        } catch (error) {
+          alert("Failed to send email: " + error.message);
+        }
       };
-
-      await emailService.sendEmail(emailData);
-      alert("Email sent successfully!");
-      
-      // Reset all fields
-      setSelectedEmail(null);
-      setEditorContent("");
-      setSubject("");
-      setTo("");
-      setCurrentTemplate(null);
-      setSelectedAgreement(null);
-      setSelectedPersonType('');
-      setSelectedPersons([]);
-      
-    } catch (error) {
-      alert("Failed to send email: " + error.message);
-    }
-  };
 
   const handleSaveDraft = () => {
     if (!to || !subject || !editorContent.trim()) {
@@ -282,14 +277,6 @@ const Email = () => {
           className="main-content"
           onClick={() => mobileShow && setMobileShow(false)}
         >
-          {isDesktop && (
-            <div
-              className={`floating-toggle-btn ${collapsed ? "collapsed" : ""}`}
-              onClick={toggleCollapse}
-            >
-              {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-            </div>
-          )}
 
           <div className="email-dashboard">
             <h2 className="email-title">Email Dashboard</h2>
@@ -389,7 +376,13 @@ const Email = () => {
               <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                   <span>{editingDraftId ? "Edit Draft" : "New Message"}</span>
-                  <button className="close-btn" onClick={() => setSelectedEmail(null)}>
+                  <button
+                    className="email-close-btn"
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      setSelectedEmail(null);
+                    }}
+                  >
                     ✖
                   </button>
                 </div>
@@ -404,7 +397,7 @@ const Email = () => {
                         onChange={(e) => handleAgreementChange(e.target.value)}
                       >
                         <option value="">Select Agreement (for auto-fill)</option>
-                        {agreements.map(agreement => (
+                        {agreements.map((agreement) => (
                           <option key={agreement.agreement_id} value={agreement.agreement_id}>
                             {agreement.dts_number} - {agreement.name || 'Unknown Partner'}
                           </option>
@@ -434,35 +427,35 @@ const Email = () => {
                       <label>
                         Select {selectedPersonType === 'contact' ? 'Contact' : 'Point'} Person(s):
                       </label>
-                      <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #ddd', padding: '10px', borderRadius: '4px' }}>
+                      <div className="person-selection-container">
                         {getAvailablePersons().map((person, idx) => {
-                          const email = selectedPersonType === 'contact' 
-                            ? person.contact_person_email 
-                            : person.point_person_email;
-                          const name = selectedPersonType === 'contact'
-                            ? person.contact_person_name
-                            : person.point_person_name;
-                          const position = selectedPersonType === 'contact'
-                            ? person.contact_person_position
-                            : person.point_person_position;
+                          const email =
+                            selectedPersonType === 'contact'
+                              ? person.contact_person_email
+                              : person.point_person_email;
+                          const name =
+                            selectedPersonType === 'contact'
+                              ? person.contact_person_name
+                              : person.point_person_name;
+                          const position =
+                            selectedPersonType === 'contact'
+                              ? person.contact_person_position
+                              : person.point_person_position;
 
                           return (
-                            <div key={idx} style={{ marginBottom: '8px' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedPersons.includes(email)}
-                                  onChange={(e) => handlePersonSelection(email, e.target.checked)}
-                                  style={{ marginRight: '8px' }}
-                                />
-                                <div>
-                                  <strong>{name}</strong>
-                                  {position && <span> - {position}</span>}
-                                  <br />
-                                  <span style={{ color: '#666', fontSize: '0.9em' }}>{email}</span>
-                                </div>
-                              </label>
-                            </div>
+                            <label key={idx}>
+                              <input
+                                type="checkbox"
+                                checked={selectedPersons.includes(email)}
+                                onChange={(e) => handlePersonSelection(email, e.target.checked)}
+                              />
+                              <div>
+                                <strong>{name}</strong>
+                                {position && <span> - {position}</span>}
+                                <br />
+                                <span>{email}</span>
+                              </div>
+                            </label>
                           );
                         })}
                       </div>
