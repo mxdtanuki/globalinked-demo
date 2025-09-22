@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import '../components/layout.css';
 import './userManagement.css'; 
 import { getAllUsers, approveUser, rejectUser, deleteUser } from '../services/registrationService';
@@ -9,7 +8,6 @@ import { getAllUsers, approveUser, rejectUser, deleteUser } from '../services/re
 const UserManagement = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   const [statusFilter, setStatusFilter] = useState('all'); // all, pending, approved, rejected
 
   const [users, setUsers] = useState([]);
@@ -35,16 +33,6 @@ const UserManagement = () => {
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
 
-  useEffect(() => {
-    const handleResize = () => {
-      const isNowDesktop = window.innerWidth >= 768;
-      setIsDesktop(isNowDesktop);
-      if (isNowDesktop) setMobileShow(false);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Fetch all users on component mount
   useEffect(() => {
@@ -192,7 +180,7 @@ const UserManagement = () => {
           <div className="main-content">
             <div className="loading-container">
               <div className="loading-content">
-                <div>📋 Loading user management...</div>
+                <div> Loading user management...</div>
                 <div className="loading-subtitle">
                   Fetching all user accounts...
                 </div>
@@ -241,48 +229,41 @@ const UserManagement = () => {
           className="main-content"
           onClick={() => mobileShow && setMobileShow(false)}
         >
-          {isDesktop && (
-            <div
-              className={`floating-toggle-btn ${collapsed ? 'collapsed' : ''}`}
-              onClick={toggleCollapse}
-            >
-              {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-            </div>
-          )}
-
           <div className="user-management-container">
-            <h1>User Management</h1>
+            <h2 className="archive-title">User Management</h2>
 
             {/* Filter and Stats */}
             <div className="management-controls">
-              <div className="filter-section">
-                <label htmlFor="statusFilter">Filter by Status:</label>
-                <select 
-                  id="statusFilter" 
-                  value={statusFilter} 
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="status-filter"
+              {/* Stats Section (Clickable) */}
+              <div className="management-stats-section">
+                <div 
+                  className={`management-stat-card total ${statusFilter === 'all' ? 'active' : ''}`} 
+                  onClick={() => setStatusFilter('all')}
                 >
-                  <option value="all">All Users ({userCounts.total})</option>
-                  <option value="pending">Pending ({userCounts.pending})</option>
-                  <option value="approved">Approved ({userCounts.approved})</option>
-                  <option value="rejected">Rejected ({userCounts.rejected})</option>
-                </select>
-              </div>
-              
-              <div className="stats-section">
-                <span className="stat-item">
-                  Total: <strong>{userCounts.total}</strong>
-                </span>
-                <span className="stat-item pending">
-                  Pending: <strong>{userCounts.pending}</strong>
-                </span>
-                <span className="stat-item approved">
-                  Approved: <strong>{userCounts.approved}</strong>
-                </span>
-                <span className="stat-item rejected">
-                  Rejected: <strong>{userCounts.rejected}</strong>
-                </span>
+                  <span className="management-stat-label">Total</span>
+                  <span className="management-stat-value">{userCounts.total}</span>
+                </div>
+                <div 
+                  className={`management-stat-card pending ${statusFilter === 'pending' ? 'active' : ''}`} 
+                  onClick={() => setStatusFilter('pending')}
+                >
+                  <span className="management-stat-label">Pending</span>
+                  <span className="management-stat-value">{userCounts.pending}</span>
+                </div>
+                <div 
+                  className={`management-stat-card approved ${statusFilter === 'approved' ? 'active' : ''}`} 
+                  onClick={() => setStatusFilter('approved')}
+                >
+                  <span className="management-stat-label">Approved</span>
+                  <span className="management-stat-value">{userCounts.approved}</span>
+                </div>
+                <div 
+                  className={`management-stat-card rejected ${statusFilter === 'rejected' ? 'active' : ''}`} 
+                  onClick={() => setStatusFilter('rejected')}
+                >
+                  <span className="management-stat-label">Rejected</span>
+                  <span className="management-stat-value">{userCounts.rejected}</span>
+                </div>
               </div>
             </div>
 
@@ -365,7 +346,7 @@ const UserManagement = () => {
                       No {statusFilter === 'all' ? 'users' : statusFilter} found.
                     </td>
                   </tr>
-                )}
+                )} 
               </tbody>
             </table>
           </div>

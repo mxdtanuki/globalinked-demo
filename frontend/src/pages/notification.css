@@ -64,10 +64,11 @@
 
 /* Notification List */
 .notification-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  list-style-type: none; /* removes the dots */
+  padding: 0;            /* reset left padding */
+  margin: 0;
 }
+
 
 .notification-card {
   padding: 14px;
@@ -75,12 +76,30 @@
   border-radius: 8px;
   background: #fff;
   transition: box-shadow 0.2s;
+  
 }
 
 .notification-card:hover {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
+/* Each row in the list */
+.notification-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px; /* space between notifications */
+}
 
+/* Checkbox aligned like list marker */
+.notif-checkbox {
+  margin-top: 6px; /* lines up vertically with the card title */
+  cursor: pointer;
+}
+
+/* Card takes remaining space */
+.notification-card {
+  flex: 1; /* so it stretches beside the checkbox */
+}
 .notification-card.unread {
   background: #fff7f7; 
   border-left: 4px solid #800000;

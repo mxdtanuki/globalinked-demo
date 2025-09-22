@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
-import { FiChevronLeft, FiChevronRight, FiCamera } from 'react-icons/fi';
+import { FiCamera } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';   
 import '../components/layout.css';
 import './profile.css'; 
@@ -9,22 +9,41 @@ import './profile.css';
 const Profile = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  const [currentUser, setCurrentUser] = useState(null);  
+  const [profilePic, setProfilePic] = useState(null);
   const navigate = useNavigate();  
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
 
+  // Load user data from localStorage on mount
   useEffect(() => {
-    const handleResize = () => {
-      const isNowDesktop = window.innerWidth >= 768;
-      setIsDesktop(isNowDesktop);
-      if (isNowDesktop) setMobileShow(false);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const parsedUser = JSON.parse(userStr);
+        setCurrentUser(parsedUser);
+        setProfilePic(parsedUser.profile_pic || null);
+      }
+    } catch (err) {
+      console.error("Error parsing user from localStorage:", err);
+    }
   }, []);
+
+  // local storage pa lng yung picture, hindi pa sha connected to database or backend
+  const handleProfilePicChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePic(reader.result);
+        const updatedUser = { ...currentUser, profile_pic: reader.result };
+        setCurrentUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      };
+      reader.readAsDataURL(file); 
+    }
+  };
 
   return (
     <div className="dashboard-container">
@@ -43,43 +62,56 @@ const Profile = () => {
           className="main-content"
           onClick={() => mobileShow && setMobileShow(false)}
         >
-          {isDesktop && (
-            <div
-              className={`floating-toggle-btn ${collapsed ? 'collapsed' : ''}`}
-              onClick={toggleCollapse}
-            >
-              {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-            </div>
-          )}
-
           <div className="profile-container">
             <div className="profile-card">
               <h3 className="profile-title">Profile</h3>
 
               <div className="profile-pic-wrapper">
                 <img
-                  src=""
+                  src={profilePic || "/default-avatar.png"}
                   alt="Profile"
                   className="profile-pic"
                 />
-                <div className="camera-icon">
+                <div
+                  className="camera-icon"
+                  onClick={() => document.getElementById("profilePicInput").click()}
+                >
                   <FiCamera />
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label>User name</label>
-                <input type="text" placeholder="username@username" />
+                <input
+                  id="profilePicInput"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleProfilePicChange}
+                />
               </div>
 
               <div className="form-group">
                 <label>Password</label>
-                <input type="password" value="password123" readOnly />
+                <input 
+                  type="password" 
+                  value="********"   // always show as dots
+                  readOnly 
+                />
               </div>
+
+            <div className="form-group">
+              <label>User Email</label>
+              <input 
+                type="text" 
+                value={currentUser?.user_email || ""}  
+                readOnly 
+              />
+            </div>
 
               <div className="form-group">
                 <label>Position</label>
-                <input type="text" value="ADMIN" readOnly />
+                <input 
+                  type="text" 
+                  value={currentUser?.user_position || currentUser?.user_role?.toUpperCase() || ""} 
+                  readOnly 
+                />
               </div>
 
               <div className="profile-actions">
@@ -88,15 +120,16 @@ const Profile = () => {
               </div>
 
               {/* Manage User Request Button */}
-              <div className="manage-user-requests">
-                <button 
-                  className="btn-manage" 
-                  onClick={() => navigate('/userManagement')}
-                >
-                  Manage User Requests
-                </button>
-              </div>
-
+              {currentUser?.user_role?.toLowerCase() === "admin" && (
+                <div className="manage-user-requests">
+                  <button 
+                    className="btn-manage" 
+                    onClick={() => navigate('/userManagement')}
+                  >
+                    Manage User Requests
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
