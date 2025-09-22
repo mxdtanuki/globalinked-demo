@@ -10,6 +10,8 @@ import PublicPage from './pages/public-page/public-page';
 import MOUMOAPage from './pages/public-page/components/MOUMOAPage';
 // templates
 import TemplatesPage from './pages/public-page/components/TemplatesPage';
+// admin login
+import FacultyLoginPage from './pages/public-page/components/FacultyLoginPage';
 
 //sidebar pages
 import Overview from './pages/overview';
@@ -56,10 +58,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} /> 
 
+          {/* admin login */}
+          <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
+
           {/* admin routes */}
           <Route path="/overview" element={<Overview />} />
           <Route path="/analytics" element={<Analytics />} />
-          <Route path="/docUpload" element={< MOAUpload />} />
+          <Route path="/docUpload" element={<DocumentUpload />} />
           <Route path="/pointPerson" element={<PointPerson />} />
           <Route path="/contactPerson" element={<ContactPerson />} />
           <Route path="/mobility" element={<Mobility />} />
