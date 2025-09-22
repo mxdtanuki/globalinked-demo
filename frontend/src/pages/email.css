@@ -102,14 +102,14 @@
   font-weight: bold;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* <-- this spreads content fully */
+  justify-content: space-between; 
 }
 
 /* Close button absolutely positioned */
 .email-close-btn {
-  position: absolute;  /* <-- absolute positioning */
-  top: 12px;           /* distance from top of modal */
-  right: 12px;         /* distance from right of modal */
+  position: absolute; 
+  top: 12px;        
+  right: 12px;        
   border: none;
   background: #fff;
   font-size: 1.4rem;
