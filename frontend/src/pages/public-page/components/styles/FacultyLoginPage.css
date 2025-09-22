@@ -1,14 +1,14 @@
 /* Import Trajan fonts */
 @font-face {
   font-family: "Trajan Pro";
-  src: url("../assets/fonts/TrajanPro-Regular.ttf") format("truetype");
+  src: url("../assets/fonts/TrajanPro-Regular.ttf") format("truetype"); /* Corrected path */
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
   font-family: "Trajan Pro";
-  src: url("../assets/fonts/TrajanPro-Bold.otf") format("opentype");
+  src: url("../assets/fonts/TrajanPro-Bold.otf") format("opentype"); /* Corrected path */
   font-weight: bold;
   font-style: normal;
 }

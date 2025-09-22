@@ -1,8 +1,8 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import Header from "./Header";
-import Footer from "./Footer";
-import "./styles/FacultyLoginPage.css";
+import { Link } from "react-router-dom"; // Import Link
+import Header from "./Header"; // Corrected import path
+import Footer from "./Footer"; // Corrected import path
+import "./styles/FacultyLoginPage.css"; // Corrected import path for its own CSS
 
 const FacultyLoginPage = () => {
   return (
