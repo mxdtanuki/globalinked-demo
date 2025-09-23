@@ -64,8 +64,8 @@
 
 /* Notification List */
 .notification-list {
-  list-style-type: none; /* removes the dots */
-  padding: 0;            /* reset left padding */
+  list-style-type: none; 
+  padding: 0;           
   margin: 0;
 }
 
@@ -87,18 +87,18 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px; /* space between notifications */
+  margin-bottom: 10px; 
 }
 
-/* Checkbox aligned like list marker */
+
 .notif-checkbox {
-  margin-top: 6px; /* lines up vertically with the card title */
+  margin-top: 6px; 
   cursor: pointer;
 }
 
-/* Card takes remaining space */
+
 .notification-card {
-  flex: 1; /* so it stretches beside the checkbox */
+  flex: 1; 
 }
 .notification-card.unread {
   background: #fff7f7; 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import MOUChart from "../components/mouChart";
 import MOUTable from "../components/mouTable";
 import MOUList from "../components/mouList";
@@ -17,7 +16,6 @@ import { agreementService } from '../services/agreementService';
 const Analytics = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   const [agreements, setAgreements] = useState([]);
   const [loading,setLoading] = useState(true);
@@ -166,16 +164,6 @@ const Analytics = () => {
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
 
-  useEffect(() => {
-    const handleResize = () => {
-      const isNowDesktop = window.innerWidth >= 768;
-      setIsDesktop(isNowDesktop);
-      if (isNowDesktop) setMobileShow(false);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const reportRef = useRef();
   const mouChartRef = useRef();
   const moaChartRef = useRef();
@@ -236,14 +224,6 @@ const Analytics = () => {
           className="main-content"
           onClick={() => mobileShow && setMobileShow(false)}
         >
-          {isDesktop && (
-            <div
-              className={`floating-toggle-btn ${collapsed ? "collapsed" : ""}`}
-              onClick={toggleCollapse}
-            >
-              {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-            </div>
-          )}
 
           {/* Content */}
 

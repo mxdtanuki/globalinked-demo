@@ -5,11 +5,11 @@ from app.database import Base
 class DocumentVersions(Base):
     __tablename__ = "document_versions"
 
-    version_id = Column(Integer, primary_key=True, index=True)
-    agreement_id = Column(Integer, ForeignKey("agreements.agreement_id"), nullable=False)
+    version_id = Column(Integer, primary_key=True, index=False)
+    dts_number = Column(String(50), ForeignKey("agreements.dts_number"), nullable=False)
     version_number = Column(Integer, nullable=False)
     file_path = Column(String, nullable=False)
     uploaded_at = Column(DateTime, nullable=False)
     user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     version_comment = Column(String, nullable=True)
-    status_at_upload = Column(String, nullable=True)
+    status_at_upload = Column(String, nullable=False)
