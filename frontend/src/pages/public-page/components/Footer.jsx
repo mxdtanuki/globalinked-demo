@@ -16,8 +16,7 @@ const Footer = () => {
               <img src={logo} alt="PUP Logo" className="footer-logo" />
               <div className="footer-university-info">
                 <h3 className="footer-university-name">
-                  Polytechnic University <br />
-                  of the Philippines <br />
+                  Polytechnic University of the Philippines
                 </h3>
                 <p className="footer-office-name">
                   Office of International Affairs
@@ -25,10 +24,8 @@ const Footer = () => {
               </div>
             </div>
             <p className="footer-description">
-              Fostering global partnerships and <br />
-              international collaboration to enhance <br />
-              educational excellence and cultural <br />
-              exchange.
+              Fostering global partnerships and international collaboration to
+              enhance educational excellence and cultural exchange.
             </p>
           </div>
 
@@ -61,6 +58,7 @@ const Footer = () => {
                   Contact Information
                 </a>
               </li>
+
               <li>
                 <Link to="/mou-moa" className="footer-link">
                   International Linkages
@@ -81,33 +79,25 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Faculty and Social Media Combined Section */}
+          {/* Social Media Section - Inline */}
           <div className="footer-section">
-            <h4 className="footer-section-title">Faculty</h4>
-            <ul className="footer-links">
-              <li>
-                <Link to="/faculty-login" className="footer-link">
-                  Globalinked
-                </Link>
-              </li>
-            </ul>
-
-            <h4 className="footer-section-title" style={{ marginTop: "2rem" }}>
-              Follow Us
-            </h4>
-            <div className="footer-social-clean">
+            <div className="footer-social-inline">
+              <h4 className="footer-section-title no-margin">
+                Follow our Social Media
+              </h4>
               <a
                 href="https://www.facebook.com/PUPOFIA"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="footer-social-link-clean"
+                className="footer-social-link facebook"
+                aria-label="Visit PUP OIA Facebook Page"
               >
                 <img
                   src={facebookIcon}
                   alt="Facebook Icon"
-                  className="social-icon-clean"
+                  className="social-icon-img"
                 />
-                <span className="social-text">PUP OIA Page</span>
+                <span className="social-text">PUP OIA</span>
               </a>
             </div>
           </div>
