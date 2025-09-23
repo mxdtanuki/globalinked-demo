@@ -99,7 +99,7 @@ async def reset_password(request: Request, db: Session = Depends(get_db)):
     if not expiry or expiry < now:
         raise HTTPException(status_code=400, detail="Invalid or expired token")
     user.user_pass = hash_password(new_password)
-    db.add(user)  # Ensure the user is marked for update
+    db.add(user)
     user.forgot_pass_token = None
     user.reset_token_expiry = None
     db.commit()

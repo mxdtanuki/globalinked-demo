@@ -26,7 +26,7 @@ def send_email(to: str, subject: str, body: str):
         server.sendmail(SMTP_USER, to, msg.as_string())
 
 def send_reset_email(recipient_email, reset_link):
-    subject = "Password Reset Request"
+    subject = "Password Reset Request 🔐 - Globalinked"
     body = (
         f'Click the link below to reset your password:<br>'
         f'<a href="{reset_link}">Reset your password here</a><br><br>'
