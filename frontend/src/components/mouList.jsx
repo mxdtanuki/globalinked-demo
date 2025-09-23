@@ -1,47 +1,67 @@
 import React, { useState } from "react";
 import "./mouList.css";
 
-const partnersData = [
-  { source: "COED", name: "KAOHSIUNG MUNICIPAL WUFU ELEMENTARY SCHOOL", country: "Taiwan", date: "2023-02-15" },
-  { source: "COED", name: "NATIONAL TAIPEI UNIVERSITY", country: "Taiwan", date: "2023-07-10" },
-  { source: "CBA", name: "WASEDA UNIVERSITY", country: "Japan", date: "2024-03-25" },
-  { source: "CBA", name: "SEOUL NATIONAL UNIVERSITY", country: "South Korea", date: "2024-08-08" },
-  { source: "COED", name: "UNIVERSITY OF MALAYA", country: "Malaysia", date: "2025-01-15" },
-  { source: "CBA", name: "CHULALONGKORN UNIVERSITY", country: "Thailand", date: "2025-06-20" },
-];
-
 const months = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December"
 ];
 
-const MOUListPartners = () => {
+const MOUListPartners = ({ agreements }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [year, setYear] = useState("");
   const [startMonth, setStartMonth] = useState("");
   const [endMonth, setEndMonth] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({ year: "", startMonth: "", endMonth: "" });
 
-  // Extract years dynamically
-  const years = Array.from(
-    new Set(partnersData.map((p) => new Date(p.date).getFullYear()))
-  ).sort();
+ // Filter MOU agreements
+  const mouAgreements = agreements.filter(agreement => 
+    agreement.document_type?.toUpperCase() === 'MOU'
+  );
 
+  console.log('📝 MOU agreements:', mouAgreements.length);
+
+  // Get unique years from the data for dropdown
+  const availableYears = [...new Set(
+    mouAgreements.map(agreement => {
+      const date = agreement.date_signed || agreement.entry_date;
+      return date ? new Date(date).getFullYear().toString() : null;
+    }).filter(Boolean)
+  )].sort();
+
+  // Apply filters 
   const applyFilters = () => {
     setAppliedFilters({ year, startMonth, endMonth });
   };
 
-  // Filtering 
-  const filteredData = partnersData.filter((partner) => {
-    const d = new Date(partner.date);
-    const y = d.getFullYear().toString();
-    const m = d.getMonth() + 1;
+  // Clear filters
+  const clearFilters = () => {
+    setYear("");
+    setStartMonth("");
+    setEndMonth("");
+    setAppliedFilters({ year: "", startMonth: "", endMonth: "" });
+  };
 
-    return (
-      (appliedFilters.year ? y === appliedFilters.year : true) &&
-      (appliedFilters.startMonth ? m >= parseInt(appliedFilters.startMonth) : true) &&
-      (appliedFilters.endMonth ? m <= parseInt(appliedFilters.endMonth) : true)
-    );
+  // Filtering logic
+  const filteredData = mouAgreements.filter((agreement) => {
+    const dateString = agreement.date_signed || agreement.entry_date;
+    if (!dateString) return false;
+
+    try {
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) return false;
+
+      const y = d.getFullYear().toString();
+      const m = d.getMonth() + 1;
+
+      return (
+        (appliedFilters.year ? y === appliedFilters.year : true) &&
+        (appliedFilters.startMonth ? m >= parseInt(appliedFilters.startMonth) : true) &&
+        (appliedFilters.endMonth ? m <= parseInt(appliedFilters.endMonth) : true)
+      );
+    } catch (error) {
+      console.warn('Date parsing error for agreement:', agreement.agreement_id, error);
+      return false;
+    }
   });
 
   return (
@@ -60,8 +80,8 @@ const MOUListPartners = () => {
             <strong>Year:</strong>{" "}
             <select value={year} onChange={(e) => setYear(e.target.value)}>
               <option value="">All Years</option>
-              {years.map((y, i) => (
-                <option key={i} value={y}>{y}</option>
+              {availableYears.map(y => (
+                <option key={y} value={y}>{y}</option>
               ))}
             </select>
           </label>
@@ -91,6 +111,7 @@ const MOUListPartners = () => {
           </label>
 
           <button onClick={applyFilters} style={{ padding: "5px 12px", cursor: "pointer" }}>Apply</button>
+          <button onClick={clearFilters} style={{ padding: "5px 12px", cursor: "pointer" }}>Clear</button>
         </div>
       )}
 
@@ -106,18 +127,18 @@ const MOUListPartners = () => {
         </thead>
         <tbody>
           {filteredData.length > 0 ? (
-            filteredData.map((partner, idx) => (
-              <tr key={idx}>
-                <td>{partner.source}</td>
-                <td>{partner.name}</td>
-                <td>{partner.country}</td>
-                <td>{partner.date}</td>
+            filteredData.map((agreement, idx) => (
+              <tr key={agreement.agreement_id || idx}>
+                <td>{agreement.unit_name || 'N/A'}</td>
+                <td>{agreement.name || 'N/A'}</td>
+                <td>{agreement.country || 'N/A'}</td>
+                <td>{agreement.date_signed ? new Date(agreement.date_signed).toLocaleDateString() : 'N/A'}</td>
               </tr>
             ))
           ) : (
             <tr>
               <td colSpan="4" style={{ textAlign: "center" }}>
-                No records found
+                📝 No MOU Agreements Found
               </td>
             </tr>
           )}

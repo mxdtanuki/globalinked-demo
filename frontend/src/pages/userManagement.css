@@ -1,5 +1,8 @@
 .user-management-container {
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding: 20px;
 }
 
 .user-management-container h1 {
@@ -12,6 +15,64 @@
   color: #555;
   margin-bottom: 1.5rem;
 }
+
+.management-stats-section {
+  display: flex;
+  justify-content: space-between; 
+  gap: 20px;
+  flex-wrap: nowrap; 
+  width: 100%;
+}
+
+.management-stat-card {
+  flex: 1;              
+  max-width: 25%;       
+  min-width: 0;        
+  padding: 20px;
+  border-radius: 12px;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fff;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  flex: 1 1 200px; 
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  border: none;
+  cursor: pointer;
+}
+
+.management-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.management-stat-card.active {
+  border: 2px solid #800000;
+  background: #fff5f5;
+}
+
+.management-stat-label {
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #555;
+}
+
+.management-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Color accents */
+.management-stat-card.total { border-left: 5px solid #555; }
+.management-stat-card.pending { border-left: 5px solid #f39c12; }
+.management-stat-card.approved { border-left: 5px solid #27ae60; }
+.management-stat-card.rejected { border-left: 5px solid #c0392b; }
 
 .user-table {
   width: 100%;
@@ -52,8 +113,29 @@
   color: #155724;
 }
 
+.access-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.access-badge.admin {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.access-badge.staff {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #ce93d8;
+}
+
 .approve-btn,
-.delete-btn {
+.delete-btn,
+.reject-btn {
   border: none;
   padding: 6px 12px;
   margin-right: 8px;
@@ -67,18 +149,97 @@
   background-color: #800000;
   color: #fff;
 }
-
 .approve-btn:hover {
   background-color: #a52a2a;
 }
 
+.reject-btn,
 .delete-btn {
   background-color: #f5f5f5;
   color: #800000;
   border: 1px solid #800000;
 }
-
+.reject-btn:hover,
 .delete-btn:hover {
   background-color: #800000;
   color: #fff;
+}
+
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 12px;
+  border-radius: 5px;
+  border: 1px solid #c3e6cb;
+  margin-bottom: 20px;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 5px;
+  border: 1px solid #f5c6cb;
+  margin-bottom: 20px;
+}
+
+.access-denied-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.access-denied-content {
+  text-align: center;
+  background: #fff;
+  padding: 3rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  max-width: 500px;
+}
+
+.access-denied-content h2 {
+  color: #800000;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.access-denied-content p {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
+
+.loading-content {
+  text-align: center;
+  font-size: 18px;
+}
+
+.loading-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-top: 10px;
+}
+
+.no-requests-message {
+  text-align: center;
+}
+
+.management-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 20px;
 }

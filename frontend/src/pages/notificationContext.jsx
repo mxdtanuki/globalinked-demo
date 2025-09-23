@@ -30,7 +30,6 @@ export function NotificationsProvider({ children }) {
 const refresh = async () => {
     const token = localStorage.getItem("access_token");
     if (!token) {
-      // if no token — keep local data
       return;
     }
     try {
@@ -45,6 +44,13 @@ const refresh = async () => {
 
   useEffect(() => {
     refresh();
+
+    // Poll for new notifications every 10 seconds #change later!!!
+    const interval = setInterval(() => {
+      refresh();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // mark a single notification as read

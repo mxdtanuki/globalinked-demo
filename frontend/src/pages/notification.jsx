@@ -1,30 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import './notification.css';
 import { useNotifications } from '../pages/notificationContext';
+import { notificationService } from '../services/notifService';
+import { FiTrash2 } from 'react-icons/fi';
 
 const Notification = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  const [selected, setSelected] = useState([]);
 
-  const { notifications, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, setNotifications, markAsRead, markAllAsRead } = useNotifications();
 
   const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8;
+  const [showModal, setShowModal] = useState(false);
+  const [activeNotif, setActiveNotif] = useState(null);
 
-  useEffect(() => {
-    const handleResize = () => {
-      const isNowDesktop = window.innerWidth >= 768;
-      setIsDesktop(isNowDesktop);
-      if (isNowDesktop) setMobileShow(false);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const pageSize = 8;
+  const storedUser = JSON.parse(localStorage.getItem("user"));
+  const userRole = storedUser?.user_role || "staff";
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
@@ -40,9 +36,69 @@ const Notification = () => {
     currentPage * pageSize
   );
 
+  const handleSelect = (id) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selected.length === paginatedNotifications.length) {
+      setSelected([]);
+    } else {
+      setSelected(paginatedNotifications.map(n => n.id));
+    }
+  };
+
+  const handleDelete = async (ids) => {
+    try {
+      for (const id of ids) {
+        await notificationService.deleteNotification(id);
+      }
+      // update context state immediately
+      setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
+      setSelected([]);
+    } catch (err) {
+      console.error('Failed to delete notifications', err);
+    }
+  };
+
   const goToPage = (page) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
+  };
+
+  const handleOpenModal = async (notif) => {
+    setActiveNotif(notif);
+    setShowModal(true);
+
+    if (!notif.read && userRole === "admin") {
+      await markAsRead(notif.id);
+      // update local state instantly
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+      );
+    }
+  };
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await markAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    } catch (err) {
+      console.error("Failed to mark as read", err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.error("Failed to mark all as read", err);
+    }
   };
 
   return (
@@ -55,18 +111,10 @@ const Notification = () => {
         <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
 
         <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
-          {isDesktop && (
-            <div className={`floating-toggle-btn ${collapsed ? 'collapsed' : ''}`} onClick={toggleCollapse}>
-              {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-            </div>
-          )}
 
-          <h2 className="notification-title">
-           Notifications
-           </h2>
-           
+          <h2 className="notification-title">Notifications</h2>
+
           <div className="notification-container">
-
 
             <div className="notification-header">
               <div className="notification-tabs">
@@ -83,30 +131,87 @@ const Notification = () => {
                   Unread
                 </button>
               </div>
-              <button className="mark-all-btn" onClick={markAllAsRead}>
+              <button
+                className="mark-all-btn"
+                onClick={handleMarkAllAsRead}
+                disabled={userRole !== "admin"}
+              >
                 Mark all as read
               </button>
             </div>
+
+            {/* Bulk delete action bar */}
+            {selected.length > 0 && (
+              <div className="bulk-action-bar">
+                <input
+                  type="checkbox"
+                  checked={selected.length === paginatedNotifications.length}
+                  onChange={handleSelectAll}
+                />
+                <span>{selected.length} selected</span>
+                <button
+                  className="bulk-delete-btn"
+                  onClick={() => handleDelete(selected)}
+                >
+                  <FiTrash2 /> Delete
+                </button>
+              </div>
+            )}
 
             <ul className="notification-list">
               {paginatedNotifications.length === 0 && (
                 <li className="empty">No notifications</li>
               )}
               {paginatedNotifications.map(n => (
-                <li key={n.id} className={`notification-card ${n.read ? 'read' : 'unread'}`}>
-                  <div className="notification-top">
-                    <span className="notification-text">{n.title}</span>
-                    <div className="notification-actions">
-                      <span className="notification-time">{n.time}</span>
-                      {!n.read && (
-                        <button className="mark-btn" onClick={() => markAsRead(n.id)}>
-                          Mark as Read
+                <li
+                  key={n.id}
+                  className={`notification-row ${n.read ? 'read' : 'unread'}`}
+                >
+                  {/* Checkbox in bullet position */}
+                  <input
+                    type="checkbox"
+                    className="notif-checkbox"
+                    checked={selected.includes(n.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => handleSelect(n.id)}
+                  />
+
+                  {/* Card content */}
+                    <div
+                      className={`notification-card ${n.read ? 'read' : 'unread'}`}
+                      onClick={() => handleOpenModal(n)}
+                    >
+                    <div className="notification-top">
+                      <span className="notification-text">{n.title}</span>
+                      <div className="notification-actions">
+                        <span className="notification-time">{n.time}</span>
+                        {!n.read && (
+                          <button
+                            className="mark-btn"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await handleMarkAsRead(n.id);
+                            }}
+                            disabled={userRole !== "admin"}
+                          >
+                            Mark as Read
+                          </button>
+                        )}
+                        {/* single delete */}
+                        <button
+                          className="delete-btn"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleDelete([n.id]);
+                          }}
+                        >
+                          <FiTrash2 />
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="notification-recommend">
-                    Recommended action: {n.action}
+                    <div className="notification-recommend">
+                      Recommended action: {n.action}
+                    </div>
                   </div>
                 </li>
               ))}
@@ -126,6 +231,19 @@ const Notification = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && activeNotif && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>{activeNotif.title}</h3>
+            <p>{activeNotif.message}</p>
+            <p><b>Recommended Action:</b> {activeNotif.action}</p>
+            <p><i>{activeNotif.time}</i></p>
+            <button onClick={() => setShowModal(false)}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

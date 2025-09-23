@@ -2,31 +2,36 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import json
+from zoneinfo import ZoneInfo
 
 from app.database import SessionLocal
 from app.models.agreements import Agreements
 from app.models.partners import Partners
 from app.models.contact_persons import ContactPersons
 
-# Timeframe constants (tweak as needed or move to .env)
+# Timeframe constants
 EXPIRY_WINDOW_DAYS = int(__import__("os").environ.get("EXPIRY_WINDOW_DAYS", "30"))
 PENDING_DAYS_DEFAULT = int(__import__("os").environ.get("PENDING_DAYS_DEFAULT", "7"))
 DORMANT_DAYS = int(__import__("os").environ.get("DORMANT_DAYS", "30"))
 
-# Mapping for per-status thresholds (optional override)
+from zoneinfo import ZoneInfo
+PH_TZ = ZoneInfo("Asia/Manila")
+scheduler = BackgroundScheduler(timezone=PH_TZ)
+
+# Mapping for per-status thresholds
 STATUS_THRESHOLD_DAYS = {
     # status -> days before the alert
-    "Endorse": 7,
-    "Revert": 7,
-    "Replication": 14,
-    "SignituresPUP": 7,
-    "SignedPUP": 7,
-    "SignituresPartner": 7,
-    "Notary": 7,
-    "FFUPCopy": 7,
+    "Endorse": 1,
+    "Revert": 1,
+    "Replication": 1,
+    "SignituresPUP": 1,
+    "SignedPUP": 1,
+    "SignituresPartner": 1,
+    "Notary": 1,
+    "FFUPCopy": 1,
 }
 
-scheduler = BackgroundScheduler(timezone="UTC")
+
 
 
 def _open_session():
@@ -69,7 +74,6 @@ def _collect_recipient_emails(db: Session, agreement: Agreements, partner: Partn
 
    
     try:
-        # import here to avoid circular imports at module import time
         from app.models.agreement_point_persons import AgreementPointPersons
         from app.models.point_persons import PointPersons
 
@@ -110,20 +114,21 @@ def _format_subject(category: str, a: Agreements, partner_name: str):
 
 def _format_body(category: str, a: Agreements, partner_name: str, recommended_actions):
     expiry = a.date_expiry.isoformat() if a.date_expiry else "-"
+    actions_str = "\n- ".join(recommended_actions)
     return f"""Partner: {partner_name}
-DTS: {a.dts_number}
-Type: {a.document_type}
-Name: {partner_name}
-Status: {a.agreement_status or '-'}
-Entry: {a.entry_date}
-Expiry: {expiry}
+    DTS: {a.dts_number}
+    Type: {a.document_type}
+    Name: {partner_name}
+    Status: {a.agreement_status or '-'}
+    Entry: {a.entry_date}
+    Expiry: {expiry}
 
-Recommended actions:
-- {"\n- ".join(recommended_actions)}
-"""
+    Recommended actions:
+    - {actions_str}
+    """
 
 
-def _recommended_actions_for_category(category):
+def _recommended_actions_for_category(category, status=None):
     if category == "expiring_soon":
         return [
             "Prepare renewal documents and notify partner contacts.",
@@ -192,7 +197,7 @@ def _recommended_actions_for_category(category):
 
 
 def agreement_notification_job():
-    #  service imports to avoid circular import at module import time
+    #  service imports
     from app.services.notif_service import create_notification_if_new
     from app.services.email_service import send_email
 
@@ -205,7 +210,7 @@ def agreement_notification_job():
     """
     db = _open_session()
     try:
-        today = datetime.utcnow().date()
+        today = datetime.now(PH_TZ).date()
 
         # 1) Expiring soon
         horizon = today + timedelta(days=EXPIRY_WINDOW_DAYS)
@@ -219,8 +224,8 @@ def agreement_notification_job():
         )
         for a, p in expiring:
             category = "expiring_soon"
-            f"{a.document_type} '{a.dts_number}' with partner '{p.name}' expires on {a.date_expiry}."
-            actions = _recommended_actions_for_category(category)
+            msg = f"{a.document_type} '{a.dts_number}' with partner '{p.name}' expires on {a.date_expiry}."
+            actions = _recommended_actions_for_category(category, None)
             notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
             # send email to recipients (optional)
             recipients = _collect_recipient_emails(db, a, p)
@@ -251,7 +256,7 @@ def agreement_notification_job():
                 category = "pending_long"
                 days_pending = (today - a.entry_date).days if a.entry_date else None
                 msg = f"{a.document_type} for {p.name} - '{a.dts_number}' has been in status '{a.agreement_status}' for {days_pending} days."
-                actions = _recommended_actions_for_category(category)
+                actions = _recommended_actions_for_category(category, a.agreement_status)
                 notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
                 recipients = _collect_recipient_emails(db, a, p)
                 if notif and recipients:
@@ -275,7 +280,7 @@ def agreement_notification_job():
             category = "renewal_needed"
             days_expired = (today - a.date_expiry).days if a.date_expiry else None
             msg = f"{a.document_type} of {p.name} -'{a.dts_number}' expired on {a.date_expiry} ({days_expired} days ago)."
-            actions = _recommended_actions_for_category(category)
+            actions = _recommended_actions_for_category(category, None)
             notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
             recipients = _collect_recipient_emails(db, a, p)
             if notif and recipients:

@@ -5,7 +5,7 @@ import './layout.css';
 
 const TopBar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
-  const { notifications, markAsRead } = useNotifications();
+  const { notifications, markAsRead, refresh } = useNotifications();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const unreadNotifications = notifications.filter((n) => !n.read);
@@ -29,8 +29,16 @@ const TopBar = ({ toggleSidebar }) => {
       </div>
 
       <div className="topbar-right">
-      
         <div className="notification-wrapper">
+          <span 
+            className="topbar-icon" 
+            onClick={() => refresh()} 
+            title="Refresh notifications"
+            style={{ marginRight: '5px', fontSize: '14px' }}
+          >
+            🟢
+          </span>
+          
           <span className="topbar-icon" onClick={toggleDropdown}>
             🔔
             {unreadNotifications.length > 0 && (
@@ -38,7 +46,7 @@ const TopBar = ({ toggleSidebar }) => {
             )}
           </span>
 
-          {/* Dropdown for Notif*/}
+          {/* Dropdown for Notifications */}
           {showDropdown && (
             <div className="notif-dropdown">
               {unreadNotifications.length > 0 ? (
@@ -64,8 +72,15 @@ const TopBar = ({ toggleSidebar }) => {
           )}
         </div>
 
-        {/* Settings Icon */}
-        <span className="topbar-icon">⚙️</span>
+        {/* Settings Icon (Navigate to Profile) */}
+        <span
+          className="topbar-icon"
+          onClick={() => navigate('/profile')}
+          style={{ cursor: 'pointer' }}
+          title="Profile Settings"
+        >
+          ⚙️
+        </span>
 
         {/* Logout */}
         <span className="topbar-logout" title="Logout" onClick={handleLogout}>
