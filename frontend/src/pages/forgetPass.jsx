@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEnvelope } from "react-icons/fa";
-import "./login.css"; // reuse 
+import "./login.css";
 
 const ForgetPass = () => {
   const navigate = useNavigate();

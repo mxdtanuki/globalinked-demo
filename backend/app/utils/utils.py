@@ -21,16 +21,15 @@ def hash_password(password: str):
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str):
-    try:
-        # First try bcrypt (new method)
-        return pwd_context.verify(plain_password, hashed_password)
-    except Exception:
-        # If bcrypt fails, try SHA-256 for existing users
         try:
+            return pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            # Fallback for legacy SHA-256
+            import hashlib
             sha256_hash = hashlib.sha256(plain_password.encode()).hexdigest()
             is_match = sha256_hash == hashed_password
             if is_match:
-                print(f"⚠️ User authenticated with legacy SHA-256 hash. Consider updating password.")
+                print("⚠️ User authenticated with legacy SHA-256 hash. Consider updating password.")
             return is_match
         except Exception:
             return False

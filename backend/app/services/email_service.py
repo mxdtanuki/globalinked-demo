@@ -9,7 +9,6 @@ SMTP_USER = "pup.international.affairs@gmail.com"
 SMTP_PASS = "epcs mqnp cpun pxin"
 
 def render_template(body_html: str, context: dict) -> str:
-    """Render DB template with Jinja2 placeholders like {{ name }}"""
     template = Template(body_html)
     return template.render(context)
 
@@ -25,3 +24,12 @@ def send_email(to: str, subject: str, body: str):
         server.starttls()
         server.login(SMTP_USER, SMTP_PASS)
         server.sendmail(SMTP_USER, to, msg.as_string())
+
+def send_reset_email(recipient_email, reset_link):
+    subject = "Password Reset Request"
+    body = (
+        f'Click the link below to reset your password:<br>'
+        f'<a href="{reset_link}">Reset your password here</a><br><br>'
+        f"If you did not request this, please ignore this email."
+    )
+    send_email(recipient_email, subject, body)
