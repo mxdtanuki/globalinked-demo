@@ -2,12 +2,15 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/login';
 import Register from './pages/register';
+import ForgetPass from './pages/forgetPass';
+import ResetPass from './pages/resetPass';
+
+// context for notifications
 import { NotificationsProvider } from './pages/notificationContext';
 
 //public page
 import PublicPage from './pages/public-page/public-page';
-// MOUMOAPage
-import MOUMOAPage from './pages/public-page/components/MOUMOAPage';
+
 // templates
 import TemplatesPage from './pages/public-page/components/TemplatesPage';
 // admin login
@@ -16,7 +19,6 @@ import FacultyLoginPage from './pages/public-page/components/FacultyLoginPage';
 //sidebar pages
 import Overview from './pages/overview';
 import Analytics from './pages/analytics';
-import DocumentUpload from './pages/docUpload';
 import PointPerson from './pages/pointPerson';
 import ContactPerson from './pages/contactPerson';
 import Mobility from './pages/mobility';
@@ -27,19 +29,12 @@ import Archive from './pages/archive';
 import Profile from './pages/profile';
 import UserManagement from './pages/userManagement'; 
 
-// Stat Pages
-import ActiveAgreement from './pages/stat/activeAgreement';
-import TotalAgreement from './pages/stat/totalAgreement';
-import ExpiredAgreement from './pages/stat/expiredAgreements';
-import NearExpirationAgreement from './pages/stat/nearExpAgreement';
 
 // Upload Documents
 import MOAUpload from './pages/upload/moa';
 import MOUUpload from './pages/upload/mou';
 
 //extracted entry
-import ExtractedEntry from './pages/upload/extractedEntry';
-import ManualEntry from './pages/upload/manualEntry';
 import ManualEntryMoa from './pages/upload/manualEntryMoa';
 import ExtractedEntryMOA from './pages/upload/extractedEntryMoa';
 
@@ -57,14 +52,16 @@ function App() {
           {/* auth routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} /> 
+          <Route path="/forgot-password" element={<ForgetPass />} />
+          <Route path="/reset-password" element={<ResetPass />} />    
 
-          {/* admin login */}
+           {/* admin login */}
           <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
-
+ 
           {/* admin routes */}
           <Route path="/overview" element={<Overview />} />
           <Route path="/analytics" element={<Analytics />} />
-          <Route path="/docUpload" element={<DocumentUpload />} />
+          <Route path="/docUpload" element={< MOAUpload />} />
           <Route path="/pointPerson" element={<PointPerson />} />
           <Route path="/contactPerson" element={<ContactPerson />} />
           <Route path="/mobility" element={<Mobility />} />
@@ -75,22 +72,11 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/userManagement" element={<UserManagement />} />
 
-          {/* Stat routes */}
-          <Route path="/stat/activeAgreement" element={<ActiveAgreement />} />
-          <Route path="/stat/totalAgreement" element={<TotalAgreement />} />
-          <Route path="/stat/expiredAgreement" element={<ExpiredAgreement />} />
-          <Route path="/stat/nearExpAgreement" element={<NearExpirationAgreement />} />
-
           {/* Upload Document Routes */}
           <Route path="/document-upload/mou" element={<MOUUpload />} />
           <Route path="/document-upload/moa" element={<MOAUpload />} />
-          <Route path="/upload/extractedEntry" element={<ExtractedEntry />} />
-          <Route path="/upload/manualEntry" element={<ManualEntry />} />
           <Route path="/upload/manualEntryMOA" element={<ManualEntryMoa />} />
           <Route path="/upload/extractedEntryMOA" element={<ExtractedEntryMOA />} />
-
-          {/* Existing MOUMOAPage route */}
-          <Route path="/mou-moa" element={<MOUMOAPage />} />
 
         </Routes>
       </Router>
