@@ -19,7 +19,8 @@ const Notification = () => {
   const [activeNotif, setActiveNotif] = useState(null);
 
   const pageSize = 8;
-  const userRole = localStorage.getItem("user_role") || "staff";
+  const storedUser = JSON.parse(localStorage.getItem("user"));
+  const userRole = storedUser?.user_role || "staff";
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
