@@ -30,16 +30,7 @@ const TopBar = ({ toggleSidebar }) => {
 
       <div className="topbar-right">
         <div className="notification-wrapper">
-          <span 
-            className="topbar-icon" 
-            onClick={() => refresh()} 
-            title="Refresh notifications"
-            style={{ marginRight: '5px', fontSize: '14px' }}
-          >
-            🟢
-          </span>
-          
-          <span className="topbar-icon" onClick={toggleDropdown}>
+          <span className="topbar-icon" onClick={toggleDropdown} title="Show notifications">
             🔔
             {unreadNotifications.length > 0 && (
               <span className="notif-badge">{unreadNotifications.length}</span>
@@ -49,6 +40,11 @@ const TopBar = ({ toggleSidebar }) => {
           {/* Dropdown for Notifications */}
           {showDropdown && (
             <div className="notif-dropdown">
+                <div className="notif-refresh">
+                  <button onClick={() => refresh()} className="notif-refresh">
+                    Refresh
+                  </button>
+                </div>
               {unreadNotifications.length > 0 ? (
                 unreadNotifications.slice(0, 5).map((notif) => (
                   <div key={notif.id} className="notif-item">

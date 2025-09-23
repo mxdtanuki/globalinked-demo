@@ -844,7 +844,7 @@ const OverviewDash = () => {
         </div>
 
         <div className="table-footer">
-          <button className="btn-add" onClick={() => navigate('/upload/manualEntryMoa')}> + Add Document</button>
+          <button className="btn-add" onClick={() => navigate('/docUpload')}> + Add Document</button>
         </div>
       </div>
 
