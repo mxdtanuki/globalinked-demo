@@ -164,46 +164,53 @@ const Notification = () => {
               {paginatedNotifications.map(n => (
                 <li
                   key={n.id}
-                  className={`notification-card ${n.read ? 'read' : 'unread'}`}
-                  onClick={() => handleOpenModal(n)}
+                  className={`notification-row ${n.read ? 'read' : 'unread'}`}
                 >
+                  {/* Checkbox in bullet position */}
                   <input
                     type="checkbox"
+                    className="notif-checkbox"
                     checked={selected.includes(n.id)}
                     onClick={(e) => e.stopPropagation()}
                     onChange={() => handleSelect(n.id)}
-                    style={{ marginRight: 8 }}
                   />
-                  <div className="notification-top">
-                    <span className="notification-text">{n.title}</span>
-                    <div className="notification-actions">
-                      <span className="notification-time">{n.time}</span>
-                      {!n.read && (
+
+                  {/* Card content */}
+                    <div
+                      className={`notification-card ${n.read ? 'read' : 'unread'}`}
+                      onClick={() => handleOpenModal(n)}
+                    >
+                    <div className="notification-top">
+                      <span className="notification-text">{n.title}</span>
+                      <div className="notification-actions">
+                        <span className="notification-time">{n.time}</span>
+                        {!n.read && (
+                          <button
+                            className="mark-btn"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await handleMarkAsRead(n.id);
+                            }}
+                            disabled={userRole !== "admin"}
+                          >
+                            Mark as Read
+                          </button>
+                        )}
+                        {/* single delete */}
                         <button
-                          className="mark-btn"
+                          className="delete-btn"
                           onClick={async (e) => {
                             e.stopPropagation();
-                            await handleMarkAsRead(n.id);
+                            await handleDelete([n.id]);
                           }}
-                          disabled={userRole !== "admin"}
                         >
-                          Mark as Read
+                          <FiTrash2 />
                         </button>
-                      )}
-                      {/* single delete */}
-                      <button
-                        className="delete-btn"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          await handleDelete([n.id]);
-                        }}
-                      >
-                        <FiTrash2 />
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="notification-recommend">
-                    Recommended action: {n.action}
+                    <div className="notification-recommend">
+                      Recommended action: {n.action}
+                    </div>
                   </div>
                 </li>
               ))}
