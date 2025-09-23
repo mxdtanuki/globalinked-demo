@@ -10,6 +10,8 @@ import PublicPage from './pages/public-page/public-page';
 import MOUMOAPage from './pages/public-page/components/MOUMOAPage';
 // templates
 import TemplatesPage from './pages/public-page/components/TemplatesPage';
+// admin login
+import FacultyLoginPage from './pages/public-page/components/FacultyLoginPage';
 
 //sidebar pages
 import Overview from './pages/overview';
