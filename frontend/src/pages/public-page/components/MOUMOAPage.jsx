@@ -1,5 +1,6 @@
 // MOUMOAPage.jsx
 import React, { useState, useEffect, useRef } from "react";
+import { agreementService } from "../../../services/agreementService";
 import Header from "./Header";
 import Footer from "./Footer";
 import "./styles/MOUMOAPage.css";
@@ -20,11 +21,25 @@ const MOUMOAPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [isLoading, setIsLoading] = useState(true);
+  const [agreementData, setAgreementData] = useState([]);
+  const [error, setError] = useState(null);
 
   const modalRef = useRef(null);
 
   useEffect(() => {
-    setTimeout(() => setIsLoading(false), 800);
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const agreements = await agreementService.getAgreements();
+        setAgreementData(agreements);
+      } catch (err) {
+        setError("Failed to load agreement data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -33,46 +48,64 @@ const MOUMOAPage = () => {
     }
   }, [selectedCountry]);
 
-  // Country with flagcdn codes
-  const data = [
-    { country: "China", mou: 26, moa: 4, region: "Asia", code: "cn" },
-    { country: "Indonesia", mou: 18, moa: 8, region: "Asia", code: "id" },
-    { country: "Malaysia", mou: 13, moa: 5, region: "Asia", code: "my" },
-    { country: "Thailand", mou: 12, moa: 5, region: "Asia", code: "th" },
-    { country: "U.S.A.", mou: 11, moa: 2, region: "Americas", code: "us" },
-    { country: "India", mou: 9, moa: 4, region: "Asia", code: "in" },
-    { country: "Taiwan", mou: 7, moa: 3, region: "Asia", code: "tw" },
-    { country: "South Korea", mou: 5, moa: 2, region: "Asia", code: "kr" },
-    { country: "Vietnam", mou: 4, moa: 3, region: "Asia", code: "vn" },
-    { country: "Philippines", mou: 3, moa: 0, region: "Asia", code: "ph" },
-    { country: "Switzerland", mou: 2, moa: 0, region: "Europe", code: "ch" },
-    { country: "United Kingdom", mou: 1, moa: 1, region: "Europe", code: "gb" },
-    { country: "Russia", mou: 1, moa: 0, region: "Europe", code: "ru" },
-    { country: "Cyprus", mou: 1, moa: 0, region: "Europe", code: "cy" },
-    { country: "Ukraine", mou: 1, moa: 0, region: "Europe", code: "ua" },
-    { country: "Hong Kong", mou: 1, moa: 0, region: "Asia", code: "hk" },
-    { country: "Sri Lanka", mou: 1, moa: 0, region: "Asia", code: "lk" },
-    { country: "Netherlands", mou: 1, moa: 0, region: "Europe", code: "nl" },
-    { country: "Belgium", mou: 1, moa: 0, region: "Europe", code: "be" },
-    { country: "Canada", mou: 1, moa: 0, region: "Americas", code: "ca" },
-    { country: "Singapore", mou: 1, moa: 0, region: "Asia", code: "sg" },
-    { country: "Nepal", mou: 1, moa: 0, region: "Asia", code: "np" },
-    { country: "Portugal", mou: 1, moa: 0, region: "Europe", code: "pt" },
-  ];
 
-  // Add total to each country
-  const dataWithTotal = data.map((item) => ({
+  // Helper: get country code from country name (for flagcdn)
+  // ISO 3166-1 alpha-2 country codes (lowercase)
+  const countryCodeMap = {
+    "Afghanistan": "af", "Albania": "al", "Algeria": "dz", "Andorra": "ad", "Angola": "ao", "Antigua and Barbuda": "ag", "Argentina": "ar", "Armenia": "am", "Australia": "au", "Austria": "at", "Azerbaijan": "az",
+    "Bahamas": "bs", "Bahrain": "bh", "Bangladesh": "bd", "Barbados": "bb", "Belarus": "by", "Belgium": "be", "Belize": "bz", "Benin": "bj", "Bhutan": "bt", "Bolivia": "bo", "Bosnia and Herzegovina": "ba", "Botswana": "bw", "Brazil": "br", "Brunei": "bn", "Bulgaria": "bg", "Burkina Faso": "bf", "Burundi": "bi",
+    "Cabo Verde": "cv", "Cambodia": "kh", "Cameroon": "cm", "Canada": "ca", "Central African Republic": "cf", "Chad": "td", "Chile": "cl", "China": "cn", "Colombia": "co", "Comoros": "km", "Congo": "cg", "Costa Rica": "cr", "Croatia": "hr", "Cuba": "cu", "Cyprus": "cy", "Czechia": "cz", "Czech Republic": "cz",
+    "Democratic Republic of the Congo": "cd", "Denmark": "dk", "Djibouti": "dj", "Dominica": "dm", "Dominican Republic": "do", "Ecuador": "ec", "Egypt": "eg", "El Salvador": "sv", "Equatorial Guinea": "gq", "Eritrea": "er", "Estonia": "ee", "Eswatini": "sz", "Ethiopia": "et",
+    "Fiji": "fj", "Finland": "fi", "France": "fr", "Gabon": "ga", "Gambia": "gm", "Georgia": "ge", "Germany": "de", "Ghana": "gh", "Greece": "gr", "Grenada": "gd", "Guatemala": "gt", "Guinea": "gn", "Guinea-Bissau": "gw", "Guyana": "gy",
+    "Haiti": "ht", "Honduras": "hn", "Hungary": "hu", "Iceland": "is", "India": "in", "Indonesia": "id", "Iran": "ir", "Iraq": "iq", "Ireland": "ie", "Israel": "il", "Italy": "it",
+    "Jamaica": "jm", "Japan": "jp", "Jordan": "jo",
+    "Kazakhstan": "kz", "Kenya": "ke", "Kiribati": "ki", "Kuwait": "kw", "Kyrgyzstan": "kg",
+    "Laos": "la", "Latvia": "lv", "Lebanon": "lb", "Lesotho": "ls", "Liberia": "lr", "Libya": "ly", "Liechtenstein": "li", "Lithuania": "lt", "Luxembourg": "lu",
+    "Madagascar": "mg", "Malawi": "mw", "Malaysia": "my", "Maldives": "mv", "Mali": "ml", "Malta": "mt", "Marshall Islands": "mh", "Mauritania": "mr", "Mauritius": "mu", "Mexico": "mx", "Micronesia": "fm", "Moldova": "md", "Monaco": "mc", "Mongolia": "mn", "Montenegro": "me", "Morocco": "ma", "Mozambique": "mz", "Myanmar": "mm",
+    "Namibia": "na", "Nauru": "nr", "Nepal": "np", "Netherlands": "nl", "New Zealand": "nz", "Nicaragua": "ni", "Niger": "ne", "Nigeria": "ng", "North Korea": "kp", "North Macedonia": "mk", "Norway": "no",
+    "Oman": "om",
+    "Pakistan": "pk", "Palau": "pw", "Palestine": "ps", "Panama": "pa", "Papua New Guinea": "pg", "Paraguay": "py", "Peru": "pe", "Philippines": "ph", "Poland": "pl", "Portugal": "pt",
+    "Qatar": "qa",
+    "Romania": "ro", "Russia": "ru", "Rwanda": "rw",
+    "Saint Kitts and Nevis": "kn", "Saint Lucia": "lc", "Saint Vincent and the Grenadines": "vc", "Samoa": "ws", "San Marino": "sm", "Sao Tome and Principe": "st", "Saudi Arabia": "sa", "Senegal": "sn", "Serbia": "rs", "Seychelles": "sc", "Sierra Leone": "sl", "Singapore": "sg", "Slovakia": "sk", "Slovenia": "si", "Solomon Islands": "sb", "Somalia": "so", "South Africa": "za", "South Korea": "kr", "South Sudan": "ss", "Spain": "es", "Sri Lanka": "lk", "Sudan": "sd", "Suriname": "sr", "Sweden": "se", "Switzerland": "ch", "Syria": "sy",
+    "Taiwan": "tw", "Tajikistan": "tj", "Tanzania": "tz", "Thailand": "th", "Timor-Leste": "tl", "Togo": "tg", "Tonga": "to", "Trinidad and Tobago": "tt", "Tunisia": "tn", "Turkey": "tr", "Turkmenistan": "tm", "Tuvalu": "tv",
+    "Uganda": "ug", "Ukraine": "ua", "United Arab Emirates": "ae", "United Kingdom": "gb", "United States": "us", "U.S.A.": "us", "Uruguay": "uy", "Uzbekistan": "uz",
+    "Vanuatu": "vu", "Vatican City": "va", "Venezuela": "ve", "Vietnam": "vn",
+    "Yemen": "ye",
+    "Zambia": "zm", "Zimbabwe": "zw",
+    // Special/territories
+    "Hong Kong": "hk", "Macau": "mo", "Palestinian Territories": "ps", "Kosovo": "xk"
+  };
+
+  // Aggregate agreements by country
+  const countryAgg = {};
+  agreementData.forEach((ag) => {
+    if (!ag.country) return;
+    const key = ag.country.trim();
+    if (!countryAgg[key]) {
+      countryAgg[key] = {
+        country: key,
+        mou: 0,
+        moa: 0,
+        region: ag.region || "",
+        code: countryCodeMap[key] || "",
+      };
+    }
+    if (ag.document_type === "MOU") countryAgg[key].mou += 1;
+    if (ag.document_type === "MOA") countryAgg[key].moa += 1;
+  });
+  const data = Object.values(countryAgg).map((item) => ({
     ...item,
     total: item.mou + item.moa,
   }));
 
   // Calculate max MOU/MOA for progress bar scaling
-  const maxMou = Math.max(...dataWithTotal.map((item) => item.mou));
-  const maxMoa = Math.max(...dataWithTotal.map((item) => item.moa));
+  const maxMou = data.length ? Math.max(...data.map((item) => item.mou)) : 0;
+  const maxMoa = data.length ? Math.max(...data.map((item) => item.moa)) : 0;
   const maxAgreement = Math.max(maxMou, maxMoa);
 
   // Filter and sort data
-  const filteredData = dataWithTotal
+  const filteredData = data
     .filter((item) => {
       const matchesSearch = item.country
         .toLowerCase()
