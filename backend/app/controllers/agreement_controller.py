@@ -13,7 +13,7 @@ from app.models.document_versions import DocumentVersions
 from app.models.notification import Notification
 from app.models.users import Users
 from app.models.timer import Timer
-
+from app.services.supabase_service import sb as supabase, SUPABASE_BUCKET
 from app.schemas.agreement_schemas import (
     AgreementCreate,
     AgreementResponse,
@@ -22,6 +22,7 @@ from app.schemas.agreement_schemas import (
     TimerResponse
 )
 from app.utils.utils import get_current_user
+
 
 router = APIRouter(
     prefix="/agreements",
@@ -330,6 +331,20 @@ async def create_agreement(
         # Final commit
         db.commit()
         db.refresh(new_agreement)
+
+        # --- SUPABASE: create folder for this agreement ---
+        try:
+            folder_path = f"{new_agreement.dts_number}/"
+            # "folders" in Supabase storage are just prefixes,
+            # so we simulate one by uploading a dummy placeholder.
+            supabase.storage.from_(SUPABASE_BUCKET).upload(
+                path=f"{folder_path}.keep",
+                file=b"",  # empty bytes file
+                file_options={"content-type": "application/octet-stream"}
+            )
+        except Exception as supa_err:
+            # don’t block agreement creation if folder fails
+            print(f"[WARN] Supabase folder creation failed for {new_agreement.dts_number}: {supa_err}")
 
         # Fetch associations
         contact_persons = db.query(ContactPersons).filter(ContactPersons.agreement_id == new_agreement.agreement_id).all()
