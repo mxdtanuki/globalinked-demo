@@ -860,27 +860,16 @@ const OverviewDash = () => {
             </p>
           )}
 
+          {selectedAgreement && (
+            <p className="overview-upload-form-info">
+              Status: <strong>{selectedAgreement.agreement_status}</strong>
+            </p>
+          )}
+
           <form>
             <div className="overview-upload-form-group">
               <label>Upload File:</label>
               <input type="file" />
-            </div>
-
-            <div className="overview-upload-form-group">
-              <label>Status:</label>
-              <select>
-                <option value="">Select Status</option>
-                <option value="Endorse">Endorse to ULCO for review and approval</option>
-                <option value="Revert">Revert to Initiator with comments</option>
-                <option value="Replication">For Replication of Copies (6 set)</option>
-                <option value="SignituresPUP">For Signitures of PUP Officials</option>
-                <option value="SignedPUP">Signed By PUP Officials</option>
-                <option value="SignituresPartner">For Signiture of Partner</option>
-                <option value="Complete">Completly Signed</option>
-                <option value="Notary">For Notary</option>
-                <option value="FFUPCopy">For FFUP Copy from college/campus</option>
-                <option value="Renewal">Renewal</option>
-              </select>
             </div>
 
             <div className="overview-upload-form-group">
