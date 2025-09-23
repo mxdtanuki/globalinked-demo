@@ -58,10 +58,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} /> 
 
+          {/* admin login */}
+          <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
+
           {/* admin routes */}
           <Route path="/overview" element={<Overview />} />
           <Route path="/analytics" element={<Analytics />} />
-          <Route path="/docUpload" element={< MOAUpload />} />
+          <Route path="/docUpload" element={<DocumentUpload />} />
           <Route path="/pointPerson" element={<PointPerson />} />
           <Route path="/contactPerson" element={<ContactPerson />} />
           <Route path="/mobility" element={<Mobility />} />
