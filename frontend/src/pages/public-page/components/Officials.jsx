@@ -4,7 +4,7 @@ import "./styles/Officials.css";
 import trinidad from "./assets/trinidad.jpg";
 import linkageschief from "./assets/ChiefPartnershipandLinkagesSection.jpg";
 import sasot from "./assets/sasot.jpg";
-import chiefseps from "./assets/chiefseps.jpg";
+import reyes from "./assets/reyes.jpg";
 import murao from "./assets/murao.jpg";
 import cynthia from "./assets/trinidad2.jpg";
 import enguerra from "./assets/enguerra.jpg";
@@ -17,7 +17,7 @@ export default function Officials() {
       image: trinidad,
     },
     {
-      name: "Nicky C. Cardenas, EMJMD",
+      name: "TBA",
       position: "Chief, Partnership and Linkages Section",
       image: linkageschief,
     },
@@ -27,9 +27,9 @@ export default function Officials() {
       image: sasot,
     },
     {
-      name: "TBA",
+      name: "Jinky D. Reyes, PhD",
       position: "Chief, Study and Exchange Program Section",
-      image: chiefseps,
+      image: reyes,
     },
     {
       name: "Rochelle S. Murao",

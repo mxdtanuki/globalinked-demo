@@ -120,15 +120,6 @@
   color: white !important;
 }
 
-.login-icon {
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
-  margin-bottom: 1.5px;
-  object-fit: contain;
-  vertical-align: middle;
-}
-
 /* Search Button */
 .search-btn {
   background: rgba(74, 29, 29, 0.1);

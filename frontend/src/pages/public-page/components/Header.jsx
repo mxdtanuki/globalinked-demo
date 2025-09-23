@@ -120,6 +120,10 @@ export default function Header() {
               >
                 CONTACT US
               </button>
+
+              <Link to="/login" className="nav-item admin-btn">
+                ADMIN
+              </Link>
             </nav>
 
             <button
