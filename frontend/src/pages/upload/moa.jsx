@@ -16,7 +16,7 @@ const MOAUpload = () => {
     <TopbarSidebar>
       <div className="mou-upload-container">
         <form className="initial-form">
-          <h3 className="form-title">MOA Initial Form</h3>
+          <h3 className="form-title">Initial Form</h3>
 
           <div className="form-grid">
             <div className="form-group">
@@ -71,7 +71,7 @@ const MOAUpload = () => {
         {/* Upload Box */}
         <div className="upload-box">
           <h3>Upload File</h3>
-          <p>Select MOA file</p>
+          <p>Select file</p>
 
           <div className="file-drop-area">
             <p>Select a file</p>

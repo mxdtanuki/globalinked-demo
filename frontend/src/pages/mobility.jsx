@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable"; 
 import "./mobility.css";
@@ -10,7 +9,6 @@ import { agreementService } from '../services/agreementService';
 const Mobility = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -46,20 +44,9 @@ const Mobility = () => {
     }
   };
 
-  useEffect(() => {
-    const handleResize = () => {
-      const isNowDesktop = window.innerWidth >= 768;
-      setIsDesktop(isNowDesktop);
-      if (isNowDesktop) setMobileShow(false);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const dynamicOptions = {
     partnersClassification: [
-      ...new Set(agreements.map((d) => d.partnersClassification)),
+      ...new Set(agreements.map((d) => d.partnership_type).filter(Boolean)),
     ],
     entityType: [...new Set(agreements.map((d) => d.entity_type).filter(Boolean))],
     country: [...new Set(agreements.map((d) => d.country).filter(Boolean))],
@@ -75,7 +62,7 @@ const Mobility = () => {
 
     const matchesFilters =
       (!filters.partnersClassification ||
-        item.partners_type === filters.partnersClassification) &&
+        item.partnership_type === filters.partnersClassification) &&
       (!filters.entityType || item.entity_type === filters.entityType) &&
       (!filters.country || item.country === filters.country) &&
       (!filters.validity || item.validity_period === filters.validity);
@@ -178,16 +165,6 @@ const Mobility = () => {
           className="main-content"
           onClick={() => mobileShow && setMobileShow(false)}
         >
-          {isDesktop && (
-            <div
-              className={`floating-toggle-btn ${
-                collapsed ? "collapsed" : ""
-              }`}
-              onClick={toggleCollapse}
-            >
-              {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-            </div>
-          )}
 
           <h2 className="mobility-title">Mobility Office</h2>
 

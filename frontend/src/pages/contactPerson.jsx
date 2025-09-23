@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import './contactPerson.css';
 import { agreementService } from '../services/agreementService';
 
@@ -9,7 +8,6 @@ import { agreementService } from '../services/agreementService';
 const ContactPerson = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -21,16 +19,6 @@ const ContactPerson = () => {
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const isNowDesktop = window.innerWidth >= 768;
-      setIsDesktop(isNowDesktop);
-      if (isNowDesktop) setMobileShow(false);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
 // Load agreements and flatten contact persons into table rows
   useEffect(() => {
@@ -102,11 +90,6 @@ const ContactPerson = () => {
       <div className="content-body">
         <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
         <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
-          {isDesktop && (
-            <div className={`floating-toggle-btn ${collapsed ? 'collapsed' : ''}`} onClick={toggleCollapse}>
-              {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-            </div>
-          )}
 
           <h2 className="mobility-title">Contact Person List</h2>
 

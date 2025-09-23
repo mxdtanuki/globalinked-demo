@@ -31,19 +31,6 @@ import TotalAgreement from './pages/stat/totalAgreement';
 import ExpiredAgreement from './pages/stat/expiredAgreements';
 import NearExpirationAgreement from './pages/stat/nearExpAgreement';
 
-// Lifecycle Pages
-import EndorseULCO from './pages/lifecycle/ulco';
-import RevertInitiator from './pages/lifecycle/revertIni';
-import Replication from './pages/lifecycle/replication';
-import ForSignPup from './pages/lifecycle/forSignPup';
-import SignedPup from './pages/lifecycle/signedPup';
-import ForSignPartner from './pages/lifecycle/forSignPartner';
-import SignedPartners from './pages/lifecycle/signedPartners';
-import CompletelySigned from './pages/lifecycle/completelySigned';
-import Notary from './pages/lifecycle/notary';
-import FFUPCopy from './pages/lifecycle/FFUPCopy';
-import Renewals from './pages/lifecycle/renewals';
-
 // Upload Documents
 import MOAUpload from './pages/upload/moa';
 import MOUUpload from './pages/upload/mou';
@@ -72,7 +59,7 @@ function App() {
           {/* admin routes */}
           <Route path="/overview" element={<Overview />} />
           <Route path="/analytics" element={<Analytics />} />
-          <Route path="/docUpload" element={<DocumentUpload />} />
+          <Route path="/docUpload" element={< MOAUpload />} />
           <Route path="/pointPerson" element={<PointPerson />} />
           <Route path="/contactPerson" element={<ContactPerson />} />
           <Route path="/mobility" element={<Mobility />} />
@@ -89,19 +76,6 @@ function App() {
           <Route path="/stat/expiredAgreement" element={<ExpiredAgreement />} />
           <Route path="/stat/nearExpAgreement" element={<NearExpirationAgreement />} />
 
-          {/* Lifecycle Routes */}
-          <Route path="/lifecycle/ulco" element={<EndorseULCO />} />
-          <Route path="/lifecycle/revertIni" element={<RevertInitiator />} />
-          <Route path="/lifecycle/replication" element={<Replication />} />
-          <Route path="/lifecycle/forSignPup" element={<ForSignPup />} />
-          <Route path="/lifecycle/signedPup" element={<SignedPup />} />
-          <Route path="/lifecycle/forSignPartner" element={<ForSignPartner />} />
-          <Route path="/lifecycle/signedPartners" element={<SignedPartners />} />
-          <Route path="/lifecycle/completelySigned" element={<CompletelySigned />} />
-          <Route path="/lifecycle/notary" element={<Notary />} />
-          <Route path="/lifecycle/FFUPCopy" element={<FFUPCopy />} />
-          <Route path="/lifecycle/renewals" element={<Renewals />} />
-
           {/* Upload Document Routes */}
           <Route path="/document-upload/mou" element={<MOUUpload />} />
           <Route path="/document-upload/moa" element={<MOAUpload />} />
@@ -112,6 +86,7 @@ function App() {
 
           {/* Existing MOUMOAPage route */}
           <Route path="/mou-moa" element={<MOUMOAPage />} />
+
         </Routes>
       </Router>
     </NotificationsProvider>

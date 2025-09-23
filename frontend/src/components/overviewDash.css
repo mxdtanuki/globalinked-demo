@@ -146,23 +146,11 @@
   margin-left: 8px;
   padding: 10px 14px;
   border: none;
-  background-color: #ddd;
+  background-color: #800000;
+  color: white;
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s;
-}
-
-.table-actions .btn:hover {
-  background-color: #c7c7c7;
-}
-
-.btn-generate {
-  background-color: #800000;
-  color: white;
-}
-
-.btn-generate:hover {
-  background-color: #660000;
 }
 
 
@@ -464,6 +452,11 @@
   .search-box {
     width: 100%;
   }
+}
+.button-group {
+  display: flex;
+  gap: 8px; /* space between buttons */
+  flex-wrap: nowrap; /* prevent wrapping */
 }
 
 /* Overlay */

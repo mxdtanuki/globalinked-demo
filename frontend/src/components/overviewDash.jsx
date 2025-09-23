@@ -499,7 +499,8 @@ const OverviewDash = () => {
     { label: 'Total Agreement', count: agreements.length, route: '/stat/totalAgreement' },
     { label: 'Active Agreement', count: agreements.filter(a => a.agreement_status !== 'Complete').length, route: '/stat/activeAgreement' },
     { label: 'Expired Agreement', count: agreements.filter(a => new Date(a.date_expiry) < new Date()).length, route: '/stat/expiredAgreement' },
-    { label: 'Nearing Expiration', count: agreements.filter(a => a.date_expiry && new Date(a.date_expiry) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).length, route: '/stat/nearExpAgreement' }
+    { label: 'Nearing Expiration', count: agreements.filter(a => {if (!a.date_expiry) return false;const now = new Date(); const expiryDate = new Date(a.date_expiry); const daysDifference = (expiryDate - now) / (1000 * 60 * 60 * 24); return daysDifference > 0 && daysDifference <= 30;
+    }).length, route: '/stat/nearExpAgreement'}
   ];
 
   const lifecycleStages = [
@@ -509,7 +510,7 @@ const OverviewDash = () => {
     { label: 'For Signature of PUP Official', status: 'SignituresPUP' },
     { label: 'Signed by PUP Official', status: 'SignedPUP' },
     { label: 'For Signature of Partners', status: 'SignituresPartner' },
-    { label: 'Signed by Partners', status: 'Complete' },
+    { label: 'Signed by Partners', status: 'SignedPartners' },
     { label: 'Completely Signed', status: 'Complete' },
     { label: 'For Notary', status: 'Notary' },
     { label: 'To FFUP Copy', status: 'FFUPCopy' },
@@ -539,11 +540,49 @@ const OverviewDash = () => {
   if (loading) return <div className="overview-container">Loading agreements...</div>;
   if (error) return <div className="overview-container">Error: {error}</div>;
 
+  const filterByStat = (statLabel) => {
+  let data = [...agreements];
+
+  const now = new Date();
+
+  switch (statLabel) {
+    case 'Total Agreement':
+      setSelectedStatus(null);
+      break;
+
+    case 'Active Agreement':
+      data = data.filter(a => a.agreement_status !== 'Complete');
+      setSelectedStatus(null);
+      break;
+
+    case 'Expired Agreement':
+      data = data.filter(a => a.date_expiry && new Date(a.date_expiry) < now);
+      setSelectedStatus(null);
+      break;
+
+    case 'Nearing Expiration':
+      data = data.filter(a => {
+        if (!a.date_expiry) return false;
+        const expiryDate = new Date(a.date_expiry);
+        const daysDifference = (expiryDate - now) / (1000 * 60 * 60 * 24);
+        return daysDifference > 0 && daysDifference <= 30; 
+      });
+      setSelectedStatus(null);
+      break;
+
+    default:
+      break;
+  }
+
+  setFilteredAgreements(data);
+  setCurrentPage(1);
+};
+
   return (
     <div className="overview-container">
       <div className="stats-row">
         {stats.map((s, i) => (
-          <button key={i} className="stat-card" onClick={() => navigate(s.route)}>
+          <button key={i} className="stat-card" onClick={() => filterByStat(s.label)}>
             <div className="stat-number">{s.count}</div>
             <div className="stat-label">{s.label}</div>
           </button>
@@ -580,10 +619,12 @@ const OverviewDash = () => {
               <MdOutlineManageHistory className="audit-icon" />
             </div>
           </div>
-          <div className="table-actions">
+        <div className="table-actions">
+          <div className="button-group">
             <button className="btn" onClick={() => setShowFilterPanel(!showFilterPanel)}>Filter</button>
             <button className="btn btn-generate">Generate</button>
           </div>
+        </div>
         </div>
 
         {showFilterPanel && (
