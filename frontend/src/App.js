@@ -16,7 +16,6 @@ import FacultyLoginPage from './pages/public-page/components/FacultyLoginPage';
 //sidebar pages
 import Overview from './pages/overview';
 import Analytics from './pages/analytics';
-import DocumentUpload from './pages/docUpload';
 import PointPerson from './pages/pointPerson';
 import ContactPerson from './pages/contactPerson';
 import Mobility from './pages/mobility';
@@ -57,6 +56,9 @@ function App() {
           {/* auth routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} /> 
+
+           {/* admin login */}
+          <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
 
           {/* admin routes */}
           <Route path="/overview" element={<Overview />} />

@@ -32,6 +32,8 @@ async def upload_version(
     status_at_upload: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
+    print(f"UPLOAD VERSION HIT: dts_number={dts_number}, file={file.filename}, version_comment={version_comment}, status_at_upload={status_at_upload}")
+
     """Upload a new version for an agreement identified by dts_number."""
     # 1 Validate agreement exists
     agreement = db.query(Agreements).filter(Agreements.dts_number == dts_number).first()
@@ -62,10 +64,14 @@ async def upload_version(
         uploaded_at=datetime.utcnow(),
         user_id=PLACEHOLDER_USER_ID,
         version_comment=version_comment,
-        status_at_upload=status_at_upload or "Uploaded"
+        status_at_upload=status_at_upload 
     )
     db.add(new_version)
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        print(f"DB COMMIT FAILED: {e}")
+        raise
     db.refresh(new_version)
 
     download_url = get_signed_url(new_version.file_path)

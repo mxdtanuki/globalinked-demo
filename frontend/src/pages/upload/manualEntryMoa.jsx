@@ -406,7 +406,7 @@ const handleSubmit = async (e) => {
         : [],
     };
 
-    // 🔑 Handle partner differently for existing vs new
+    // Handle partner differently for existing vs new
     if (partnerEntryType === "Existing") {
       agreementData.partner_id = selectedPartner?.value || null;
     } else {
@@ -444,12 +444,12 @@ const handleSubmit = async (e) => {
     }
 
     if (response.status === "created") {
-      setMessage("MOA created successfully!");
+      setMessage("Entry created successfully!");
       e.target.reset();
       setSelectedCountry(null);
       setSelectedRegion(null);
       setDtsNumber("");
-      setDocumentType("MOA");
+      setDocumentType("");
       setPartnershipType("");
       setPointPersons([{ name: "", position: "", email: "" }]);
       setContacts([{ name: "", position: "", email: "" }]);
