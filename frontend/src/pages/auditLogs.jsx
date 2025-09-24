@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
-import "../components/layout.css"; // style like notification.css
+import "../components/layout.css";
+import "./auditLogs.css";
 import axios from "axios";
-import { AuditService } from '../services/auditService';
 
+const FILTERS = [
+  { label: "All", value: "all" },
+  { label: "User Management Logs", value: "user" },
+  { label: "Agreements Logs", value: "agreement" },
+];
 
 const AuditLogsPage = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [filter, setFilter] = useState("all");
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
@@ -17,7 +23,7 @@ const AuditLogsPage = () => {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("access_token");
         const res = await axios.get("http://localhost:8000/audit/logs", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -29,6 +35,27 @@ const AuditLogsPage = () => {
 
     fetchLogs();
   }, []);
+
+  // Filter logic
+  const filteredLogs = logs.filter((log) => {
+    if (filter === "all") return true;
+    if (filter === "user") {
+      return (
+        log.audit_description.toLowerCase().includes("user") ||
+        log.audit_description.toLowerCase().includes("approved request") ||
+        log.audit_description.toLowerCase().includes("rejected request") ||
+        log.audit_description.toLowerCase().includes("deleted a user")
+      );
+    }
+    if (filter === "agreement") {
+      return (
+        log.audit_description.toLowerCase().includes("agreement") ||
+        log.audit_description.toLowerCase().includes("moa entry") ||
+        log.audit_description.toLowerCase().includes("mou entry")
+      );
+    }
+    return true;
+  });
 
   return (
     <div className="dashboard-container">
@@ -48,38 +75,43 @@ const AuditLogsPage = () => {
           mobileShow={mobileShow}
         />
 
-        <div
-          className="main-content"
-          onClick={() => mobileShow && setMobileShow(false)}
-        >
-          <h2 className="audit-title">Audit Logs</h2>
+        <div className="auditlogs-container">
+          <div className="auditlogs-title">Audit Logs</div>
 
-          <div className="audit-container">
-            {logs.length === 0 ? (
-              <p>No audit logs found.</p>
-            ) : (
-              <table className="audit-table">
-                <thead>
-                  <tr>
-                    <th>Audit ID</th>
-                    <th>User Name</th>
-                    <th>Description</th>
-                    <th>Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => (
-                    <tr key={log.audit_id}>
-                      <td>{log.audit_id}</td>
-                      <td>{log.username}</td>
-                      <td>{log.audit_description}</td>
-                      <td>{new Date(log.audit_timestamp).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+          <div style={{ marginBottom: "18px", display: "flex", gap: "10px" }}>
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                className={filter === f.value ? "active-filter-btn" : "filter-btn"}
+                onClick={() => setFilter(f.value)}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
+
+          {filteredLogs.length === 0 ? (
+            <div className="auditlogs-empty">No audit logs found.</div>
+          ) : (
+            <table className="auditlogs-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>User</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLogs.map((log) => (
+                  <tr key={log.audit_id}>
+                    <td>{log.audit_description}</td>
+                    <td>{log.user_name}</td>
+                    <td>{new Date(log.audit_timestamp).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
