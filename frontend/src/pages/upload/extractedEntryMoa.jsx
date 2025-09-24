@@ -272,7 +272,7 @@ const ExtractedEntryMOA = () => {
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [dtsNumber, setDtsNumber] = useState("");
-  const [documentType, setDocumentType] = useState("MOA");
+  const [documentType, setDocumentType] = useState("");
   const [partnershipType, setPartnershipType] = useState("");
 
   // Partner state
@@ -309,6 +309,9 @@ const ExtractedEntryMOA = () => {
     setPointPersons(updated);
   };
   const removePointPerson = (i) => setPointPersons(pointPersons.filter((_, idx) => idx !== i));
+
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [versionComment, setVersionComment] = useState("");
 
   // Fetch existing partners
   useEffect(() => {
@@ -400,7 +403,7 @@ const handleSubmit = async (e) => {
         : [],
     };
 
-    // 🔑 Handle partner differently for existing vs new
+    // Handle partner differently for existing vs new
     if (partnerEntryType === "Existing") {
       agreementData.partner_id = selectedPartner?.value || null;
     } else {
@@ -423,7 +426,7 @@ const handleSubmit = async (e) => {
       };
     }
 
-    // Send request
+    // Send request to backend
     const response = await agreementService.createAgreement(agreementData);
 
     if (response.status === "duplicate") {
@@ -438,15 +441,46 @@ const handleSubmit = async (e) => {
     }
 
     if (response.status === "created") {
-      setMessage("MOA created successfully!");
+      setMessage("Entry created successfully!");
+
+      // Upload version if file is provided
+      if (uploadedFile) {
+        try {
+          const formData = new FormData();
+          formData.append("file", uploadedFile);
+          formData.append("version_comment", versionComment);
+          formData.append("status_at_upload", agreementData.agreement_status);
+
+          const res = await fetch(
+            `/documents/${agreementData.dts_number}/versions`,
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+          if (!res.ok) {
+            throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+          }
+
+          setMessage("Entry created and version uploaded successfully!");
+        } catch (err) {
+          console.error("Version upload failed:", err);
+          setMessage("Entry created, but version upload failed.");
+        }
+      }
+
+      // reset form state
       e.target.reset();
       setSelectedCountry(null);
       setSelectedRegion(null);
       setDtsNumber("");
-      setDocumentType("MOA");
+      setDocumentType("");
       setPartnershipType("");
       setPointPersons([{ name: "", position: "", email: "" }]);
       setContacts([{ name: "", position: "", email: "" }]);
+      setUploadedFile(null);
+      setVersionComment("");
     }
   } catch (error) {
     console.error("Full error:", error);
@@ -461,7 +495,7 @@ const handleSubmit = async (e) => {
   <TopbarSidebar>
     <div className="manual-entry-wrapper">
       <div className="manual-entry-container">
-        <h2 className="form-title">MOA Manual Entry Form</h2>
+        <h2 className="form-title">Extracted Entry Form</h2>
         {message && (
           <div
             style={{
@@ -477,8 +511,26 @@ const handleSubmit = async (e) => {
         )}
         <form className="manual-entry-form" onSubmit={handleSubmit}>
 
+          {/* FILE UPLOAD */}
+          <div className="form-group">
+            <label>File V1:</label>
+            <input 
+              type="file" 
+              onChange={(e) => setUploadedFile(e.target.files[0])} 
+            />
+          </div>
+
+          {/* VERSION COMMENTS */}
+          <div className="form-group full-width">
+            <label>File Comments:</label>
+            <textarea 
+              value={versionComment}
+              onChange={(e) => setVersionComment(e.target.value)}
+            />
+          </div>
+
           {/* DATE */}
-          <div className="form-group" onSubmit={handleSubmit}>
+          <div className="form-group">
             <label htmlFor="entryDate">Date:</label>
             <input id="entryDate" name="entryDate" type="date" required />
           </div>
@@ -493,7 +545,11 @@ const handleSubmit = async (e) => {
             value={documentType}
             onChange={(e) => setDocumentType(e.target.value)}
           >
+            <option value="" disabled>
+              Select Document Type
+            </option>
             <option value="MOA">MOA</option>
+            <option value="MOU">MOU</option>
           </select>
           </div>
 
@@ -831,7 +887,7 @@ const handleSubmit = async (e) => {
           {/* DATE EXPIRY */}
           <div className="form-group">
           <label htmlFor="dateExpiry">Date Expiry:</label>
-          <input id="dateExpiry" name="dateExpiry" type="date" />
+          <input id="dateExpiry" name="dateExpiry" type="date" required/>
           </div>
 
           {/* DATE PUP SIGNED */}

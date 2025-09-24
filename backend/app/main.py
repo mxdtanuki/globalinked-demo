@@ -9,6 +9,7 @@ from app.database import Base, engine
 from app.models.notification import Notification
 
 from app.controllers import partners_controller
+from app.controllers import document_controller
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -47,6 +48,7 @@ app.include_router(notification_controller.router)
 app.include_router(email_controller.router)
 app.include_router(registration_controller.router)
 app.include_router(partners_controller.router)
+app.include_router(document_controller.router)
 
 
 # Root route

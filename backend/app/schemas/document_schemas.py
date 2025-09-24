@@ -5,7 +5,7 @@ from datetime import datetime
 class DocumentVersionCreate(BaseModel):
     dts_number: str = Field(..., max_length=50)
     version_comment: Optional[str] = None
-    status_at_upload: Optional[str] = None
+    status_at_upload: str
 
 class DocumentVersionResponse(BaseModel):
     version_id: int
@@ -16,12 +16,12 @@ class DocumentVersionResponse(BaseModel):
     uploaded_at: datetime
     user_id: int
     version_comment: Optional[str] = None
-    status_at_upload: Optional[str] = None
+    status_at_upload: str
 
     class Config:
         from_attributes = True
 
 class DocumentVersionUpdate(BaseModel):
     version_comment: Optional[str] = None
-    status_at_upload: Optional[str] = None
+    status_at_upload: str
     # If a file is uploaded during update we handle it as multipart in endpoint, not here.

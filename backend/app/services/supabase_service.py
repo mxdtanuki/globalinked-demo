@@ -1,4 +1,5 @@
 import os
+import io
 from typing import Optional
 from supabase import create_client
 from pathlib import Path
@@ -10,6 +11,7 @@ SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "agreements")
 if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
     raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in env")
 
+print("SUPABASE key starts with:", SUPABASE_SERVICE_KEY[:10])
 sb = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 def _normalize_path(dts_number: str, filename: str) -> str:
@@ -17,7 +19,7 @@ def _normalize_path(dts_number: str, filename: str) -> str:
     dts = dts_number.strip("/")
     return f"{dts}/{filename.lstrip('/')}"
 
-def upload_file(dts_number: str, version_number: int, file_stream, original_filename: str, upsert: bool = True) -> str:
+def upload_file(dts_number: str, version_number: int, file_stream, original_filename: str, upsert: bool = "true") -> str:
     """
     Uploads bytes from file_stream into the bucket under path:
       <dts_number>/<version_number><ext>
@@ -47,19 +49,22 @@ def delete_file(object_path: str) -> None:
     if isinstance(res, dict) and res.get("error"):
         raise RuntimeError(f"Supabase delete error: {res['error']}")
 
+
 def create_folder_placeholder(dts_number: str) -> str:
     """
     Creates a small placeholder file so the bucket 'folder' exists:
-    <dts_number>/.placeholder
+    <dts_number>/.keep
     Returns object path.
     """
-    object_path = _normalize_path(dts_number, ".placeholder")
-    res = sb.storage.from_(SUPABASE_BUCKET).upload(object_path, b"", {"upsert": False})
+    object_path = _normalize_path(dts_number, ".keep")
+
+    # Use a tiny non-empty file via BytesIO
+    data = io.BytesIO(b"folder placeholder")
+
+    res = sb.storage.from_(SUPABASE_BUCKET).upload(object_path, data, {"upsert": False})
     if isinstance(res, dict) and res.get("error"):
-        # Some storage providers may refuse zero-byte; try small byte instead
-        res = sb.storage.from_(SUPABASE_BUCKET).upload(object_path, b" ", {"upsert": False})
-        if isinstance(res, dict) and res.get("error"):
-            raise RuntimeError(f"Supabase create-folder error: {res['error']}")
+        raise RuntimeError(f"Supabase create-folder error: {res['error']}")
+
     return object_path
 
 def get_signed_url(object_path: str, expires_in: int = 3600) -> str:
