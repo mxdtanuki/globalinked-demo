@@ -331,7 +331,7 @@ async def create_agreement(
         # Final commit
         db.commit()
         db.refresh(new_agreement)
-
+        '''
         # --- SUPABASE: create folder for this agreement ---
         try:
             folder_path = f"{new_agreement.dts_number}/"
@@ -345,7 +345,7 @@ async def create_agreement(
         except Exception as supa_err:
             # don’t block agreement creation if folder fails
             print(f"[WARN] Supabase folder creation failed for {new_agreement.dts_number}: {supa_err}")
-
+        '''
         # Fetch associations
         contact_persons = db.query(ContactPersons).filter(ContactPersons.agreement_id == new_agreement.agreement_id).all()
         point_persons = db.query(PointPersons).filter(PointPersons.agreement_id == new_agreement.agreement_id).all()
