@@ -4,7 +4,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from app.websocket_manager import ConnectionManager
 import json
 
-from app.controllers import auth_controller, notification_controller, email_controller, registration_controller, agreement_controller
+from app.controllers import auth_controller, notification_controller, email_controller, registration_controller, agreement_controller, audit_controller
 from app.database import Base, engine
 from app.models.notification import Notification
 
@@ -47,6 +47,7 @@ app.include_router(notification_controller.router)
 app.include_router(email_controller.router)
 app.include_router(registration_controller.router)
 app.include_router(partners_controller.router)
+app.include_router(audit_controller.router)
 
 
 # Root route
