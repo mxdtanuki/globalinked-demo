@@ -8,6 +8,7 @@ from datetime import datetime
 from app.utils.utils import get_current_user, hash_password
 from app.services.email_service import send_email
 from app.services.notif_service import create_notification_if_new
+from app.utils.audit_utils import log_approve_request, log_reject_request, log_delete_request
 
 router = APIRouter(
     prefix="/registration",
@@ -143,7 +144,9 @@ async def delete_user(user_id: int, db: Session = Depends(get_db), current_user:
 
     db.delete(user)
     db.commit()
+    log_delete_request(db, current_user, user)
     return {"status": "deleted"}
+    
 
 # Get pending users (only) 
 @router.get("/pending", response_model=List[UserResponse])
@@ -171,6 +174,7 @@ async def approve_user(user_id: int, db: Session = Depends(get_db), current_user
     user.user_status = "approved"
     db.commit()
     db.refresh(user)
+    log_approve_request(db, current_user, user)
 
     try:
         if hasattr(user, 'user_email') and user.user_email:
@@ -226,6 +230,7 @@ async def reject_user(user_id: int, db: Session = Depends(get_db), current_user:
     user.user_status = "rejected"
     db.commit()
     db.refresh(user)
+    log_reject_request(db, current_user, user)
     
     # Send rejection email
     try:

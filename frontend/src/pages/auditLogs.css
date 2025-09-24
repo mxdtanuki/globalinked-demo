@@ -1,0 +1,65 @@
+/* Audit logs dropdown container */
+.audit-context-dropdown {
+  position: absolute;
+  top: 60px;
+  right: 30px;
+  width: 350px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 1000;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* Audit logs header */
+.audit-context-header {
+  padding: 12px 16px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #eee;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #333;
+}
+
+/* Audit log item */
+.audit-context-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+  color: #444;
+  transition: background 0.2s;
+}
+
+.audit-context-item:last-child {
+  border-bottom: none;
+}
+
+.audit-context-item:hover {
+  background: #f0f7ff;
+}
+
+/* Audit log timestamp */
+.audit-context-timestamp {
+  display: block;
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* Empty state */
+.audit-context-empty {
+  padding: 20px 16px;
+  color: #aaa;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+/* Icon for audit logs (optional) */
+.audit-context-icon {
+  margin-right: 8px;
+  vertical-align: middle;
+  color: #1976d2;
+  font-size: 1.2rem;
+}

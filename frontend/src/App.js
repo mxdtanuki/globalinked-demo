@@ -5,16 +5,23 @@ import Register from './pages/register';
 import ForgetPass from './pages/forgetPass';
 import ResetPass from './pages/resetPass';
 
-// context for notifications
+// context for notifications and audit logs
 import { NotificationsProvider } from './pages/notificationContext';
+import { AuditProvider } from "./pages/auditContext";
 
 //public page
 import PublicPage from './pages/public-page/public-page';
+
+// MOUMOAPage
+import MOUMOAPage from './pages/public-page/components/MOUMOAPage';
 
 // templates
 import TemplatesPage from './pages/public-page/components/TemplatesPage';
 // admin login
 import FacultyLoginPage from './pages/public-page/components/FacultyLoginPage';
+
+// for audit logs
+import AuditLogsPage from './pages/auditLogs';
 
 //sidebar pages
 import Overview from './pages/overview';
@@ -43,6 +50,7 @@ import './App.css';
 function App() {
   return (
     <NotificationsProvider>
+      <AuditProvider>
       <Router>
         <Routes>
           {/* public page routes */}
@@ -71,6 +79,7 @@ function App() {
           <Route path="/archive" element={<Archive />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/userManagement" element={<UserManagement />} />
+          <Route path="/audit-logs" element={<AuditLogsPage />} />
 
           {/* Upload Document Routes */}
           <Route path="/document-upload/mou" element={<MOUUpload />} />
@@ -78,8 +87,12 @@ function App() {
           <Route path="/upload/manualEntryMOA" element={<ManualEntryMoa />} />
           <Route path="/upload/extractedEntryMOA" element={<ExtractedEntryMOA />} />
 
+          {/* Existing MOUMOAPage route */}
+          <Route path="/mou-moa" element={<MOUMOAPage />} />
+
         </Routes>
       </Router>
+      </AuditProvider>
     </NotificationsProvider>
   );
 }
