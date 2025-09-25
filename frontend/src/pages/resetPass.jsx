@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { FaLock } from "react-icons/fa";
 import "./login.css"; // reuse 
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+
 const ResetPass = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -28,7 +30,7 @@ const ResetPass = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/auth/reset-password", {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
