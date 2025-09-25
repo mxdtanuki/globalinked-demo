@@ -1,10 +1,12 @@
-/* Container */
 .auditlogs-container {
   background: #fff;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  margin: 20px;
+  margin: 0 auto;  
+  margin-top: 40px;     
+  width: 100%;
+  max-width: 1200px;    
 }
 
 /* Title */
@@ -45,6 +47,12 @@
   font-weight: bold;
 }
 
+/*Action column */
+.auditlogs-table th:last-child,
+.auditlogs-table td:last-child {
+  text-align: center;
+}
+
 .auditlogs-table tr:nth-child(even) {
   background: #f9f9f9;
 }
@@ -53,6 +61,7 @@
   background: #fff7f7;
 }
 
+/* Filter Buttons */
 .filter-btn {
   padding: 8px 16px;
   border: none;
@@ -77,6 +86,23 @@
   padding: 8px 16px;
   border: none;
   font-size: 14px;
+}
+
+/* Trash Button */
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: #a00000;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.delete-btn:hover {
+  color: #ff0000;
 }
 
 /* Responsive */
