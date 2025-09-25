@@ -6,6 +6,8 @@ import "./auditLogs.css";
 import axios from "axios";
 import { FiTrash2 } from "react-icons/fi"; 
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+
 const FILTERS = [
   { label: "All", value: "all" },
   { label: "User Management Logs", value: "user" },
@@ -28,7 +30,7 @@ const AuditLogsPage = () => {
   const fetchLogs = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      const res = await axios.get("http://localhost:8000/audit/logs", {
+      const res = await axios.get(`${API_BASE_URL}/audit/logs`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setLogs(res.data);

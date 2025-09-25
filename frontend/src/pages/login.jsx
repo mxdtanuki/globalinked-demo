@@ -45,7 +45,7 @@ const Login = () => {
       }
     } catch (error) {
       setError(
-        'Cannot connect to backend. Make sure the server is running on http://localhost:8000'
+        'Cannot connect to backend'
       );
     } finally {
       setLoading(false);

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { FaEnvelope } from "react-icons/fa";
 import "./login.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+
 const ForgetPass = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -17,7 +19,7 @@ const ForgetPass = () => {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:8000/auth/forgot-password", {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }), // send email 
