@@ -104,7 +104,7 @@ const Login = () => {
             </div>
 
             <div className="form-footer">
-              <span className="link" onClick={() => navigate('/forgot-password')}>Forgot Password?</span>
+              <span className="link-forgot" onClick={() => navigate('/forgot-password')}>Forgot Password?</span>
             </div>
 
             <button type="submit" disabled={loading}>

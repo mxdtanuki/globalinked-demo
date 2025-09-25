@@ -219,6 +219,19 @@
   color: #a00000;
 }
 
+.link-forgot {
+  color: #880000;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+  text-decoration: underline; /* Makes it look like a link */
+}
+
+.link-forgot:hover {
+  color: #a00000; /* Darker on hover */
+  text-decoration: none; /* Optional: remove underline on hover */
+}
+
 /* RESPONSIVE */
 @media (max-width: 900px) {
   .auth-page .auth-container {
