@@ -4,6 +4,7 @@ import TopBar from "../components/topbar";
 import "../components/layout.css";
 import "./auditLogs.css";
 import axios from "axios";
+import { FiTrash2 } from "react-icons/fi"; 
 
 const FILTERS = [
   { label: "All", value: "all" },
@@ -21,20 +22,25 @@ const AuditLogsPage = () => {
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
 
   useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        const res = await axios.get("http://localhost:8000/audit/logs", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setLogs(res.data);
-      } catch (err) {
-        console.error("Failed to fetch audit logs:", err);
-      }
-    };
-
     fetchLogs();
   }, []);
+
+  const fetchLogs = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const res = await axios.get("http://localhost:8000/audit/logs", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLogs(res.data);
+    } catch (err) {
+      console.error("Failed to fetch audit logs:", err);
+    }
+  };
+
+  // Placeholder delete
+  const handleDelete = (id, description) => {
+    alert(`Delete clicked on log #${id}\nDescription: ${description}`);
+  };
 
   // Filter logic
   const filteredLogs = logs.filter((log) => {
@@ -96,9 +102,10 @@ const AuditLogsPage = () => {
             <table className="auditlogs-table">
               <thead>
                 <tr>
-                  <th>Description</th>
+                  <th>Logs</th>
                   <th>User</th>
                   <th>Timestamp</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,6 +114,14 @@ const AuditLogsPage = () => {
                     <td>{log.audit_description}</td>
                     <td>{log.user_name}</td>
                     <td>{new Date(log.audit_timestamp).toLocaleString()}</td>
+                    <td>
+                      <button
+                        className="delete-btn"
+                        onClick={() => handleDelete(log.audit_id, log.audit_description)}
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
