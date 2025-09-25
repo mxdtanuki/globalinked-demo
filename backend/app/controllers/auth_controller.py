@@ -77,7 +77,7 @@ async def forgot_password(request: Request, db: Session = Depends(get_db)):
     user.reset_token_expiry = expiry
     db.commit()
     # Send email with reset link
-    reset_link = f"http://localhost:3000/resetPass?token={token}"
+    reset_link = f"https://globalinked-system.onrender.com/resetPass?token={token}" 
     send_reset_email(user.user_email, reset_link)
     return {"msg": "If an account exists with that email, you will receive reset instructions shortly."}
 
