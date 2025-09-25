@@ -20,3 +20,5 @@ Username: admin
 Password: admin123
 
 after this we move on to the next - make a dashboard and the categorization.
+
+sendgrid: passcode: ZMG25SU3Z3J73PML7SYHHV3X

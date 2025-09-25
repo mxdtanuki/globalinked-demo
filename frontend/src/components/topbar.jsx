@@ -23,12 +23,12 @@ const TopBar = ({ toggleSidebar }) => {
 
   const toggleDropdown = () => {
     setShowDropdown((prev) => !prev);
-    setShowAuditDropdown(false); // Close audit dropdown 
+    setShowAuditDropdown(false); 
   };
 
   const toggleAuditDropdown = () => {
     setShowAuditDropdown((prev) => !prev);
-    setShowDropdown(false); // Close notifications
+    setShowDropdown(false); 
   };
 
     useEffect(() => {
@@ -66,22 +66,26 @@ const TopBar = ({ toggleSidebar }) => {
                 {logs.length > 0 ? (
                   logs.slice(0, 5).map((log) => (
                     <div key={log.audit_id} className="auditlog-item">
-                      <p className="auditlog-desc">{log.audit_description}</p>
-                      <span className="auditlog-time">{new Date(log.audit_timestamp).toLocaleString()}</span>
+                      <p className="auditlog-title">{log.audit_description}</p>
+                      <div className="auditlog-footer">
+                        <span className="auditlog-timestamp">
+                          {new Date(log.audit_timestamp).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
                   ))
                 ) : (
-                  <p className="no-auditlogs">No audit logs</p>
+                  <p className="auditlog-empty">No audit logs</p>
                 )}
                 <div
-                    className="auditlog-link"
-                    onClick={() => {
-                      setShowAuditDropdown(false);
-                      navigate("/audit-logs");
-                    }}
-                  >
-                    See more →
-                  </div>
+                  className="auditlog-link"
+                  onClick={() => {
+                    setShowAuditDropdown(false);
+                    navigate("/audit-logs");
+                  }}
+                >
+                  See more →
+                </div>
               </div>
             )}
           </div>
