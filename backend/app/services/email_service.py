@@ -2,11 +2,12 @@ from jinja2 import Template
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
+import os
 
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_USER = "pup.international.affairs@gmail.com"
-SMTP_PASS = "epcs mqnp cpun pxin"
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "pup.international.affairs@gmail.com")
+SMTP_PASS = os.getenv("SMTP_PASS", "epcs mqnp cpun pxin")
 
 def render_template(body_html: str, context: dict) -> str:
     template = Template(body_html)
