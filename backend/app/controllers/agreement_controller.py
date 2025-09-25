@@ -136,7 +136,8 @@ async def get_agreements(
 @router.post("/", response_model=dict)
 async def create_agreement(
     agreement: AgreementCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
 ):
     try:
         # Duplicate check (DTS number)
