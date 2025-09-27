@@ -3,6 +3,7 @@ import io
 from typing import Optional
 from supabase import create_client
 from pathlib import Path
+from storage3.exceptions import StorageApiError
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
@@ -18,8 +19,8 @@ def _normalize_path(dts_number: str, filename: str) -> str:
     # Ensure no leading slashes and safe path
     dts = dts_number.strip("/")
     return f"{dts}/{filename.lstrip('/')}"
-
-def upload_file(dts_number: str, version_number: int, file_stream, original_filename: str, upsert: bool = "true") -> str:
+'''
+def upload_file(dts_number: str, version_number: int, file_stream, original_filename: str, upsert: bool | str = True) -> str:
     """
     Uploads bytes from file_stream into the bucket under path:
       <dts_number>/<version_number><ext>
@@ -34,11 +35,46 @@ def upload_file(dts_number: str, version_number: int, file_stream, original_file
     data = file_stream.read()
     if isinstance(data, str):
         data = data.encode()  # ensure bytes
-    res = sb.storage.from_(SUPABASE_BUCKET).upload(object_path, data, {"upsert": upsert})
+    upsert_str = "true" if upsert else "false"
+    res = sb.storage.from_(SUPABASE_BUCKET).upload(object_path, data, {"upsert": upsert_str})
     # supabase client returns dict; on error 'error' key is present
     if isinstance(res, dict) and res.get("error"):
         raise RuntimeError(f"Supabase upload error: {res['error']}")
     return object_path
+'''
+def upload_file(
+    dts_number: str,
+    version_number: int,
+    file_stream,
+    original_filename: str,
+    upsert: bool | str = True
+) -> str:
+    """
+    Uploads bytes from file_stream into the bucket under path:
+      <dts_number>/<version_number><ext>
+    Returns the stored object path (key) relative to the bucket.
+    """
+    # derive extension
+    ext = Path(original_filename).suffix or ""
+    object_name = f"{version_number}{ext}"
+    object_path = _normalize_path(dts_number, object_name)  # e.g. "DT2025777777/2.pdf"
+
+    # read bytes
+    file_stream.seek(0)
+    data = file_stream.read()
+    if isinstance(data, str):
+        data = data.encode()  # ensure bytes
+
+    # Supabase needs upsert header as string
+    upsert_str = "true" if upsert else "false"
+
+    res = sb.storage.from_(SUPABASE_BUCKET).upload(object_path, data, {"upsert": upsert_str})
+
+    # supabase client returns dict; on error 'error' key is present
+    if isinstance(res, dict) and res.get("error"):
+        raise RuntimeError(f"Supabase upload error: {res['error']}")
+
+    return object_path  # relative path only, no bucket
 
 def delete_file(object_path: str) -> None:
     """
@@ -49,24 +85,8 @@ def delete_file(object_path: str) -> None:
     if isinstance(res, dict) and res.get("error"):
         raise RuntimeError(f"Supabase delete error: {res['error']}")
 
-
-def create_folder_placeholder(dts_number: str) -> str:
-    """
-    Creates a small placeholder file so the bucket 'folder' exists:
-    <dts_number>/.keep
-    Returns object path.
-    """
-    object_path = _normalize_path(dts_number, ".keep")
-
-    # Use a tiny non-empty file via BytesIO
-    data = io.BytesIO(b"folder placeholder")
-
-    res = sb.storage.from_(SUPABASE_BUCKET).upload(object_path, data, {"upsert": False})
-    if isinstance(res, dict) and res.get("error"):
-        raise RuntimeError(f"Supabase create-folder error: {res['error']}")
-
     return object_path
-
+'''
 def get_signed_url(object_path: str, expires_in: int = 3600) -> str:
     """
     Returns a signed URL valid for expires_in seconds.
@@ -79,5 +99,23 @@ def get_signed_url(object_path: str, expires_in: int = 3600) -> str:
                 return res[key]
     # fallback: return a public url if your bucket is public
     # public URL format: {SUPABASE_URL}/storage/v1/object/public/{bucket}/{object_path}
+    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{object_path}"
+    return public_url
+'''
+def get_signed_url(object_path: str, expires_in: int = 3600) -> str:
+    """
+    Returns a signed URL valid for expires_in seconds.
+    Falls back to public URL if object not found or signing fails.
+    """
+    try:
+        res = sb.storage.from_(SUPABASE_BUCKET).create_signed_url(object_path, expires_in)
+        if isinstance(res, dict):
+            for key in ("signedURL", "signed_url", "signedurl"):
+                if res.get(key):
+                    return res[key]
+    except StorageApiError as e:
+        print(f"⚠️ Supabase signed URL failed for {object_path}: {e}")
+
+    # fallback: return a public url if your bucket is public
     public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{object_path}"
     return public_url
