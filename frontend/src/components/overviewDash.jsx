@@ -5,7 +5,6 @@ import { agreementService } from '../services/agreementService';
 import { documentService } from '../services/documentService';
 import './overviewDash.css';
 
-
 const OverviewDash = () => {
   const navigate = useNavigate();
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
@@ -32,8 +31,6 @@ const OverviewDash = () => {
   const [deletingRows, setDeletingRows] = useState(new Set());
 
   const rowsPerPage = 20;
-
-  
 
   useEffect(() => {
     fetchAgreements();
@@ -102,7 +99,6 @@ const OverviewDash = () => {
         });
       }
     };
-
 
   // Save changes to a specific row
   const saveRow = async (agreementId) => {
@@ -191,7 +187,7 @@ const OverviewDash = () => {
     const isEditing = editingRow === agreement.agreement_id;
 
     const editableFields = [
-      'entry_date', 'unit_name', 'dts_number', 'dts_status', 'agreement_status',
+      'entry_date', 'source_unit', 'dts_number', 'dts_status', 'agreement_status',
       'name', 'entity_type', 'country', 'region', 'address', 'signatories_list','partnership_type',
       'contact_persons', 'document_type', 'partnership_type', 'event_info',
       'validity_period', 'date_signed', 'date_expiry', 'date_received',
@@ -737,7 +733,7 @@ const OverviewDash = () => {
                   <tr key={agreement.agreement_id}
                     className={editingRow === agreement.agreement_id ? 'editing-row' : ''}>
                     <td>{renderEditableCell(agreement, 'entry_date', agreement.entry_date)}</td>
-                    <td>{renderEditableCell(agreement, 'unit_name', agreement.unit_name)}</td>
+                    <td>{renderEditableCell(agreement, 'source_unit', agreement.source_unit)}</td>
                     <td>{renderEditableCell(agreement, 'point_persons', agreement.point_persons)}</td>
                     <td>{renderEditableCell(agreement, 'dts_number', agreement.dts_number)}</td>
                     <td>{renderEditableCell(agreement, 'dts_status', agreement.dts_status)}</td>

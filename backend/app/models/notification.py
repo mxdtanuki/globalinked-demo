@@ -5,12 +5,21 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 PH_TZ = ZoneInfo("Asia/Manila")
+
 class Notification(Base):
     __tablename__ = "notifications"
 
     notification_id = Column(Integer, primary_key=True, index=True)
-    agreement_id = Column(Integer, ForeignKey("agreements.agreement_id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=True)  # who should see it
+    agreement_id = Column(
+        Integer,
+        ForeignKey("agreements.agreement_id", ondelete="CASCADE"),
+        nullable=True
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=True
+    )  # who should see it
     category = Column(String(50), nullable=False)  # e.g., 'expiring', 'pending', 'renewal'
     message = Column(Text, nullable=False)
     recommended_action = Column(Text, nullable=True)
