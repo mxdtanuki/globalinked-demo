@@ -115,6 +115,36 @@ export const agreementService = {
 
   async deleteAgreement(id) {
     const token = localStorage.getItem('access_token');
+    console.log("DeleteAgreement token:", token);
+    const [, payloadB64] = token.split(".");
+    console.log(JSON.parse(atob(payloadB64)));
+
+    if (!token) {
+      throw new Error('Please login first');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/agreements/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete agreement');
+    }
+
+    // 204 means no content, so just return true
+    if (response.status === 204) {
+      return true;
+    }
+
+    return response.json();
+  }
+
+/*  
+  async deleteAgreement(id) {
+    const token = localStorage.getItem('access_token');
     
     if (!token) {
       throw new Error('Please login first');
@@ -132,6 +162,6 @@ export const agreementService = {
     }
 
     return response.json();
-  },
+  },*/
 
 };
