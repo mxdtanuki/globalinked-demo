@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+
 
 export const emailService = {
   // Fetch email templates from backend
@@ -53,3 +54,4 @@ export const emailService = {
     return res.json();
   }
 };
+

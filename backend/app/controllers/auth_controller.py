@@ -1,18 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+import secrets
+
 
 from app.utils.utils import verify_password, create_access_token, authenticate_user, get_current_user, hash_password, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.database import get_db
 from app.models.users import Users 
 from app.schemas.auth_schemas import Token
+from app.services.email_service import send_reset_email
 
 # Create a router for authentication-related endpoints
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
 )
+
+PH_TZ = ZoneInfo("Asia/Manila")
+
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
@@ -52,3 +59,48 @@ async def login_for_access_token(
             "user_role": user.user_role,
         }
     }
+
+@router.post("/forgot-password")
+async def forgot_password(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    email = data.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    user = db.query(Users).filter(Users.user_email == email).first()
+    if not user:
+        # Don't reveal if user exists
+        return {"msg": "If an account exists with that email, you will receive reset instructions shortly."}
+    # Generate token and expiry
+    token = secrets.token_urlsafe(32)
+    expiry = datetime.now(PH_TZ) + timedelta(hours=1)
+    user.forgot_pass_token = token
+    user.reset_token_expiry = expiry
+    db.commit()
+    # Send email with reset link
+    reset_link = f"https://globalinked-system.onrender.com/resetPass?token={token}" 
+    send_reset_email(user.user_email, reset_link)
+    return {"msg": "If an account exists with that email, you will receive reset instructions shortly."}
+
+@router.post("/reset-password")
+async def reset_password(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    token = data.get("token")
+    new_password = data.get("new_password")
+    if not token or not new_password:
+        raise HTTPException(status_code=400, detail="Token and new password are required")
+    user = db.query(Users).filter(Users.forgot_pass_token == token).first()
+    now = datetime.now(PH_TZ)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    now = datetime.now(PH_TZ)
+    expiry = user.reset_token_expiry
+    if expiry and expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=PH_TZ)
+    if not expiry or expiry < now:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    user.user_pass = hash_password(new_password)
+    db.add(user)
+    user.forgot_pass_token = None
+    user.reset_token_expiry = None
+    db.commit()
+    return {"msg": "Password reset successful"}

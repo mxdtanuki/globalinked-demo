@@ -22,6 +22,7 @@ from app.schemas.agreement_schemas import (
     TimerResponse
 )
 from app.utils.utils import get_current_user
+from app.utils.audit_utils import log_add_entry, log_update_entry, log_delete_entry
 
 
 router = APIRouter(
@@ -135,7 +136,8 @@ async def get_agreements(
 @router.post("/", response_model=dict)
 async def create_agreement(
     agreement: AgreementCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
 ):
     try:
         # Duplicate check (DTS number)
@@ -258,6 +260,7 @@ async def create_agreement(
         )
         db.add(new_agreement)
         db.flush()
+        log_add_entry(db, current_user, agreement.document_type, agreement.dts_number)
 
         # TIMER creation (NEW)
         if getattr(agreement, "timer", None):
@@ -527,6 +530,7 @@ async def update_agreement(
 
         db.commit()
         db.refresh(agreement)
+        log_update_entry(db, current_user, agreement.document_type, agreement.dts_number)
 
         # Prepare response data
         contact_persons = db.query(ContactPersons).filter(
@@ -623,6 +627,7 @@ async def delete_agreement(
         # Delete the agreement
         db.delete(agreement)
         db.commit()
+        log_delete_entry(db, current_user, agreement.document_type, agreement.dts_number)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     except HTTPException:
         raise

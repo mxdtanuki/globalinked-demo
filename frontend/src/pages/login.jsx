@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { FaUser, FaLock } from 'react-icons/fa';
 import './login.css'; 
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+
 const Login = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: '', password: '' });
@@ -24,7 +26,7 @@ const Login = () => {
       formData.append('username', form.username);
       formData.append('password', form.password);
 
-      const response = await fetch('http://localhost:8000/auth/token', {
+      const response = await fetch(`${API_BASE_URL}/auth/token`, {
         method: 'POST',
         body: formData,
       });
@@ -43,7 +45,7 @@ const Login = () => {
       }
     } catch (error) {
       setError(
-        'Cannot connect to backend. Make sure the server is running on http://localhost:8000'
+        'Cannot connect to backend'
       );
     } finally {
       setLoading(false);
@@ -102,7 +104,7 @@ const Login = () => {
             </div>
 
             <div className="form-footer">
-              <a href="/forgot-password">Forgot Password?</a>
+              <span className="link-forgot" onClick={() => navigate('/forgot-password')}>Forgot Password?</span>
             </div>
 
             <button type="submit" disabled={loading}>

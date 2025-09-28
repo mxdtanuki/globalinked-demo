@@ -5,6 +5,7 @@ import { agreementService } from '../services/agreementService';
 import { documentService } from '../services/documentService';
 import './overviewDash.css';
 
+
 const OverviewDash = () => {
   const navigate = useNavigate();
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
@@ -890,7 +891,7 @@ const OverviewDash = () => {
         </div>
 
         <div className="table-footer">
-          <button className="btn-add" onClick={() => navigate('/upload/manualEntryMoa')}> + Add Document</button>
+          <button className="btn-add" onClick={() => navigate('/docUpload')}> + Add Document</button>
         </div>
       </div>
 
