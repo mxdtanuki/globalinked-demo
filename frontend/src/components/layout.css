@@ -147,8 +147,8 @@
 
   .notif-dropdown {
     position: absolute;
-    top: 40px;
-    right: 20px;
+    top: 38px;
+    right: -5px;
     width: 320px;
     background: #fff;
     border: 1px solid #ddd;
@@ -157,6 +157,8 @@
     z-index: 1000;
     padding: 10px;
   }
+
+
 
   .notif-item {
     border-bottom: 1px solid #eee;
@@ -193,6 +195,29 @@
     color: maroon;
     cursor: pointer;
   }
+
+  .notif-refresh {
+    text-align: left;
+    font-size: 13px;
+    color: maroon;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  .notif-refresh button {
+  background: none;
+  border: none;
+  color: maroon;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+  .notif-refresh button:hover {
+  text-decoration: underline;
+  color: #b30000;
+}
 
   .notif-footer-link {
     text-align: center;
@@ -228,8 +253,8 @@
 
   .notif-dropdown {
     position: absolute;
-    top: 40px;
-    right: 20px;
+    top: 38px;
+    right: -5px;
     width: 320px;
     background: #fff;
     border: 1px solid #ddd;
@@ -239,10 +264,15 @@
     padding: 10px;
   }
 
+
   .notif-item {
     border-bottom: 1px solid #eee;
     padding: 8px 0;
   }
+
+  .notif-item:hover {
+  background: #f4eaea;
+}
 
   .notif-title {
     font-weight: bold;
@@ -262,6 +292,11 @@
     justify-content: space-between;
     align-items: center;
   }
+
+  .notif-footer-link:hover {
+  text-decoration: underline;
+  color: #b30000;
+}
 
   .notif-time {
     font-size: 12px;
@@ -296,6 +331,120 @@
     padding: 10px;
   }
 
+/* Audit Log Icon and Dropdown */
+.audit-icon {
+  color: rgb(255, 255, 255);
+  font-size: 22px;
+  vertical-align: middle;
+  transition: color 0.2s;
+}
+
+.auditlog-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.auditlog-badge {
+  background: maroon;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  border: 1px solid white;
+}
+
+.auditlog-dropdown {
+  position: absolute;
+  top: 38px;
+  right: -5px;
+  width: 320px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 1000;
+  padding: 10px;
+}
+
+.auditlog-item {
+  border-bottom: 1px solid #eee;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #444;
+  transition: background 0.2s;
+}
+
+.auditlog-item:last-child {
+  border-bottom: none;
+}
+
+.auditlog-item:hover {
+  background: #f4eaea;
+}
+
+.auditlog-title {
+  font-weight: bold;
+  font-size: 14px;
+  color: black;
+  margin: 0;
+}
+
+.auditlog-description {
+  font-size: 13px;
+  color: #555;
+  margin: 4px 0;
+}
+
+.auditlog-timestamp {
+  font-size: 12px;
+  color: gray;
+}
+
+.auditlog-empty {
+  font-size: 13px;
+  color: gray;
+  text-align: center;
+  padding: 10px;
+}
+
+.auditlog-link {
+    text-align: center;
+    font-size: 13px;
+    color: maroon;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.auditlog-link:hover {
+  text-decoration: underline;
+  color: #b30000;
+}
+
+.auditlog-refresh {
+  text-align: left;
+  font-size: 13px;
+  color: maroon;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.auditlog-refresh button {
+  background: none;
+  border: none;
+  color: maroon;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.auditlog-refresh button:hover {
+  text-decoration: underline;
+  color: #b30000;
+}
 
   /* HAMBURGER */
   .hamburger {

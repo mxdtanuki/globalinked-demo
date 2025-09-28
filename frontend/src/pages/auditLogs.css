@@ -1,0 +1,170 @@
+.auditlogs-container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin: 10px auto 0;
+  width: 95%;        
+  max-width: 1600px;   
+  transition: all 0.3s ease;
+}
+
+/* Title */
+.auditlogs-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #800000;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #d9b3b3;
+  padding-bottom: 8px;
+}
+
+/* Empty State */
+.auditlogs-empty {
+  text-align: center;
+  font-size: 15px;
+  color: #777;
+  padding: 20px 0;
+}
+
+/* Title */
+.auditlogs-title {
+  font-size: clamp(1.5rem, 2vw, 2rem); 
+  font-weight: 700;
+  color: #800000;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #d9b3b3;
+  padding-bottom: 8px;
+}
+
+/* Table */
+.auditlogs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(13px, 1.2vw, 14px); 
+  table-layout: fixed;
+  word-break: break-word;
+}
+
+.auditlogs-table th,
+.auditlogs-table td {
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.auditlogs-table th {
+  background: #800000;
+  color: white;
+  font-weight: bold;
+}
+
+/*Action column */
+.auditlogs-table th:last-child,
+.auditlogs-table td:last-child {
+  text-align: center;
+}
+
+.auditlogs-table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.auditlogs-table tr:hover {
+  background: #fff7f7;
+}
+
+/* Filter Buttons */
+.filter-btn {
+  padding: 8px 16px;
+  border: none;
+  background: #a00000;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.filter-btn:hover {
+  background: #e0e0e0;
+  color: #800000;
+}
+
+.active-filter-btn {
+  background: #800000;
+  color: white;
+  font-weight: bold;
+  border-radius: 5px;
+  padding: 8px 16px;
+  border: none;
+  font-size: 14px;
+}
+
+/* Trash Button */
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: #a00000;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.delete-btn:hover {
+  color: #ff0000;
+}
+
+.table-wrapper {
+  overflow-x: auto;     
+  overflow-y: hidden;   
+  max-height: none;      
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+/* Pagination */
+.pagination {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagination button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  background: #a00000;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pagination button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: 14px;
+  color: #555;
+}
+
+
+/* Responsive */
+@media (max-width: 768px) {
+  .auditlogs-table {
+    font-size: 12px;
+  }
+  .auditlogs-table th,
+  .auditlogs-table td {
+    padding: 8px;
+  }
+}
