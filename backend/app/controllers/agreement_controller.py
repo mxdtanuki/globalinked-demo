@@ -13,7 +13,7 @@ from app.models.document_versions import DocumentVersions
 from app.models.notification import Notification
 from app.models.users import Users
 from app.models.timer import Timer
-from app.services.supabase_service import sb as supabase, SUPABASE_BUCKET
+from app.services.supabase_service import delete_folder
 from app.schemas.agreement_schemas import (
     AgreementCreate,
     AgreementResponse,
@@ -23,7 +23,7 @@ from app.schemas.agreement_schemas import (
 )
 from app.utils.utils import get_current_user
 from app.utils.audit_utils import log_add_entry, log_update_entry, log_delete_entry
-
+import traceback
 
 router = APIRouter(
     prefix="/agreements",
@@ -334,21 +334,7 @@ async def create_agreement(
         # Final commit
         db.commit()
         db.refresh(new_agreement)
-        '''
-        # --- SUPABASE: create folder for this agreement ---
-        try:
-            folder_path = f"{new_agreement.dts_number}/"
-            # "folders" in Supabase storage are just prefixes,
-            # so we simulate one by uploading a dummy placeholder.
-            supabase.storage.from_(SUPABASE_BUCKET).upload(
-                path=f"{folder_path}.keep",
-                file=b"",  # empty bytes file
-                file_options={"content-type": "application/octet-stream"}
-            )
-        except Exception as supa_err:
-            # don’t block agreement creation if folder fails
-            print(f"[WARN] Supabase folder creation failed for {new_agreement.dts_number}: {supa_err}")
-        '''
+
         # Fetch associations
         contact_persons = db.query(ContactPersons).filter(ContactPersons.agreement_id == new_agreement.agreement_id).all()
         point_persons = db.query(PointPersons).filter(PointPersons.agreement_id == new_agreement.agreement_id).all()
@@ -594,7 +580,55 @@ async def update_agreement(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_agreement(
+    agreement_id: int,
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """
+    Delete agreement and cascade dependents (DB FKs) + Supabase folder.
+    """
+    try:
+        agreement = db.query(Agreements).filter(Agreements.agreement_id == agreement_id).first()
+        print("👤 Current user:", getattr(current_user, "user_id", None), getattr(current_user, "user_name", None))
+        print("🗑️ Deleting agreement:", agreement_id, "->", agreement)
+        if not agreement:
+            raise HTTPException(status_code=404, detail="Agreement not found")
 
+        dts_number = agreement.dts_number  # keep before deletion
+
+        # Reset references in other agreements
+        db.query(Agreements).filter(
+            Agreements.renewed_from_agreement_id == agreement_id
+        ).update({Agreements.renewed_from_agreement_id: None})
+        db.query(Agreements).filter(
+            Agreements.MOU_to_MOA_id == agreement_id
+        ).update({Agreements.MOU_to_MOA_id: None})
+
+        # Delete Supabase folder (ignore if missing)
+        try:
+            delete_folder(dts_number)
+        except Exception as e:
+            print(f"⚠️ Supabase folder cleanup failed for {dts_number}: {e}")
+            traceback.print_exc()
+
+        # Delete agreement (cascades via FKs)
+        db.delete(agreement)
+        db.commit()
+
+        log_delete_entry(db, current_user, agreement.document_type, agreement.dts_number)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print("🔥 Unhandled error in delete_agreement:", e)
+        traceback.print_exc()   # <-- full traceback in Render logs
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+'''
 @router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_agreement(
     agreement_id: int,
@@ -634,3 +668,4 @@ async def delete_agreement(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+'''
