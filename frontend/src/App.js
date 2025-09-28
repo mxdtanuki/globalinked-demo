@@ -66,6 +66,10 @@ function App() {
            {/* admin login */}
           <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
  
+
+           {/* admin login */}
+          <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
+
           {/* admin routes */}
           <Route path="/overview" element={<Overview />} />
           <Route path="/analytics" element={<Analytics />} />
