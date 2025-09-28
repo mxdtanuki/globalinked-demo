@@ -603,7 +603,7 @@ async def delete_agreement(
             cast(Agreements.renewed_from_agreement_id, Integer) == agreement_id
         ).update({Agreements.renewed_from_agreement_id: None})
         db.query(Agreements).filter(
-            (Agreements.MOU_to_MOA_id, Integer) == agreement_id
+            cast(Agreements.MOU_to_MOA_id, Integer) == agreement_id
         ).update({Agreements.MOU_to_MOA_id: None})
 
         # Delete Supabase folder (ignore if missing)
