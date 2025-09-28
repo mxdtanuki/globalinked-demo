@@ -5,7 +5,8 @@ from app.database import Base
 class DocumentVersions(Base):
     __tablename__ = "document_versions"
 
-    version_id = Column(Integer, primary_key=True, index=False)
+    # version_id = Column(Integer, primary_key=True, index=False)
+    version_id = Column(Integer, primary_key=True, index=False, autoincrement=True)
     dts_number = Column(String(50), ForeignKey("agreements.dts_number"), nullable=False)
     version_number = Column(Integer, nullable=False)
     file_path = Column(String, nullable=False)
