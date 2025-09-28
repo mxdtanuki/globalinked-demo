@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, cast, Integer
 from typing import List
 from datetime import datetime
 from app.database import get_db
@@ -600,10 +600,10 @@ async def delete_agreement(
 
         # Reset references in other agreements
         db.query(Agreements).filter(
-            Agreements.renewed_from_agreement_id == agreement_id
+            cast(Agreements.renewed_from_agreement_id, Integer) == agreement_id
         ).update({Agreements.renewed_from_agreement_id: None})
         db.query(Agreements).filter(
-            Agreements.MOU_to_MOA_id == agreement_id
+            cast(Agreements.MOU_to_MOA_id, Integer) == agreement_id
         ).update({Agreements.MOU_to_MOA_id: None})
 
         # Delete Supabase folder (ignore if missing)
@@ -612,6 +612,14 @@ async def delete_agreement(
         except Exception as e:
             print(f"⚠️ Supabase folder cleanup failed for {dts_number}: {e}")
             traceback.print_exc()
+
+        # Manually delete all related records
+        db.query(AgreementRemarks).filter(AgreementRemarks.agreement_id == agreement_id).delete()
+        db.query(PointPersons).filter(PointPersons.agreement_id == agreement_id).delete()
+        db.query(ContactPersons).filter(ContactPersons.agreement_id == agreement_id).delete()
+        db.query(DocumentVersions).filter(DocumentVersions.dts_number == dts_number).delete()
+        db.query(Notification).filter(Notification.agreement_id == agreement_id).delete()
+        db.query(Timer).filter(Timer.agreement_id == agreement_id).delete()
 
         # Delete agreement (cascades via FKs)
         db.delete(agreement)
