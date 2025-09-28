@@ -613,6 +613,14 @@ async def delete_agreement(
             print(f"⚠️ Supabase folder cleanup failed for {dts_number}: {e}")
             traceback.print_exc()
 
+        # Manually delete all related records
+        db.query(AgreementRemarks).filter(AgreementRemarks.agreement_id == agreement_id).delete()
+        db.query(PointPersons).filter(PointPersons.agreement_id == agreement_id).delete()
+        db.query(ContactPersons).filter(ContactPersons.agreement_id == agreement_id).delete()
+        db.query(DocumentVersions).filter(DocumentVersions.dts_number == dts_number).delete()
+        db.query(Notification).filter(Notification.agreement_id == agreement_id).delete()
+        db.query(Timer).filter(Timer.agreement_id == agreement_id).delete()
+
         # Delete agreement (cascades via FKs)
         db.delete(agreement)
         db.commit()
