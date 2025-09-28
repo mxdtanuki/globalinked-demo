@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import "./generation.css";
 
 const months = [
@@ -72,11 +72,30 @@ const getDaysInMonth = (month, year) => {
 };
 
 // pie chart for PDF capture
-const CapturePie = ({ data, width = 600, height = 400 }) => {
+const CapturePie = ({ data, width = 700, height = 500 }) => {
   const COLORS = [
-  "#2E86C1", "#9B59B6", "#27AE60", "#F39C12","#E74C3C","#FFDE21","#16A085","#34495E", "#D35400", "#1ABC9C", "#C0392B", 
-  "#117A65", "#BDC3C7","#2C3E50", "#F4D03F","#E67E22"
-];
+    "#2E86C1", "#9B59B6", "#27AE60", "#F39C12", "#E74C3C",
+    "#FFDE21", "#16A085", "#34495E", "#D35400", "#1ABC9C",
+    "#C0392B", "#117A65", "#BDC3C7", "#2C3E50", "#F4D03F", "#E67E22"
+  ];
+
+    // wrap long labels
+  const wrapText = (text, maxChars) => {
+    const words = text.split(" ");
+    const lines = [];
+    let line = "";
+
+    words.forEach((w) => {
+      if ((line + w).length > maxChars) {
+        lines.push(line.trim());
+        line = w + " ";
+      } else {
+        line += w + " ";
+      }
+    });
+    lines.push(line.trim());
+    return lines;
+  };
 
   return (
     <div style={{ width, height }}>
@@ -87,16 +106,46 @@ const CapturePie = ({ data, width = 600, height = 400 }) => {
             dataKey="value"
             nameKey="name"
             cx="50%"
-            cy="45%"
-            outerRadius={130} 
+            cy="50%"
+            outerRadius={200} 
+            isAnimationActive={false}  
             labelLine={false}
+            label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
+              const RADIAN = Math.PI / 180;
+              const radius = outerRadius + 20; 
+              const x = cx + radius * Math.cos(-midAngle * RADIAN);
+              const y = cy + radius * Math.sin(-midAngle * RADIAN);
+              
+              const lines = wrapText(
+                `${name} ${(percent * 100).toFixed(1)}%`,
+                18 
+              );
+
+              return (
+                <text
+                  x={x}
+                  y={y}
+                  fill="#000"
+                  stroke="#000"
+                  strokeWidth={0.5}
+                  textAnchor={x > cx ? "start" : "end"}
+                  dominantBaseline="central"
+                  style={{ fontSize: "16px"}}
+                >
+                  {lines.map((line, i) => (
+                    <tspan key={i} x={x} dy={i === 0 ? 0 : 14}>
+                      {line}
+                    </tspan>
+                  ))}
+                </text>
+              );
+            }}
           >
-            {data.map((_, idx) => (
-              <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
           <Tooltip />
-          <Legend verticalAlign="bottom" height={36} />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -166,51 +215,220 @@ const ReportGenerator = ({
 
   const captureElementToPdfImage = async (el, pdf, x, y, w, h) => {
     if (!el) return;
-    await new Promise((r) => setTimeout(r, 500)); // wait longer for charts to render
-    const canvas = await html2canvas(el, { backgroundColor: "#fff", scale: 2 });
+    await new Promise((r) => setTimeout(r, 500)); // wait for rendering
+    const canvas = await html2canvas(el, { backgroundColor: "#fff", scale: 3 });
     pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, w, h);
   };
 
-  const handleGeneratePDF = async () => {
-    const pdf = new jsPDF("p", "mm", "a4");
-    let y = 20;
+const formatAgreementList = (agreements, type) => {
+  if (!Array.isArray(agreements)) return [];
 
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
-    pdf.text("Analytics Report", 105, y, { align: "center" });
+  return agreements.map((a) => {
+    if (type === "MOU") {
+      return [
+        a.unit_name || "N/A",         
+        a.name || "N/A",              
+        a.country || "N/A",           
+        a.date_signed
+          ? new Date(a.date_signed).toLocaleDateString()
+          : (a.entry_date ? new Date(a.entry_date).toLocaleDateString() : "N/A"),
+      ];
+    } else if (type === "MOA") {
+      return [
+        a.unit_name || "N/A",         
+        a.name || "N/A",              
+        a.country || "N/A",           
+        a.partnership_type || "N/A",  
+        a.date_signed
+          ? new Date(a.date_signed).toLocaleDateString()
+          : (a.entry_date ? new Date(a.entry_date).toLocaleDateString() : "N/A"),
+      ];
+    }
+    return [];
+  });
+};
+
+  const handleGeneratePDF = async () => {
+  const pdf = new jsPDF("landscape", "mm", "a4");
+
+  const fromDate = toDateObj(fromDay, fromMonth, fromYear);
+  const toDate = toDateObj(toDay, toMonth, toYear);
+
+  // Filter agreements by selected date range
+  const filterAgreementByDate = (arr) => {
+    return arr.filter((a) => {
+      const dateStr = a.date_signed || a.entry_date;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      return !isNaN(d) && d >= fromDate && d <= toDate;
+    });
+  };
+
+  const filteredMouAgreements = filterAgreementByDate(mouAgreements);
+  const filteredMoaAgreements = filterAgreementByDate(moaAgreements);
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const centerX = pageWidth / 2;
+
+  let currentY = pageHeight / 2 - 20; 
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(22);
+  pdf.text("Memorandum of Understanding", centerX, currentY, { align: "center" });
+
+  currentY += 15;
+  pdf.text("and", centerX, currentY, { align: "center" });
+
+  currentY += 15;
+  pdf.text("Memorandum of Agreement", centerX, currentY, { align: "center" });
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(12);
+  currentY += 20;
+
+  pdf.text(
+  `From ${fromMonth} ${fromDay}, ${fromYear} to ${toMonth} ${toDay}, ${toYear}`,
+  centerX,
+  currentY,
+  { align: "center" }
+);
+
+const plural = (val, singular, plural) => (val === 1 ? singular : plural);
+
+const listNames = (arr) =>
+  arr.length === 1
+    ? arr[0]
+    : arr.slice(0, -1).join(", ") + " and " + arr[arr.length - 1];
+
+const addChartTableSection = async (title, chartRefEl, tableHead, tableBody) => {
+pdf.setFontSize(14);
+pdf.setFont("helvetica", "bold");
+const wrappedTitle = pdf.splitTextToSize(title, pageWidth - 60);
+pdf.text(wrappedTitle, pageWidth / 2, 20, { align: "center" });
+
+  let finalY = 30;
+  let tableX = 25; 
+  let total = 0;
+
+  if (chartRefEl) {
+    await captureElementToPdfImage(chartRefEl, pdf, 14, 30, 120, 100);
+
+    total = tableBody.reduce((sum, row) => sum + (Number(row[1]) || 0), 0);
+
+    if (tableHead.length === 2) {
+      // Activity/Program case
+      tableHead.push("Percent");
+      tableBody = tableBody.map((r) => {
+        const val = Number(r[1]) || 0;
+        return [r[0], val, ((val / total) * 100).toFixed(1) + "%"];
+      });
+    }
+    tableBody.push([
+      "TOTAL",
+      total,
+      tableHead.includes("Percent") ? "100.0%" : ""
+    ]);
+
+    autoTable(pdf, {
+      margin: { left: 140, top: 30 },
+      head: [tableHead],
+      body: tableBody,
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [46, 134, 193] },
+      tableWidth: 100,
+      didDrawPage: (data) => {
+        finalY = data.cursor.y;
+        tableX = data.settings.margin.left; 
+      },
+    });
+    
+  } else {
+    // agreements list
+    autoTable(pdf, {
+      startY: 30,
+      head: [tableHead],
+      body: tableBody,
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [46, 134, 193] },
+      margin: { horizontal: "center" }, 
+      didDrawPage: (data) => {
+        finalY = data.cursor.y;
+        tableX = data.settings.margin.left;
+      },
+    });
+
+  }
+
+  // Add insights 
+  if (tableBody.length > 0 && chartRefEl) {
+    const values = tableBody
+      .filter((r) => r[0] !== "TOTAL")
+      .map((r) => Number(r[1]) || 0);
+
+    const maxVal = Math.max(...values);
+    const minVal = Math.min(...values);
+
+    const topItems = tableBody.filter((r) => Number(r[1]) === maxVal).map((r) => r[0]);
+    const leastItems = tableBody.filter((r) => Number(r[1]) === minVal).map((r) => r[0]);
 
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    y += 10;
-    pdf.text(`From: ${fromDay} ${fromMonth} ${fromYear}   To: ${toDay} ${toMonth} ${toYear}`, 105, y, { align: "center" });
-    y += 15;
+    pdf.setFontSize(9);
 
-    const addSection = async (title, chartRefEl, tableHead, tableBody) => {
-      if (y > 200) {
-        pdf.addPage();
-        y = 20;
-      }
-      pdf.setFontSize(13);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(title, 14, y);
+    const insightText = `Among ${title.toLowerCase()}, ${listNames(topItems)} ${
+      topItems.length > 1 ? "tie for the highest" : "has the highest"
+    } number with ${maxVal} ${plural(maxVal, "agreement", "agreements")} out of a total of ${total}. In contrast, ${listNames(leastItems)} ${
+      leastItems.length > 1 ? "tie for the lowest" : "has the lowest"
+    } with ${minVal} ${plural(minVal, "agreement", "agreements")}.`;
 
-      await captureElementToPdfImage(chartRefEl, pdf, 14, y + 5, 160, 100);
+    pdf.text(insightText, tableX, finalY + 10, { maxWidth: 100 }); 
+  }
+};
 
-      autoTable(pdf, {
-        startY: y + 110,
-        head: [tableHead],
-        body: tableBody,
-        styles: { fontSize: 10, cellPadding: 2 },
-        headStyles: { fillColor: [46, 134, 193] },
-      });
-      y = pdf.lastAutoTable.finalY + 15;
-    };
+    // Sections (control page breaks here)
+    pdf.addPage();
+    await addChartTableSection(
+      "Memorandum Of Understanding by Country",
+      mouHiddenRef.current,
+      ["Country", "Count", "Percent"],
+      formatTableData(mouAgg)
+    );
 
-    await addSection("MOU by Country", mouHiddenRef.current, ["Country", "Count", "Percent"], formatTableData(mouAgg));
-    await addSection("MOA by Country", moaHiddenRef.current, ["Country", "Count", "Percent"], formatTableData(moaAgg));
-    await addSection("MOA by Activity/Program", moaActHiddenRef.current, ["Activity/Program", "Count"], moaActAgg.map(r => [r.name, r.value]));
+    pdf.addPage();
+    await addChartTableSection(
+      "Memorandum Of Agreements by Country",
+      moaHiddenRef.current,
+      ["Country", "Count", "Percent"],
+      formatTableData(moaAgg)
+    );
 
-    pdf.save(`Analytics_Report_${fromYear}_${fromMonth}_${fromDay}_to_${toYear}_${toMonth}_${toDay}.pdf`);
+    pdf.addPage();
+    await addChartTableSection(
+      "Memorandum Of Agreements by Activity/Program",
+      moaActHiddenRef.current,
+      ["Activity/Program", "Count"],
+      moaActAgg.map(r => [r.name, r.value])
+    );
+
+    pdf.addPage();
+      await addChartTableSection(
+        "Memorandum Of Understanding List",
+        null,
+        ["Source", "Partner", "Country", "Date Signed"],
+        formatAgreementList(filteredMouAgreements, "MOU")
+      );
+
+      pdf.addPage();
+      await addChartTableSection(
+        "Memorandum Of Agreements List",
+        null,
+        ["Source", "Partner", "Country", "Partnership", "Date Signed"],
+        formatAgreementList(filteredMoaAgreements, "MOA")
+      );
+
+    // Save file
+    pdf.save(
+      `Analytics_Report_${fromYear}_${fromMonth}_${fromDay}_to_${toYear}_${toMonth}_${toDay}.pdf`
+    );
   };
 
   const hiddenChartContainerStyle = {
@@ -275,12 +493,13 @@ const ReportGenerator = ({
 
         {/* Hidden charts */}
         <div style={hiddenChartContainerStyle}>
-          <div ref={mouHiddenRef}><CapturePie data={mouAgg} /></div>
-          <div ref={moaHiddenRef}><CapturePie data={moaAgg} /></div>
-          <div ref={moaActHiddenRef}><CapturePie data={moaActAgg} /></div>
+          <div ref={mouHiddenRef}><CapturePie data={mouAgg} title="MOU by Country" /></div>
+          <div ref={moaHiddenRef}><CapturePie data={moaAgg} title="MOA by Country" /></div>
+          <div ref={moaActHiddenRef}><CapturePie data={moaActAgg} title="MOA by Activity/Program" /></div>
         </div>
       </div>
     );
 };
 
 export default ReportGenerator;
+ 
