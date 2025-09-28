@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdOutlineManageHistory } from 'react-icons/md';
 import { agreementService } from '../services/agreementService';
+import { documentService } from '../services/documentService';
 import './overviewDash.css';
 
 
@@ -31,6 +32,8 @@ const OverviewDash = () => {
   const [deletingRows, setDeletingRows] = useState(new Set());
 
   const rowsPerPage = 20;
+
+  
 
   useEffect(() => {
     fetchAgreements();
@@ -135,7 +138,29 @@ const OverviewDash = () => {
     }
   };
 
-  // Helper functions for list editing -WIPPP
+  const handleViewLatestFile = async (dtsNumber) => {
+    try {
+      const latest = await documentService.getLatestVersion(dtsNumber);
+      if (!latest) {
+        alert("No document versions found for this DTS number.");
+        return;
+      }
+
+      // fetch the signed url, get blob, then open
+      const resp = await fetch(latest.download_url, { headers: { Accept: "application/pdf" } });
+      if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
+      const blob = await resp.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+      // optional: revoke after a short delay
+      setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      console.error("View failed:", err);
+      alert("Failed to open file: " + (err.message || err));
+    }
+  };
+    // Helper functions for list editing -WIPPP
   const upsertListItem = (field, idx, key, val) => {
     setEditedData(prev => {
       const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
@@ -536,7 +561,9 @@ const OverviewDash = () => {
   const paginatedData = filteredAgreements.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [selectedAgreement, setSelectedAgreement] = useState(null);
-
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadComment, setUploadComment] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   if (loading) return <div className="overview-container">Loading agreements...</div>;
   if (error) return <div className="overview-container">Error: {error}</div>;
@@ -797,12 +824,31 @@ const OverviewDash = () => {
                           </button>
                           {openMenuIndex === rowIndex && (
                           <div className="dropdown-menu">
-                            <div>View File</div>
-                            <div>View Older File</div>
+                            <div
+                              className="dropdown-item"
+                              onClick={() => {
+                                toggleMenu(rowIndex);
+                                handleViewLatestFile(agreement.dts_number);
+                              }}
+                            >
+                              View File
+                            </div>
+
+                            <div
+                              className="dropdown-item"
+                              onClick={() => {
+                                toggleMenu(rowIndex);
+                                navigate(`/docVer?dts_number=${agreement.dts_number}`);
+                              }}
+                            >
+                              View Older File
+                            </div>
+
                             <div
                               onClick={() => {
                                 setSelectedAgreement(agreement);
                                 setShowUploadForm(true);
+                                toggleMenu(rowIndex);
                               }}
                               className="dropdown-item"
                             >
@@ -870,12 +916,19 @@ const OverviewDash = () => {
           <form>
             <div className="overview-upload-form-group">
               <label>Upload File:</label>
-              <input type="file" />
+              <input
+                type="file"
+                onChange={(e) => setUploadFile(e.target.files[0])}
+              />
             </div>
 
             <div className="overview-upload-form-group">
               <label>Comments:</label>
-              <textarea placeholder="Enter comments here"></textarea>
+              <textarea
+                placeholder="Enter comments here"
+                value={uploadComment}
+                onChange={(e) => setUploadComment(e.target.value)}
+              ></textarea>
             </div>
 
             <div className="modal-actions">
@@ -885,15 +938,51 @@ const OverviewDash = () => {
                 onClick={() => {
                   setShowUploadForm(false);
                   setSelectedAgreement(null);
+                  setUploadFile(null);
+                  setUploadComment("");
                 }}
               >
                 Cancel
               </button>
-              <button type="button" className="submit-button">Submit</button>
+              <button
+                type="button"
+                className="submit-button"
+                disabled={uploading}
+                onClick={async () => {
+                  if (!uploadFile) {
+                    alert("Please select a file.");
+                    return;
+                  }
+                  try {
+                    setUploading(true);
+                    const res = await documentService.uploadVersion(
+                      selectedAgreement.dts_number,
+                      uploadFile,
+                      uploadComment,
+                      selectedAgreement.agreement_status // status_at_upload
+                    );
+                    alert("Upload successful!");
+                    console.log("Uploaded:", res);
+                    setShowUploadForm(false);
+                    setSelectedAgreement(null);
+                    setUploadFile(null);
+                    setUploadComment("");
+                  } catch (err) {
+                    console.error("Upload failed:", err);
+                    alert("Upload failed: " + err.message);
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              >
+                {uploading ? "Uploading..." : "Submit"}
+              </button>
             </div>
           </form>
         </div>
       </div>
+
+
     )}
   </div>
 );
