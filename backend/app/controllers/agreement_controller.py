@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, cast, Integer
 from typing import List
 from datetime import datetime
 from app.database import get_db
@@ -600,10 +600,10 @@ async def delete_agreement(
 
         # Reset references in other agreements
         db.query(Agreements).filter(
-            Agreements.renewed_from_agreement_id == agreement_id
+            cast(Agreements.renewed_from_agreement_id, Integer) == agreement_id
         ).update({Agreements.renewed_from_agreement_id: None})
         db.query(Agreements).filter(
-            Agreements.MOU_to_MOA_id == agreement_id
+            (Agreements.MOU_to_MOA_id, Integer) == agreement_id
         ).update({Agreements.MOU_to_MOA_id: None})
 
         # Delete Supabase folder (ignore if missing)
