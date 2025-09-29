@@ -19,7 +19,8 @@ from app.schemas.agreement_schemas import (
     AgreementResponse,
     PointPersonResponse,
     ContactPersonResponse,
-    TimerResponse
+    TimerResponse,
+    ArchiveAgreementResponse
 )
 from app.utils.utils import get_current_user
 from app.utils.audit_utils import log_add_entry, log_update_entry, log_delete_entry
