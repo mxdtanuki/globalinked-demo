@@ -18,7 +18,7 @@ def send_email(to: str, subject: str, body: str):
     
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
         to=[{"email": to}],
-        sender={"name": "Globalinked", "email": "noreply@pup.international.affairs"},
+        sender={"name": "Globalinked", "email": "pup.international.affairs@gmail.com"},
         subject=subject,
         html_content=body
     )
