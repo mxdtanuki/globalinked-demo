@@ -36,17 +36,26 @@ const OverviewDash = () => {
     fetchAgreements();
   }, []);
 
-  const fetchAgreements = async () => {
-    try {
-      const data = await agreementService.getAgreements();
-      setAgreements(data);
-      setFilteredAgreements(data);
-    } catch (err) {
-      setError('Failed to fetch agreements: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchAgreements = async () => {
+  try {
+    const data = await agreementService.getAgreements();
+    setAgreements(data);
+
+    // Filter to active agreements (not expired)
+    const now = new Date();
+    const activeAgreements = data.filter(a => {
+      if (!a.date_expiry) return true;
+      const expiryDate = new Date(a.date_expiry);
+      return expiryDate > now;
+    });
+    setFilteredAgreements(activeAgreements);
+  } catch (err) {
+    setError('Failed to fetch agreements: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 const [dateSortOrder, setDateSortOrder] = useState(null);
 
 const handleDateSort = () => {
@@ -576,11 +585,11 @@ const handleDateSort = () => {
 
   const stats = [
     { label: 'Total Agreement', count: agreements.length, route: '/stat/totalAgreement' },
-    { label: 'Active Agreement', count: agreements.filter(a => a.agreement_status !== 'Complete').length, route: '/stat/activeAgreement' },
+    { label: 'Active Agreement', count: agreements.filter(a => { if (!a.date_expiry) return true;  const now = new Date(); const expiryDate = new Date(a.date_expiry); return expiryDate > now; }).length, route: '/stat/activeAgreement' },
     { label: 'Nearing Expiration', count: agreements.filter(a => {if (!a.date_expiry) return false;const now = new Date(); const expiryDate = new Date(a.date_expiry); const daysDifference = (expiryDate - now) / (1000 * 60 * 60 * 24); return daysDifference > 0 && daysDifference <= 30;
     }).length, route: '/stat/nearExpAgreement'}
   ];
-
+  
   const lifecycleStages = [
     { label: 'Endorse to ULCO', status: 'Endorse' },
     { label: 'Revert to Initiator', status: 'Revert' },
@@ -644,7 +653,11 @@ const handleDateSort = () => {
       break;
 
     case 'Active Agreement':
-      data = data.filter(a => a.agreement_status !== 'Complete');
+      data = data.filter(a => {
+        if (!a.date_expiry) return true; 
+        const expiryDate = new Date(a.date_expiry);
+        return expiryDate > now; 
+      });
       setSelectedStatus(null);
       break;
 
