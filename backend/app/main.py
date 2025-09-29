@@ -44,12 +44,16 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
         
 
-# CORS setup so frontend React can call backend
+origins = [
+    "https://globalinked-system.onrender.com",  # your frontend on Render
+    "http://localhost:3000",  # for local development
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://globalinked-system.onrender.com"],
+    allow_origins=origins,        
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["*"],            
     allow_headers=["*"],
 )
 

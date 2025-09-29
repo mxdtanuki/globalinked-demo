@@ -7,11 +7,7 @@ import { useSearchParams } from "react-router-dom";
 const DocumentVersion = () => {
   const [searchParams] = useSearchParams();
   const prefilledDts = searchParams.get("dts_number") || "";
-
-  // bind searchQuery to the input and initialize from prefilledDts
   const [searchQuery, setSearchQuery] = useState(prefilledDts);
-
-  // other states...
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,6 +17,7 @@ const DocumentVersion = () => {
   const [filterStatus, setFilterStatus] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true); 
   const [editingDoc, setEditingDoc] = useState(null);
   const [editComment, setEditComment] = useState("");
   const [editFile, setEditFile] = useState(null);
@@ -28,7 +25,6 @@ const DocumentVersion = () => {
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
   const itemsPerPage = 10;
 
-  // If the query param changes, update the input and reset to first page:
   useEffect(() => {
     if (prefilledDts) {
       setSearchQuery(prefilledDts);
@@ -38,18 +34,18 @@ const DocumentVersion = () => {
 
   // Fetch versions/all
   useEffect(() => {
+    setLoading(true); 
     fetch("/documents/versions/all")
       .then((res) => res.json())
       .then((data) => setDocuments(data))
-      .catch((err) => console.error("Failed to fetch versions:", err));
+      .catch((err) => console.error("Failed to fetch versions:", err))
+      .finally(() => setLoading(false)); 
   }, []);
 
-  // dynamic values for dropdown filters
   const partnershipTypes = [...new Set(documents.map((d) => d.partnership_type))];
   const versions = [...new Set(documents.map((d) => String(d.version_number)))];
   const statuses = [...new Set(documents.map((d) => d.status_at_upload))];
 
-  // filtering uses searchQuery (same as your current logic)
   const filteredDocuments = documents.filter((doc) => {
     const query = (searchQuery || "").toLowerCase();
     const matchesSearch =
@@ -78,43 +74,56 @@ const DocumentVersion = () => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  // Editing logic
+  // Editing 
   const handleEdit = (doc) => {
     setEditingDoc(doc);
     setEditComment(doc.version_comment || "");
     setEditFile(null);
   };
 
-  const handleSave = async () => {
-    if (!editingDoc) return;
+const handleSave = async () => {
+  if (!editingDoc) return;
 
-    const formData = new FormData();
-    formData.append("version_comment", editComment);
-    if (editFile) {
-      formData.append("file", editFile);
-    }
+  setDocuments((prev) =>
+    prev.map((d) =>
+      d.version_id === editingDoc.version_id
+        ? { ...d, version_comment: editComment }
+        : d
+    )
+  );
 
-    try {
-      const res = await fetch(`/documents/versions/${editingDoc.version_id}`, {
-        method: "PUT",
-        body: formData,
-      });
+  setEditingDoc(null);
+  setEditFile(null);
 
-      if (!res.ok) throw new Error("Failed to update");
-      const data = await res.json();
+  const formData = new FormData();
+  formData.append("version_comment", editComment);
+  if (editFile) {
+    formData.append("file", editFile);
+  }
 
-      // Update local state
+  try {
+    const res = await fetch(`/documents/versions/${editingDoc.version_id}`, {
+      method: "PUT",
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error("Failed to update");
+    const data = await res.json();
+
+    if (data.version) {
       setDocuments((prev) =>
         prev.map((d) =>
-          d.version_id === editingDoc.version_id ? data.version : d
+          d.version_id === editingDoc.version_id
+            ? { ...d, ...data.version }
+            : d
         )
       );
-
-      setEditingDoc(null); // close modal
-    } catch (err) {
-      console.error("Edit failed:", err);
     }
-  };
+  } catch (err) {
+    console.error("Background update failed:", err);
+    alert("File upload failed, but comment was saved locally.");
+  }
+};
 
   const handleDelete = async (versionId) => {
   if (!window.confirm("Are you sure you want to delete this version?")) return;
@@ -254,93 +263,107 @@ const DocumentVersion = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentData.length > 0 ? (
+                    {loading ? (
+                    <tr>
+                      <td colSpan="9" style={{ textAlign: "center" }}>
+                        Loading records...
+                      </td>
+                    </tr>
+                  ) : currentData.length > 0 ? (
                     currentData.map((doc) => (
-                      <tr key={doc.version_id}>
-                        <td>{new Date(doc.uploaded_at).toLocaleDateString()}</td>
-                        <td>{doc.dts_number}</td>
-                        <td>{doc.partner_name}</td>
-                        <td>{doc.document_type}</td>
-                        <td>{doc.partnership_type}</td>
-                        <td>{doc.version_number}</td>
-                        <td>{doc.version_comment || "-"}</td>
-                        <td>{doc.status_at_upload || "-"}</td>
-                        <td>
-                          <div className="docu-action-buttons">
-                            <div className="docu-top-actions">
-                              <button
-                                className="docu-edit-btn"
-                                onClick={() => handleEdit(doc)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="docu-delete-btn"
-                                disabled={doc.version_number !== latestByDts[doc.dts_number]}
-                                onClick={() => handleDelete(doc.version_id)}
-                                style={{
-                                  opacity: doc.version_number !== latestByDts[doc.dts_number] ? 0.5 : 1,
-                                  cursor: doc.version_number !== latestByDts[doc.dts_number] ? "not-allowed" : "pointer",
-                                }}
-                              >
-                                Delete
-                            </button>
+                      <React.Fragment key={doc.version_id}>
+                        <tr>
+                          <td>{new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                          <td>{doc.dts_number}</td>
+                          <td>{doc.partner_name}</td>
+                          <td>{doc.document_type}</td>
+                          <td>{doc.partnership_type}</td>
+                          <td>{doc.version_number}</td>
+                          <td>{doc.version_comment || "-"}</td>
+                          <td>{doc.status_at_upload || "-"}</td>
+                          <td>
+                            <div className="docu-action-buttons">
+                              <div className="docu-top-actions">
+                                <button className="docu-edit-btn" onClick={() => handleEdit(doc)}>
+                                  Edit
+                                </button>
+                                <button
+                                  className="docu-delete-btn"
+                                  disabled={doc.version_number !== latestByDts[doc.dts_number]}
+                                  onClick={() => handleDelete(doc.version_id)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                              <div className="docu-bottom-action">
+                                <button
+                                  className="docu-view-btn"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await fetch(doc.download_url, {
+                                        headers: { Accept: "application/pdf" },
+                                      });
+                                      const blob = await response.blob();
+                                      const url = window.URL.createObjectURL(blob);
+                                      window.open(url, "_blank");
+                                    } catch (err) {
+                                      console.error("View failed:", err);
+                                    }
+                                  }}
+                                >
+                                  View
+                                </button>
+                                <button
+                                  className="docu-download-btn"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await fetch(doc.download_url, {
+                                        headers: { Accept: "application/pdf" },
+                                      });
+                                      const blob = await response.blob();
+                                      const url = window.URL.createObjectURL(blob);
+                                      const link = document.createElement("a");
+                                      link.href = url;
+                                      link.download = `${doc.dts_number}_v${doc.version_number}.pdf`;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      link.remove();
+                                      window.URL.revokeObjectURL(url);
+                                    } catch (err) {
+                                      console.error("Download failed:", err);
+                                    }
+                                  }}
+                                >
+                                  Download
+                                </button>
+                              </div>
                             </div>
-                            <div className="docu-bottom-action">
-                              <button
-                                className="docu-view-btn"
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch(doc.download_url, {
-                                      headers: { Accept: "application/pdf" },
-                                    });
-                                    const blob = await response.blob();
+                          </td>
+                        </tr>
 
-                                    // Force browser to treat it as a PDF
-                                    const pdfBlob = new Blob([blob], { type: "application/pdf" });
-                                    const url = window.URL.createObjectURL(pdfBlob);
-                                    window.open(url, "_blank"); // opens in PDF viewer
-                                  } catch (err) {
-                                    console.error("View failed:", err);
-                                  }
-                                }}
-                              >
-                                View
-                              </button>
-
-                              {/* Download directly */}
-                              <button
-                                className="docu-download-btn"
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch(doc.download_url, {
-                                      headers: { Accept: "application/pdf" },
-                                    });
-                                    const blob = await response.blob();
-
-                                    const file = new File([blob], `${doc.dts_number}_v${doc.version_number}.pdf`, {
-                                      type: "application/pdf",
-                                    });
-
-                                    const url = window.URL.createObjectURL(file);
-                                    const link = document.createElement("a");
-                                    link.href = url;
-                                    link.download = file.name;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    link.remove();
-                                    window.URL.revokeObjectURL(url);
-                                  } catch (err) {
-                                    console.error("Download failed:", err);
-                                  }
-                                }}
-                              >
-                                Download
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
+                        {editingDoc?.version_id === doc.version_id && (
+                          <tr className="edit-row">
+                            <td colSpan="9">
+                              <div className="edit-form-expanded">
+                                <textarea
+                                  value={editComment}
+                                  onChange={(e) => setEditComment(e.target.value)}
+                                  placeholder="Edit comment"
+                                />
+                                <input
+                                  type="file"
+                                  accept="application/pdf"
+                                  onChange={(e) => setEditFile(e.target.files[0])}
+                                />
+                                <div className="inline-edit-actions">
+                                  <button className="save-btn" onClick={handleSave}>Save</button>
+                                  <button className="cancel-btn" onClick={() => setEditingDoc(null)}>Cancel</button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))
                   ) : (
                     <tr>
@@ -350,7 +373,7 @@ const DocumentVersion = () => {
                     </tr>
                   )}
                 </tbody>
-              </table>
+                </table>
             </div>
 
             {/* Pagination */}
@@ -380,34 +403,6 @@ const DocumentVersion = () => {
           </div>
         </div>
       </div>
-
-      {/* Edit Modal */}
-      {editingDoc && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <h3>Edit Version</h3>
-            <label>
-              Comment:
-              <textarea
-                value={editComment}
-                onChange={(e) => setEditComment(e.target.value)}
-              />
-            </label>
-            <label>
-              Replace File:
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => setEditFile(e.target.files[0])}
-              />
-            </label>
-            <div className="modal-actions">
-              <button onClick={handleSave}>Save</button>
-              <button onClick={() => setEditingDoc(null)}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
