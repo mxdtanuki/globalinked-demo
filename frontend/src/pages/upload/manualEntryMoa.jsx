@@ -297,6 +297,13 @@ const partnershipTypeOptions = [
   const [contacts, setContacts] = useState([{ position: "", name: "", email: "" }]);
   const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
 
+  // Date states
+  const [entryDate, setEntryDate] = useState(""); // Added entryDate state
+  const [dateSigned, setDateSigned] = useState("");
+  const [validityPeriod, setValidityPeriod] = useState("");
+  const [dateExpiry, setDateExpiry] = useState("");
+
+
   // Contact functions
   const addContact = () => setContacts([...contacts, { position: "", name: "", email: "" }]);
   const handleContactChange = (i, field, val) => {
@@ -327,6 +334,18 @@ const partnershipTypeOptions = [
       setSelectedRegion(null);
     }
   };
+
+  // Effect to calculate Expiration Date
+  useEffect(() => {
+    if (entryDate && validityPeriod) { // Changed from dateSigned to entryDate
+      const baseDate = new Date(entryDate); // Changed from dateSigned to entryDate
+      const yearsToAdd = parseInt(validityPeriod, 10);
+      if (!isNaN(yearsToAdd)) {
+        baseDate.setFullYear(baseDate.getFullYear() + yearsToAdd);
+        setDateExpiry(baseDate.toISOString().split('T')[0]);
+      }
+    }
+  }, [entryDate, validityPeriod]); // Changed from dateSigned to entryDate
 
   // Fetch existing partners
   useEffect(() => {
@@ -390,14 +409,14 @@ const handleSubmit = async (e) => {
       partnership_type: partnershipType,
       agreement_status: data.status,
       entry_type: data.entryType,
-      entry_date: data.entryDate || null,
+      entry_date: entryDate || null, // Use state for entryDate
       date_received: data.dateReceived || null,
       date_endorsed_to_ulco: data.dateEndorsed || null,
       date_ulco_approved: data.dateUlcoApproved || null,
       date_signed_by_pup: data.datePupSigned || null,
-      date_signed: data.dateSigned || null,
-      date_expiry: data.dateExpiry || null,
-      validity_period: data.validity || null,
+      date_signed: dateSigned || null, // Use state for dateSigned
+      date_expiry: dateExpiry || null, // Use state for dateExpiry
+      validity_period: validityPeriod || null, // Use state for validityPeriod
       event_info: data.eventInfo || null,
       signatories_list: data.signatories || null,
 
@@ -474,6 +493,10 @@ const handleSubmit = async (e) => {
       setPartnershipType("");
       setPointPersons([{ name: "", position: "", email: "" }]);
       setContacts([{ name: "", position: "", email: "" }]);
+      setEntryDate(""); // Reset entryDate
+      setDateSigned("");
+      setValidityPeriod("");
+      setDateExpiry("");
     }
   } catch (error) {
     console.error("Full error:", error);
@@ -504,10 +527,17 @@ const handleSubmit = async (e) => {
         <form className="manual-entry-form" onSubmit={handleSubmit}>
 
           {/* DATE */}
-          <div className="form-group" onSubmit={handleSubmit}>
+          <div className="form-group">
             <label htmlFor="entryDate">Date:</label>
-            <input id="entryDate" name="entryDate" type="date" required />
-          </div>
+            <input
+              id="entryDate"
+              name="entryDate"
+              type="date"
+              required
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
+            />
+          </div> 
 
           {/* Document Type */}
           <div className="form-group">
@@ -565,7 +595,12 @@ const handleSubmit = async (e) => {
           {/* VALIDITY PERIOD*/}
           <div className="form-group">
           <label htmlFor="validity">Validity Period:</label>
-          <select id="validity" name="validity">
+          <select
+            id="validity"
+            name="validity"
+            value={validityPeriod}
+            onChange={(e) => setValidityPeriod(e.target.value)}
+          >
             <option value="">Select Period</option>
             <option value="5">5</option>
             <option value="4">4</option>
@@ -585,6 +620,8 @@ const handleSubmit = async (e) => {
             required
             value={dtsNumber}
             onChange={(e) => setDtsNumber(e.target.value)}
+            placeholder="DT2025123456"
+            style={{ opacity: 0.6, color: '#888' }}
           />
           </div>
 
@@ -668,6 +705,8 @@ const handleSubmit = async (e) => {
               }
               required
               readOnly={partnerEntryType === "Existing"}
+              placeholder="e.g., University, Company, NGO"
+              style={{ opacity: 0.6, color: '#888' }}
             />
           </div>
 
@@ -861,7 +900,14 @@ const handleSubmit = async (e) => {
           {/* DATE EXPIRY */}
           <div className="form-group">
           <label htmlFor="dateExpiry">Date Expiry:</label>
-          <input id="dateExpiry" name="dateExpiry" type="date" required/>
+          <input
+            id="dateExpiry"
+            name="dateExpiry"
+            type="date"
+            value={dateExpiry}
+            onChange={(e) => setDateExpiry(e.target.value)}
+            required
+          />
           </div>
 
           {/* DATE PUP SIGNED */}
@@ -873,7 +919,13 @@ const handleSubmit = async (e) => {
            {/* DATE SIGNED */}
           <div className="form-group">
           <label htmlFor="dateSigned">Date/Year of Signing:</label>
-          <input id="dateSigned" name="dateSigned" type="date" />
+          <input
+            id="dateSigned"
+            name="dateSigned"
+            type="date"
+            value={dateSigned}
+            onChange={(e) => setDateSigned(e.target.value)}
+          />
           </div>
 
           {/* DATE ENDORSED */}

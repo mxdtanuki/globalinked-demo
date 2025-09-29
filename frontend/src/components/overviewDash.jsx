@@ -47,6 +47,20 @@ const OverviewDash = () => {
       setLoading(false);
     }
   };
+const [dateSortOrder, setDateSortOrder] = useState(null);
+
+const handleDateSort = () => {
+  const newOrder = dateSortOrder === 'asc' ? 'desc' : 'asc';
+  setDateSortOrder(newOrder);
+
+  const sorted = [...filteredAgreements].sort((a, b) => {
+    const dateA = new Date(a.entry_date);
+    const dateB = new Date(b.entry_date);
+    return newOrder === 'asc' ? dateA - dateB : dateB - dateA;
+  });
+  setFilteredAgreements(sorted);
+};
+  
 
   // Start editing a specific row
   const startEditing = (agreement) => {
@@ -556,19 +570,19 @@ const OverviewDash = () => {
   const [uploadComment, setUploadComment] = useState("");
   const [uploading, setUploading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-   
-    useEffect(() => {
-      try {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          setCurrentUser(JSON.parse(userStr));
-        }
-      } catch (err) {
-        console.error("Error parsing user from localStorage:", err);
-      }
-    }, []);
 
-const isAdmin = currentUser?.user_role?.toLowerCase() === "admin";
+    useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const parsedUser = JSON.parse(userStr);
+        setCurrentUser(parsedUser);
+      }
+    } catch (err) {
+      console.error("Error parsing user from localStorage:", err);
+    }
+  }, []);
+
   if (loading) return <div className="overview-container">Loading agreements...</div>;
   if (error) return <div className="overview-container">Error: {error}</div>;
 
@@ -667,6 +681,7 @@ const exportToExcel = async () => {
   const buffer = await workbook.xlsx.writeBuffer();
   saveAs(new Blob([buffer]), "agreements.xlsx");
 };
+
 
   return (
     <div className="overview-container">
@@ -779,13 +794,44 @@ const exportToExcel = async () => {
 
         <div className="table-scroll">
           <table className="document-table">
-            <thead>
-              <tr>
-                {tableColumns.map((col, i) => (
-                  <th key={i}>{col}</th>
-                ))}
-              </tr>
-            </thead>
+          <thead>
+            <tr>
+              <th style={{ cursor: 'pointer' }} onClick={handleDateSort}>
+                Date
+                {dateSortOrder === 'asc' && <span> ▲</span>}
+                {dateSortOrder === 'desc' && <span> ▼</span>}
+                {!dateSortOrder && <span style={{ opacity: 0.5 }}> ⇅</span>}
+              </th>
+              <th>SOURCE</th>
+              <th>POINT PERSON / POSITION</th>
+              <th>DTS NO.</th>
+              <th>DTS LOCATION</th>
+              <th>PARTNER'S NAME</th>
+              <th>ENTITY TYPE</th>
+              <th>COUNTRY</th>
+              <th>REGION</th>
+              <th>ADDRESS</th>
+              <th>SIGNATORIES / POSITION</th>
+              <th>CONTACT PERSON / DETAILS</th>
+              <th>DOCUMENT TYPE</th>
+              <th>PARTNERSHIP CLASSIFICATION</th>
+              <th>EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT</th>
+              <th>VALIDITY PERIOD</th>
+              <th>DATE / YEAR OF SIGNING</th>
+              <th>EXPIRY DATE / YEAR</th>
+              <th>DATE RECEIVED</th>
+              <th>DATE ENDORSED TO ULCO</th>
+              <th>ULCO'S APPROVAL</th>
+              <th>PUP OFFICIALS' SIGNATURE</th>
+              <th>STATUS</th>
+              <th>WEBSITE LINK</th>
+              <th>Brief Profile</th>
+              <th>LOGO</th>
+              <th>HARDCOPY LOCATOR</th>
+              <th>REMARKS</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
             <tbody>
               {paginatedData.length === 0 ? (
                 <tr>
@@ -821,26 +867,48 @@ const exportToExcel = async () => {
                     <td>{renderEditableCell(agreement, 'date_signed_by_pup', agreement.date_signed_by_pup)}</td>
                     <td>{renderEditableCell(agreement, 'agreement_status', agreement.agreement_status)}</td>
                     <td>
+                      {editingRow === agreement.agreement_id ?
+                        renderEditableCell(agreement, 'website_url', agreement.website_url) :
+                        (agreement.website_url ? (
+                          <a href={agreement.website_url} target="_blank" rel="noopener noreferrer">
+                            Link
+                          </a>
+                        ) : '-')
+                      }
+                    </td>
+                    <td>{renderEditableCell(agreement, 'description', agreement.description)}</td>
+                    <td>{agreement.logo_url ? (
+                      <a href={agreement.logo_url} target="_blank" rel="noopener noreferrer">
+                        View Logo
+                      </a>
+                    ) : '-'}</td>
+                    <td>{renderEditableCell(agreement, 'hardcopy_location', agreement.hardcopy_location)}</td>
+                    <td>{renderEditableCell(agreement, 'remarks', agreement.remarks)}</td>
+                    <td>
                       <div className="action-buttons">
                         {editingRow === agreement.agreement_id ? (
                           <>
-                            <button
-                              className="btn-action save"
-                              onClick={() => saveRow(agreement.agreement_id)}
-                              disabled={savingRows.has(agreement.agreement_id)}
-                            >
-                              {savingRows.has(agreement.agreement_id) ? 'Saving...' : 'Save'}
-                            </button>
-                            <button
-                              className="btn-action cancel"
-                              onClick={cancelEditing}
-                            >
-                              Cancel
-                            </button>
+                            {currentUser?.user_role?.toLowerCase() === "admin" && (
+                              <>
+                                <button
+                                  className="btn-action save"
+                                  onClick={() => saveRow(agreement.agreement_id)}
+                                  disabled={savingRows.has(agreement.agreement_id)}
+                                >
+                                  {savingRows.has(agreement.agreement_id) ? 'Saving...' : 'Save'}
+                                </button>
+                                <button
+                                  className="btn-action cancel"
+                                  onClick={cancelEditing}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
                           </>
                         ) : (
                           <>
-                            {isAdmin && (
+                            {currentUser?.user_role?.toLowerCase() === "admin" && (
                               <>
                                 <button
                                   className="btn-action"
@@ -857,56 +925,51 @@ const exportToExcel = async () => {
                                 </button>
                               </>
                             )}
-
-                            {/* Dots menu (View File, View Older File, Upload New File if Admin) */}
-                            <div className="menu-wrapper">
-                              <button
-                                className="dots-btn"
-                                onClick={() => toggleMenu(rowIndex)}
-                                title="More actions"
+                          </>
+                        )}
+                        <div className="menu-wrapper">
+                          <button
+                            className="dots-btn"
+                            onClick={() => toggleMenu(rowIndex)}
+                            title="More actions"
+                          >
+                            &#8942;
+                          </button>
+                          {openMenuIndex === rowIndex && (
+                            <div className="dropdown-menu">
+                              <div
+                                className="dropdown-item"
+                                onClick={() => {
+                                  toggleMenu(rowIndex);
+                                  handleViewLatestFile(agreement.dts_number);
+                                }}
                               >
-                                &#8942;
-                              </button>
-
-                              {openMenuIndex === rowIndex && (
-                                <div className="dropdown-menu">
-                                  <div
-                                    className="dropdown-item"
-                                    onClick={() => {
-                                      toggleMenu(rowIndex);
-                                      handleViewLatestFile(agreement.dts_number);
-                                    }}
-                                  >
-                                    View File
-                                  </div>
-
-                                  <div
-                                    className="dropdown-item"
-                                    onClick={() => {
-                                      toggleMenu(rowIndex);
-                                      navigate(`/docVer?dts_number=${agreement.dts_number}`);
-                                    }}
-                                  >
-                                    View Older File
-                                  </div>
-
-                                  {isAdmin && (
-                                    <div
-                                      onClick={() => {
-                                        setSelectedAgreement(agreement);
-                                        setShowUploadForm(true);
-                                        toggleMenu(rowIndex);
-                                      }}
-                                      className="dropdown-item"
-                                    >
-                                      Upload New File
-                                    </div>
-                                  )}
+                                View File
+                              </div>
+                              <div
+                                className="dropdown-item"
+                                onClick={() => {
+                                  toggleMenu(rowIndex);
+                                  navigate(`/docVer?dts_number=${agreement.dts_number}`);
+                                }}
+                              >
+                                View Older File
+                              </div>
+                              {currentUser?.user_role?.toLowerCase() === "admin" && (
+                                <div
+                                  onClick={() => {
+                                    setSelectedAgreement(agreement);
+                                    setShowUploadForm(true);
+                                    toggleMenu(rowIndex);
+                                  }}
+                                  className="dropdown-item"
+                                >
+                                  Upload New File
                                 </div>
                               )}
                             </div>
-                          </>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -940,9 +1003,11 @@ const exportToExcel = async () => {
           </button>
         </div>
 
-        <div className="table-footer">
+      <div className="table-footer">
+        {currentUser?.user_role?.toLowerCase() === "admin" && (
           <button className="btn-add" onClick={() => navigate('/docUpload')}> + Add Document</button>
-        </div>
+        )}
+      </div>
       </div>
 
     {/* Upload New File Modal */}
