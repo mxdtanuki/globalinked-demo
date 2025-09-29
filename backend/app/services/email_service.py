@@ -5,8 +5,12 @@ from jinja2 import Template
 import os
 
 # Configure Brevo API
-configuration = Configuration()  # Create a Configuration instance
-configuration.api_key['api-key'] = os.getenv("BREVO_API_KEY")  # Set the API key
+api_key = os.getenv("BREVO_API_KEY")
+if not api_key:
+    raise ValueError("BREVO_API_KEY environment variable is not set")
+
+configuration = Configuration()
+configuration.api_key = {'api-key': api_key}  # Set as dict
 
 def render_template(body_html: str, context: dict) -> str:
     template = Template(body_html)
@@ -26,8 +30,12 @@ def send_email(to: str, subject: str, body: str):
     try:
         api_response = api_instance.send_transac_email(send_smtp_email)
         print(f"Email sent successfully: {api_response}")
+        return True
     except ApiException as e:
         print(f"Exception when sending email: {e}")
+        print(f"Brevo API Error Code: {e.status}")
+        print(f"Brevo API Error Body: {e.body}")
+        raise e
 
 def send_reset_email(recipient_email, reset_link):
     subject = "Password Reset Request 🔐 - Globalinked"

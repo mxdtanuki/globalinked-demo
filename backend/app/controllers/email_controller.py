@@ -135,4 +135,7 @@ def send_email_endpoint(email_data: dict, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         print(f"DEBUG: Email sending failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+        print(f"DEBUG: Error type: {type(e).__name__}")
+        import traceback
+        print(f"DEBUG: Full traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}") 

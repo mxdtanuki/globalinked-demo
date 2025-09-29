@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, cast, Integer
 from typing import List
-from datetime import datetime
+from datetime import datetime, date
 from app.database import get_db
 from app.models.agreements import Agreements
 from app.models.partners import Partners
@@ -25,11 +25,19 @@ from app.schemas.agreement_schemas import (
 from app.utils.utils import get_current_user
 from app.utils.audit_utils import log_add_entry, log_update_entry, log_delete_entry
 import traceback
+import base64
+
 
 router = APIRouter(
     prefix="/agreements",
     tags=["Agreements"]
 )
+
+def encode_logo(logo_bytes: bytes | None) -> str | None:
+    if not logo_bytes:
+        return None
+    return base64.b64encode(logo_bytes).decode("utf-8")
+
 
 @router.get("/archive", response_model=List[ArchiveAgreementResponse])
 async def get_archived_agreements(
@@ -136,7 +144,7 @@ async def get_agreements(
                 entity_type=partner.entity_type,
                 website_url=partner.website_url,
                 description=partner.description,
-                logo_path=partner.logo_path,
+                logo_path=encode_logo(partner.logo_path),
                 dts_number=agreement.dts_number,
                 dts_status=agreement.dts_status,
                 entry_date=agreement.entry_date,
@@ -216,7 +224,7 @@ async def create_agreement(
                     entity_type=partner.entity_type,
                     website_url=partner.website_url,
                     description=partner.description,
-                    logo_path=partner.logo_path,
+                    logo_path=encode_logo(partner.logo_path),
                     dts_number=existing.dts_number,
                     dts_status=existing.dts_status,
                     entry_date=existing.entry_date,
@@ -588,7 +596,7 @@ async def update_agreement(
             entity_type=partner.entity_type,
             website_url=partner.website_url,
             description=partner.description,
-            logo_path=partner.logo_path,
+            logo_path=encode_logo(partner.logo_path),
             dts_number=agreement.dts_number,
             dts_status=agreement.dts_status,
             entry_date=agreement.entry_date,
@@ -681,45 +689,3 @@ async def delete_agreement(
         print("🔥 Unhandled error in delete_agreement:", e)
         traceback.print_exc()   # <-- full traceback in Render logs
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
-'''
-@router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_agreement(
-    agreement_id: int,
-    db: Session = Depends(get_db),
-    current_user: Users = Depends(get_current_user)
-):
-    """
-    Delete agreement and all dependent rows (document versions, point persons, contact persons, remarks, notifications).
-    """
-    try:
-        agreement = db.query(Agreements).filter(Agreements.agreement_id == agreement_id).first()
-        if not agreement:
-            raise HTTPException(status_code=404, detail="Agreement not found")
-
-        # Reset other agreements that referenced this as renewed_from or MOU link
-        db.query(Agreements).filter(
-            Agreements.renewed_from_agreement_id == agreement_id
-        ).update({Agreements.renewed_from_agreement_id: None})
-        db.query(Agreements).filter(
-            Agreements.MOU_to_MOA_id == agreement_id
-        ).update({Agreements.MOU_to_MOA_id: None})
-
-        # Delete dependents referencing this agreement
-        db.query(DocumentVersions).filter(DocumentVersions.agreement_id == agreement_id).delete()
-        db.query(PointPersons).filter(PointPersons.agreement_id == agreement_id).delete()
-        db.query(ContactPersons).filter(ContactPersons.agreement_id == agreement_id).delete()
-        db.query(AgreementRemarks).filter(AgreementRemarks.agreement_id == agreement_id).delete()
-        db.query(Notification).filter(Notification.agreement_id == agreement_id).delete()
-
-        # Delete the agreement
-        db.delete(agreement)
-        db.commit()
-        log_delete_entry(db, current_user, agreement.document_type, agreement.dts_number)
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-'''
