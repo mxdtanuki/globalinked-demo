@@ -87,7 +87,7 @@ const PointPerson = () => {
         <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
         <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
 
-          <h2 className="point-title">Point Person List</h2>
+          <h2 className="point-title">Point Person List | Initiator</h2>
 
           <div className="point-person-wrapper">
             <div className="search-filter-bar">
