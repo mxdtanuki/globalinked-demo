@@ -144,6 +144,9 @@ export const agreementService = {
 
     async getArchivedAgreements() {
     const token = localStorage.getItem('access_token');
+    console.log("Fetching:", `${API_BASE_URL}/agreements/archive`);
+    console.log("With method: GET");
+
 
     if (!token) {
       throw new Error('Please login first');
