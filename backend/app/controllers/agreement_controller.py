@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, cast, Integer
 from typing import List
-from datetime import datetime
+from datetime import datetime, date
 from app.database import get_db
 from app.models.agreements import Agreements
 from app.models.partners import Partners
@@ -25,12 +25,19 @@ from app.schemas.agreement_schemas import (
 from app.utils.utils import get_current_user
 from app.utils.audit_utils import log_add_entry, log_update_entry, log_delete_entry
 import traceback
-from datetime import date
+import base64
+
 
 router = APIRouter(
     prefix="/agreements",
     tags=["Agreements"]
 )
+
+def encode_logo(logo_bytes: bytes | None) -> str | None:
+    if not logo_bytes:
+        return None
+    return base64.b64encode(logo_bytes).decode("utf-8")
+
 
 @router.get("/archive", response_model=List[ArchiveAgreementResponse])
 async def get_archived_agreements(
@@ -44,7 +51,7 @@ async def get_archived_agreements(
         today = date.today()
         query = db.query(Agreements, Partners).join(
             Partners, Agreements.partner_id == Partners.partner_id
-        ).filter(Agreements.date_expiry < today)
+        ).filter(Agreements.date_expiry <= today)
 
         results = query.all()
         archive_list = []
@@ -62,6 +69,7 @@ async def get_archived_agreements(
 
             archive_list.append(ArchiveAgreementResponse(
                 agreement_id=agreement.agreement_id,
+                dts_number=agreement.dts_number,
                 partner_name=partner.name,
                 document_type=agreement.document_type,
                 partnership_type=agreement.partnership_type,
@@ -76,7 +84,117 @@ async def get_archived_agreements(
             status_code=500,
             detail=f"Error fetching archive: {str(e)}"
         )
+    
+@router.get("/", response_model=List[AgreementResponse])
+async def get_agreements(
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """
+    Return all *active* agreements (not expired) with partner, contact persons,
+    point persons, and remarks.
+    NOTE: Source unit is now a string field on Agreements (agreements.source_unit).
+    """
+    try:
+        today = date.today()
 
+        # join Agreements with Partners, filter out expired
+        query = db.query(Agreements, Partners).join(
+            Partners, Agreements.partner_id == Partners.partner_id
+        ).filter(
+            or_(
+                Agreements.date_expiry == None,            # no expiry set
+                Agreements.date_expiry >= today            # still valid
+            )
+        )
+
+        results = query.all()
+        agreements_list = []
+
+        for agreement, partner in results:
+            # contact persons (agreement-specific OR partner fallback)
+            contact_persons = db.query(ContactPersons).filter(
+                or_(
+                    ContactPersons.agreement_id == agreement.agreement_id,
+                    ContactPersons.partner_id == partner.partner_id
+                )
+            ).all()
+
+            # point persons (directly linked to agreement)
+            point_persons = db.query(PointPersons).filter(
+                PointPersons.agreement_id == agreement.agreement_id
+            ).all()
+
+            # remarks
+            remarks = db.query(AgreementRemarks).filter(
+                AgreementRemarks.agreement_id == agreement.agreement_id
+            ).all()
+
+            # pre-concatenated display strings
+            contact_persons_display = ", ".join(
+                f"{cp.contact_person_position}: {cp.contact_person_name} ({cp.contact_person_email})"
+                for cp in contact_persons
+            ) if contact_persons else ""
+
+            point_persons_display = ", ".join(
+                f"{pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})"
+                for pp in point_persons
+            ) if point_persons else ""
+
+            agreements_list.append(AgreementResponse(
+                agreement_id=agreement.agreement_id,
+                partner_id=partner.partner_id,
+                source_unit=agreement.source_unit,
+                name=partner.name,
+                country=partner.country,
+                region=partner.region,
+                address=partner.address,
+                entity_type=partner.entity_type,
+                website_url=partner.website_url,
+                description=partner.description,
+                logo_path=encode_logo(partner.logo_path),
+                dts_number=agreement.dts_number,
+                dts_status=agreement.dts_status,
+                entry_date=agreement.entry_date,
+                date_received=agreement.date_received,
+                date_endorsed_to_ulco=agreement.date_endorsed_to_ulco,
+                date_ulco_approved=agreement.date_ulco_approved,
+                date_signed_by_pup=agreement.date_signed_by_pup,
+                date_signed=agreement.date_signed,
+                date_expiry=agreement.date_expiry,
+                document_type=agreement.document_type,
+                partnership_type=agreement.partnership_type,
+                validity_period=agreement.validity_period,
+                event_info=agreement.event_info,
+                signatories_list=agreement.signatories_list,
+                agreement_status=agreement.agreement_status,
+                hardcopy_location=agreement.hardcopy_location,
+                entry_type=agreement.entry_type,
+                renewed_from_agreement_id=agreement.renewed_from_agreement_id,
+                MOU_to_MOA_id=agreement.MOU_to_MOA_id,
+                contact_persons=[
+                    ContactPersonResponse.model_validate(cp, from_attributes=True)
+                    for cp in contact_persons
+                ],
+                point_persons=[
+                    PointPersonResponse.model_validate(pp, from_attributes=True)
+                    for pp in point_persons
+                ],
+                contact_persons_display=contact_persons_display,
+                point_persons_display=point_persons_display,
+                remarks=remarks,
+                created_at=partner.created_at
+            ))
+
+        return agreements_list
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching agreements: {str(e)}"
+        )
+
+'''
 @router.get("/", response_model=List[AgreementResponse])
 async def get_agreements(
     db: Session = Depends(get_db),
@@ -136,7 +254,7 @@ async def get_agreements(
                 entity_type=partner.entity_type,
                 website_url=partner.website_url,
                 description=partner.description,
-                logo_path=partner.logo_path,
+                logo_path=encode_logo(partner.logo_path),
                 dts_number=agreement.dts_number,
                 dts_status=agreement.dts_status,
                 entry_date=agreement.entry_date,
@@ -177,7 +295,7 @@ async def get_agreements(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching agreements: {str(e)}"
         )
-
+'''
 
 @router.post("/", response_model=dict)
 async def create_agreement(
@@ -216,7 +334,7 @@ async def create_agreement(
                     entity_type=partner.entity_type,
                     website_url=partner.website_url,
                     description=partner.description,
-                    logo_path=partner.logo_path,
+                    logo_path=encode_logo(partner.logo_path),
                     dts_number=existing.dts_number,
                     dts_status=existing.dts_status,
                     entry_date=existing.entry_date,
@@ -588,7 +706,7 @@ async def update_agreement(
             entity_type=partner.entity_type,
             website_url=partner.website_url,
             description=partner.description,
-            logo_path=partner.logo_path,
+            logo_path=encode_logo(partner.logo_path),
             dts_number=agreement.dts_number,
             dts_status=agreement.dts_status,
             entry_date=agreement.entry_date,
@@ -625,6 +743,7 @@ async def update_agreement(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    
 
 @router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_agreement(
@@ -680,46 +799,3 @@ async def delete_agreement(
         print("🔥 Unhandled error in delete_agreement:", e)
         traceback.print_exc()   # <-- full traceback in Render logs
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-'''
-@router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_agreement(
-    agreement_id: int,
-    db: Session = Depends(get_db),
-    current_user: Users = Depends(get_current_user)
-):
-    """
-    Delete agreement and all dependent rows (document versions, point persons, contact persons, remarks, notifications).
-    """
-    try:
-        agreement = db.query(Agreements).filter(Agreements.agreement_id == agreement_id).first()
-        if not agreement:
-            raise HTTPException(status_code=404, detail="Agreement not found")
-
-        # Reset other agreements that referenced this as renewed_from or MOU link
-        db.query(Agreements).filter(
-            Agreements.renewed_from_agreement_id == agreement_id
-        ).update({Agreements.renewed_from_agreement_id: None})
-        db.query(Agreements).filter(
-            Agreements.MOU_to_MOA_id == agreement_id
-        ).update({Agreements.MOU_to_MOA_id: None})
-
-        # Delete dependents referencing this agreement
-        db.query(DocumentVersions).filter(DocumentVersions.agreement_id == agreement_id).delete()
-        db.query(PointPersons).filter(PointPersons.agreement_id == agreement_id).delete()
-        db.query(ContactPersons).filter(ContactPersons.agreement_id == agreement_id).delete()
-        db.query(AgreementRemarks).filter(AgreementRemarks.agreement_id == agreement_id).delete()
-        db.query(Notification).filter(Notification.agreement_id == agreement_id).delete()
-
-        # Delete the agreement
-        db.delete(agreement)
-        db.commit()
-        log_delete_entry(db, current_user, agreement.document_type, agreement.dts_number)
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-'''

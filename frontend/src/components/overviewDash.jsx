@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdOutlineManageHistory } from 'react-icons/md';
 import { agreementService } from '../services/agreementService';
 import { documentService } from '../services/documentService';
 import './overviewDash.css';
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 const OverviewDash = () => {
   const navigate = useNavigate();
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showAudit, setShowAudit] = useState(false);
   const [agreements, setAgreements] = useState([]);
   const [filteredAgreements, setFilteredAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,17 +36,40 @@ const OverviewDash = () => {
     fetchAgreements();
   }, []);
 
-  const fetchAgreements = async () => {
-    try {
-      const data = await agreementService.getAgreements();
-      setAgreements(data);
-      setFilteredAgreements(data);
-    } catch (err) {
-      setError('Failed to fetch agreements: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchAgreements = async () => {
+  try {
+    const data = await agreementService.getAgreements();
+    setAgreements(data);
+
+    // Filter to active agreements (not expired)
+    const now = new Date();
+    const activeAgreements = data.filter(a => {
+      if (!a.date_expiry) return true;
+      const expiryDate = new Date(a.date_expiry);
+      return expiryDate > now;
+    });
+    setFilteredAgreements(activeAgreements);
+  } catch (err) {
+    setError('Failed to fetch agreements: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const [dateSortOrder, setDateSortOrder] = useState(null);
+
+const handleDateSort = () => {
+  const newOrder = dateSortOrder === 'asc' ? 'desc' : 'asc';
+  setDateSortOrder(newOrder);
+
+  const sorted = [...filteredAgreements].sort((a, b) => {
+    const dateA = new Date(a.entry_date);
+    const dateB = new Date(b.entry_date);
+    return newOrder === 'asc' ? dateA - dateB : dateB - dateA;
+  });
+  setFilteredAgreements(sorted);
+};
+  
 
   // Start editing a specific row
   const startEditing = (agreement) => {
@@ -192,11 +215,56 @@ const OverviewDash = () => {
       'contact_persons', 'document_type', 'partnership_type', 'event_info',
       'validity_period', 'date_signed', 'date_expiry', 'date_received',
       'date_endorsed_to_ulco', 'date_ulco_approved', 'date_signed_by_pup',
-      'agreement_status', 'website_url', 'description', 'hardcopy_location', 'remarks'
+      'agreement_status', 'website_url', 'description', 'hardcopy_location', 'remarks', 'logo_url'
     ];
 
     const isEditable = editableFields.includes(field);
+    if (field === 'logo_url') {
+      if (!isEditing) {
+        return value ? (
+          <a href={value} target="_blank" rel="noopener noreferrer">
+            View Logo
+          </a>
+        ) : '-';
+      }
 
+      return (
+        <div>
+          {editedData.logo_url ? (
+            <a href={editedData.logo_url} target="_blank" rel="noopener noreferrer">
+              View Logo
+            </a>
+          ) : (
+            <span>No logo uploaded</span>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            style={{
+              marginTop: '8px',
+              width: '120px',      
+              padding: '2px 4px',  
+              fontSize: '12px'    
+            }}
+            onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              if (file.size > 2 * 1024 * 1024) {
+                alert('Logo file is too large. Maximum size is 2MB.');
+                return;
+              }
+              try {
+                const res = await documentService.uploadLogo(agreement.agreement_id, file);
+                handleInputChange('logo_url', res.logo_url);
+                alert('Logo uploaded!');
+              } catch (err) {
+                alert('Logo upload failed: ' + err.message);
+              }
+            }}
+          />
+        </div>
+      );
+    }
     // Display/edit for POINT PERSONS
     if (field === 'point_persons') {
       if (!isEditing) {
@@ -448,12 +516,10 @@ const OverviewDash = () => {
     }
   };
 
+  
+
   const toggleMenu = (index) => {
     setOpenMenuIndex(openMenuIndex === index ? null : index);
-  };
-
-  const toggleAudit = () => {
-    setShowAudit(!showAudit);
   };
 
   const handlePageChange = (pageNumber) => {
@@ -519,12 +585,11 @@ const OverviewDash = () => {
 
   const stats = [
     { label: 'Total Agreement', count: agreements.length, route: '/stat/totalAgreement' },
-    { label: 'Active Agreement', count: agreements.filter(a => a.agreement_status !== 'Complete').length, route: '/stat/activeAgreement' },
-    { label: 'Expired Agreement', count: agreements.filter(a => new Date(a.date_expiry) < new Date()).length, route: '/stat/expiredAgreement' },
+    { label: 'Active Agreement', count: agreements.filter(a => { if (!a.date_expiry) return true;  const now = new Date(); const expiryDate = new Date(a.date_expiry); return expiryDate > now; }).length, route: '/stat/activeAgreement' },
     { label: 'Nearing Expiration', count: agreements.filter(a => {if (!a.date_expiry) return false;const now = new Date(); const expiryDate = new Date(a.date_expiry); const daysDifference = (expiryDate - now) / (1000 * 60 * 60 * 24); return daysDifference > 0 && daysDifference <= 30;
     }).length, route: '/stat/nearExpAgreement'}
   ];
-
+  
   const lifecycleStages = [
     { label: 'Endorse to ULCO', status: 'Endorse' },
     { label: 'Revert to Initiator', status: 'Revert' },
@@ -560,6 +625,19 @@ const OverviewDash = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadComment, setUploadComment] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+    useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const parsedUser = JSON.parse(userStr);
+        setCurrentUser(parsedUser);
+      }
+    } catch (err) {
+      console.error("Error parsing user from localStorage:", err);
+    }
+  }, []);
 
   if (loading) return <div className="overview-container">Loading agreements...</div>;
   if (error) return <div className="overview-container">Error: {error}</div>;
@@ -575,12 +653,11 @@ const OverviewDash = () => {
       break;
 
     case 'Active Agreement':
-      data = data.filter(a => a.agreement_status !== 'Complete');
-      setSelectedStatus(null);
-      break;
-
-    case 'Expired Agreement':
-      data = data.filter(a => a.date_expiry && new Date(a.date_expiry) < now);
+      data = data.filter(a => {
+        if (!a.date_expiry) return true; 
+        const expiryDate = new Date(a.date_expiry);
+        return expiryDate > now; 
+      });
       setSelectedStatus(null);
       break;
 
@@ -601,6 +678,70 @@ const OverviewDash = () => {
   setFilteredAgreements(data);
   setCurrentPage(1);
 };
+
+
+const exportToExcel = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Agreements");
+  const excelColumns = tableColumns.filter((col) => col !== "Action");
+
+  // Set column headers
+  worksheet.columns = excelColumns.map((col) => ({
+    header: col,
+    key: col,
+    width: 25, 
+  }));
+
+  // Add rows
+  filteredAgreements.forEach((a) => {
+    worksheet.addRow([
+      a.entry_date,
+      a.source_unit,
+      a.point_persons,
+      a.dts_number,
+      a.dts_status,
+      a.name,
+      a.entity_type,
+      a.country,
+      a.region,
+      a.address,
+      a.signatories_list,
+      a.contact_persons,
+      a.document_type,
+      a.partnership_type,
+      a.event_info,
+      a.validity_period,
+      a.date_signed,
+      a.date_expiry,
+      a.date_received,
+      a.date_endorsed_to_ulco,
+      a.date_ulco_approved,
+      a.date_signed_by_pup,
+      a.agreement_status,
+      a.website_url,
+      a.description,
+      a.logo_url,
+      a.hardcopy_location,
+      a.remarks,
+    ]);
+  });
+
+  // Style header row
+  worksheet.getRow(1).eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFB22222" }, 
+    };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+  });
+
+  // Generate Excel file
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), "agreements.xlsx");
+};
+
 
   return (
     <div className="overview-container">
@@ -639,14 +780,13 @@ const OverviewDash = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <div className="audit-icon-wrapper" onClick={toggleAudit} title="View Audit Log">
-              <MdOutlineManageHistory className="audit-icon" />
-            </div>
           </div>
         <div className="table-actions">
           <div className="button-group">
             <button className="btn" onClick={() => setShowFilterPanel(!showFilterPanel)}>Filter</button>
-            <button className="btn btn-generate">Generate</button>
+              <button className="btn btn-generate" onClick={exportToExcel}>
+                Generate
+              </button>
           </div>
         </div>
         </div>
@@ -714,13 +854,44 @@ const OverviewDash = () => {
 
         <div className="table-scroll">
           <table className="document-table">
-            <thead>
-              <tr>
-                {tableColumns.map((col, i) => (
-                  <th key={i}>{col}</th>
-                ))}
-              </tr>
-            </thead>
+          <thead>
+            <tr>
+              <th style={{ cursor: 'pointer' }} onClick={handleDateSort}>
+                Date
+                {dateSortOrder === 'asc' && <span> ▲</span>}
+                {dateSortOrder === 'desc' && <span> ▼</span>}
+                {!dateSortOrder && <span style={{ opacity: 0.5 }}> ⇅</span>}
+              </th>
+              <th>SOURCE</th>
+              <th>POINT PERSON / POSITION</th>
+              <th>DTS NO.</th>
+              <th>DTS LOCATION</th>
+              <th>PARTNER'S NAME</th>
+              <th>ENTITY TYPE</th>
+              <th>COUNTRY</th>
+              <th>REGION</th>
+              <th>ADDRESS</th>
+              <th>SIGNATORIES / POSITION</th>
+              <th>CONTACT PERSON / DETAILS</th>
+              <th>DOCUMENT TYPE</th>
+              <th>PARTNERSHIP CLASSIFICATION</th>
+              <th>EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT</th>
+              <th>VALIDITY PERIOD</th>
+              <th>DATE / YEAR OF SIGNING</th>
+              <th>EXPIRY DATE / YEAR</th>
+              <th>DATE RECEIVED</th>
+              <th>DATE ENDORSED TO ULCO</th>
+              <th>ULCO'S APPROVAL</th>
+              <th>PUP OFFICIALS' SIGNATURE</th>
+              <th>STATUS</th>
+              <th>WEBSITE LINK</th>
+              <th>Brief Profile</th>
+              <th>LOGO</th>
+              <th>HARDCOPY LOCATOR</th>
+              <th>REMARKS</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
             <tbody>
               {paginatedData.length === 0 ? (
                 <tr>
@@ -766,48 +937,50 @@ const OverviewDash = () => {
                       }
                     </td>
                     <td>{renderEditableCell(agreement, 'description', agreement.description)}</td>
-                    <td>{agreement.logo_url ? (
-                      <a href={agreement.logo_url} target="_blank" rel="noopener noreferrer">
-                        View Logo
-                      </a>
-                    ) : '-'}</td>
+                    <td>{renderEditableCell(agreement, 'logo_url', agreement.logo_url)}</td>
                     <td>{renderEditableCell(agreement, 'hardcopy_location', agreement.hardcopy_location)}</td>
                     <td>{renderEditableCell(agreement, 'remarks', agreement.remarks)}</td>
                     <td>
                       <div className="action-buttons">
                         {editingRow === agreement.agreement_id ? (
-                          // Show Save/Cancel buttons when editing
                           <>
-                            <button
-                              className="btn-action save"
-                              onClick={() => saveRow(agreement.agreement_id)}
-                              disabled={savingRows.has(agreement.agreement_id)}
-                            >
-                              {savingRows.has(agreement.agreement_id) ? 'Saving...' : 'Save'}
-                            </button>
-                            <button
-                              className="btn-action cancel"
-                              onClick={cancelEditing}
-                            >
-                              Cancel
-                            </button>
+                            {currentUser?.user_role?.toLowerCase() === "admin" && (
+                              <>
+                                <button
+                                  className="btn-action save"
+                                  onClick={() => saveRow(agreement.agreement_id)}
+                                  disabled={savingRows.has(agreement.agreement_id)}
+                                >
+                                  {savingRows.has(agreement.agreement_id) ? 'Saving...' : 'Save'}
+                                </button>
+                                <button
+                                  className="btn-action cancel"
+                                  onClick={cancelEditing}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
                           </>
                         ) : (
-                          // Show Edit/Delete buttons when not editing
                           <>
-                            <button
-                              className="btn-action"
-                              onClick={() => startEditing(agreement)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="btn-action delete"
-                              onClick={() => deleteRow(agreement.agreement_id)}
-                              disabled={deletingRows.has(agreement.agreement_id)}
-                            >
-                              Delete
-                            </button>
+                            {currentUser?.user_role?.toLowerCase() === "admin" && (
+                              <>
+                                <button
+                                  className="btn-action"
+                                  onClick={() => startEditing(agreement)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="btn-action delete"
+                                  onClick={() => deleteRow(agreement.agreement_id)}
+                                  disabled={deletingRows.has(agreement.agreement_id)}
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
                         <div className="menu-wrapper">
@@ -819,39 +992,39 @@ const OverviewDash = () => {
                             &#8942;
                           </button>
                           {openMenuIndex === rowIndex && (
-                          <div className="dropdown-menu">
-                            <div
-                              className="dropdown-item"
-                              onClick={() => {
-                                toggleMenu(rowIndex);
-                                handleViewLatestFile(agreement.dts_number);
-                              }}
-                            >
-                              View File
+                            <div className="dropdown-menu">
+                              <div
+                                className="dropdown-item"
+                                onClick={() => {
+                                  toggleMenu(rowIndex);
+                                  handleViewLatestFile(agreement.dts_number);
+                                }}
+                              >
+                                View File
+                              </div>
+                              <div
+                                className="dropdown-item"
+                                onClick={() => {
+                                  toggleMenu(rowIndex);
+                                  navigate(`/docVer?dts_number=${agreement.dts_number}`);
+                                }}
+                              >
+                                View Older File
+                              </div>
+                              {currentUser?.user_role?.toLowerCase() === "admin" && (
+                                <div
+                                  onClick={() => {
+                                    setSelectedAgreement(agreement);
+                                    setShowUploadForm(true);
+                                    toggleMenu(rowIndex);
+                                  }}
+                                  className="dropdown-item"
+                                >
+                                  Upload New File
+                                </div>
+                              )}
                             </div>
-
-                            <div
-                              className="dropdown-item"
-                              onClick={() => {
-                                toggleMenu(rowIndex);
-                                navigate(`/docVer?dts_number=${agreement.dts_number}`);
-                              }}
-                            >
-                              View Older File
-                            </div>
-
-                            <div
-                              onClick={() => {
-                                setSelectedAgreement(agreement);
-                                setShowUploadForm(true);
-                                toggleMenu(rowIndex);
-                              }}
-                              className="dropdown-item"
-                            >
-                              Upload New File
-                            </div>
-                          </div>
-                        )}
+                          )}
                         </div>
                       </div>
                     </td>
@@ -860,6 +1033,54 @@ const OverviewDash = () => {
               )}
             </tbody>
           </table>
+          <button
+            style={{
+              position: 'absolute',
+              left: '12px',
+              bottom: '4px',
+              padding: '6px 16px',
+              fontSize: '18px',
+              cursor: 'pointer',
+              background: '#800000', 
+              color: '#fff',
+              border: 'none',
+              borderRadius: '24px', 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            }}
+            title="Scroll to first column"
+            onClick={() => {
+              const tableScrollDiv = document.querySelector('.table-scroll');
+              if (tableScrollDiv) {
+                tableScrollDiv.scrollLeft = 0;
+              }
+            }}
+          >
+            ◄
+          </button>
+          <button
+            style={{
+              position: 'absolute',
+              right: '12px',
+              bottom: '4px',
+              padding: '6px 16px',
+              fontSize: '18px',
+              cursor: 'pointer',
+              background: '#800000', 
+              color: '#fff',
+              border: 'none',
+              borderRadius: '24px', 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            }}
+            title="Scroll to last column"
+            onClick={() => {
+              const tableScrollDiv = document.querySelector('.table-scroll');
+              if (tableScrollDiv) {
+                tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
+              }
+            }}
+          >
+            ►
+          </button>
         </div>
 
         <div className="pagination">
@@ -884,11 +1105,14 @@ const OverviewDash = () => {
           >
             Next &raquo;
           </button>
+
         </div>
 
-        <div className="table-footer">
+      <div className="table-footer">
+        {currentUser?.user_role?.toLowerCase() === "admin" && (
           <button className="btn-add" onClick={() => navigate('/docUpload')}> + Add Document</button>
-        </div>
+        )}
+      </div>
       </div>
 
     {/* Upload New File Modal */}
