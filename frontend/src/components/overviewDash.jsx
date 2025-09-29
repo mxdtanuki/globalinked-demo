@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdOutlineManageHistory } from 'react-icons/md';
 import { agreementService } from '../services/agreementService';
 import { documentService } from '../services/documentService';
 import './overviewDash.css';
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 const OverviewDash = () => {
   const navigate = useNavigate();
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showAudit, setShowAudit] = useState(false);
   const [agreements, setAgreements] = useState([]);
   const [filteredAgreements, setFilteredAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -452,10 +452,6 @@ const OverviewDash = () => {
     setOpenMenuIndex(openMenuIndex === index ? null : index);
   };
 
-  const toggleAudit = () => {
-    setShowAudit(!showAudit);
-  };
-
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
     setOpenMenuIndex(null);
@@ -520,7 +516,6 @@ const OverviewDash = () => {
   const stats = [
     { label: 'Total Agreement', count: agreements.length, route: '/stat/totalAgreement' },
     { label: 'Active Agreement', count: agreements.filter(a => a.agreement_status !== 'Complete').length, route: '/stat/activeAgreement' },
-    { label: 'Expired Agreement', count: agreements.filter(a => new Date(a.date_expiry) < new Date()).length, route: '/stat/expiredAgreement' },
     { label: 'Nearing Expiration', count: agreements.filter(a => {if (!a.date_expiry) return false;const now = new Date(); const expiryDate = new Date(a.date_expiry); const daysDifference = (expiryDate - now) / (1000 * 60 * 60 * 24); return daysDifference > 0 && daysDifference <= 30;
     }).length, route: '/stat/nearExpAgreement'}
   ];
@@ -579,11 +574,6 @@ const OverviewDash = () => {
       setSelectedStatus(null);
       break;
 
-    case 'Expired Agreement':
-      data = data.filter(a => a.date_expiry && new Date(a.date_expiry) < now);
-      setSelectedStatus(null);
-      break;
-
     case 'Nearing Expiration':
       data = data.filter(a => {
         if (!a.date_expiry) return false;
@@ -600,6 +590,69 @@ const OverviewDash = () => {
 
   setFilteredAgreements(data);
   setCurrentPage(1);
+};
+
+
+const exportToExcel = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Agreements");
+  const excelColumns = tableColumns.filter((col) => col !== "Action");
+
+  // Set column headers
+  worksheet.columns = excelColumns.map((col) => ({
+    header: col,
+    key: col,
+    width: 25, 
+  }));
+
+  // Add rows
+  filteredAgreements.forEach((a) => {
+    worksheet.addRow([
+      a.entry_date,
+      a.source_unit,
+      a.point_persons,
+      a.dts_number,
+      a.dts_status,
+      a.name,
+      a.entity_type,
+      a.country,
+      a.region,
+      a.address,
+      a.signatories_list,
+      a.contact_persons,
+      a.document_type,
+      a.partnership_type,
+      a.event_info,
+      a.validity_period,
+      a.date_signed,
+      a.date_expiry,
+      a.date_received,
+      a.date_endorsed_to_ulco,
+      a.date_ulco_approved,
+      a.date_signed_by_pup,
+      a.agreement_status,
+      a.website_url,
+      a.description,
+      a.logo_url,
+      a.hardcopy_location,
+      a.remarks,
+    ]);
+  });
+
+  // Style header row
+  worksheet.getRow(1).eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFB22222" }, 
+    };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+  });
+
+  // Generate Excel file
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), "agreements.xlsx");
 };
 
   return (
@@ -639,14 +692,13 @@ const OverviewDash = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <div className="audit-icon-wrapper" onClick={toggleAudit} title="View Audit Log">
-              <MdOutlineManageHistory className="audit-icon" />
-            </div>
           </div>
         <div className="table-actions">
           <div className="button-group">
             <button className="btn" onClick={() => setShowFilterPanel(!showFilterPanel)}>Filter</button>
-            <button className="btn btn-generate">Generate</button>
+              <button className="btn btn-generate" onClick={exportToExcel}>
+                Generate
+              </button>
           </div>
         </div>
         </div>
