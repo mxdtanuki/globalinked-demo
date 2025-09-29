@@ -1,47 +1,72 @@
-import sib_api_v3_sdk
-from sib_api_v3_sdk import Configuration
-from sib_api_v3_sdk.rest import ApiException
-from jinja2 import Template
 import os
+from jinja2 import Template
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
 
-# Configure Brevo API
-api_key = os.getenv("BREVO_API_KEY")
-if not api_key:
-    raise ValueError("BREVO_API_KEY environment variable is not set")
+# Get SMTP credentials from environment variables
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_USER = "pup.international.affairs@gmail.com"
+SMTP_PASS = "epcs mqnp cpun pxin"
 
-configuration = Configuration()
-configuration.api_key = {'api-key': api_key}  # Set as dict
+if not SMTP_USER or not SMTP_PASS:
+    raise ValueError("SMTP_USER and SMTP_PASS environment variables must be set")
 
 def render_template(body_html: str, context: dict) -> str:
+    """Render HTML email templates using Jinja2."""
     template = Template(body_html)
     return template.render(context)
 
-def send_email(to: str, subject: str, body: str):
-    """Send email via Brevo API"""
-    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(configuration)  # Pass configuration
-    
-    send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
-        to=[{"email": to}],
-        sender={"name": "Globalinked", "email": "pup.international.affairs@gmail.com"},
-        subject=subject,
-        html_content=body
-    )
-    
+def send_email(to, subject: str, body: str):
+    """Send email via SMTP with proper error handling."""
     try:
-        api_response = api_instance.send_transac_email(send_smtp_email)
-        print(f"Email sent successfully: {api_response}")
-        return True
-    except ApiException as e:
-        print(f"Exception when sending email: {e}")
-        print(f"Brevo API Error Code: {e.status}")
-        print(f"Brevo API Error Body: {e.body}")
-        raise e
+        # Handle both single email string and list of emails
+        if isinstance(to, list):
+            recipients = to
+            to_header = ", ".join(to)  # For the To header
+        else:
+            recipients = [to]
+            to_header = to
 
-def send_reset_email(recipient_email, reset_link):
+        msg = MIMEMultipart("alternative")
+        msg["From"] = SMTP_USER
+        msg["To"] = to_header
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "html"))
+
+        print(f"Attempting to send email to: {recipients}")
+        print(f"Using SMTP server: {SMTP_SERVER}:{SMTP_PORT}")
+        print(f"From: {SMTP_USER}")
+
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.sendmail(SMTP_USER, recipients, msg.as_string())
+
+        print(f"Email sent successfully to: {recipients}")
+        return True
+
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"SMTP Authentication Error: {e}")
+        raise Exception(f"SMTP authentication failed. Check credentials. Error: {e}")
+    except smtplib.SMTPConnectError as e:
+        print(f"SMTP Connection Error: {e}")
+        raise Exception(f"Failed to connect to SMTP server. Error: {e}")
+    except smtplib.SMTPException as e:
+        print(f"SMTP Error: {e}")
+        raise Exception(f"SMTP error occurred. Error: {e}")
+    except Exception as e:
+        print(f"Unexpected error sending email: {e}")
+        raise Exception(f"Failed to send email: {e}")
+
+def send_reset_email(recipient_email: str, reset_link: str):
+    """Send password reset email."""
     subject = "Password Reset Request 🔐 - Globalinked"
     body = (
-        f'Click the link below to reset your password:<br>'
-        f'<a href="{reset_link}">Reset your password here</a><br><br>'
-        f"If you did not request this, please ignore this email."
+        f'<p>Click the link below to reset your password:</p>'
+        f'<p><a href="{reset_link}">Reset your password here</a></p>'
+        f'<p>If you did not request this, please ignore this email.</p>'
+        f'<p>This link will expire in 1 hour.</p>'
     )
     send_email(recipient_email, subject, body)

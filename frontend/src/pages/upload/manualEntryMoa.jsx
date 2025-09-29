@@ -302,6 +302,7 @@ const partnershipTypeOptions = [
   const [dateSigned, setDateSigned] = useState("");
   const [validityPeriod, setValidityPeriod] = useState("");
   const [dateExpiry, setDateExpiry] = useState("");
+  const [datePupSigned, setDatePupSigned] = useState("");
 
 
   // Contact functions
@@ -335,17 +336,25 @@ const partnershipTypeOptions = [
     }
   };
 
-  // Effect to calculate Expiration Date
-  useEffect(() => {
-    if (entryDate && validityPeriod) { // Changed from dateSigned to entryDate
-      const baseDate = new Date(entryDate); // Changed from dateSigned to entryDate
-      const yearsToAdd = parseInt(validityPeriod, 10);
-      if (!isNaN(yearsToAdd)) {
-        baseDate.setFullYear(baseDate.getFullYear() + yearsToAdd);
-        setDateExpiry(baseDate.toISOString().split('T')[0]);
-      }
+// Set entry date to today automatically
+useEffect(() => {
+  const today = new Date().toISOString().split('T')[0];
+  setEntryDate(today);
+}, []);
+
+// Effect to calculate Expiration Date
+useEffect(() => {
+  if (datePupSigned && validityPeriod) {
+    const baseDate = new Date(datePupSigned);
+    const yearsToAdd = parseInt(validityPeriod, 10);
+    if (!isNaN(yearsToAdd)) {
+      baseDate.setFullYear(baseDate.getFullYear() + yearsToAdd);
+      setDateExpiry(baseDate.toISOString().split('T')[0]);
     }
-  }, [entryDate, validityPeriod]); // Changed from dateSigned to entryDate
+  } else if (!datePupSigned || !validityPeriod) {
+    setDateExpiry("");
+  }
+}, [datePupSigned, validityPeriod]);
 
   // Fetch existing partners
   useEffect(() => {
@@ -413,7 +422,7 @@ const handleSubmit = async (e) => {
       date_received: data.dateReceived || null,
       date_endorsed_to_ulco: data.dateEndorsed || null,
       date_ulco_approved: data.dateUlcoApproved || null,
-      date_signed_by_pup: data.datePupSigned || null,
+      date_signed_by_pup: datePupSigned || null,
       date_signed: dateSigned || null, // Use state for dateSigned
       date_expiry: dateExpiry || null, // Use state for dateExpiry
       validity_period: validityPeriod || null, // Use state for validityPeriod
@@ -497,6 +506,7 @@ const handleSubmit = async (e) => {
       setDateSigned("");
       setValidityPeriod("");
       setDateExpiry("");
+      setDatePupSigned("");
     }
   } catch (error) {
     console.error("Full error:", error);
@@ -913,7 +923,13 @@ const handleSubmit = async (e) => {
           {/* DATE PUP SIGNED */}
           <div className="form-group">
           <label htmlFor="datePupSigned">Date PUP Signed:</label>
-          <input id="datePupSigned" name="datePupSigned" type="date" />
+          <input 
+            id="datePupSigned" 
+            name="datePupSigned" 
+            type="date" 
+            value={datePupSigned}
+            onChange={(e) => setDatePupSigned(e.target.value)}
+          />
           </div>
 
            {/* DATE SIGNED */}

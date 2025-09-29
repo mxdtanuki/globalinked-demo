@@ -206,11 +206,56 @@ const handleDateSort = () => {
       'contact_persons', 'document_type', 'partnership_type', 'event_info',
       'validity_period', 'date_signed', 'date_expiry', 'date_received',
       'date_endorsed_to_ulco', 'date_ulco_approved', 'date_signed_by_pup',
-      'agreement_status', 'website_url', 'description', 'hardcopy_location', 'remarks'
+      'agreement_status', 'website_url', 'description', 'hardcopy_location', 'remarks', 'logo_url'
     ];
 
     const isEditable = editableFields.includes(field);
+    if (field === 'logo_url') {
+      if (!isEditing) {
+        return value ? (
+          <a href={value} target="_blank" rel="noopener noreferrer">
+            View Logo
+          </a>
+        ) : '-';
+      }
 
+      return (
+        <div>
+          {editedData.logo_url ? (
+            <a href={editedData.logo_url} target="_blank" rel="noopener noreferrer">
+              View Logo
+            </a>
+          ) : (
+            <span>No logo uploaded</span>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            style={{
+              marginTop: '8px',
+              width: '120px',      
+              padding: '2px 4px',  
+              fontSize: '12px'    
+            }}
+            onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              if (file.size > 2 * 1024 * 1024) {
+                alert('Logo file is too large. Maximum size is 2MB.');
+                return;
+              }
+              try {
+                const res = await documentService.uploadLogo(agreement.agreement_id, file);
+                handleInputChange('logo_url', res.logo_url);
+                alert('Logo uploaded!');
+              } catch (err) {
+                alert('Logo upload failed: ' + err.message);
+              }
+            }}
+          />
+        </div>
+      );
+    }
     // Display/edit for POINT PERSONS
     if (field === 'point_persons') {
       if (!isEditing) {
@@ -461,6 +506,8 @@ const handleDateSort = () => {
       );
     }
   };
+
+  
 
   const toggleMenu = (index) => {
     setOpenMenuIndex(openMenuIndex === index ? null : index);
@@ -877,11 +924,7 @@ const exportToExcel = async () => {
                       }
                     </td>
                     <td>{renderEditableCell(agreement, 'description', agreement.description)}</td>
-                    <td>{agreement.logo_url ? (
-                      <a href={agreement.logo_url} target="_blank" rel="noopener noreferrer">
-                        View Logo
-                      </a>
-                    ) : '-'}</td>
+                    <td>{renderEditableCell(agreement, 'logo_url', agreement.logo_url)}</td>
                     <td>{renderEditableCell(agreement, 'hardcopy_location', agreement.hardcopy_location)}</td>
                     <td>{renderEditableCell(agreement, 'remarks', agreement.remarks)}</td>
                     <td>
@@ -977,6 +1020,54 @@ const exportToExcel = async () => {
               )}
             </tbody>
           </table>
+          <button
+            style={{
+              position: 'absolute',
+              left: '12px',
+              bottom: '4px',
+              padding: '6px 16px',
+              fontSize: '18px',
+              cursor: 'pointer',
+              background: '#800000', 
+              color: '#fff',
+              border: 'none',
+              borderRadius: '24px', 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            }}
+            title="Scroll to first column"
+            onClick={() => {
+              const tableScrollDiv = document.querySelector('.table-scroll');
+              if (tableScrollDiv) {
+                tableScrollDiv.scrollLeft = 0;
+              }
+            }}
+          >
+            ◄
+          </button>
+          <button
+            style={{
+              position: 'absolute',
+              right: '12px',
+              bottom: '4px',
+              padding: '6px 16px',
+              fontSize: '18px',
+              cursor: 'pointer',
+              background: '#800000', 
+              color: '#fff',
+              border: 'none',
+              borderRadius: '24px', 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            }}
+            title="Scroll to last column"
+            onClick={() => {
+              const tableScrollDiv = document.querySelector('.table-scroll');
+              if (tableScrollDiv) {
+                tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
+              }
+            }}
+          >
+            ►
+          </button>
         </div>
 
         <div className="pagination">
@@ -1001,6 +1092,7 @@ const exportToExcel = async () => {
           >
             Next &raquo;
           </button>
+
         </div>
 
       <div className="table-footer">
