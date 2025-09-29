@@ -62,6 +62,7 @@ async def get_archived_agreements(
 
             archive_list.append(ArchiveAgreementResponse(
                 agreement_id=agreement.agreement_id,
+                dts_number=agreement.dts_number,
                 partner_name=partner.name,
                 document_type=agreement.document_type,
                 partnership_type=agreement.partnership_type,
