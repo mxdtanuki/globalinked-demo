@@ -4,6 +4,8 @@ import TopBar from "../components/topbar";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable"; 
 import "./mobility.css";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { agreementService } from '../services/agreementService';
 
 const Mobility = () => {
@@ -31,19 +33,32 @@ const Mobility = () => {
     fetchAgreements();
   }, []);
 
-  //fetch agreements from backend
+//fetch agreements from backend
   const fetchAgreements = async () => {
     try {
       setLoading(true);
       const data = await agreementService.getAgreements();
-      setAgreements(data);
+
+      const allowedClassifications = [
+        "MOA on Student Competition",
+        "MOA on Internship",
+        "MOA on Faculty Exchange",
+        "MOA on Student Exchange",
+        "MOA on Faculty and Student Exchange"
+      ];
+
+      const filteredData = data.filter(item =>
+        allowedClassifications.includes(item.partnership_type)
+      );
+
+      setAgreements(filteredData);
     } catch (err) {
-      setError('Failed to fetch agreements: ' + err.message);
+      setError("Failed to fetch agreements: " + err.message);
     } finally {
       setLoading(false);
     }
   };
-
+  
   const dynamicOptions = {
     partnersClassification: [
       ...new Set(agreements.map((d) => d.partnership_type).filter(Boolean)),
@@ -76,7 +91,6 @@ const Mobility = () => {
     currentPage * itemsPerPage
   );
 
-  //function to format point persons display
   const formatPointPersons = (pointPersons) => {
     if (!Array.isArray(pointPersons) || pointPersons.length === 0) return '-';
     return pointPersons.map(pp => 
@@ -84,14 +98,12 @@ const Mobility = () => {
     ).join('; ');
   };
 
-  // function to format contact persons display  
   const formatContactPersons = (contactPersons) => {
     if (!Array.isArray(contactPersons) || contactPersons.length === 0) return '-';
     return contactPersons.map(cp => 
       `${cp.contact_person_position || ''}: ${cp.contact_person_name || ''} (${cp.contact_person_email || ''})`
     ).join('; ');
   };
-
 
   // PDF Generator
   const handleGeneratePDF = () => {
@@ -110,7 +122,7 @@ const Mobility = () => {
       "Contact Person",
     ];
 
-    // Export only filtered agreements if filter/search applied, otherwise all data
+    // Export only filtered agreements if filter/search applied
     const dataToExport =
       searchTerm ||
       filters.partnersClassification ||
@@ -142,8 +154,58 @@ const Mobility = () => {
     doc.save("mobility-report.pdf");
   };
 
+  // Excel Generator
+const handleGenerateExcel = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Mobility Report");
+
+  worksheet.columns = [
+    { header: "Partners Classification", key: "partnership_type", width: 25 },
+    { header: "Partners Name", key: "name", width: 30 },
+    { header: "Entity Type", key: "entity_type", width: 20 },
+    { header: "Country", key: "country", width: 20 },
+    { header: "Validity", key: "validity_period", width: 15 },
+    { header: "Expiry Date", key: "date_expiry", width: 15 },
+    { header: "Point Person", key: "point_persons", width: 40 },
+    { header: "Contact Person", key: "contact_persons", width: 40 },
+  ];
+
+  const dataToExport =
+    searchTerm ||
+    filters.partnersClassification ||
+    filters.entityType ||
+    filters.country ||
+    filters.validity
+      ? filteredData
+      : agreements;
+
+  dataToExport.forEach((item) => {
+    worksheet.addRow({
+      partnership_type: item.partnership_type || "-",
+      name: item.name || "-",
+      entity_type: item.entity_type || "-",
+      country: item.country || "-",
+      validity_period: item.validity_period || "-",
+      date_expiry: item.date_expiry || "-",
+      point_persons: formatPointPersons(item.point_persons),
+      contact_persons: formatContactPersons(item.contact_persons),
+    });
+  });
+
+  worksheet.getRow(1).eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "800000" }, 
+    };
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), "mobility-report.xlsx");
+};
+
   // Loading and error states
-  if (loading) return <div className="dashboard-container">Loading agreements...</div>;
   if (error) return <div className="dashboard-container">Error: {error}</div>;
 
   return (
@@ -188,8 +250,11 @@ const Mobility = () => {
 
               {/* Generate PDF Button */}
               <button className="generate-btn" onClick={handleGeneratePDF}>
-                Generate
+                Generate PDF
               </button>
+              <button className="generate-btn" onClick={handleGenerateExcel}>
+              Generate 
+            </button>
             </div>
 
             {/* Filters row */}
@@ -282,9 +347,22 @@ const Mobility = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedData.map((row, idx) => (
-                    <tr key={row.agreement_id || idx}>
-                      <td>{row.partnership_type || '-'}</td>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="9" className="loading-message">
+                        Loading records...
+                      </td>
+                    </tr>
+                  ) : filteredData.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" className="no-records">
+                        No records found.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedData.map((row, idx) => (
+                      <tr key={row.agreement_id || idx}>
+                        <td>{row.partnership_type || '-'}</td>
                         <td>{row.name || '-'}</td>
                         <td>{row.entity_type || '-'}</td>
                         <td>{row.country || '-'}</td>
@@ -293,10 +371,11 @@ const Mobility = () => {
                         <td>{formatPointPersons(row.point_persons)}</td>
                         <td>{formatContactPersons(row.contact_persons)}</td>
                         <td>
-                        <button className="view-btn">View File</button>
-                      </td>
-                    </tr>
-                  ))}
+                          <button className="view-btn">View File</button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

@@ -3,6 +3,7 @@ import { agreementService } from "../services/agreementService";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import "./archive.css";
+import { documentService } from "../services/documentService";
 
 const Archive = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -56,6 +57,29 @@ const Archive = () => {
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
+
+const handleViewLatestFile = async (dtsNumber) => {
+  try {
+    const latest = await documentService.getLatestVersion(dtsNumber);
+    if (!latest) {
+      alert("No document versions found for this DTS number.");
+      return;
+    }
+
+    const resp = await fetch(latest.download_url, {
+      headers: { Accept: "application/pdf" },
+    });
+    if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
+    const blob = await resp.blob();
+    const pdfBlob = new Blob([blob], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(pdfBlob);
+    window.open(url, "_blank");
+    setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+  } catch (err) {
+    console.error("View failed:", err);
+    alert("Failed to open file: " + (err.message || err));
+  }
+};
 
   return (
     <div className="dashboard-container">
@@ -139,7 +163,12 @@ const Archive = () => {
                         <td>{item.date_expiry}</td>
                         <td>{item.point_persons_display}</td>
                         <td>
-                          <button className="view-btn">View File</button>
+                          <button
+                            className="view-btn"
+                            onClick={() => handleViewLatestFile(item.dts_number)}
+                          >
+                            View File
+                          </button>
                         </td>
                       </tr>
                     ))
