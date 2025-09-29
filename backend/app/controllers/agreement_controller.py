@@ -19,63 +19,17 @@ from app.schemas.agreement_schemas import (
     AgreementResponse,
     PointPersonResponse,
     ContactPersonResponse,
-    TimerResponse,
-    ArchiveAgreementResponse
+    TimerResponse
 )
 from app.utils.utils import get_current_user
 from app.utils.audit_utils import log_add_entry, log_update_entry, log_delete_entry
 import traceback
-from datetime import date
 
 router = APIRouter(
     prefix="/agreements",
     tags=["Agreements"]
 )
 
-@router.get("/archive", response_model=List[ArchiveAgreementResponse])
-async def get_archived_agreements(
-    db: Session = Depends(get_db),
-    current_user: Users = Depends(get_current_user)
-):
-    """
-    Return expired agreements (date_expiry < today) with partner info + point persons.
-    """
-    try:
-        today = date.today()
-        query = db.query(Agreements, Partners).join(
-            Partners, Agreements.partner_id == Partners.partner_id
-        ).filter(Agreements.date_expiry < today)
-
-        results = query.all()
-        archive_list = []
-
-        for agreement, partner in results:
-            # point persons linked to agreement
-            point_persons = db.query(PointPersons).filter(
-                PointPersons.agreement_id == agreement.agreement_id
-            ).all()
-
-            point_persons_display = ", ".join(
-                f"{pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})"
-                for pp in point_persons
-            ) if point_persons else ""
-
-            archive_list.append(ArchiveAgreementResponse(
-                agreement_id=agreement.agreement_id,
-                partner_name=partner.name,
-                document_type=agreement.document_type,
-                partnership_type=agreement.partnership_type,
-                date_expiry=agreement.date_expiry,
-                point_persons_display=point_persons_display
-            ))
-
-        return archive_list
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error fetching archive: {str(e)}"
-        )
 
 @router.get("/", response_model=List[AgreementResponse])
 async def get_agreements(
@@ -625,6 +579,7 @@ async def update_agreement(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    
 
 @router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_agreement(
@@ -680,7 +635,6 @@ async def delete_agreement(
         print("🔥 Unhandled error in delete_agreement:", e)
         traceback.print_exc()   # <-- full traceback in Render logs
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
 
 '''
 @router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,36 +1,39 @@
 from jinja2 import Template
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import smtplib
 import os
+import requests 
 
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "pup.international.affairs@gmail.com")
-SMTP_PASS = os.getenv("SMTP_PASS", "epcs mqnp cpun pxin")
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 def render_template(body_html: str, context: dict) -> str:
     template = Template(body_html)
     return template.render(context)
 
 def send_email(to: str, subject: str, body: str):
-    """Send email via SMTP"""
-    msg = MIMEMultipart("alternative")
-    msg["From"] = SMTP_USER
-    msg["To"] = to
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "html"))
+    """Send email using Brevo API"""
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    data = {
+        "sender": {"name": "Globalinked", "email": "noreply@globalinked.com"},
+        "to": [{"email": to}],
+        "subject": subject,
+        "htmlContent": body
+    }
 
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:  # Add timeout
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.sendmail(SMTP_USER, to, msg.as_string())
+    r = requests.post(url, headers=headers, json=data)
+    r.raise_for_status()
+    return r.json()
+
 
 def send_reset_email(recipient_email, reset_link):
+    """Send password reset email via Brevo"""
     subject = "Password Reset Request 🔐 - Globalinked"
     body = (
         f'Click the link below to reset your password:<br>'
         f'<a href="{reset_link}">Reset your password here</a><br><br>'
         f"If you did not request this, please ignore this email."
     )
-    send_email(recipient_email, subject, body)
+    return send_email(recipient_email, subject, body)
