@@ -556,6 +556,7 @@ const OverviewDash = () => {
   const [uploadComment, setUploadComment] = useState("");
   const [uploading, setUploading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+   
     useEffect(() => {
       try {
         const userStr = localStorage.getItem("user");
@@ -820,27 +821,8 @@ const exportToExcel = async () => {
                     <td>{renderEditableCell(agreement, 'date_signed_by_pup', agreement.date_signed_by_pup)}</td>
                     <td>{renderEditableCell(agreement, 'agreement_status', agreement.agreement_status)}</td>
                     <td>
-                      {editingRow === agreement.agreement_id ?
-                        renderEditableCell(agreement, 'website_url', agreement.website_url) :
-                        (agreement.website_url ? (
-                          <a href={agreement.website_url} target="_blank" rel="noopener noreferrer">
-                            Link
-                          </a>
-                        ) : '-')
-                      }
-                    </td>
-                    <td>{renderEditableCell(agreement, 'description', agreement.description)}</td>
-                    <td>{agreement.logo_url ? (
-                      <a href={agreement.logo_url} target="_blank" rel="noopener noreferrer">
-                        View Logo
-                      </a>
-                    ) : '-'}</td>
-                    <td>{renderEditableCell(agreement, 'hardcopy_location', agreement.hardcopy_location)}</td>
-                    <td>{renderEditableCell(agreement, 'remarks', agreement.remarks)}</td>
-                    <td>
                       <div className="action-buttons">
                         {editingRow === agreement.agreement_id ? (
-                          // Show Save/Cancel buttons when editing
                           <>
                             <button
                               className="btn-action save"
@@ -857,66 +839,74 @@ const exportToExcel = async () => {
                             </button>
                           </>
                         ) : (
-                          // Show Edit/Delete buttons when not editing
                           <>
-                            <button
-                              className="btn-action"
-                              onClick={() => startEditing(agreement)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="btn-action delete"
-                              onClick={() => deleteRow(agreement.agreement_id)}
-                              disabled={deletingRows.has(agreement.agreement_id)}
-                            >
-                              Delete
-                            </button>
+                            {isAdmin && (
+                              <>
+                                <button
+                                  className="btn-action"
+                                  onClick={() => startEditing(agreement)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="btn-action delete"
+                                  onClick={() => deleteRow(agreement.agreement_id)}
+                                  disabled={deletingRows.has(agreement.agreement_id)}
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
+
+                            {/* Dots menu (View File, View Older File, Upload New File if Admin) */}
+                            <div className="menu-wrapper">
+                              <button
+                                className="dots-btn"
+                                onClick={() => toggleMenu(rowIndex)}
+                                title="More actions"
+                              >
+                                &#8942;
+                              </button>
+
+                              {openMenuIndex === rowIndex && (
+                                <div className="dropdown-menu">
+                                  <div
+                                    className="dropdown-item"
+                                    onClick={() => {
+                                      toggleMenu(rowIndex);
+                                      handleViewLatestFile(agreement.dts_number);
+                                    }}
+                                  >
+                                    View File
+                                  </div>
+
+                                  <div
+                                    className="dropdown-item"
+                                    onClick={() => {
+                                      toggleMenu(rowIndex);
+                                      navigate(`/docVer?dts_number=${agreement.dts_number}`);
+                                    }}
+                                  >
+                                    View Older File
+                                  </div>
+
+                                  {isAdmin && (
+                                    <div
+                                      onClick={() => {
+                                        setSelectedAgreement(agreement);
+                                        setShowUploadForm(true);
+                                        toggleMenu(rowIndex);
+                                      }}
+                                      className="dropdown-item"
+                                    >
+                                      Upload New File
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </>
                         )}
-                        <div className="menu-wrapper">
-                          <button
-                            className="dots-btn"
-                            onClick={() => toggleMenu(rowIndex)}
-                            title="More actions"
-                          >
-                            &#8942;
-                          </button>
-                          {openMenuIndex === rowIndex && (
-                          <div className="dropdown-menu">
-                            <div
-                              className="dropdown-item"
-                              onClick={() => {
-                                toggleMenu(rowIndex);
-                                handleViewLatestFile(agreement.dts_number);
-                              }}
-                            >
-                              View File
-                            </div>
-
-                            <div
-                              className="dropdown-item"
-                              onClick={() => {
-                                toggleMenu(rowIndex);
-                                navigate(`/docVer?dts_number=${agreement.dts_number}`);
-                              }}
-                            >
-                              View Older File
-                            </div>
-
-                            <div
-                              onClick={() => {
-                                setSelectedAgreement(agreement);
-                                setShowUploadForm(true);
-                                toggleMenu(rowIndex);
-                              }}
-                              className="dropdown-item"
-                            >
-                              Upload New File
-                            </div>
-                          </div>
-                        )}
-                        </div>
                       </div>
                     </td>
                   </tr>
