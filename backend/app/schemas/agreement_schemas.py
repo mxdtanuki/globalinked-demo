@@ -225,6 +225,7 @@ class DashboardSummary(BaseModel):  # for analytics
     
 class ArchiveAgreementResponse(BaseModel):
     agreement_id: int
+    dts_number: str
     partner_name: str
     document_type: str
     partnership_type: str

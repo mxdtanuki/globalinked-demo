@@ -15,7 +15,7 @@ const ContactPerson = () => {
   const [rows, setRows] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [agreements, setAgreements] = useState([]);
-
+  const [loading, setLoading] = useState(true);
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
@@ -24,6 +24,7 @@ const ContactPerson = () => {
   useEffect(() => {
     (async () => {
       try {
+        setLoading(true); 
         const data = await agreementService.getAgreements();
         setAgreements(data);
         const flattened = [];
@@ -42,6 +43,8 @@ const ContactPerson = () => {
         setRows(flattened);
       } catch (e) {
         console.error('Failed to load contact persons', e);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -121,7 +124,13 @@ const ContactPerson = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentData.length > 0 ? (
+                  {loading ? ( 
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: "center" }}>
+                        Loading records...
+                      </td>
+                    </tr>
+                  ) : currentData.length > 0 ? (
                     currentData.map((person, index) => (
                       <tr key={index}>
                         <td>{person.partnerName}</td>
@@ -130,7 +139,10 @@ const ContactPerson = () => {
                         <td>{person.name}</td>
                         <td>{person.email}</td>
                         <td>
-                          <button className="view-btn" onClick={() => handleViewAgreements(person)}>
+                          <button
+                            className="view-btn"
+                            onClick={() => handleViewAgreements(person)}
+                          >
                             View Agreements
                           </button>
                         </td>
