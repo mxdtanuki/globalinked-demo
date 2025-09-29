@@ -21,4 +21,4 @@ Password: admin123
 
 after this we move on to the next - make a dashboard and the categorization.
 
-sendgrid: passcode: ZMG25SU3Z3J73PML7SYHHV3X
+BREVO : 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

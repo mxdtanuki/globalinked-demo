@@ -24,16 +24,6 @@ app = FastAPI(
 
 manager = ConnectionManager()
 
-
-@app.on_event("startup")
-async def debug_routes():
-    print("\n🔎 Registered routes:")
-    for route in app.routes:
-        if isinstance(route, APIRoute):
-            methods = ",".join(route.methods)
-            print(f"{methods:10s} {route.path}")
-    print("🔎 End of routes\n")
-
 @app.websocket("/ws/notifications")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
@@ -44,14 +34,11 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
         
 
-origins = [
-    "https://globalinked-system.onrender.com",  # your frontend on Render
-    "http://localhost:3000",  # for local development
-]
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,        
+    allow_origins=[ "https://globalinked-system.onrender.com", "http://localhost:3000"],        
     allow_credentials=True,
     allow_methods=["*"],            
     allow_headers=["*"],
