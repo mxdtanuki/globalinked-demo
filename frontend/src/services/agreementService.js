@@ -140,28 +140,34 @@ export const agreementService = {
     }
 
     return response.json();
-  }
+  },
 
-/*  
-  async deleteAgreement(id) {
+    async getArchivedAgreements() {
     const token = localStorage.getItem('access_token');
-    
+
     if (!token) {
       throw new Error('Please login first');
     }
 
-    const response = await fetch(`${API_BASE_URL}/agreements/${id}`, {
-      method: 'DELETE',
+    const response = await fetch(`${API_BASE_URL}/agreements/archive`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
 
     if (!response.ok) {
-      throw new Error('Failed to delete agreement');
+      // try to parse API error body if possible, otherwise throw generic
+      let err;
+      try {
+        err = await response.json();
+      } catch (_e) {
+        err = { detail: 'Failed to fetch archived agreements' };
+      }
+      console.error('Failed to load archived agreements', err);
+      throw err;
     }
 
     return response.json();
-  },*/
+  },
 
 };
