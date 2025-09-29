@@ -4,6 +4,7 @@ from typing import Optional
 from supabase import create_client
 from pathlib import Path
 from storage3.exceptions import StorageApiError
+import traceback
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
@@ -86,6 +87,41 @@ def get_signed_url(object_path: str, expires_in: int = 3600) -> str:
 def delete_folder(dts_number: str) -> None:
     """
     Delete all files under the given dts_number folder in Supabase.
+    If folder is empty/missing, log what happened.
+    """
+    prefix = dts_number.strip("/") + "/"
+    try:
+        print(f"📂 Attempting Supabase cleanup for prefix: '{prefix}'")
+
+        # Try listing under prefix
+        files = sb.storage.from_(SUPABASE_BUCKET).list(path=prefix)
+        print(f"📄 list({prefix}) returned: {files}")
+
+        if not files:
+            # Try listing root just in case files were uploaded flat
+            root_files = sb.storage.from_(SUPABASE_BUCKET).list()
+            print(f"🔍 Root-level files: {root_files}")
+            return
+
+        # Collect full paths
+        object_paths = [prefix + f["name"] for f in files if "name" in f]
+        print(f"🗑️ Objects scheduled for deletion: {object_paths}")
+
+        if object_paths:
+            res = sb.storage.from_(SUPABASE_BUCKET).remove(object_paths)
+            print(f"✅ Supabase remove() result: {res}")
+            if isinstance(res, dict) and res.get("error"):
+                raise RuntimeError(f"Supabase delete error: {res['error']}")
+    except Exception as e:
+        print(f"⚠️ Supabase folder delete warning for {dts_number}: {e}")
+        traceback.print_exc()
+
+
+
+'''
+def delete_folder(dts_number: str) -> None:
+    """
+    Delete all files under the given dts_number folder in Supabase.
     If folder is empty/missing, silently ignore.
     """
     prefix = dts_number.strip("/") + "/"
@@ -103,4 +139,5 @@ def delete_folder(dts_number: str) -> None:
                 raise RuntimeError(f"Supabase delete error: {res['error']}")
     except Exception as e:
         print(f"⚠️ Supabase folder delete warning for {dts_number}: {e}")
+'''
 

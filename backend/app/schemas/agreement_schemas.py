@@ -222,3 +222,14 @@ class DashboardSummary(BaseModel):  # for analytics
     by_status: dict
     by_country: dict
     recent_agreements: list
+    
+class ArchiveAgreementResponse(BaseModel):
+    agreement_id: int
+    partner_name: str
+    document_type: str
+    partnership_type: str
+    date_expiry: date
+    point_persons_display: str
+
+    class Config:
+        orm_mode = True

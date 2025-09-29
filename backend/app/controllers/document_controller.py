@@ -20,7 +20,7 @@ from app.services.supabase_service import (
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 # placeholder user id until auth is implemented
-PLACEHOLDER_USER_ID = 2
+PLACEHOLDER_USER_ID = 1
 
 
 # -------------------------------
