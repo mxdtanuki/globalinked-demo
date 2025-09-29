@@ -19,7 +19,9 @@ const Archive = () => {
     const fetchData = async () => {
       try {
         const data = await agreementService.getArchivedAgreements();
+        console.log("📦 Archive API data:", data);
         setArchiveData(data);
+
       } catch (err) {
         console.error("Failed to load archive data:", err);
       }
@@ -33,8 +35,9 @@ const Archive = () => {
       item.partner_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.document_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.partnership_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.date_expiry.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.point_persons_display.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.date_expiry ? String(item.date_expiry).toLowerCase() : "").includes(searchTerm.toLowerCase()) ||
+      (item.point_persons_display ? item.point_persons_display.toLowerCase() : "").includes(searchTerm.toLowerCase());
+
 
     const docTypeMatch = filterDocType ? item.document_type === filterDocType : true;
     const classificationMatch = filterClassification

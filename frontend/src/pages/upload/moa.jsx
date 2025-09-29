@@ -10,6 +10,24 @@ const MOAUpload = () => {
   const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
   const [uploadedFile, setUploadedFile] = useState(null); 
 
+  // Form state
+  const [formData, setFormData] = useState({
+    source: "",
+    ulcoApprovalDate: "",
+    dtsNo: "",
+    dtsStatus: "",
+    pupSignedDate: "",
+    remarks: ""
+  });
+
+  // Handle form input changes
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }; 
+
   // Point person functions
   const addPointPerson = () => setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
   const handlePointPersonChange = (i, field, val) => {
@@ -35,9 +53,15 @@ const MOAUpload = () => {
     document.getElementById("fileName").textContent = file ? file.name : "No file chosen";
   };
 
-  // Handle submit: Navigate with file (triggers extraction by going to extractedEntryMOA)
+  // Handle submit: Navigate with file and form data
   const handleSubmit = () => {
-    navigate('/upload/extractedEntryMOA', { state: { uploadedFile } });
+    navigate('/upload/extractedEntryMOA', { 
+      state: { 
+        uploadedFile,
+        formData,
+        pointPersons: pointPersonsData
+      } 
+    });
   };
 
   return (
@@ -49,22 +73,45 @@ const MOAUpload = () => {
           <div className="form-grid">
             <div className="form-group">
               <label htmlFor="source">Source (Campus/College Dept):*</label>
-              <input id="source" name="source" type="text" required />
+              <input 
+                id="source" 
+                name="source" 
+                type="text" 
+                value={formData.source}
+                onChange={(e) => handleInputChange('source', e.target.value)}
+                required 
+              />
             </div>
 
             <div className="form-group">
               <label>Date (ULCO Approval)</label>
-              <input type="date" />
+              <input 
+                type="date" 
+                value={formData.ulcoApprovalDate}
+                onChange={(e) => handleInputChange('ulcoApprovalDate', e.target.value)}
+              />
             </div>
 
             <div className="form-group">
               <label>DTS No.</label>
-              <input type="text" required placeholder='DT2025123456' />
+              <input 
+                type="text" 
+                value={formData.dtsNo}
+                onChange={(e) => handleInputChange('dtsNo', e.target.value)}
+                required 
+                placeholder='DT2025123456' 
+              />
             </div>
 
             <div className="form-group">
               <label htmlFor="dtsStatus">DTS Status:*</label>
-              <select id="dtsStatus" name="dtsStatus" required>
+              <select 
+                id="dtsStatus" 
+                name="dtsStatus" 
+                value={formData.dtsStatus}
+                onChange={(e) => handleInputChange('dtsStatus', e.target.value)}
+                required
+              >
                 <option value="">Select Status</option>
                 <option value="Open - OIA">Open - OIA</option>
                 <option value="Closed - OIA">Closed - OIA</option>
@@ -75,7 +122,11 @@ const MOAUpload = () => {
 
             <div className="form-group">
               <label>Date (PUP Official Signed)</label>
-              <input type="date" />
+              <input 
+                type="date" 
+                value={formData.pupSignedDate}
+                onChange={(e) => handleInputChange('pupSignedDate', e.target.value)}
+              />
             </div>
 
             {/* POINT PERSON */}
@@ -129,7 +180,11 @@ const MOAUpload = () => {
 
             <div className="form-group full-width">
               <label>Remarks:</label>
-              <textarea rows="3" />
+              <textarea 
+                rows="3" 
+                value={formData.remarks}
+                onChange={(e) => handleInputChange('remarks', e.target.value)}
+              />
             </div>
           </div>
 
