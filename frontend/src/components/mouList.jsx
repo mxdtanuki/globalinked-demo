@@ -129,7 +129,7 @@ const MOUListPartners = ({ agreements }) => {
           {filteredData.length > 0 ? (
             filteredData.map((agreement, idx) => (
               <tr key={agreement.agreement_id || idx}>
-                <td>{agreement.unit_name || 'N/A'}</td>
+                <td>{agreement.source_unit || 'N/A'}</td>
                 <td>{agreement.name || 'N/A'}</td>
                 <td>{agreement.country || 'N/A'}</td>
                 <td>{agreement.date_signed ? new Date(agreement.date_signed).toLocaleDateString() : 'N/A'}</td>

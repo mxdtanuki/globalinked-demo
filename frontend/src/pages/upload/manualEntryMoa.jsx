@@ -572,7 +572,7 @@ const handleSubmit = async (e) => {
             <label htmlFor="dtsStatus">DTS Status:*</label>
             <select id="dtsStatus" name="dtsStatus" required>
               <option value="">Select Status</option>
-              <option value="Open - OIA">OPEN - OIA</option>
+              <option value="Open - OIA">Open - OIA</option>
               <option value="Closed - OIA">Closed - OIA</option>
               <option value="Open - Other Office">Open - Other Office</option>
               <option value="Closed - Other Office">Closed - Other Office</option>

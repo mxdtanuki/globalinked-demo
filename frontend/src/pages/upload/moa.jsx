@@ -1,15 +1,43 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TopbarSidebar from '../../components/topbarSidebar';
+import { agreementService } from '../../services/agreementService';
 import './moa.css';
 
 const MOAUpload = () => {
   const navigate = useNavigate();
 
+  const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
+  const [uploadedFile, setUploadedFile] = useState(null); 
+
+  // Point person functions
+  const addPointPerson = () => setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
+  const handlePointPersonChange = (i, field, val) => {
+    const updated = [...pointPersons];
+    updated[i][field] = val;
+    setPointPersons(updated);
+  };
+  const removePointPerson = (i) => setPointPersons(pointPersons.filter((_, idx) => idx !== i));
+
+  // Point persons array from state
+  const pointPersonsData = pointPersons
+    .filter((pp) => pp.name)
+    .map((pp) => ({
+      point_person_name: pp.name,
+      point_person_position: pp.position || "",
+      point_person_email: pp.email || "",
+    }));
+
   // handle file change 
   const handleFileChange = (e) => {
-    const fileName = e.target.files[0]?.name || "No file chosen";
-    document.getElementById("fileName").textContent = fileName;
+    const file = e.target.files[0];
+    setUploadedFile(file);  // Store the file
+    document.getElementById("fileName").textContent = file ? file.name : "No file chosen";
+  };
+
+  // Handle submit: Navigate with file (triggers extraction by going to extractedEntryMOA)
+  const handleSubmit = () => {
+    navigate('/upload/extractedEntryMOA', { state: { uploadedFile } });
   };
 
   return (
@@ -20,13 +48,8 @@ const MOAUpload = () => {
 
           <div className="form-grid">
             <div className="form-group">
-              <label>Source (Campus/College Dept)</label>
-              <select defaultValue="" required>
-                <option value="" disabled>Select source</option>
-                <option value="CTHTM">CTHTM</option>
-                <option value="COC">COC</option>
-                <option value="COE">COE</option>
-              </select>
+              <label htmlFor="source">Source (Campus/College Dept):*</label>
+              <input id="source" name="source" type="text" required />
             </div>
 
             <div className="form-group">
@@ -35,8 +58,19 @@ const MOAUpload = () => {
             </div>
 
             <div className="form-group">
-              <label>Point Person Position</label>
-              <input type="text" />
+              <label>DTS No.</label>
+              <input type="text" required placeholder='DT2025123456' />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="dtsStatus">DTS Status:*</label>
+              <select id="dtsStatus" name="dtsStatus" required>
+                <option value="">Select Status</option>
+                <option value="Open - OIA">Open - OIA</option>
+                <option value="Closed - OIA">Closed - OIA</option>
+                <option value="Open - Other Office">Open - Other Office</option>
+                <option value="Closed - Other Office">Closed - Other Office</option>
+              </select>
             </div>
 
             <div className="form-group">
@@ -44,14 +78,53 @@ const MOAUpload = () => {
               <input type="date" />
             </div>
 
-            <div className="form-group">
-              <label>DTS No.</label>
-              <input type="text" required />
-            </div>
+            {/* POINT PERSON */}
+            <div className="form-section">
+              <label>Point Persons</label>
+              {pointPersons.map((pp, index) => (
+                <div key={index} className="contact-row">
+                  <input
+                    type="text"
+                    placeholder="Position"
+                    value={pp.position}
+                    onChange={(e) =>
+                      handlePointPersonChange(index, "position", e.target.value)
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={pp.name}
+                    onChange={(e) =>
+                      handlePointPersonChange(index, "name", e.target.value)
+                    }
+                    required
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={pp.email}
+                    onChange={(e) =>
+                      handlePointPersonChange(index, "email", e.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="remove-btn"
+                    onClick={() => removePointPerson(index)}
+                  >
+                    ❌
+                  </button>
+                </div>
+              ))}
 
-            <div className="form-group">
-              <label>DTS Status</label>
-              <input type="text" required />
+              <button
+                type="button"
+                className="add-contact-btn"
+                onClick={addPointPerson}
+              >
+                ➕ Add Point Person
+              </button>
             </div>
 
             <div className="form-group full-width">
@@ -86,7 +159,7 @@ const MOAUpload = () => {
 
           <button
             className="submit-btn"
-            onClick={() => navigate('/upload/extractedEntryMOA')}
+            onClick={handleSubmit}
           >
             Submit
           </button>
