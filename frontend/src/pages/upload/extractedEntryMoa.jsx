@@ -348,17 +348,26 @@ const ExtractedEntryMOA = () => {
     }
   };
 
-  // Effect to calculate Expiration Date
-  useEffect(() => {
-    if (dateSigned && validityPeriod) {
-      const baseDate = new Date(dateSigned);
-      const yearsToAdd = parseInt(validityPeriod, 10);
-      if (!isNaN(yearsToAdd)) {
-        baseDate.setFullYear(baseDate.getFullYear() + yearsToAdd);
-        setDateExpiry(baseDate.toISOString().split('T')[0]);
-      }
+// Set entry date to today automatically
+useEffect(() => {
+  const today = new Date();
+  const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  setEntryDate(localDate);
+}, []);
+
+// Effect to calculate Expiration Date
+useEffect(() => {
+  if (datePupSigned && validityPeriod) {
+    const baseDate = new Date(datePupSigned);
+    const yearsToAdd = parseInt(validityPeriod, 10);
+    if (!isNaN(yearsToAdd)) {
+      baseDate.setFullYear(baseDate.getFullYear() + yearsToAdd);
+      setDateExpiry(baseDate.toISOString().split('T')[0]);
     }
-  }, [dateSigned, validityPeriod]);
+  } else if (!datePupSigned || !validityPeriod) {
+    setDateExpiry("");
+  }
+}, [datePupSigned, validityPeriod]);
 
   // Fetch existing partners
   useEffect(() => {
