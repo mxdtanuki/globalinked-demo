@@ -24,16 +24,6 @@ app = FastAPI(
 
 manager = ConnectionManager()
 
-
-@app.on_event("startup")
-async def debug_routes():
-    print("\n🔎 Registered routes:")
-    for route in app.routes:
-        if isinstance(route, APIRoute):
-            methods = ",".join(route.methods)
-            print(f"{methods:10s} {route.path}")
-    print("🔎 End of routes\n")
-
 @app.websocket("/ws/notifications")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
@@ -42,14 +32,13 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()  # Keep the connection alive
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        
+    
 
-# CORS setup so frontend React can call backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://globalinked-system.onrender.com"],
+    allow_origins=[ "http://localhost:3000","https://globalinked-system.onrender.com"], 
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["*"],            
     allow_headers=["*"],
 )
 

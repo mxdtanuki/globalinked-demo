@@ -68,7 +68,7 @@ const Profile = () => {
 
               <div className="profile-pic-wrapper">
                 <img
-                  src={profilePic || "/default-avatar.png"}
+                  src={profilePic}
                   alt="Profile"
                   className="profile-pic"
                 />

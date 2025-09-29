@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   FiHome,
@@ -17,11 +17,24 @@ import './layout.css';
 
 const Sidebar = ({ mobileShow }) => {
   const location = useLocation();
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const parsedUser = JSON.parse(userStr);
+        setUserRole(parsedUser.user_role?.toLowerCase() || null);
+      }
+    } catch (err) {
+      console.error("Error parsing user from localStorage:", err);
+    }
+  }, []);
 
   const menuItems = [
     { label: 'Overview', path: '/overview', icon: <FiHome /> },
     { label: 'Analytics', path: '/analytics', icon: <FiBarChart2 /> },
-    { label: 'Document Entry', path: '/docUpload', icon: <FiUpload /> },
+    { label: 'Document Entry', path: '/docUpload', icon: <FiUpload />, roles: ['admin'] },
     { label: 'Point Person', path: '/pointPerson', icon: <FiUser /> },
     { label: 'Contact Person', path: '/contactPerson', icon: <FiUsers /> },
     { label: 'Mobility', path: '/mobility', icon: <FiMap /> },
@@ -32,10 +45,16 @@ const Sidebar = ({ mobileShow }) => {
     { label: 'Profile', path: '/profile', icon: <FiSettings /> },
   ];
 
+  // filter by role
+  const visibleMenuItems = menuItems.filter(item => {
+    if (item.roles && !item.roles.includes(userRole)) return false;
+    return true;
+  });
+
   return (
     <aside className={`sidebar ${mobileShow ? 'show' : ''}`}>
       <ul className="sidebar-menu">
-        {menuItems.map((item, idx) => {
+        {visibleMenuItems.map((item, idx) => {
           const isActive = location.pathname === item.path;
           return (
             <li
