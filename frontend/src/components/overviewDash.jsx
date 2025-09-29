@@ -555,7 +555,19 @@ const OverviewDash = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadComment, setUploadComment] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+    useEffect(() => {
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          setCurrentUser(JSON.parse(userStr));
+        }
+      } catch (err) {
+        console.error("Error parsing user from localStorage:", err);
+      }
+    }, []);
 
+const isAdmin = currentUser?.user_role?.toLowerCase() === "admin";
   if (loading) return <div className="overview-container">Loading agreements...</div>;
   if (error) return <div className="overview-container">Error: {error}</div>;
 
