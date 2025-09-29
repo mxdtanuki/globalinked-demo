@@ -107,3 +107,4 @@ websockets==15.0.1
 transformers==4.45.2
 torch==2.5.1
 accelerate==1.1.1
+sib-api-v3-sdk==8.3.0
