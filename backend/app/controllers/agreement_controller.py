@@ -25,7 +25,6 @@ from app.schemas.agreement_schemas import (
 from app.utils.utils import get_current_user
 from app.utils.audit_utils import log_add_entry, log_update_entry, log_delete_entry
 import traceback
-from datetime import date
 
 router = APIRouter(
     prefix="/agreements",
@@ -626,6 +625,7 @@ async def update_agreement(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    
 
 @router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_agreement(
@@ -681,7 +681,6 @@ async def delete_agreement(
         print("🔥 Unhandled error in delete_agreement:", e)
         traceback.print_exc()   # <-- full traceback in Render logs
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
 
 '''
 @router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
