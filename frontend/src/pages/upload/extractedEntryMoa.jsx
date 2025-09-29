@@ -3,6 +3,7 @@ import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './globalUpload.css';
+import { useLocation } from 'react-router-dom';
 
 const countryOptions = [
   { value: 'Afghanistan', label: 'Afghanistan' },
@@ -275,6 +276,10 @@ const ExtractedEntryMOA = () => {
   const [documentType, setDocumentType] = useState("");
   const [partnershipType, setPartnershipType] = useState("");
 
+  const location = useLocation();  
+  const uploadedFile = location.state?.uploadedFile;  // Retrieve file from state
+  const [versionComment, setVersionComment] = useState("");
+
   // Partner state
   const [partnerEntryType, setPartnerEntryType] = useState("New"); 
   const [existingPartners, setExistingPartners] = useState([]);
@@ -310,8 +315,7 @@ const ExtractedEntryMOA = () => {
   };
   const removePointPerson = (i) => setPointPersons(pointPersons.filter((_, idx) => idx !== i));
 
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [versionComment, setVersionComment] = useState("");
+
 
   // Fetch existing partners
   useEffect(() => {
@@ -479,7 +483,6 @@ const handleSubmit = async (e) => {
       setPartnershipType("");
       setPointPersons([{ name: "", position: "", email: "" }]);
       setContacts([{ name: "", position: "", email: "" }]);
-      setUploadedFile(null);
       setVersionComment("");
     }
   } catch (error) {
@@ -511,14 +514,15 @@ const handleSubmit = async (e) => {
         )}
         <form className="manual-entry-form" onSubmit={handleSubmit}>
 
-          {/* FILE UPLOAD */}
-          <div className="form-group">
-            <label>File V1:</label>
-            <input 
-              type="file" 
-              onChange={(e) => setUploadedFile(e.target.files[0])} 
-            />
-          </div>
+          {/* DISPLAY UPLOADED FILE */}
+            <div className="form-group">
+              <label>Uploaded File:</label>
+              <input
+                type="text"
+                value={uploadedFile ? uploadedFile.name : "No file uploaded"}
+                readOnly
+              />
+            </div>
 
           {/* VERSION COMMENTS */}
           <div className="form-group full-width">

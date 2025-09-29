@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TopbarSidebar from '../../components/topbarSidebar';
+import { agreementService } from '../../services/agreementService';
 import './moa.css';
 
 const MOAUpload = () => {
   const navigate = useNavigate();
 
   const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
+  const [uploadedFile, setUploadedFile] = useState(null); 
 
   // Point person functions
   const addPointPerson = () => setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
@@ -28,8 +30,14 @@ const MOAUpload = () => {
 
   // handle file change 
   const handleFileChange = (e) => {
-    const fileName = e.target.files[0]?.name || "No file chosen";
-    document.getElementById("fileName").textContent = fileName;
+    const file = e.target.files[0];
+    setUploadedFile(file);  // Store the file
+    document.getElementById("fileName").textContent = file ? file.name : "No file chosen";
+  };
+
+  // Handle submit: Navigate with file (triggers extraction by going to extractedEntryMOA)
+  const handleSubmit = () => {
+    navigate('/upload/extractedEntryMOA', { state: { uploadedFile } });
   };
 
   return (
@@ -69,7 +77,7 @@ const MOAUpload = () => {
               <label>Date (PUP Official Signed)</label>
               <input type="date" />
             </div>
-            
+
             {/* POINT PERSON */}
             <div className="form-section">
               <label>Point Persons</label>
@@ -151,7 +159,7 @@ const MOAUpload = () => {
 
           <button
             className="submit-btn"
-            onClick={() => navigate('/upload/extractedEntryMOA')}
+            onClick={handleSubmit}
           >
             Submit
           </button>
