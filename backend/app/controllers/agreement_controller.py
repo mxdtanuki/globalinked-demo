@@ -44,7 +44,7 @@ async def get_archived_agreements(
         today = date.today()
         query = db.query(Agreements, Partners).join(
             Partners, Agreements.partner_id == Partners.partner_id
-        ).filter(Agreements.date_expiry < today)
+        ).filter(Agreements.date_expiry <= today)
 
         results = query.all()
         archive_list = []
