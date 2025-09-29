@@ -1,16 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { agreementService } from "../services/agreementService";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import "./archive.css";
-
-/* Mock data */
-const archiveData = Array.from({ length: 24 }, (_, i) => ({
-  partnerName: "PAUL BAKERY MALAYSIA",
-  documentType: i % 2 === 0 ? "MOA" : "MOU",
-  partnershipClassification: i % 2 === 0 ? "MOA on Research" : "MOU on Exchange",
-  expireDate: "06/04/28",
-  pointPerson: "LIZBETTE R. VERGARA",
-}));
 
 const Archive = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -20,24 +12,36 @@ const Archive = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [filterDocType, setFilterDocType] = useState("");
   const [filterClassification, setFilterClassification] = useState("");
-
+  const [archiveData, setArchiveData] = useState([]);
   const itemsPerPage = 10;
 
-  const toggleCollapse = () => setCollapsed(!collapsed);
-  const toggleMobileSidebar = () => setMobileShow(!mobileShow);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await agreementService.getArchivedAgreements();
+        console.log("📦 Archive API data:", data);
+        setArchiveData(data);
+
+      } catch (err) {
+        console.error("Failed to load archive data:", err);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Filtering logic
   const filteredData = archiveData.filter((item) => {
     const searchMatch =
-      item.partnerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.partnershipClassification.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.expireDate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.pointPerson.toLowerCase().includes(searchTerm.toLowerCase());
+      item.partner_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.document_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.partnership_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.date_expiry ? String(item.date_expiry).toLowerCase() : "").includes(searchTerm.toLowerCase()) ||
+      (item.point_persons_display ? item.point_persons_display.toLowerCase() : "").includes(searchTerm.toLowerCase());
 
-    const docTypeMatch = filterDocType ? item.documentType === filterDocType : true;
+
+    const docTypeMatch = filterDocType ? item.document_type === filterDocType : true;
     const classificationMatch = filterClassification
-      ? item.partnershipClassification === filterClassification
+      ? item.partnership_type === filterClassification
       : true;
 
     return searchMatch && docTypeMatch && classificationMatch;
@@ -55,10 +59,10 @@ const Archive = () => {
 
   return (
     <div className="dashboard-container">
-      <TopBar toggleSidebar={toggleMobileSidebar} />
+      <TopBar toggleSidebar={() => setMobileShow(!mobileShow)} />
       {mobileShow && <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />}
       <div className="content-body">
-        <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
+        <Sidebar collapsed={collapsed} toggleCollapse={() => setCollapsed(!collapsed)} mobileShow={mobileShow} />
         <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
 
           <h2 className="archive-title">Archives</h2>
@@ -92,10 +96,8 @@ const Archive = () => {
                   }}
                 >
                   <option value="">All Document Types</option>
-                  {[...new Set(archiveData.map((d) => d.documentType))].map((doc, i) => (
-                    <option key={i} value={doc}>
-                      {doc}
-                    </option>
+                  {[...new Set(archiveData.map((d) => d.document_type))].map((doc, i) => (
+                    <option key={i} value={doc}>{doc}</option>
                   ))}
                 </select>
 
@@ -107,13 +109,9 @@ const Archive = () => {
                   }}
                 >
                   <option value="">All Classifications</option>
-                  {[...new Set(archiveData.map((d) => d.partnershipClassification))].map(
-                    (cls, i) => (
-                      <option key={i} value={cls}>
-                        {cls}
-                      </option>
-                    )
-                  )}
+                  {[...new Set(archiveData.map((d) => d.partnership_type))].map((cls, i) => (
+                    <option key={i} value={cls}>{cls}</option>
+                  ))}
                 </select>
               </div>
             )}
@@ -135,11 +133,11 @@ const Archive = () => {
                   {currentData.length > 0 ? (
                     currentData.map((item, index) => (
                       <tr key={index}>
-                        <td>{item.partnerName}</td>
-                        <td>{item.documentType}</td>
-                        <td>{item.partnershipClassification}</td>
-                        <td>{item.expireDate}</td>
-                        <td>{item.pointPerson}</td>
+                        <td>{item.partner_name}</td>
+                        <td>{item.document_type}</td>
+                        <td>{item.partnership_type}</td>
+                        <td>{item.date_expiry}</td>
+                        <td>{item.point_persons_display}</td>
                         <td>
                           <button className="view-btn">View File</button>
                         </td>

@@ -11,6 +11,8 @@ from app.models.notification import Notification
 from app.controllers import partners_controller
 from app.controllers import document_controller
 
+from fastapi.routing import APIRoute
+
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
@@ -21,6 +23,16 @@ app = FastAPI(
 )
 
 manager = ConnectionManager()
+
+
+@app.on_event("startup")
+async def debug_routes():
+    print("\n🔎 Registered routes:")
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            methods = ",".join(route.methods)
+            print(f"{methods:10s} {route.path}")
+    print("🔎 End of routes\n")
 
 @app.websocket("/ws/notifications")
 async def websocket_endpoint(websocket: WebSocket):
