@@ -33,6 +33,7 @@ router = APIRouter(
 )
 
 @router.get("/archive", response_model=List[ArchiveAgreementResponse])
+@router.get("/archive/", response_model=List[ArchiveAgreementResponse])
 async def get_archived_agreements(
     db: Session = Depends(get_db),
     current_user: Users = Depends(get_current_user)

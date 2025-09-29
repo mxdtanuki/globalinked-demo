@@ -276,8 +276,17 @@ const ExtractedEntryMOA = () => {
   const [documentType, setDocumentType] = useState("");
   const [partnershipType, setPartnershipType] = useState("");
 
+  // Additional form states for initial data
+  const [source, setSource] = useState("");
+  const [dtsStatus, setDtsStatus] = useState("");
+  const [datePupSigned, setDatePupSigned] = useState("");
+  const [dateUlcoApproved, setDateUlcoApproved] = useState("");
+  const [remarks, setRemarks] = useState("");
+
   const location = useLocation();  
-  const uploadedFile = location.state?.uploadedFile;  // Retrieve file from state
+  const uploadedFile = location.state?.uploadedFile;  // Retrieve file
+  const formData = location.state?.formData;  // Retrieve form data
+  const initialPointPersons = location.state?.pointPersons;  // Retrieve point persons
   const [versionComment, setVersionComment] = useState("");
 
   // Partner state
@@ -335,6 +344,25 @@ const ExtractedEntryMOA = () => {
     fetchPartners();
   }, []);
 
+  // Set initial data from location state
+  useEffect(() => {
+    if (formData) {
+      setSource(formData.source || "");
+      setDtsNumber(formData.dtsNo || "");
+      setDtsStatus(formData.dtsStatus || "");
+      setDatePupSigned(formData.pupSignedDate || "");
+      setDateUlcoApproved(formData.ulcoApprovalDate || "");
+      setRemarks(formData.remarks || "");
+    }
+    if (initialPointPersons && initialPointPersons.length > 0) {
+      setPointPersons(initialPointPersons.map(pp => ({
+        position: pp.point_person_position || "",
+        name: pp.point_person_name || "",
+        email: pp.point_person_email || ""
+      })));
+    }
+  }, [formData, initialPointPersons]);
+
   // Handle selecting an existing partner
   const handleExistingPartnerChange = (opt) => {
     setSelectedPartner(opt);
@@ -363,9 +391,9 @@ const handleSubmit = async (e) => {
     const data = Object.fromEntries(form);
 
     let agreementData = {
-      source_unit: data.source,
+      source_unit: source,
       dts_number: dtsNumber,
-      dts_status: data.dtsStatus,
+      dts_status: dtsStatus,
       document_type: documentType,
       partnership_type: partnershipType,
       agreement_status: data.status,
@@ -373,8 +401,8 @@ const handleSubmit = async (e) => {
       entry_date: data.entryDate || null,
       date_received: data.dateReceived || null,
       date_endorsed_to_ulco: data.dateEndorsed || null,
-      date_ulco_approved: data.dateUlcoApproved || null,
-      date_signed_by_pup: data.datePupSigned || null,
+      date_ulco_approved: dateUlcoApproved || null,
+      date_signed_by_pup: datePupSigned || null,
       date_signed: data.dateSigned || null,
       date_expiry: data.dateExpiry || null,
       validity_period: data.validity || null,
@@ -402,8 +430,8 @@ const handleSubmit = async (e) => {
       renewed_from_agreement_id: data.renewedFrom
         ? String(data.renewedFrom)
         : null,
-      initial_remarks: data.remarks
-        ? [{ remark_text: data.remarks }]
+      initial_remarks: remarks
+        ? [{ remark_text: remarks }]
         : [],
     };
 
@@ -481,6 +509,11 @@ const handleSubmit = async (e) => {
       setDtsNumber("");
       setDocumentType("");
       setPartnershipType("");
+      setSource("");
+      setDtsStatus("");
+      setDatePupSigned("");
+      setDateUlcoApproved("");
+      setRemarks("");
       setPointPersons([{ name: "", position: "", email: "" }]);
       setContacts([{ name: "", position: "", email: "" }]);
       setVersionComment("");
@@ -621,7 +654,13 @@ const handleSubmit = async (e) => {
           {/* DTS STATUS */}
           <div className="form-group">
             <label htmlFor="dtsStatus">DTS Status:*</label>
-            <select id="dtsStatus" name="dtsStatus" required>
+            <select 
+              id="dtsStatus" 
+              name="dtsStatus" 
+              value={dtsStatus}
+              onChange={(e) => setDtsStatus(e.target.value)}
+              required
+            >
               <option value="">Select Status</option>
               <option value="Open - OIA">OPEN - OIA</option>
               <option value="Closed - OIA">Closed - OIA</option>
@@ -633,7 +672,14 @@ const handleSubmit = async (e) => {
           {/* SOURCE UNIT */}
           <div className="form-group">
             <label htmlFor="source">Source (Campus/College Dept):*</label>
-            <input id="source" name="source" type="text" required />
+            <input 
+              id="source" 
+              name="source" 
+              type="text" 
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              required 
+            />
           </div>
 
           {/* PARTNERSHIP TYPE */}
@@ -897,7 +943,13 @@ const handleSubmit = async (e) => {
           {/* DATE PUP SIGNED */}
           <div className="form-group">
           <label htmlFor="datePupSigned">Date PUP Signed:</label>
-          <input id="datePupSigned" name="datePupSigned" type="date" />
+          <input 
+            id="datePupSigned" 
+            name="datePupSigned" 
+            type="date" 
+            value={datePupSigned}
+            onChange={(e) => setDatePupSigned(e.target.value)}
+          />
           </div>
 
            {/* DATE SIGNED */}
@@ -915,7 +967,13 @@ const handleSubmit = async (e) => {
           {/* DATE ULCO APPROVED */}
           <div className="form-group">
           <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
-          <input id="dateUlcoApproved" name="dateUlcoApproved" type="date" />
+          <input 
+            id="dateUlcoApproved" 
+            name="dateUlcoApproved" 
+            type="date" 
+            value={dateUlcoApproved}
+            onChange={(e) => setDateUlcoApproved(e.target.value)}
+          />
           </div>
 
             {/* DEADLINE DATE */}
@@ -961,7 +1019,12 @@ const handleSubmit = async (e) => {
           {/* REMARKS */}
           <div className="form-group full-width">
           <label htmlFor="remarks">Remarks:</label>
-          <textarea id="remarks" name="remarks" />
+          <textarea 
+            id="remarks" 
+            name="remarks" 
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+          />
           </div>
 
           <div className="form-actions">
