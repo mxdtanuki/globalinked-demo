@@ -1,35 +1,47 @@
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 from jinja2 import Template
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import smtplib
 import os
 
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "pup.international.affairs@gmail.com")
-SMTP_PASS = os.getenv("SMTP_PASS", "epcs mqnp cpun pxin")
+# Your Brevo API key (store in .env instead of hardcoding!)
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+
+# Configure API client
+configuration = sib_api_v3_sdk.Configuration()
+configuration.api_key['api-key'] = BREVO_API_KEY
+
+api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+    sib_api_v3_sdk.ApiClient(configuration)
+)
 
 def render_template(body_html: str, context: dict) -> str:
     template = Template(body_html)
     return template.render(context)
 
 def send_email(to: str, subject: str, body: str):
-    """Send email via SMTP"""
-    msg = MIMEMultipart("alternative")
-    msg["From"] = SMTP_USER
-    msg["To"] = to
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "html"))
-
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:  # Add timeout
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.sendmail(SMTP_USER, to, msg.as_string())
+    """Send email via Brevo API"""
+    send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+        to=[{"email": to}],
+        sender={"name": "PUP International Affairs", "email": "no-reply@globalinked.systems"},
+        subject=subject,
+        html_content=body
+    )
+    try:
+        api_response = api_instance.send_transac_email(send_smtp_email)
+        # Handle response: check if it's a dict or object
+        if isinstance(api_response, dict) and 'messageId' in api_response:
+            print("✅ Email sent. Message ID:", api_response['messageId'])
+        elif hasattr(api_response, 'message_id'):  # If it's an object with message_id
+            print("✅ Email sent. Message ID:", api_response.message_id)
+        else:
+            print("✅ Email sent successfully (response type:", type(api_response).__name__, ")")
+    except ApiException as e:
+        print("❌ Exception when sending email: %s\n" % e)
+        raise
 
 def send_reset_email(recipient_email, reset_link):
     subject = "Password Reset Request 🔐 - Globalinked"
     
-    # Jinja template for the body
     template_str = """
     <html>
     <body>
@@ -41,8 +53,6 @@ def send_reset_email(recipient_email, reset_link):
     </body>
     </html>
     """
-    
-    # Render the template with context
     context = {"reset_link": reset_link}
     body = render_template(template_str, context)
     
