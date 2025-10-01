@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 const API_BASE_URL = 'http://localhost:8000' || process.env.REACT_APP_API_BASE_URL;
 
 
@@ -9,3 +10,4 @@ export async function fetchAuditLogs() {
   if (!res.ok) throw new Error("Failed to fetch audit logs");
   return res.json();
 }
+
