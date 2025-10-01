@@ -33,10 +33,16 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     
+origins = [
+    "https://www.globalinked.systems",
+    "https://api.globalinked.systems",  # Add this if missing
+    "http://localhost:3000",            # For dev
+    "http://127.0.0.1:3000"            # alternative localhost
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ "http://localhost:3000","https://globalinked-system.onrender.com"], 
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],            
     allow_headers=["*"],
