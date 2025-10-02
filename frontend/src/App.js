@@ -29,6 +29,7 @@ import AuditLogsPage from './pages/auditLogs';
 //sidebar pages
 import Overview from './pages/overview';
 import Analytics from './pages/analytics';
+import AgreementDocument from './pages/agreement';
 import PointPerson from './pages/pointPerson';
 import ContactPerson from './pages/contactPerson';
 import Mobility from './pages/mobility';
@@ -69,6 +70,7 @@ function App() {
 
             {/* admin routes */}
             <Route path="/overview" element={<Overview />} />
+            <Route path="/agreement" element={<AgreementDocument />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/docUpload" element={< MOAUpload />} />
             <Route path="/pointPerson" element={<PointPerson />} />
