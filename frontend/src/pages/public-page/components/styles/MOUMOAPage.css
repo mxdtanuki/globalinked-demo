@@ -452,6 +452,7 @@
 
 .country-card {
   background-color: var(--white);
+  color: #000000;
   border: 2px solid var(--light-gray);
   border-radius: 16px;
   padding: 28px;

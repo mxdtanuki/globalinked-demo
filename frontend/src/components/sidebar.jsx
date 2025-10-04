@@ -33,6 +33,7 @@ const Sidebar = ({ mobileShow }) => {
 
   const menuItems = [
     { label: 'Overview', path: '/overview', icon: <FiHome /> },
+    { label: 'Agreements', path: '/agreement', icon: <FiFileText/> },
     { label: 'Analytics', path: '/analytics', icon: <FiBarChart2 /> },
     { label: 'Document Entry', path: '/docUpload', icon: <FiUpload />, roles: ['admin'] },
     { label: 'Point Person', path: '/pointPerson', icon: <FiUser /> },
@@ -44,7 +45,7 @@ const Sidebar = ({ mobileShow }) => {
     { label: 'Archive', path: '/archive', icon: <FiArchive /> },
     { label: 'Profile', path: '/profile', icon: <FiSettings /> },
   ];
-
+  
   // filter by role
   const visibleMenuItems = menuItems.filter(item => {
     if (item.roles && !item.roles.includes(userRole)) return false;

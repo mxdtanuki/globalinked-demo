@@ -12,7 +12,7 @@ from app.models.contact_persons import ContactPersons
 # Timeframe constants
 EXPIRY_WINDOW_DAYS = int(__import__("os").environ.get("EXPIRY_WINDOW_DAYS", "30"))
 PENDING_DAYS_DEFAULT = int(__import__("os").environ.get("PENDING_DAYS_DEFAULT", "7"))
-DORMANT_DAYS = int(__import__("os").environ.get("DORMANT_DAYS", "30"))
+RENEWAL_DAYS = int(__import__("os").environ.get("RENEWAL_DAYS", "30"))
 
 from zoneinfo import ZoneInfo
 PH_TZ = ZoneInfo("Asia/Manila")
@@ -128,6 +128,34 @@ def _format_body(category: str, a: Agreements, partner_name: str, recommended_ac
     """
 
 
+def _format_days_ago(days):
+    if days is None:
+        return "unknown time"
+    if days < 30:
+        return f"{days} days"
+    elif days < 365:
+        months = days // 30
+        remaining_days = days % 30
+        if remaining_days == 0:
+            return f"{months} months"
+        return f"{months} months {remaining_days} days"
+    else:
+        years = days // 365
+        remaining_days = days % 365
+        months = remaining_days // 30
+        if months == 0:
+            return f"{years} years"
+        return f"{years} years {months} months"
+
+
+def _format_days_until(days_until):
+    if days_until is None:
+        return "unknown time"
+    if days_until <= 0:
+        return "today"
+    return _format_days_ago(days_until)
+
+
 def _recommended_actions_for_category(category, status=None):
     if category == "expiring_soon":
         return [
@@ -199,13 +227,12 @@ def _recommended_actions_for_category(category, status=None):
 def agreement_notification_job():
     #  service imports
     from app.services.notif_service import create_notification_if_new
-    from app.services.email_service import send_email
 
     """
     scanning 
       - create 'expiring_soon' notifications for agreements expiring within EXPIRY_WINDOW_DAYS
       - create 'pending_long' notifications for agreements in pending statuses longer than threshold
-      - create 'renewal_needed' notifications for agreements expired > DORMANT_DAYS
+      - create 'renewal_needed' notifications for agreements expired > RENEWAL_DAYS
     The function avoids creating duplicate notifications .
     """
     db = _open_session()
@@ -224,18 +251,11 @@ def agreement_notification_job():
         )
         for a, p in expiring:
             category = "expiring_soon"
-            msg = f"{a.document_type} '{a.dts_number}' with partner '{p.name}' expires on {a.date_expiry}."
+            days_until = (a.date_expiry - today).days if a.date_expiry else None
+            time_until = _format_days_until(days_until)
+            msg = f"{a.document_type} '{a.dts_number}' with partner '{p.name}' expires in {time_until}."
             actions = _recommended_actions_for_category(category, None)
             notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
-            # send email to recipients (optional)
-            recipients = _collect_recipient_emails(db, a, p)
-            if notif and recipients:
-                try:
-                    subj = _format_subject(category, a, p.name)
-                    body = _format_body(category, a, p.name, actions)
-                    send_email(recipients, subj, body)
-                except Exception as e:
-                    print("[Scheduler] email send failed:", e)
 
         # 2) Pending statuses with timeframe
         pending_statuses = list(STATUS_THRESHOLD_DAYS.keys())
@@ -255,41 +275,27 @@ def agreement_notification_job():
             for a, p in pending_rows:
                 category = "pending_long"
                 days_pending = (today - a.entry_date).days if a.entry_date else None
-                msg = f"{a.document_type} for {p.name} - '{a.dts_number}' has been in status '{a.agreement_status}' for {days_pending} days."
+                time_pending = _format_days_ago(days_pending)
+                msg = f"{a.document_type} for {p.name} - '{a.dts_number}' has been in status '{a.agreement_status}' for {time_pending}."
                 actions = _recommended_actions_for_category(category, a.agreement_status)
                 notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
-                recipients = _collect_recipient_emails(db, a, p)
-                if notif and recipients:
-                    try:
-                        subj = _format_subject(category, a, p.name)
-                        body = _format_body(category, a, p.name, actions)
-                        send_email(recipients, subj, body)
-                    except Exception as e:
-                        print("[Scheduler] email send failed:", e)
 
-        # 3) Dormant / renewal needed: expired more than DORMANT_DAYS ago
-        cutoff_expired = today - timedelta(days=DORMANT_DAYS)
-        dormant = (
+        # 3) renewal needed: expired more than RENEWAL_DAYS ago
+        cutoff_expired = today - timedelta(days=RENEWAL_DAYS)
+        renewal = (
             db.query(Agreements, Partners)
               .join(Partners, Agreements.partner_id == Partners.partner_id)
               .filter(Agreements.date_expiry != None)
               .filter(Agreements.date_expiry <= cutoff_expired)
               .all()
         )
-        for a, p in dormant:
+        for a, p in renewal:
             category = "renewal_needed"
             days_expired = (today - a.date_expiry).days if a.date_expiry else None
-            msg = f"{a.document_type} of {p.name} -'{a.dts_number}' expired on {a.date_expiry} ({days_expired} days ago)."
+            time_ago = _format_days_ago(days_expired)
+            msg = f"{a.document_type} of {p.name} -'{a.dts_number}' expired on {a.date_expiry} ({time_ago})."
             actions = _recommended_actions_for_category(category, None)
             notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
-            recipients = _collect_recipient_emails(db, a, p)
-            if notif and recipients:
-                try:
-                    subj = _format_subject(category, a, p.name)
-                    body = _format_body(category, a, p.name, actions)
-                    send_email(recipients, subj, body)
-                except Exception as e:
-                    print("[Scheduler] email send failed:", e)
 
     except Exception as exc:
         print("[Scheduler] agreement_notification_job error:", exc)

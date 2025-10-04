@@ -1,7 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from app.websocket_manager import ConnectionManager
 import json
 
 from app.controllers import auth_controller, notification_controller, email_controller, registration_controller, agreement_controller, audit_controller
@@ -21,22 +19,16 @@ app = FastAPI(
     description="Monitoring System for OIA",
     version="1.0.0"
 )
-
-manager = ConnectionManager()
-
-@app.websocket("/ws/notifications")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-    try:
-        while True:
-            await websocket.receive_text()  # Keep the connection alive
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
     
+origins = [
+    "https://globalinked.systems",  # Frontend domain
+    "https://www.globalinked.systems",  # Frontend domain with www
+    "https://api.globalinked.systems",  # Backend domain, if self-requests occur
+    "http://localhost:3000"]            # For dev
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ "http://localhost:3000","https://globalinked-system.onrender.com"], 
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],            
     allow_headers=["*"],

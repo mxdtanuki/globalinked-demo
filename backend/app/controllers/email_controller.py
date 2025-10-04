@@ -6,11 +6,12 @@ from app.models.agreements import Agreements
 from app.models.partners import Partners
 from app.models.point_persons import PointPersons
 from app.models.contact_persons import ContactPersons
-import smtplib
 from app.services.email_service import send_email, render_template
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import re
+import os
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
+from jinja2 import Template
 
 
 router = APIRouter(prefix="/emails", tags=["Email"])

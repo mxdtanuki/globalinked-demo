@@ -109,7 +109,9 @@
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
-  overflow-x: auto;
+  overflow-x: auto; 
+  overflow-y: unset; 
+  margin-top: 15px;
 }
 
 /* Top bar for search and buttons */
@@ -455,8 +457,8 @@
 }
 .button-group {
   display: flex;
-  gap: 8px; /* space between buttons */
-  flex-wrap: nowrap; /* prevent wrapping */
+  gap: 8px; 
+  flex-wrap: nowrap; 
 }
 
 /* Overlay */

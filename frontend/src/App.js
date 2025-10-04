@@ -1,5 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import './App.css';
+
+// auth pages
 import Login from './pages/login';
 import Register from './pages/register';
 import ForgetPass from './pages/forgetPass';
@@ -26,6 +29,7 @@ import AuditLogsPage from './pages/auditLogs';
 //sidebar pages
 import Overview from './pages/overview';
 import Analytics from './pages/analytics';
+import AgreementDocument from './pages/agreement';
 import PointPerson from './pages/pointPerson';
 import ContactPerson from './pages/contactPerson';
 import Mobility from './pages/mobility';
@@ -45,57 +49,52 @@ import MOUUpload from './pages/upload/mou';
 import ManualEntryMoa from './pages/upload/manualEntryMoa';
 import ExtractedEntryMOA from './pages/upload/extractedEntryMoa';
 
-import './App.css';
-
 function App() {
   return (
     <NotificationsProvider>
       <AuditProvider>
-      <Router>
-        <Routes>
-          {/* public page routes */}
-          <Route path="/" element={<PublicPage />} />
-          <Route path="/templates" element={<TemplatesPage />} />
+        <Router>
+          <Routes>
+            {/* public page routes */}
+            <Route path="/" element={<PublicPage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
 
-          {/* auth routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} /> 
-          <Route path="/forgot-password" element={<ForgetPass />} />
-          <Route path="/resetPass" element={<ResetPass />} />    
+            {/* auth routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} /> 
+            <Route path="/forgot-password" element={<ForgetPass />} />
+            <Route path="/resetPass" element={<ResetPass />} />    
 
-           {/* admin login */}
-          <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
- 
+            {/* admin login */}
+            <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
 
-           {/* admin login */}
-          <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
+            {/* admin routes */}
+            <Route path="/overview" element={<Overview />} />
+            <Route path="/agreement" element={<AgreementDocument />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/docUpload" element={< MOAUpload />} />
+            <Route path="/pointPerson" element={<PointPerson />} />
+            <Route path="/contactPerson" element={<ContactPerson />} />
+            <Route path="/mobility" element={<Mobility />} />
+            <Route path="/docVer" element={<DocumentVersion />} />
+            <Route path="/email" element={<Email />} />
+            <Route path="/notification" element={<Notification />} />
+            <Route path="/archive" element={<Archive />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/userManagement" element={<UserManagement />} />
+            <Route path="/audit-logs" element={<AuditLogsPage />} />
 
-          {/* admin routes */}
-          <Route path="/overview" element={<Overview />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/docUpload" element={< MOAUpload />} />
-          <Route path="/pointPerson" element={<PointPerson />} />
-          <Route path="/contactPerson" element={<ContactPerson />} />
-          <Route path="/mobility" element={<Mobility />} />
-          <Route path="/docVer" element={<DocumentVersion />} />
-          <Route path="/email" element={<Email />} />
-          <Route path="/notification" element={<Notification />} />
-          <Route path="/archive" element={<Archive />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/userManagement" element={<UserManagement />} />
-          <Route path="/audit-logs" element={<AuditLogsPage />} />
+            {/* Upload Document Routes */}
+            <Route path="/document-upload/mou" element={<MOUUpload />} />
+            <Route path="/document-upload/moa" element={<MOAUpload />} />
+            <Route path="/upload/manualEntryMOA" element={<ManualEntryMoa />} />
+            <Route path="/upload/extractedEntryMOA" element={<ExtractedEntryMOA />} />
 
-          {/* Upload Document Routes */}
-          <Route path="/document-upload/mou" element={<MOUUpload />} />
-          <Route path="/document-upload/moa" element={<MOAUpload />} />
-          <Route path="/upload/manualEntryMOA" element={<ManualEntryMoa />} />
-          <Route path="/upload/extractedEntryMOA" element={<ExtractedEntryMOA />} />
+            {/* Existing MOUMOAPage route */}
+            <Route path="/mou-moa" element={<MOUMOAPage />} />
 
-          {/* Existing MOUMOAPage route */}
-          <Route path="/mou-moa" element={<MOUMOAPage />} />
-
-        </Routes>
-      </Router>
+          </Routes>
+        </Router>
       </AuditProvider>
     </NotificationsProvider>
   );
