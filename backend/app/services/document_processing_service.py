@@ -1,9 +1,21 @@
 import io
 from typing import Dict, Any
 import pdfplumber
-from docx import Document
+try:
+    from docx import Document as DocxDocument
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+    print("Warning: python-docx not available, DOCX processing disabled")
+
+try:
+    import fitz  # PyMuPDF
+    FITZ_AVAILABLE = True
+except ImportError:
+    FITZ_AVAILABLE = False
+    print("Warning: PyMuPDF not available, advanced PDF processing disabled")
+
 from paddleocr import PaddleOCR
-import fitz  # PyMuPDF
 from PIL import Image
 
 
@@ -97,8 +109,16 @@ class DocumentProcessingService:
         """
         Extract text from a DOCX file using python-docx.
         """
+        if not DOCX_AVAILABLE:
+            return {
+                "success": False,
+                "error": "DOCX processing not available - python-docx not installed",
+                "text": "",
+                "pages": []
+            }
+        
         try:
-            doc = Document(file_path)
+            doc = DocxDocument(file_path)
             paragraphs = [para.text for para in doc.paragraphs if para.text.strip()]
 
             # Extract table text too
@@ -161,6 +181,9 @@ class DocumentProcessingService:
         """
         OCR a single PDF page.
         """
+        if not FITZ_AVAILABLE:
+            return "PDF OCR not available - PyMuPDF not installed"
+            
         try:
             pdf_doc = fitz.open(file_path)
             page = pdf_doc.load_page(page_num)
@@ -178,6 +201,9 @@ class DocumentProcessingService:
         """
         OCR all pages in a PDF.
         """
+        if not FITZ_AVAILABLE:
+            return "PDF OCR not available - PyMuPDF not installed"
+            
         pdf_doc = fitz.open(file_path)
         all_text = []
 

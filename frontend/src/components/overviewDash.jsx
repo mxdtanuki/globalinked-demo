@@ -218,44 +218,62 @@ const handleDateSort = () => {
     if (field === 'logo_url') {
       if (!isEditing) {
         return value ? (
-          <a href={value} target="_blank" rel="noopener noreferrer">
-            View Logo
-          </a>
-        ) : '-';
+          <img
+            src={`data:image/png;base64,${value}`}
+            alt="Partner Logo"
+            style={{ width: "80px", height: "80px", objectFit: "contain" }}
+          />
+        ) : (
+          "-"
+        );
       }
 
       return (
         <div>
           {editedData.logo_url ? (
-            <a href={editedData.logo_url} target="_blank" rel="noopener noreferrer">
-              View Logo
-            </a>
+            <img
+              src={`data:image/png;base64,${editedData.logo_url}`}
+              alt="Partner Logo"
+              style={{ width: "80px", height: "80px", objectFit: "contain" }}
+            />
           ) : (
             <span>No logo uploaded</span>
           )}
+
           <input
             type="file"
             accept="image/*"
             style={{
-              marginTop: '8px',
-              width: '120px',      
-              padding: '2px 4px',  
-              fontSize: '12px'    
+              marginTop: "8px",
+              width: "120px",
+              padding: "2px 4px",
+              fontSize: "12px",
             }}
-            onChange={async (e) => {
+            onChange={(e) => {
               const file = e.target.files[0];
               if (!file) return;
               if (file.size > 2 * 1024 * 1024) {
-                alert('Logo file is too large. Maximum size is 2MB.');
+                alert("Logo file is too large. Maximum size is 2MB.");
                 return;
               }
-              try {
-                const res = await documentService.uploadLogo(agreement.agreement_id, file);
-                handleInputChange('logo_url', res.logo_url);
-                alert('Logo uploaded!');
-              } catch (err) {
-                alert('Logo upload failed: ' + err.message);
-              }
+
+              const reader = new FileReader();
+              reader.onloadend = async () => {
+                try {
+                  const base64String = reader.result.split(",")[1]; // remove `data:image/...;base64,`
+                  const updated = { ...editedData, logo_url: base64String };
+
+                  const res = await agreementService.updateAgreement(
+                    agreement.agreement_id,
+                    updated
+                  );
+                  handleInputChange("logo_url", res.logo_url); // update state
+                  alert("Logo uploaded!");
+                } catch (err) {
+                  alert("Logo upload failed: " + err.message);
+                }
+              };
+              reader.readAsDataURL(file);
             }}
           />
         </div>

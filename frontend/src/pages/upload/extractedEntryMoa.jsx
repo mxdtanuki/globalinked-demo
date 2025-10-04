@@ -291,6 +291,7 @@ const ExtractedEntryMOA = () => {
   const uploadedFile = location.state?.uploadedFile;  // Retrieve file
   const formData = location.state?.formData;  // Retrieve form data
   const initialPointPersons = location.state?.pointPersons;  // Retrieve point persons
+  const extractedMetadata = location.state?.extractedMetadata;  // Retrieve extracted metadata
   const [versionComment, setVersionComment] = useState("");
 
   // Partner state
@@ -405,6 +406,71 @@ useEffect(() => {
       })));
     }
   }, [formData, initialPointPersons]);
+
+  // Populate form with extracted metadata
+  useEffect(() => {
+    if (extractedMetadata) {
+      setMessage("Using extracted metadata from document...");
+
+      // Populate form with extracted data
+      if (extractedMetadata.partner_data) {
+        setPartnerData({
+          name: extractedMetadata.partner_data.name || "",
+          entityType: extractedMetadata.partner_data.entity_type || "",
+          address: extractedMetadata.partner_data.address || "",
+          website: extractedMetadata.partner_data.website_url || "",
+          description: extractedMetadata.partner_data.description || "",
+          logo: null,
+        });
+        // Set country and region
+        if (extractedMetadata.partner_data.country) {
+          const countryOpt = countryOptions.find(c => c.value === extractedMetadata.partner_data.country);
+          if (countryOpt) {
+            setSelectedCountry(countryOpt);
+            setSelectedRegion(regionOptions.find(r => r.value === countryOpt.region) || null);
+          }
+        }
+      }
+
+      setDocumentType(extractedMetadata.document_type || "");
+      setPartnershipType(extractedMetadata.partnership_type || "");
+      setDateSigned(extractedMetadata.date_signed || "");
+      setValidityPeriod(extractedMetadata.validity_period || "");
+      setDateExpiry(extractedMetadata.date_expiry || "");
+
+      // Set dates
+      setEntryDate(extractedMetadata.entry_date || entryDate);
+      setDatePupSigned(extractedMetadata.date_pup_signed || datePupSigned);
+      setDateUlcoApproved(extractedMetadata.date_ulco_approved || dateUlcoApproved);
+
+      // Set DTS info
+      setDtsNumber(extractedMetadata.dts_number || dtsNumber);
+      setDtsStatus(extractedMetadata.dts_status || dtsStatus);
+
+      // Set contacts and point persons
+      if (extractedMetadata.contact_persons && extractedMetadata.contact_persons.length > 0) {
+        setContacts(extractedMetadata.contact_persons.map(c => ({
+          position: c.contact_person_position || "",
+          name: c.contact_person_name || "",
+          email: c.contact_person_email || ""
+        })));
+      }
+
+      if (extractedMetadata.point_persons && extractedMetadata.point_persons.length > 0) {
+        setPointPersons(extractedMetadata.point_persons.map(p => ({
+          position: p.point_person_position || "",
+          name: p.point_person_name || "",
+          email: p.point_person_email || ""
+        })));
+      }
+
+      setRemarks(extractedMetadata.initial_remarks?.[0]?.remark_text || remarks);
+
+      setMessage("Form populated with extracted metadata!");
+    } else if (uploadedFile) {
+      setMessage("No extracted metadata available. Please fill the form manually.");
+    }
+  }, [extractedMetadata, uploadedFile]);
 
   // Handle selecting an existing partner
   const handleExistingPartnerChange = (opt) => {

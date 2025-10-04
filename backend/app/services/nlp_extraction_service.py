@@ -44,14 +44,21 @@ class NLPLegalExtractionService:
         # Initialize document processor
         self.doc_processor = DocumentProcessingService()
 
-        # Initialize Legal-BERT QA pipeline
+        # Initialize Legal-BERT QA pipeline with error handling
         model_name = "nlpaueb/legal-bert-base-uncased"
-        self.qa_pipeline = pipeline(
-            "question-answering",
-            model=model_name,
-            tokenizer=model_name,
-            device=0 if torch.cuda.is_available() else -1
-        )
+        self.qa_pipeline = None
+        try:
+            self.qa_pipeline = pipeline(
+                "question-answering",
+                model=model_name,
+                tokenizer=model_name,
+                device=0 if torch.cuda.is_available() else -1
+            )
+            print("✓ Legal-BERT model loaded successfully")
+        except Exception as e:
+            print(f"⚠ Failed to load Legal-BERT model: {e}")
+            print("Falling back to regex-based extraction only")
+            self.qa_pipeline = None
 
         # Expanded questions for QA extraction
         self.questions = {
@@ -113,7 +120,7 @@ class NLPLegalExtractionService:
             "signatories": [
                 "Who are the signatories?",
                 "Who signed the agreement?",
-                "List the signatories with their names, positions, and institutions"
+                "List the signatories with their names, positions"
             ],
             "contact_persons": [
                 "Who are the contact persons?",
@@ -240,37 +247,97 @@ class NLPLegalExtractionService:
             answer = self._extract_with_qa(clean_text, question_list)
             if answer:
                 extracted[field] = answer
+                print(f"✓ BERT extracted {field}: {answer}")
+            else:
+                print(f"⚠ BERT failed for {field}, will use regex fallback")
 
         # Post-process and map to schema
         extracted = self._map_to_agreement_fields(extracted)
 
-        # Fallback to regex for dates and parties if QA missed
+        # Enhanced regex fallback extractions when QA fails
+        # Document type detection
+        if not extracted.get("document_type"):
+            if re.search(r'\bmemorandum of agreement\b|\bmoa\b', clean_text, re.IGNORECASE):
+                extracted["document_type"] = "MOA"
+            elif re.search(r'\bmemorandum of understanding\b|\bmou\b', clean_text, re.IGNORECASE):
+                extracted["document_type"] = "MOU"
+
+        # Partner name extraction - more patterns
+        if not extracted.get("partner_name"):
+            partner_patterns = [
+                r"between\s+(.+?)\s+and\s+(.+?)(?:\s*,|\s*\.|\s*and|\s*with)",
+                r"party\s+(.+?)\s+and\s+(.+?)(?:\s*,|\s*\.|\s*and|\s*with)",
+                r"this agreement is made between\s+(.+?)\s+and\s+(.+?)(?:\s*,|\s*\.|\s*and|\s*with)",
+                r"entered into by and between\s+(.+?)\s+and\s+(.+?)(?:\s*,|\s*\.|\s*and|\s*with)"
+            ]
+            for pattern in partner_patterns:
+                matches = re.findall(pattern, clean_text, re.IGNORECASE | re.DOTALL)
+                if matches:
+                    # Take the longer name as likely the partner (not PUP)
+                    for match in matches:
+                        party1, party2 = match[0].strip(), match[1].strip()
+                        if "pup" not in party1.lower() and len(party1) > len(party2):
+                            extracted["partner_name"] = party1
+                            break
+                        elif "pup" not in party2.lower() and len(party2) > len(party1):
+                            extracted["partner_name"] = party2
+                            break
+                    if extracted.get("partner_name"):
+                        break
+
+        # Date signed - more patterns
         if not extracted.get("date_signed"):
-            date_matches = re.findall(self.date_pattern, clean_text)
-            if date_matches:
-                normalized_dates = self._normalize_dates([d[0] for d in date_matches])
-                extracted["date_signed"] = normalized_dates[0] if normalized_dates else None
+            date_patterns = [
+                r"signed\s+on\s+(.+?)(?:\s*,|\s*\.|\s*and|\s*with|\s*$)",
+                r"date[:\s]+(.+?)(?:\s*,|\s*\.|\s*and|\s*with|\s*$)",
+                r"executed\s+on\s+(.+?)(?:\s*,|\s*\.|\s*and|\s*with|\s*$)",
+                r"this\s+\d+\w*\s+day\s+of\s+(.+?)(?:\s*,|\s*\.|\s*and|\s*with|\s*$)"
+            ]
+            for pattern in date_patterns:
+                match = re.search(pattern, clean_text, re.IGNORECASE)
+                if match:
+                    date_str = match.group(1).strip()
+                    try:
+                        parsed = parser.parse(date_str, fuzzy=True)
+                        extracted["date_signed"] = parsed.strftime("%Y-%m-%d")
+                        break
+                    except:
+                        continue
 
-        if not extracted.get("partner"):
-            party_matches = re.findall(self.party_pattern, clean_text)
-            if party_matches:
-                extracted["partner"] = {
-                    "name": party_matches[0][1].strip(),
-                    "entity_type": "University"
-                }
+        # Validity period - more patterns
+        if not extracted.get("validity_period"):
+            validity_patterns = [
+                r"valid\s+for\s+a\s+period\s+of\s+(\d+)\s+years?",
+                r"validity\s+period\s+of\s+(\d+)\s+years?",
+                r"term\s+of\s+(\d+)\s+years?",
+                r"duration\s+of\s+(\d+)\s+years?",
+                r"(\d+)\s+years?\s+from\s+the\s+date",
+                r"period\s+of\s+(\d+)\s+years?"
+            ]
+            for pattern in validity_patterns:
+                match = re.search(pattern, clean_text, re.IGNORECASE)
+                if match:
+                    try:
+                        years = int(match.group(1))
+                        extracted["validity_period"] = years
+                        break
+                    except:
+                        continue
 
-        # Additional regex extractions for validity / expiry
-        validity_match = re.search(r"period of\s+(\w+)\s*\(?(\d+)?\)?\s*years?", clean_text, re.IGNORECASE)
-        if validity_match and not extracted.get("validity_period"):
-            years = int(validity_match.group(2) or validity_match.group(1))
-            extracted["validity_period"] = years
-            if extracted.get("date_signed"):
-                try:
-                    start_date = datetime.fromisoformat(extracted["date_signed"])
-                    expiry = start_date.replace(year=start_date.year + years)
-                    extracted["date_expiry"] = expiry.date().isoformat()
-                except Exception:
-                    extracted["date_expiry"] = None
+        # DTS number extraction
+        if not extracted.get("dts_number"):
+            dts_patterns = [
+                r"dts[:\s]*no[:\.\s]*(\w+)",
+                r"dts[:\s]*number[:\.\s]*(\w+)",
+                r"dts[:\s]*(\w+)",
+                r"reference[:\s]*no[:\.\s]*(\w+)",
+                r"ref[:\s]*no[:\.\s]*(\w+)"
+            ]
+            for pattern in dts_patterns:
+                match = re.search(pattern, clean_text, re.IGNORECASE)
+                if match:
+                    extracted["dts_number"] = match.group(1).upper()
+                    break
 
         # Regex for DTS
         dts_number_match = re.search(r"DTS\s*Number[:\s]*(\w+)", clean_text, re.IGNORECASE)
@@ -286,7 +353,11 @@ class NLPLegalExtractionService:
     def _extract_with_qa(self, text: str, questions: List[str]) -> str:
         """
         Use QA pipeline to extract answer from text.
+        Falls back to empty string if pipeline not available.
         """
+        if not self.qa_pipeline:
+            return ""
+            
         best_answer = ""
         best_score = 0.0
 
@@ -313,8 +384,6 @@ class NLPLegalExtractionService:
             mapped["document_type"] = "MOA"
         elif "memorandum of understanding" in doc_type or "mou" in doc_type:
             mapped["document_type"] = "MOU"
-        else:
-            mapped["document_type"] = "Legal Document"
 
         # Partnership type - match to frontend options
         partnership = extracted.get("partnership_type", "")

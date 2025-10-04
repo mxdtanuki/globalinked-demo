@@ -173,4 +173,81 @@ export const agreementService = {
     return response.json();
   },
 
+  async extractAgreementMetadata(file) {
+    const token = localStorage.getItem('access_token');
+    
+    if (!token) {
+      throw new Error('Please login first');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/documents/extract-metadata`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("NLP extraction failed:", error);
+      throw error;
+    }
+
+    return response.json();
+  },
+
+  async extractAgreementMetadataWithProgress(file, onProgress) {
+    const token = localStorage.getItem('access_token');
+    if (!token) throw new Error('Please login first');
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const url = `${API_BASE_URL}/documents/extract-metadata`;
+      const formData = new FormData();
+      formData.append('file', file);
+
+      xhr.open('POST', url, true);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && typeof onProgress === 'function') {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      };
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const resp = JSON.parse(xhr.responseText);
+              resolve(resp);
+            } catch (err) {
+              reject({ detail: 'Invalid JSON response from server' });
+            }
+          } else {
+            // Provide detailed error with HTTP status and response body for debugging
+            let parsed;
+            try {
+              parsed = JSON.parse(xhr.responseText);
+            } catch (e) {
+              parsed = { detail: xhr.responseText || `Upload failed with status ${xhr.status}` };
+            }
+            parsed.status = xhr.status;
+            parsed.responseText = xhr.responseText;
+            console.error('XHR upload error', parsed);
+            reject(parsed);
+          }
+        }
+      };
+
+      xhr.onerror = () => reject({ detail: 'Network error during upload' });
+      xhr.send(formData);
+    });
+  },
+
 };
