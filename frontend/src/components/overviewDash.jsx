@@ -12,6 +12,7 @@ const OverviewDash = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [agreements, setAgreements] = useState([]);
   const [filteredAgreements, setFilteredAgreements] = useState([]);
+  const [statFilter, setStatFilter] = useState('OPEN - OIA');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(null);
@@ -41,14 +42,9 @@ const fetchAgreements = async () => {
     const data = await agreementService.getAgreements();
     setAgreements(data);
 
-    // Filter to active agreements (not expired)
-    const now = new Date();
-    const activeAgreements = data.filter(a => {
-      if (!a.date_expiry) return true;
-      const expiryDate = new Date(a.date_expiry);
-      return expiryDate > now;
-    });
-    setFilteredAgreements(activeAgreements);
+    // Show only OPEN - OIA by default
+    const openOIA = data.filter(a => a.dts_status === 'Open - OIA');
+    setFilteredAgreements(openOIA);
   } catch (err) {
     setError('Failed to fetch agreements: ' + err.message);
   } finally {
@@ -460,7 +456,7 @@ const handleDateSort = () => {
     }
 
     // Special handling for different field types
-    if (field === 'agreement_status' || field === 'dts_status') {
+    if (field === 'agreement_status') {
       return (
         <select
           value={editedData[field] || ''}
@@ -478,8 +474,21 @@ const handleDateSort = () => {
           <option value="Complete">Completely Signed</option>
           <option value="Notary">For Notary</option>
           <option value="FFUPCopy">FFUP Copy From College/Campus</option>
-          <option value="Renewal">Renewal</option>
           <option value="Expired">Expired</option>
+        </select>
+      );
+    } else if (field === 'dts_status') {
+      return (
+        <select
+          value={editedData[field] || ''}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          className="edit-input"
+        >
+          <option value="">Select Status</option>
+          <option value="Open - OIA">Open - OIA</option>
+          <option value="Closed - OIA">Closed - OIA</option>
+          <option value="Open - Other Office">Open - Other Office</option>
+          <option value="Closed - Other Office">Closed - Other Office</option>
         </select>
       );
     } else if (field === 'document_type') {
@@ -516,8 +525,6 @@ const handleDateSort = () => {
     }
   };
 
-  
-
   const toggleMenu = (index) => {
     setOpenMenuIndex(openMenuIndex === index ? null : index);
   };
@@ -527,29 +534,49 @@ const handleDateSort = () => {
     setOpenMenuIndex(null);
   };
 
-  const handleSearch = useCallback(() => {
-    let data = agreements;
+const handleSearch = useCallback(() => {
+  let data = agreements;
 
-    if (selectedStatus) {
-      data = data.filter(a => a.agreement_status === selectedStatus);
+  // Always filter by statFilter first
+  if (statFilter) {
+    switch (statFilter) {
+      case 'OPEN - OIA':
+        data = data.filter(a => a.dts_status === 'Open - OIA');
+        break;
+      case 'CLOSED - OIA':
+        data = data.filter(a => a.dts_status === 'Closed - OIA');
+        break;
+      case 'OPEN - OTHER OFFICE':
+        data = data.filter(a => a.dts_status === 'Open - Other Office');
+        break;
+      case 'CLOSED - OTHER OFFICE':
+        data = data.filter(a => a.dts_status === 'Closed - Other Office');
+        break;
+      default:
+        break;
     }
+  }
 
-    if (searchTerm.trim() !== '') {
-      const lowerTerm = searchTerm.toLowerCase();
-      data = data.filter(a =>
-        Object.values(a).some(val =>
-          val && val.toString().toLowerCase().includes(lowerTerm)
-        )
-      );
-    }
+  if (selectedStatus) {
+    data = data.filter(a => a.agreement_status === selectedStatus);
+  }
 
-    setFilteredAgreements(data);
-    setCurrentPage(1);
-  }, [agreements, searchTerm, selectedStatus]);
+  if (searchTerm.trim() !== '') {
+    const lowerTerm = searchTerm.toLowerCase();
+    data = data.filter(a =>
+      Object.values(a).some(val =>
+        val && val.toString().toLowerCase().includes(lowerTerm)
+      )
+    );
+  }
 
-  useEffect(() => {
-    handleSearch();
-  }, [handleSearch]);
+  setFilteredAgreements(data);
+  setCurrentPage(1);
+}, [agreements, searchTerm, selectedStatus, statFilter]);
+
+useEffect(() => {
+  handleSearch();
+}, [handleSearch, statFilter]);
 
   const filterByStatus = (status) => {
     if (selectedStatus === status) {
@@ -559,53 +586,109 @@ const handleDateSort = () => {
     }
   };
 
-  const applyIndependentFilter = () => {
-    let data = agreements;
-    if (filters.documentType) {
-      data = data.filter(a => a.document_type === filters.documentType);
-    }
-    if (filters.partnershipType) {
-      data = data.filter(a => a.partnership_type === filters.partnershipType);
-    }
-    if (filters.validityPeriod) {
-      data = data.filter(a => a.validity_period === filters.validityPeriod);
-    }
-    if (filters.country) {
-      data = data.filter(a => a.country === filters.country);
-    }
-    setFilteredAgreements(data);
-    setCurrentPage(1);
-  };
+const applyIndependentFilter = () => {
+  let data = agreements;
 
-  const clearIndependentFilter = () => {
-    setFilters({ documentType: '', partnershipType: '', validityPeriod: '', country: '' });
-    setFilteredAgreements(agreements);
-    setCurrentPage(1);
-  };
+  // Always filter by statFilter first
+  if (statFilter) {
+    switch (statFilter) {
+      case 'OPEN - OIA':
+        data = data.filter(a => a.dts_status === 'Open - OIA');
+        break;
+      case 'CLOSED - OIA':
+        data = data.filter(a => a.dts_status === 'Closed - OIA');
+        break;
+      case 'OPEN - OTHER OFFICE':
+        data = data.filter(a => a.dts_status === 'Open - Other Office');
+        break;
+      case 'CLOSED - OTHER OFFICE':
+        data = data.filter(a => a.dts_status === 'Closed - Other Office');
+        break;
+      default:
+        break;
+    }
+  }
 
-  const stats = [
-    { label: 'Total Agreement', count: agreements.length, route: '/stat/totalAgreement' },
-    { label: 'Active Agreement', count: agreements.filter(a => { if (!a.date_expiry) return true;  const now = new Date(); const expiryDate = new Date(a.date_expiry); return expiryDate > now; }).length, route: '/stat/activeAgreement' },
-    { label: 'Nearing Expiration', count: agreements.filter(a => {if (!a.date_expiry) return false;const now = new Date(); const expiryDate = new Date(a.date_expiry); const daysDifference = (expiryDate - now) / (1000 * 60 * 60 * 24); return daysDifference > 0 && daysDifference <= 30;
-    }).length, route: '/stat/nearExpAgreement'}
-  ];
+  if (filters.documentType) {
+    data = data.filter(a => a.document_type === filters.documentType);
+  }
+  if (filters.partnershipType) {
+    data = data.filter(a => a.partnership_type === filters.partnershipType);
+  }
+  if (filters.validityPeriod) {
+    data = data.filter(a => a.validity_period === filters.validityPeriod);
+  }
+  if (filters.country) {
+    data = data.filter(a => a.country === filters.country);
+  }
+  setFilteredAgreements(data);
+  setCurrentPage(1);
+};
+
+const clearIndependentFilter = () => {
+  setFilters({ documentType: '', partnershipType: '', validityPeriod: '', country: '' });
+
+  // Always filter by statFilter first
+  let data = agreements;
+  if (statFilter) {
+    switch (statFilter) {
+      case 'OPEN - OIA':
+        data = data.filter(a => a.dts_status === 'Open - OIA');
+        break;
+      case 'CLOSED - OIA':
+        data = data.filter(a => a.dts_status === 'Closed - OIA');
+        break;
+      case 'OPEN - OTHER OFFICE':
+        data = data.filter(a => a.dts_status === 'Open - Other Office');
+        break;
+      case 'CLOSED - OTHER OFFICE':
+        data = data.filter(a => a.dts_status === 'Closed - Other Office');
+        break;
+      default:
+        break;
+    }
+  }
+  setFilteredAgreements(data);
+  setCurrentPage(1);
+};
+
+const stats = [
+  { label: 'OPEN - OIA', count: agreements.filter(a => a.dts_status === 'Open - OIA').length },
+  { label: 'CLOSED - OIA', count: agreements.filter(a => a.dts_status === 'Closed - OIA').length },
+  { label: 'OPEN - OTHER OFFICE', count: agreements.filter(a => a.dts_status === 'Open - Other Office').length },
+  { label: 'CLOSED - OTHER OFFICE', count: agreements.filter(a => a.dts_status === 'Closed - Other Office').length }
+];
   
-  const lifecycleStages = [
-    { label: 'Endorse to ULCO', status: 'Endorse' },
-    { label: 'Revert to Initiator', status: 'Revert' },
-    { label: 'For Replication', status: 'Replication' },
-    { label: 'For Signature of PUP Official', status: 'SignituresPUP' },
-    { label: 'Signed by PUP Official', status: 'SignedPUP' },
-    { label: 'For Signature of Partners', status: 'SignituresPartner' },
-    { label: 'Signed by Partners', status: 'SignedPartners' },
-    { label: 'Completely Signed', status: 'Complete' },
-    { label: 'For Notary', status: 'Notary' },
-    { label: 'To FFUP Copy', status: 'FFUPCopy' },
-    { label: 'Renewals', status: 'Renewal' }
-  ].map(stage => ({
-    ...stage,
-    count: agreements.filter(a => a.agreement_status === stage.status).length
-  }));
+const filteredForLifecycle = agreements.filter(a => {
+  switch (statFilter) {
+    case 'OPEN - OIA':
+      return a.dts_status === 'Open - OIA';
+    case 'CLOSED - OIA':
+      return a.dts_status === 'Closed - OIA';
+    case 'OPEN - OTHER OFFICE':
+      return a.dts_status === 'Open - Other Office';
+    case 'CLOSED - OTHER OFFICE':
+      return a.dts_status === 'Closed - Other Office';
+    default:
+      return true;
+  }
+});
+
+const lifecycleStages = [
+  { label: 'Endorse to ULCO', status: 'Endorse' },
+  { label: 'Revert to Initiator', status: 'Revert' },
+  { label: 'For Replication', status: 'Replication' },
+  { label: 'For Signature of PUP Official', status: 'SignituresPUP' },
+  { label: 'Signed by PUP Official', status: 'SignedPUP' },
+  { label: 'For Signature of Partners', status: 'SignituresPartner' },
+  { label: 'Signed by Partners', status: 'SignedPartners' },
+  { label: 'Completely Signed', status: 'Complete' },
+  { label: 'For Notary', status: 'Notary' },
+  { label: 'To FFUP Copy', status: 'FFUPCopy' },
+].map(stage => ({
+  ...stage,
+  count: filteredForLifecycle.filter(a => a.agreement_status === stage.status).length
+}));
 
   const tableColumns = [
     'Date', 'SOURCE', 'POINT PERSON / POSITION', 'DTS NO.', 'DTS LOCATION',
@@ -642,41 +725,10 @@ const handleDateSort = () => {
   if (loading) return <div className="overview-container">Loading agreements...</div>;
   if (error) return <div className="overview-container">Error: {error}</div>;
 
-  const filterByStat = (statLabel) => {
-  let data = [...agreements];
-
-  const now = new Date();
-
-  switch (statLabel) {
-    case 'Total Agreement':
-      setSelectedStatus(null);
-      break;
-
-    case 'Active Agreement':
-      data = data.filter(a => {
-        if (!a.date_expiry) return true; 
-        const expiryDate = new Date(a.date_expiry);
-        return expiryDate > now; 
-      });
-      setSelectedStatus(null);
-      break;
-
-    case 'Nearing Expiration':
-      data = data.filter(a => {
-        if (!a.date_expiry) return false;
-        const expiryDate = new Date(a.date_expiry);
-        const daysDifference = (expiryDate - now) / (1000 * 60 * 60 * 24);
-        return daysDifference > 0 && daysDifference <= 30; 
-      });
-      setSelectedStatus(null);
-      break;
-
-    default:
-      break;
-  }
-
-  setFilteredAgreements(data);
-  setCurrentPage(1);
+const filterByStat = (statLabel) => {
+  setStatFilter(statLabel);      // Set the stat filter (e.g., "OPEN - OIA")
+  setSelectedStatus(null);       // Reset any lifecycle/status filter
+  setCurrentPage(1);             // Reset to first page
 };
 
 

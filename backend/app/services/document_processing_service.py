@@ -9,7 +9,7 @@ from PIL import Image
 
 class DocumentProcessingService:
     """
-    Handles document parsing and OCR for PDFs and DOCX files.
+    Handles document parsing and OCR for PDFs, DOCX files, and images.
     Falls back to OCR if text extraction fails.
     """
 
@@ -19,13 +19,15 @@ class DocumentProcessingService:
 
     def extract_text_from_file(self, file_path: str, file_extension: str) -> Dict[str, Any]:
         """
-        Extract text from PDF or DOCX. Falls back to OCR for PDFs if needed.
+        Extract text from PDF, DOCX, or image files. Falls back to OCR for PDFs if needed.
         """
         try:
             if file_extension.lower() == "pdf":
                 return self._extract_from_pdf(file_path)
             elif file_extension.lower() in ["docx", "doc"]:
                 return self._extract_from_docx(file_path)
+            elif file_extension.lower() in ["jpg", "jpeg", "png", "bmp", "tiff", "tif"]:
+                return self._extract_from_image(file_path)
             else:
                 raise ValueError(f"Unsupported file type: {file_extension}")
         except Exception as e:
@@ -124,6 +126,33 @@ class DocumentProcessingService:
             return {
                 "success": False,
                 "error": f"DOCX extraction failed: {str(e)}",
+                "text": "",
+                "pages": []
+            }
+
+    def _extract_from_image(self, file_path: str) -> Dict[str, Any]:
+        """
+        Extract text from an image file using OCR.
+        """
+        try:
+            img = Image.open(file_path)
+            ocr_result = self.ocr.ocr(img, cls=True)
+            text = "\n".join(line[1][0] for line in ocr_result[0]) if ocr_result and ocr_result[0] else ""
+            return {
+                "success": True,
+                "text": text,
+                "pages": [{
+                    "page_number": 1,
+                    "text": text,
+                    "method": "ocr"
+                }],
+                "total_pages": 1,
+                "extraction_method": "paddleocr_image"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Image OCR failed: {str(e)}",
                 "text": "",
                 "pages": []
             }

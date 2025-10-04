@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -72,12 +73,12 @@ async def forgot_password(request: Request, db: Session = Depends(get_db)):
         return {"msg": "If an account exists with that email, you will receive reset instructions shortly."}
     # Generate token and expiry
     token = secrets.token_urlsafe(32)
-    expiry = datetime.now(PH_TZ) + timedelta(hours=1)
+    expiry = datetime.now() + timedelta(hours=1)
     user.forgot_pass_token = token
     user.reset_token_expiry = expiry
     db.commit()
     # Send email with reset link
-    reset_link = f"https://globalinked-system.onrender.com/resetPass?token={token}"
+    reset_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/resetPass?token={token}"
     send_reset_email(user.user_email, reset_link)
     return {"msg": "If an account exists with that email, you will receive reset instructions shortly."}
 
@@ -89,13 +90,12 @@ async def reset_password(request: Request, db: Session = Depends(get_db)):
     if not token or not new_password:
         raise HTTPException(status_code=400, detail="Token and new password are required")
     user = db.query(Users).filter(Users.forgot_pass_token == token).first()
-    now = datetime.now(PH_TZ)
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired token")
-    now = datetime.now(PH_TZ)
+    now = datetime.now()
     expiry = user.reset_token_expiry
-    if expiry and expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=PH_TZ)
+    if expiry and expiry.tzinfo is not None:
+        expiry = expiry.replace(tzinfo=None)
     if not expiry or expiry < now:
         raise HTTPException(status_code=400, detail="Invalid or expired token")
     user.user_pass = hash_password(new_password)
