@@ -405,3 +405,75 @@ async def delete_version(version_id: int, db: Session = Depends(get_db)):
     return {"status": "deleted", "version_id": version_id}
 
 
+# -------------------------------
+# NLP EXTRACTION
+# -------------------------------
+@router.post("/extract-metadata", response_model=dict)
+async def extract_agreement_metadata(
+    file: UploadFile = File(...),
+):
+    """
+    Extract agreement metadata from uploaded document using NLP.
+    Returns structured metadata for agreement creation.
+    """
+    try:
+        # Log incoming upload for debugging
+        print(f"NLP extraction endpoint called, filename={getattr(file, 'filename', None)}")
+
+        # Save uploaded file temporarily
+        import tempfile, os
+        suffix = os.path.splitext(getattr(file, 'filename', 'upload'))[1] or ''
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        tmp_path = tmp.name
+        try:
+            content = await file.read()
+            tmp.write(content)
+            tmp.flush()
+        finally:
+            tmp.close()
+
+        print(f"Saved uploaded file to temporary path: {tmp_path}")
+
+        # Initialize NLP service and run extraction
+        try:
+            from app.services.nlp_extraction_service import NLPLegalExtractionService
+            nlp_service = NLPLegalExtractionService()
+            print("NLP service initialized successfully")
+            
+            metadata = nlp_service.extract_agreement_metadata(tmp_path)
+            print(f"NLP extraction completed, result type: {type(metadata)}")
+            
+        except Exception as nlp_error:
+            print(f"NLP service initialization/extraction failed: {nlp_error}")
+            import traceback
+            traceback.print_exc()
+            metadata = {"error": f"NLP extraction failed: {str(nlp_error)}"}
+
+        # Clean up temp file
+        try:
+            os.remove(tmp_path)
+            print(f"Temporary file {tmp_path} cleaned up")
+        except Exception as cleanup_error:
+            print(f"Warning: failed to remove temp file {tmp_path}: {cleanup_error}")
+
+        # Handle service-level errors
+        if isinstance(metadata, dict) and metadata.get("error"):
+            error_msg = metadata.get("error", "Unknown extraction error")
+            print(f"NLP service returned error: {error_msg}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Document processing failed: {error_msg}. Please check if the document contains readable text and try again."
+            )
+
+        print("NLP extraction succeeded, returning metadata")
+        return {"status": "success", "metadata": metadata}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback as _tb
+        print("NLP extraction exception:", str(e))
+        _tb.print_exc()
+        raise HTTPException(status_code=500, detail=f"NLP extraction failed: {str(e)}")
+
+

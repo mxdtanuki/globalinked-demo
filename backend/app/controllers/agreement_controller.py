@@ -1,3 +1,4 @@
+from turtle import up
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, cast, Integer
@@ -38,6 +39,13 @@ def encode_logo(logo_bytes: bytes | None) -> str | None:
         return None
     return base64.b64encode(logo_bytes).decode("utf-8")
 
+def decode_logo(base64_str: str | None) -> bytes | None:
+    if not base64_str:
+        return None
+    try:
+        return base64.b64decode(base64_str)
+    except Exception:
+        return None
 
 @router.get("/archive", response_model=List[ArchiveAgreementResponse])
 async def get_archived_agreements(
@@ -631,6 +639,10 @@ async def update_agreement(
             partner.website_url = up['website_url']
         if 'description' in up:
             partner.description = up['description']
+
+        # Handle logo update (expects base64 string from frontend)
+        if 'logo_path' in up and up['logo_path']:
+            partner.logo_path = decode_logo(up['logo_path'])
 
         # Handle contact persons update (delete all for this agreement, then recreate)
         if 'contact_persons' in up:

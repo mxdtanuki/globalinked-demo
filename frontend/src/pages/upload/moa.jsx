@@ -9,6 +9,8 @@ const MOAUpload = () => {
 
   const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
   const [uploadedFile, setUploadedFile] = useState(null); 
+  const [loading, setLoading] = useState(false);
+  const [extractionProgress, setExtractionProgress] = useState(0); 
 
   // Form state
   const [formData, setFormData] = useState({
@@ -53,15 +55,55 @@ const MOAUpload = () => {
     document.getElementById("fileName").textContent = file ? file.name : "No file chosen";
   };
 
-  // Handle submit: Navigate with file and form data
-  const handleSubmit = () => {
-    navigate('/upload/extractedEntryMOA', { 
-      state: { 
-        uploadedFile,
-        formData,
-        pointPersons: pointPersonsData
-      } 
-    });
+  // Handle submit: Extract metadata then navigate
+  const handleSubmit = async () => {
+    if (!uploadedFile) {
+      alert("Please select a file first");
+      return;
+    }
+
+    setLoading(true);
+    setExtractionProgress(0);
+
+    try {
+      // Call NLP extraction with progress
+      const result = await agreementService.extractAgreementMetadataWithProgress(uploadedFile, (percent) => {
+        setExtractionProgress(percent);
+      });
+      const extractedMetadata = result.metadata;
+
+      setExtractionProgress(100);
+
+      
+      setTimeout(() => {
+        // Navigate with extracted metadata
+        navigate('/upload/extractedEntryMOA', { 
+          state: { 
+            uploadedFile,
+            formData,
+            pointPersons: pointPersonsData,
+            extractedMetadata
+          } 
+        });
+      }, 500);
+
+    } catch (error) {
+      console.error("Extraction failed:", error);
+      alert("Failed to extract metadata from the document. Please proceed with manual entry.");
+      
+      // Navigate without extracted metadata
+      navigate('/upload/extractedEntryMOA', { 
+        state: { 
+          uploadedFile,
+          formData,
+          pointPersons: pointPersonsData,
+          extractedMetadata: null
+        } 
+      });
+    } finally {
+      setLoading(false);
+      setExtractionProgress(0);
+    }
   };
 
   return (
@@ -212,11 +254,26 @@ const MOAUpload = () => {
             <p id="fileName" className="file-name">No file chosen</p>
           </div>
 
+          {/* Progress Bar */}
+          {loading && (
+            <div className="extraction-progress">
+              <p>Extracting metadata from document...</p>
+              <div className="progress-bar-container">
+                <div 
+                  className="progress-bar-fill" 
+                  style={{ width: `${extractionProgress}%` }}
+                ></div>
+              </div>
+              <p className="progress-text">{extractionProgress}%</p>
+            </div>
+          )}
+
           <button
             className="submit-btn"
             onClick={handleSubmit}
+            disabled={loading}
           >
-            Submit
+            {loading ? "Extracting..." : "Submit"}
           </button>
         </div>
       </div>
