@@ -1,4 +1,3 @@
-from turtle import up
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, cast, Integer
