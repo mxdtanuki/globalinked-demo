@@ -492,7 +492,8 @@ const handleDateSort = () => {
           <option value="Complete">Completely Signed</option>
           <option value="Notary">For Notary</option>
           <option value="FFUPCopy">FFUP Copy From College/Campus</option>
-          <option value="Expired">Expired</option>
+          <option value="Active">Active</option>
+          <option value="Withdrawn">Withdrawn</option>
         </select>
       );
     } else if (field === 'dts_status') {

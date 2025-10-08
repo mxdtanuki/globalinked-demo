@@ -3,24 +3,28 @@ import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
 import '../components/layout.css';
 import '../components/overviewDash.css';
+import { agreementService } from '../services/agreementService';
+import { documentService } from '../services/documentService';
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
+import axios from "axios";
 
 const AgreementDocument = () => {
   const [mobileShow, setMobileShow] = useState(false);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
 
-  // Agreements data
   const [agreements, setAgreements] = useState([]);
   const [filteredAgreements, setFilteredAgreements] = useState([]);
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
-  // Edit 
   const [editId, setEditId] = useState(null);
-  const [editData, setEditData] = useState({ hardcopy_locator: "", activities: [] });
+  const [editData, setEditData] = useState({
+    hardcopy_location: "",
+    remarks: []
+  });
 
-  // Search, Filter, Generate
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [filters, setFilters] = useState({
@@ -30,57 +34,82 @@ const AgreementDocument = () => {
     country: ""
   });
 
+  const [appliedFilters, setAppliedFilters] = useState(filters);
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const createAuditLog = async (description) => {
+  try {
+    const token = localStorage.getItem("access_token");
+    await axios.post(
+      `${API_BASE_URL}/audit/logs`,
+      { audit_description: description },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+  } catch (err) {
+    console.error("Failed to create audit log:", err);
+  }
+};
+
+
+  // Fetch agreements
+  const fetchAgreements = async () => {
+    try {
+      const data = await agreementService.getAgreements();
+      console.log("Fetched agreements:", data);
+      console.log("Sample remarks:", filteredAgreements[0]?.remarks);
+
+
+      const filtered = data.filter(a => a.agreement_status === "FFUPCopy");
+      setAgreements(filtered);
+      setFilteredAgreements(filtered);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch agreements: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const mockData = [
-      {
-        id: 1, dts_no: "DTS-001", document_type: "MOU", classification: "Academic",
-        partners_name: "University A", country: "Philippines", date_signed: "2024-05-12",
-        validity: "3 years", date_expiry: "2027-05-12", point_person: "Dr. Santos / Dean",
-        contact_details: "dr.santos@universitya.edu", hardcopy_locator: "Cabinet A1",
-        activities: ["Exchange Program", "Faculty Training"]
-      },
-      {
-        id: 2, dts_no: "DTS-002", document_type: "MOA", classification: "Research",
-        partners_name: "Institute B", country: "Japan", date_signed: "2023-09-01",
-        validity: "5 years", date_expiry: "2028-09-01", point_person: "Prof. Tanaka / Research Head",
-        contact_details: "+81 123-456-7890", hardcopy_locator: "Cabinet B2",
-        activities: ["Joint Research"]
-      },
-      { id: 4, dts_no: "DTS-004", document_type: "MOA", classification: "Academic", partners_name: "University D", country: "South Korea", date_signed: "2021-11-15", validity: "4 years", date_expiry: "2025-11-15", point_person: "Prof. Kim", contact_details: "kim@unid.kr", hardcopy_locator: "Cabinet D1", activities: ["Research Seminar"] },
-      { id: 6, dts_no: "DTS-006", document_type: "MOA", classification: "Academic", partners_name: "School F", country: "USA", date_signed: "2019-03-05", validity: "10 years", date_expiry: "2029-03-05", point_person: "Dr. Smith", contact_details: "smith@schoolf.edu", hardcopy_locator: "Cabinet F6", activities: ["Scholarships"] },
-    ];
-    setAgreements(mockData);
-    setFilteredAgreements(mockData);
+    fetchAgreements();
   }, []);
 
   // Stats
   const stats = [
     {
-      label: 'Active Agreement',
-      count: agreements.filter(a => !a.date_expiry || new Date(a.date_expiry) > new Date()).length
+      label: "Active Agreement",
+      count: agreements.filter(
+        (a) => !a.date_expiry || new Date(a.date_expiry) > new Date()
+      ).length,
     },
     {
-      label: 'Nearing Expiration',
-      count: agreements.filter(a => {
+      label: "Nearing Expiration",
+      count: agreements.filter((a) => {
         if (!a.date_expiry) return false;
-        const daysDifference = (new Date(a.date_expiry) - new Date()) / (1000 * 60 * 60 * 24);
-        return daysDifference > 0 && daysDifference <= 30;
-      }).length
-    }
+        const daysDiff =
+          (new Date(a.date_expiry) - new Date()) / (1000 * 60 * 60 * 24);
+        return daysDiff > 0 && daysDiff <= 30;
+      }).length,
+    },
   ];
 
-  // Filter by Stat
   const filterByStat = (statLabel) => {
     let data = [...agreements];
     const now = new Date();
 
-    if (statLabel === 'Active Agreement') {
-      data = data.filter(a => !a.date_expiry || new Date(a.date_expiry) > now);
-    } else if (statLabel === 'Nearing Expiration') {
-      data = data.filter(a => {
+    if (statLabel === "Active Agreement") {
+      data = data.filter(
+        (a) => !a.date_expiry || new Date(a.date_expiry) > now
+      );
+    } else if (statLabel === "Nearing Expiration") {
+      data = data.filter((a) => {
         if (!a.date_expiry) return false;
-        const daysDifference = (new Date(a.date_expiry) - now) / (1000 * 60 * 60 * 24);
-        return daysDifference > 0 && daysDifference <= 30;
+        const daysDiff = (new Date(a.date_expiry) - now) / (1000 * 60 * 60 * 24);
+        return daysDiff > 0 && daysDiff <= 30;
       });
     }
 
@@ -88,257 +117,558 @@ const AgreementDocument = () => {
     setCurrentPage(1);
   };
 
-  // Apply filters
-  useEffect(() => {
-    let data = agreements;
+  // Filtering
+useEffect(() => {
+  let data = [...agreements];
+  data = data.filter((a) => {
+    return (
+      (!appliedFilters.documentType || a.document_type === appliedFilters.documentType) &&
+      (!appliedFilters.partnershipType || a.partnership_type === appliedFilters.partnershipType) &&
+      (!appliedFilters.validityPeriod || a.validity_period === appliedFilters.validityPeriod) &&
+      (!appliedFilters.country || a.country === appliedFilters.country)
+    );
+  });
 
-    data = data.filter(a => {
-      return (
-        (!filters.documentType || a.document_type === filters.documentType) &&
-        (!filters.partnershipType || a.classification === filters.partnershipType) &&
-        (!filters.validityPeriod || a.validity === filters.validityPeriod) &&
-        (!filters.country || a.country === filters.country)
-      );
-    });
+  if (searchTerm.trim() !== "") {
+    const term = searchTerm.toLowerCase();
+    data = data.filter((a) =>
+      Object.values(a).some((val) =>
+        val ? String(val).toLowerCase().includes(term) : false
+      )
+    );
+  }
 
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      data = data.filter(a =>
-        Object.values(a).some(val => String(val).toLowerCase().includes(term))
-      );
-    }
+  setFilteredAgreements(data);
+  setCurrentPage(1);
+}, [searchTerm, appliedFilters, agreements]);
 
-    setFilteredAgreements(data);
-    setCurrentPage(1);
-  }, [searchTerm, filters, agreements]);
 
   const clearIndependentFilter = () => {
-    setFilters({ documentType: "", partnershipType: "", validityPeriod: "", country: "" });
+    const cleared = {
+      documentType: "",
+      partnershipType: "",
+      validityPeriod: "",
+      country: "",
+    };
+    setFilters(cleared);
+    setAppliedFilters(cleared); 
     setSearchTerm("");
     setFilteredAgreements(agreements);
     setCurrentPage(1);
   };
 
-  // Pagination logic
+
+  // Pagination
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
   const currentRows = filteredAgreements.slice(indexOfFirstRow, indexOfLastRow);
   const totalPages = Math.ceil(filteredAgreements.length / rowsPerPage);
 
-  const nextPage = () => currentPage < totalPages && setCurrentPage(prev => prev + 1);
-  const prevPage = () => currentPage > 1 && setCurrentPage(prev => prev - 1);
+  const nextPage = () =>
+    currentPage < totalPages && setCurrentPage((prev) => prev + 1);
+  const prevPage = () =>
+    currentPage > 1 && setCurrentPage((prev) => prev - 1);
 
-  // Editing logic
+  // Editing 
   const handleEdit = (agreement) => {
-    setEditId(agreement.id);
+    const normalizedRemarks = Array.isArray(agreement.remarks)
+      ? agreement.remarks.map((r) =>
+          typeof r === "object"
+            ? r.remark_text || r.text || r.remark || ""
+            : r
+        )
+      : [];
+
+    setEditId(agreement.agreement_id);
     setEditData({
-      hardcopy_locator: agreement.hardcopy_locator,
-      activities: [...agreement.activities]
+      hardcopy_location: agreement.hardcopy_location || "",
+      remarks: normalizedRemarks,
     });
   };
 
-  const handleSave = (id) => {
-    const updated = agreements.map(a =>
-      a.id === id ? { ...a, hardcopy_locator: editData.hardcopy_locator, activities: editData.activities } : a
-    );
-    setAgreements(updated);
-    setFilteredAgreements(updated);
-    setEditId(null);
+
+  const handleSave = async (id) => {
+    try {
+      const formattedRemarks = editData.remarks.map((r) =>
+        typeof r === "string" ? { remark_text: r } : r
+      );
+
+      await agreementService.updateAgreement(id, {
+        ...editData,
+        remarks: formattedRemarks,
+      });
+
+      await createAuditLog(`Edited agreement #${id} — updated hardcopy location or remarks`);
+
+      alert("Agreement updated successfully!");
+      await fetchAgreements(); // refresh data
+      setEditId(null);
+
+    } catch (err) {
+      console.error("Error saving agreement:", err);
+      alert("Failed to save agreement: " + err.message);
+    }
   };
+
 
   const handleCancel = () => setEditId(null);
 
-  const addActivity = () => setEditData({ ...editData, activities: [...editData.activities, ""] });
+  // Delete logic
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this agreement?")) return;
 
-  const updateActivity = (index, value) => {
-    const updated = [...editData.activities];
+    try {
+      await agreementService.deleteAgreement(id);
+      await createAuditLog(`Deleted agreement #${id}`);
+
+      alert("Agreement deleted successfully!");
+      await fetchAgreements(); // refresh data
+
+    } catch (err) {
+      console.error("Error deleting agreement:", err);
+      alert("Failed to delete agreement: " + err.message);
+    }
+  };
+
+  const handleViewLatestFile = async (dtsNumber) => {
+    try {
+      const latest = await documentService.getLatestVersion(dtsNumber);
+      if (!latest) {
+        alert("No document versions found for this DTS number.");
+        return;
+      }
+      const resp = await fetch(latest.download_url, { headers: { Accept: "application/pdf" } });
+      if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
+      const blob = await resp.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      console.error("View failed:", err);
+      alert("Failed to open file: " + (err.message || err));
+    }
+  };
+
+  // Remarks 
+  const addRemarks = () =>
+    setEditData({ ...editData, remarks: [...editData.remarks, ""] });
+
+  const updateRemarks = (index, value) => {
+    const updated = [...editData.remarks];
     updated[index] = value;
-    setEditData({ ...editData, activities: updated });
+    setEditData({ ...editData, remarks: updated });
   };
 
-  const removeActivity = (index) => {
-    const updated = [...editData.activities];
+  const removeRemarks = (index) => {
+    const updated = [...editData.remarks];
     updated.splice(index, 1);
-    setEditData({ ...editData, activities: updated });
+    setEditData({ ...editData, remarks: updated });
   };
 
-  // Dummy export muna
-  const exportToExcel = () => alert("Exporting to Excel...");
+const exportToExcel = async () => {
+  if (!filteredAgreements || filteredAgreements.length === 0) {
+    alert("No data available to export.");
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Agreements");
+
+  worksheet.mergeCells("A1:L1");
+  const title = worksheet.getCell("A1");
+  title.value = "Globalinked Agreements Report";
+  title.font = { size: 16, bold: true };
+  title.alignment = { horizontal: "center" };
+
+  worksheet.addRow([
+    "DTS Number",
+    "Document Type",
+    "Partnership Type",
+    "Partner Name",
+    "Country",
+    "Date Signed",
+    "Validity Period",
+    "Expiry Date",
+    "Point Person",
+    "Contact Person",
+    "Hardcopy Locator",
+    "Remarks",
+  ]);
+
+  const headerRow = worksheet.getRow(2);
+  headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  headerRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "800000" }, 
+  };
+  headerRow.alignment = { horizontal: "center", vertical: "middle" };
+  headerRow.height = 25;
+
+  filteredAgreements.forEach((a) => {
+    worksheet.addRow([
+      a.dts_number || "N/A",
+      a.document_type || "N/A",
+      a.partnership_type || "N/A",
+      a.name || "N/A",
+      a.country || "N/A",
+      a.date_signed || "N/A",
+      a.validity_period || "N/A",
+      a.date_expiry || "N/A",
+      a.point_persons_display || a.point_persons || "N/A",
+      a.contact_persons_display || a.contact_persons || "N/A",
+      a.hardcopy_location || "N/A",
+      Array.isArray(a.remarks)
+        ? a.remarks
+            .map(r =>
+              typeof r === "object"
+                ? r.remark_text || r.text || r.remark || ""
+                : r
+            )
+            .join("\n") 
+        : "N/A",
+    ]);
+  });
+
+  worksheet.columns.forEach((col) => {
+    let maxLength = 0;
+    col.eachCell({ includeEmpty: true }, (cell) => {
+      const val = cell.value ? cell.value.toString() : "";
+      maxLength = Math.max(maxLength, val.length);
+    });
+    col.width = maxLength < 15 ? 15 : maxLength + 2;
+  });
+
+  worksheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+  });
+
+  // Generate the Excel file
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  saveAs(blob, `Agreements_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
 
   return (
     <div className="dashboard-container">
       <TopBar toggleSidebar={toggleMobileSidebar} />
-      {mobileShow && <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />}
+      {mobileShow && (
+        <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />
+      )}
       <div className="content-body">
         <Sidebar mobileShow={mobileShow} />
+        <div
+          className="main-content"
+          onClick={() => mobileShow && setMobileShow(false)}
+        >
+          <h2 className="archive-title">Agreements</h2>
 
-        <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
-
-          {/* Stats */}
-          <div className="stats-row">
-            {stats.map((s, i) => (
-              <button key={i} className="stat-card" onClick={() => filterByStat(s.label)}>
-                <div className="stat-number">{s.count}</div>
-                <div className="stat-label">{s.label}</div>
-              </button>
-            ))}
-          </div>
-
-          {/* Search + Filter + Generate */}
-          <div className="table-section">
-            <div className="table-header sticky-header">
-              <div className="search-audit-wrapper">
-                <input
-                  type="text"
-                  placeholder="Search here"
-                  className="search-box"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+          {loading ? (
+            <p>Loading agreements...</p>
+          ) : error ? (
+            <p style={{ color: "red" }}>{error}</p>
+          ) : (
+            <>
+              <div className="stats-row">
+                {stats.map((s, i) => (
+                  <button
+                    key={i}
+                    className="stat-card"
+                    onClick={() => filterByStat(s.label)}
+                  >
+                    <div className="stat-number">{s.count}</div>
+                    <div className="stat-label">{s.label}</div>
+                  </button>
+                ))}
               </div>
-              <div className="table-actions">
-                <div className="button-group">
-                  <button className="btn" onClick={() => setShowFilterPanel(!showFilterPanel)}>Filter</button>
-                  <button className="btn btn-generate" onClick={exportToExcel}>Generate</button>
+
+              <div className="table-section">
+                <div className="table-header sticky-header">
+                  <div className="search-audit-wrapper">
+                    <input
+                      type="text"
+                      placeholder="Search here"
+                      className="search-box"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="table-actions">
+                    <div className="button-group">
+                      <button
+                        className="btn"
+                        onClick={() => setShowFilterPanel(!showFilterPanel)}
+                      >
+                        Filter
+                      </button>
+                      <button className="btn btn-generate" onClick={exportToExcel}>
+                        Generate
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Filter Panel */}
-            {showFilterPanel && (
-              <div className="filter-panel sticky-filter">
-                <label>
-                  Document Type:
-                  <select value={filters.documentType} onChange={(e) => setFilters({ ...filters, documentType: e.target.value })}>
-                    <option value="">All</option>
-                    {[...new Set(agreements.map(a => a.document_type))].map((type, i) => <option key={i} value={type}>{type}</option>)}
-                  </select>
-                </label>
-                <label>
-                  Partnership Classification:
-                  <select value={filters.partnershipType} onChange={(e) => setFilters({ ...filters, partnershipType: e.target.value })}>
-                    <option value="">All</option>
-                    {[...new Set(agreements.map(a => a.classification))].map((type, i) => <option key={i} value={type}>{type}</option>)}
-                  </select>
-                </label>
-                <label>
-                  Validity Period:
-                  <select value={filters.validityPeriod} onChange={(e) => setFilters({ ...filters, validityPeriod: e.target.value })}>
-                    <option value="">All</option>
-                    {[...new Set(agreements.map(a => a.validity))].map((vp, i) => <option key={i} value={vp}>{vp}</option>)}
-                  </select>
-                </label>
-                <label>
-                  Country:
-                  <select value={filters.country} onChange={(e) => setFilters({ ...filters, country: e.target.value })}>
-                    <option value="">All</option>
-                    {[...new Set(agreements.map(a => a.country))].map((c, i) => <option key={i} value={c}>{c}</option>)}
-                  </select>
-                </label>
-                <div className="filter-actions">
-                  <button onClick={() => setCurrentPage(1)}>Apply</button>
-                  <button onClick={clearIndependentFilter}>Clear</button>
-                </div>
-              </div>
-            )}
+                {showFilterPanel && (
+                  <div className="filter-panel sticky-filter">
+                    <label>
+                      Document Type:
+                      <select
+                        value={filters.documentType}
+                        onChange={(e) =>
+                          setFilters({ ...filters, documentType: e.target.value })
+                        }
+                      >
+                        <option value="">All</option>
+                        {[...new Set(agreements.map((a) => a.document_type))].map(
+                          (type, i) => (
+                            <option key={i} value={type}>
+                              {type}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </label>
+                    <label>
+                      Partnership Type:
+                      <select
+                        value={filters.partnershipType}
+                        onChange={(e) =>
+                          setFilters({
+                            ...filters,
+                            partnershipType: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">All</option>
+                        {[...new Set(agreements.map((a) => a.partnership_type))].map(
+                          (type, i) => (
+                            <option key={i} value={type}>
+                              {type}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </label>
+                    <label>
+                      Validity Period:
+                      <select
+                        value={filters.validityPeriod}
+                        onChange={(e) =>
+                          setFilters({
+                            ...filters,
+                            validityPeriod: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">All</option>
+                        {[...new Set(agreements.map((a) => a.validity_period))].map(
+                          (vp, i) => (
+                            <option key={i} value={vp}>
+                              {vp}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </label>
+                    <label>
+                      Country:
+                      <select
+                        value={filters.country}
+                        onChange={(e) =>
+                          setFilters({ ...filters, country: e.target.value })
+                        }
+                      >
+                        <option value="">All</option>
+                        {[...new Set(agreements.map((a) => a.country))].map(
+                          (c, i) => (
+                            <option key={i} value={c}>
+                              {c}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </label>
+                    <div className="filter-actions">
+                      <button onClick={() => {
+                          setAppliedFilters(filters);
+                          setCurrentPage(1);
+                        }}>
+                          Apply
+                        </button>
+                      <button onClick={clearIndependentFilter}>Clear</button>
+                    </div>
+                  </div>
+                )}
 
-            {/* Table */}
-            <div className="table-scroll">
-              <table className="document-table">
-                <thead>
-                  <tr>
-                    <th>DTS No.</th>
-                    <th>Document Type</th>
-                    <th>Partnership Classification</th>
-                    <th>Partners Name</th>
-                    <th>Country</th>
-                    <th>Date Signed</th>
-                    <th>Validity</th>
-                    <th>Expiry Date</th>
-                    <th>Point Person / Position</th>
-                    <th>Contact Person/Details</th>
-                    <th>Hardcopy Locator</th>
-                    <th>Activities</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentRows.length > 0 ? (
-                    currentRows.map((a) => (
-                      <tr key={a.id}>
-                        <td>{a.dts_no}</td>
-                        <td>{a.document_type}</td>
-                        <td>{a.classification}</td>
-                        <td>{a.partners_name}</td>
-                        <td>{a.country}</td>
-                        <td>{a.date_signed}</td>
-                        <td>{a.validity}</td>
-                        <td>{a.date_expiry || "N/A"}</td>
-                        <td>{a.point_person}</td>
-                        <td>{a.contact_details}</td>
-                        <td>
-                          {editId === a.id ? (
-                            <input
-                              type="text"
-                              value={editData.hardcopy_locator}
-                              onChange={(e) => setEditData({ ...editData, hardcopy_locator: e.target.value })}
-                            />
-                          ) : (
-                            a.hardcopy_locator
-                          )}
-                        </td>
-                        <td>
-                          {editId === a.id ? (
-                            <div style={{ background: "#fff8dc", padding: "5px" }}>
-                              {editData.activities.map((act, idx) => (
-                                <div key={idx} style={{ display: "flex", marginBottom: "5px" }}>
-                                  <input
-                                    type="text"
-                                    value={act}
-                                    onChange={(e) => updateActivity(idx, e.target.value)}
-                                    style={{ flex: 1 }}
-                                  />
-                                  <button onClick={() => removeActivity(idx)}>x</button>
-                                </div>
-                              ))}
-                              <button onClick={addActivity}>+ Add</button>
-                            </div>
-                          ) : (
-                            a.activities.join("; ")
-                          )}
-                        </td>
-                        <td>
-                          {editId === a.id ? (
-                            <>
-                              <button className="btn-action" onClick={() => handleSave(a.id)}>Save</button>
-                              <button className="btn-action delete" onClick={handleCancel}>Cancel</button>
-                            </>
-                          ) : (
-                            <div className="action-buttons">
-                              <button className="btn-action" onClick={() => handleEdit(a)}>Edit</button>
-                              <button className="btn-action delete">Delete</button>
-                              <button className="btn-action">View File</button>
-                            </div>
-                          )}
-                        </td>
+                <div className="table-scroll">
+                  <table className="document-table">
+                    <thead>
+                      <tr>
+                        <th>DTS No.</th>
+                        <th>Document Type</th>
+                        <th>Partnership Type</th>
+                        <th>Partner Name</th>
+                        <th>Country</th>
+                        <th>Date Signed</th>
+                        <th>Validity</th>
+                        <th>Expiry Date</th>
+                        <th>Point Person</th>
+                        <th>Contact Person</th>
+                        <th>Hardcopy Locator</th>
+                        <th>Remarks</th>
+                        <th>Action</th>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="13" style={{ textAlign: "center" }}>No agreements found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {currentRows.length > 0 ? (
+                        currentRows.map((a) => (
+                          <tr key={a.agreement_id}>
+                            <td>{a.dts_number}</td>
+                            <td>{a.document_type}</td>
+                            <td>{a.partnership_type}</td>
+                            <td>{a.name}</td>
+                            <td>{a.country}</td>
+                            <td>{a.date_signed}</td>
+                            <td>{a.validity_period}</td>
+                            <td>{a.date_expiry || "N/A"}</td>
+                            <td>{a.point_persons_display || a.point_persons || "N/A"}</td>
+                            <td>{a.contact_persons_display || a.contact_persons || "N/A"}</td>
+                            <td>
+                              {editId === a.agreement_id ? (
+                                <input
+                                  type="text"
+                                  value={editData.hardcopy_location}
+                                  onChange={(e) =>
+                                    setEditData({
+                                      ...editData,
+                                      hardcopy_location: e.target.value,
+                                    })
+                                  }
+                                />
+                              ) : (
+                                a.hardcopy_location || "N/A"
+                              )}
+                            </td>
+                            <td>
+                              {editId === a.agreement_id ? (
+                                <div style={{ background: "#fff8dc", padding: "5px" }}>
+                                  {editData.remarks.map((act, idx) => (
+                                    <div
+                                      key={idx}
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        marginBottom: "5px",
+                                      }}
+                                    >
+                                      <input
+                                        type="text"
+                                        value={act}
+                                        onChange={(e) =>
+                                          updateRemarks(idx, e.target.value)
+                                        }
+                                        style={{ flex: 1 }}
+                                      />
+                                      <button onClick={() => removeRemarks(idx)}>x</button>
+                                    </div>
+                                  ))}
+                                  <button onClick={addRemarks}>+ Add</button>
+                                </div>
+                              ) : (
+                                <td>
+                                  {Array.isArray(a.remarks) ? (
+                                    a.remarks.map((r, idx) => (
+                                      <div key={idx}>
+                                        {typeof r === "object"
+                                          ? r.remark_text || r.text || r.remark || ""
+                                          : r}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    "N/A"
+                                  )}
+                                </td>
+                              )}
+                            </td>
+                            <td>
+                              {editId === a.agreement_id ? (
+                                <>
+                                  <button
+                                    className="btn-action"
+                                    onClick={() => handleSave(a.agreement_id)}
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    className="btn-action delete"
+                                    onClick={handleCancel}
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <div className="action-buttons">
+                                  <button
+                                    className="btn-action"
+                                    onClick={() => handleEdit(a)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="btn-action delete"
+                                    onClick={() => handleDelete(a.agreement_id)}
+                                  >
+                                    Delete
+                                  </button>
+                                  <button className="btn-action" onClick={() => handleViewLatestFile(a.dts_number)}>View File</button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="13" style={{ textAlign: "center" }}>
+                            No agreements found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-            {/* Pagination */}
-            <div className="pagination" style={{ borderTop: "1px solid #ccc", marginTop: "10px", paddingTop: "10px" }}>
-              <button disabled={currentPage === 1} onClick={prevPage}>Prev</button>
-              <span>Page {currentPage} of {totalPages}</span>
-              <button disabled={currentPage === totalPages} onClick={nextPage}>Next</button>
-            </div>
-          </div>
+                <div
+                  className="pagination"
+                  style={{
+                    borderTop: "1px solid #ccc",
+                    marginTop: "10px",
+                    paddingTop: "10px",
+                  }}
+                >
+                  <button disabled={currentPage === 1} onClick={prevPage}>
+                    Prev
+                  </button>
+                  <span>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button disabled={currentPage === totalPages} onClick={nextPage}>
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

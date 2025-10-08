@@ -25,9 +25,10 @@ class DocumentProcessingService:
     Falls back to OCR if text extraction fails.
     """
 
+
     def __init__(self):
         # Initialize PaddleOCR (English, angle detection enabled, no verbose logs)
-        self.ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
+        self.ocr = PaddleOCR(use_angle_cls=True, lang="en")
 
     def extract_text_from_file(self, file_path: str, file_extension: str) -> Dict[str, Any]:
         """

@@ -51,6 +51,27 @@ def on_startup():
     from app.scheduler import start_scheduler
     start_scheduler()
 
+    import threading, os
+    from app.services.nlp_extraction_service import NLPLegalExtractionService
+
+    def _init_nlp():
+        try:
+            model_override = os.getenv("QA_MODEL_OVERRIDE", "deepset/roberta-base-squad2")
+            qa_threshold = float(os.getenv("QA_CONFIDENCE_THRESHOLD", "0.12"))
+            app.state.nlp_service = NLPLegalExtractionService(
+                model_override=model_override,
+                qa_confidence_threshold=qa_threshold
+            )
+            print("NLPLegalExtractionService created and stored in app.state (background init)")
+        except Exception as e:
+            print("⚠ Background NLPLegalExtractionService init failed:", e)
+            import traceback; traceback.print_exc()
+            app.state.nlp_service = None
+
+    # spawn daemon thread to load model
+    t = threading.Thread(target=_init_nlp, daemon=True)
+    t.start()
+
 @app.on_event("shutdown")
 def on_shutdown():
     from app.scheduler import shutdown_scheduler
