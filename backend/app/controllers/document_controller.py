@@ -410,14 +410,13 @@ async def delete_version(version_id: int, db: Session = Depends(get_db)):
 # -------------------------------
 @router.post("/extract-metadata", response_model=dict)
 async def extract_agreement_metadata(
+    request: Request,
     file: UploadFile = File(...),
 ):
     """
-    Extract agreement metadata from uploaded document using NLP.
-    Returns structured metadata for agreement creation.
+    Extract agreement metadata from uploaded document using the shared NLP service.
     """
     try:
-        # Log incoming upload for debugging
         print(f"NLP extraction endpoint called, filename={getattr(file, 'filename', None)}")
 
         # Save uploaded file temporarily
@@ -434,15 +433,20 @@ async def extract_agreement_metadata(
 
         print(f"Saved uploaded file to temporary path: {tmp_path}")
 
-        # Initialize NLP service and run extraction
+        # Use the shared NLP service created at FastAPI startup (preferred)
         try:
-            from app.services.nlp_extraction_service import NLPLegalExtractionService
-            nlp_service = NLPLegalExtractionService()
-            print("NLP service initialized successfully")
-            
+            nlp_service = getattr(request.app.state, "nlp_service", None)
+            if nlp_service is None:
+                # Fallback (shouldn't be necessary if startup handler sets it)
+                print("⚠ app.state.nlp_service not found — instantiating NLPLegalExtractionService lazily (not recommended)")
+                from app.services.nlp_extraction_service import NLPLegalExtractionService
+                nlp_service = NLPLegalExtractionService()
+            else:
+                print("Using startup-instantiated NLPLegalExtractionService")
+
             metadata = nlp_service.extract_agreement_metadata(tmp_path)
             print(f"NLP extraction completed, result type: {type(metadata)}")
-            
+
         except Exception as nlp_error:
             print(f"NLP service initialization/extraction failed: {nlp_error}")
             import traceback
@@ -461,7 +465,7 @@ async def extract_agreement_metadata(
             error_msg = metadata.get("error", "Unknown extraction error")
             print(f"NLP service returned error: {error_msg}")
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"Document processing failed: {error_msg}. Please check if the document contains readable text and try again."
             )
 

@@ -1,17 +1,40 @@
-import re
 import os
+import re
 from datetime import datetime
 from dateutil import parser
-from typing import Dict, Any, List
-from transformers import pipeline
-import torch
+from typing import Dict, Any, List, Optional, Tuple
+
 from difflib import get_close_matches
+
+import torch
+from transformers import (
+    pipeline,
+    AutoTokenizer,
+    AutoModelForQuestionAnswering,
+    Pipeline,
+)
+
 from .document_processing_service import DocumentProcessingService
 
 
 class NLPLegalExtractionService:
-    def __init__(self):
-        # Regex patterns as fallback
+    """
+    Service to extract structured metadata from agreements using
+    a Legal-BERT encoder and a question-answering head.
+
+    Constructor accepts:
+      - model_override: Optional[str] overrides env var QA_MODEL_OVERRIDE and default model.
+      - qa_confidence_threshold: Optional[float] overrides env var QA_CONFIDENCE_THRESHOLD.
+
+    Behavior:
+      - Preferred model resolution: explicit arg > QA_MODEL_OVERRIDE env var > default 'nlpaueb/legal-bert-base-uncased'
+      - If model chosen lacks QA head, AutoModelForQuestionAnswering will initialize one (fine-tune recommended).
+      - Fallback to a known QA-finetuned model ('deepset/roberta-base-squad2') if loading preferred model fails.
+      - Per-question token-budgeting in the QA stage to avoid model token-limit errors.
+    """
+
+    def __init__(self, model_override: Optional[str] = None, qa_confidence_threshold: Optional[float] = None):
+        # --- Regex patterns as fallback ---
         self.date_pattern = re.compile(
             r"(\b\d{1,2}(st|nd|rd|th)?\s+"
             r"(January|February|March|April|May|June|July|August|September|October|November|December)"
@@ -41,24 +64,154 @@ class NLPLegalExtractionService:
             'MOA on Student Competition', 'MOA on Faculty and Student Exchange'
         ]
 
+        # Country options for matching
+        self.country_options = [
+            "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia",
+            "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium",
+            "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria",
+            "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic",
+            "Chad", "Chile", "China", "Colombia", "Comoros", "Congo (Congo-Brazzaville)", "Costa Rica", "Croatia",
+            "Cuba", "Cyprus", "Czechia", "Democratic Republic of the Congo", "Denmark", "Djibouti", "Dominica",
+            "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia",
+            "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana",
+            "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary",
+            "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan",
+            "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia",
+            "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali",
+            "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco",
+            "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands",
+            "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman",
+            "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland",
+            "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia",
+            "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia",
+            "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands",
+            "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname",
+            "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo",
+            "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine",
+            "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu",
+            "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe", "HongKong", "Macao"
+        ]
+
+        # Region mapping
+        self.region_mapping = {
+            "Afghanistan": "Southern Asia", "Albania": "Southern Europe", "Algeria": "Northern Africa",
+            "Andorra": "Southern Europe", "Angola": "Middle Africa", "Antigua and Barbuda": "Caribbean",
+            "Argentina": "South America", "Armenia": "Western Asia", "Australia": "Oceania", "Austria": "Western Europe",
+            "Azerbaijan": "Western Asia", "Bahamas": "Caribbean", "Bahrain": "Western Asia", "Bangladesh": "Southern Asia",
+            "Barbados": "Caribbean", "Belarus": "Eastern Europe", "Belgium": "Western Europe", "Belize": "Central America",
+            "Benin": "Western Africa", "Bhutan": "Southern Asia", "Bolivia": "South America",
+            "Bosnia and Herzegovina": "Southern Europe", "Botswana": "Southern Africa", "Brazil": "South America",
+            "Brunei": "South-Eastern Asia", "Bulgaria": "Eastern Europe", "Burkina Faso": "Western Africa",
+            "Burundi": "Eastern Africa", "Cabo Verde": "Western Africa", "Cambodia": "South-Eastern Asia",
+            "Cameroon": "Middle Africa", "Canada": "North America", "Central African Republic": "Middle Africa",
+            "Chad": "Middle Africa", "Chile": "South America", "China": "Eastern Asia", "Colombia": "South America",
+            "Comoros": "Eastern Africa", "Congo (Congo-Brazzaville)": "Middle Africa", "Costa Rica": "Central America",
+            "Croatia": "Southern Europe", "Cuba": "Caribbean", "Cyprus": "Western Asia", "Czechia": "Eastern Europe",
+            "Democratic Republic of the Congo": "Middle Africa", "Denmark": "Northern Europe", "Djibouti": "Eastern Africa",
+            "Dominica": "Caribbean", "Dominican Republic": "Caribbean", "Ecuador": "South America", "Egypt": "Northern Africa",
+            "El Salvador": "Central America", "Equatorial Guinea": "Middle Africa", "Eritrea": "Eastern Africa",
+            "Estonia": "Northern Europe", "Eswatini": "Southern Africa", "Ethiopia": "Eastern Africa", "Fiji": "Oceania",
+            "Finland": "Northern Europe", "France": "Western Europe", "Gabon": "Middle Africa", "Gambia": "Western Africa",
+            "Georgia": "Western Asia", "Germany": "Western Europe", "Ghana": "Western Africa", "Greece": "Southern Europe",
+            "Grenada": "Caribbean", "Guatemala": "Central America", "Guinea": "Western Africa", "Guinea-Bissau": "Western Africa",
+            "Guyana": "South America", "Haiti": "Caribbean", "Honduras": "Central America", "Hungary": "Eastern Europe",
+            "Iceland": "Northern Europe", "India": "Southern Asia", "Indonesia": "South-Eastern Asia", "Iran": "Southern Asia",
+            "Iraq": "Western Asia", "Ireland": "Northern Europe", "Israel": "Western Asia", "Italy": "Southern Europe",
+            "Jamaica": "Caribbean", "Japan": "Eastern Asia", "Jordan": "Western Asia", "Kazakhstan": "Central Asia",
+            "Kenya": "Eastern Africa", "Kiribati": "Oceania", "Kuwait": "Western Asia", "Kyrgyzstan": "Central Asia",
+            "Laos": "South-Eastern Asia", "Latvia": "Northern Europe", "Lebanon": "Western Asia", "Lesotho": "Southern Africa",
+            "Liberia": "Western Africa", "Libya": "Northern Africa", "Liechtenstein": "Western Europe", "Lithuania": "Northern Europe",
+            "Luxembourg": "Western Europe", "Madagascar": "Eastern Africa", "Malawi": "Eastern Africa", "Malaysia": "South-Eastern Asia",
+            "Maldives": "Southern Asia", "Mali": "Western Africa", "Malta": "Southern Europe", "Marshall Islands": "Oceania",
+            "Mauritania": "Western Africa", "Mauritius": "Eastern Africa", "Mexico": "North America", "Micronesia": "Oceania",
+            "Moldova": "Eastern Europe", "Monaco": "Western Europe", "Mongolia": "Eastern Asia", "Montenegro": "Southern Europe",
+            "Morocco": "Northern Africa", "Mozambique": "Eastern Africa", "Myanmar": "South-Eastern Asia", "Namibia": "Southern Africa",
+            "Nauru": "Oceania", "Nepal": "Southern Asia", "Netherlands": "Western Europe", "New Zealand": "Oceania",
+            "Nicaragua": "Central America", "Niger": "Western Africa", "Nigeria": "Western Africa", "North Korea": "Eastern Asia",
+            "North Macedonia": "Southern Europe", "Norway": "Northern Europe", "Oman": "Western Asia", "Pakistan": "Southern Asia",
+            "Palau": "Oceania", "Palestine": "Western Asia", "Panama": "Central America", "Papua New Guinea": "Oceania",
+            "Paraguay": "South America", "Peru": "South America", "Philippines": "South-Eastern Asia", "Poland": "Eastern Europe",
+            "Portugal": "Southern Europe", "Qatar": "Western Asia", "Romania": "Eastern Europe", "Russia": "Eastern Europe",
+            "Rwanda": "Eastern Africa", "Saint Kitts and Nevis": "Caribbean", "Saint Lucia": "Caribbean",
+            "Saint Vincent and the Grenadines": "Caribbean", "Samoa": "Oceania", "San Marino": "Southern Europe",
+            "Sao Tome and Principe": "Middle Africa", "Saudi Arabia": "Western Asia", "Senegal": "Western Africa",
+            "Serbia": "Southern Europe", "Seychelles": "Eastern Africa", "Sierra Leone": "Western Africa",
+            "Singapore": "South-Eastern Asia", "Slovakia": "Eastern Europe", "Slovenia": "Southern Europe",
+            "Solomon Islands": "Oceania", "Somalia": "Eastern Africa", "South Africa": "Southern Africa",
+            "South Korea": "Eastern Asia", "South Sudan": "Eastern Africa", "Spain": "Southern Europe", "Sri Lanka": "Southern Asia",
+            "Sudan": "Northern Africa", "Suriname": "South America", "Sweden": "Northern Europe", "Switzerland": "Western Europe",
+            "Syria": "Western Asia", "Taiwan": "Eastern Asia", "Tajikistan": "Central Asia", "Tanzania": "Eastern Africa",
+            "Thailand": "South-Eastern Asia", "Timor-Leste": "South-Eastern Asia", "Togo": "Western Africa", "Tonga": "Oceania",
+            "Trinidad and Tobago": "Caribbean", "Tunisia": "Northern Africa", "Turkey": "Western Asia", "Turkmenistan": "Central Asia",
+            "Tuvalu": "Oceania", "Uganda": "Eastern Africa", "Ukraine": "Eastern Europe", "United Arab Emirates": "Western Asia",
+            "United Kingdom": "Northern Europe", "United States": "North America", "Uruguay": "South America",
+            "Uzbekistan": "Central Asia", "Vanuatu": "Oceania", "Vatican City": "Southern Europe", "Venezuela": "South America",
+            "Vietnam": "South-Eastern Asia", "Yemen": "Western Asia", "Zambia": "Eastern Africa", "Zimbabwe": "Eastern Africa",
+            "HongKong": "Eastern Asia", "Macao": "Eastern Asia"
+        }
+
         # Initialize document processor
         self.doc_processor = DocumentProcessingService()
 
-        # Initialize Legal-BERT QA pipeline with error handling
-        model_name = "nlpaueb/legal-bert-base-uncased"
-        self.qa_pipeline = None
+        # QA pipeline + tokenizer placeholders
+        self.qa_pipeline: Optional[Pipeline] = None
+        self.tokenizer: Optional[AutoTokenizer] = None
+        self.model_name_in_use: Optional[str] = None
+
+        # Resolve model override: explicit arg > env var > default
+        env_override = os.getenv("QA_MODEL_OVERRIDE", "").strip() or None
+        override_model = model_override.strip() if (model_override and model_override.strip()) else env_override
+        legal_bert_name = "nlpaueb/legal-bert-base-uncased"
+        preferred_model = override_model if override_model else legal_bert_name
+
+        # Resolve threshold: explicit arg > env var > default
+        if qa_confidence_threshold is not None:
+            try:
+                self.qa_confidence_threshold = float(qa_confidence_threshold)
+            except Exception:
+                self.qa_confidence_threshold = float(os.getenv("QA_CONFIDENCE_THRESHOLD", "0.10"))
+        else:
+            self.qa_confidence_threshold = float(os.getenv("QA_CONFIDENCE_THRESHOLD", "0.10"))
+
+        device = 0 if torch.cuda.is_available() else -1
+
         try:
+            # Load tokenizer + QA model
+            self.tokenizer = AutoTokenizer.from_pretrained(preferred_model, use_fast=True)
+            qa_model = AutoModelForQuestionAnswering.from_pretrained(preferred_model)
             self.qa_pipeline = pipeline(
                 "question-answering",
-                model=model_name,
-                tokenizer=model_name,
-                device=0 if torch.cuda.is_available() else -1
+                model=qa_model,
+                tokenizer=self.tokenizer,
+                device=device
             )
-            print("✓ Legal-BERT model loaded successfully")
+            self.model_name_in_use = preferred_model
+            if override_model:
+                print(f"✓ QA pipeline loaded using override model: {preferred_model}")
+            else:
+                print(f"✓ QA pipeline loaded with {preferred_model}. If this is the encoder-only Legal-BERT checkpoint, the QA head may be randomly initialized — fine-tune Legal-BERT for best results.")
         except Exception as e:
-            print(f"⚠ Failed to load Legal-BERT model: {e}")
-            print("Falling back to regex-based extraction only")
-            self.qa_pipeline = None
+            # Fallback to a known QA-finetuned model
+            fallback = "deepset/roberta-base-squad2"
+            try:
+                print(f"⚠ Failed to load preferred QA model ({preferred_model}): {e}")
+                print(f"Attempting to load fallback QA model: {fallback}")
+                self.tokenizer = AutoTokenizer.from_pretrained(fallback, use_fast=True)
+                qa_model = AutoModelForQuestionAnswering.from_pretrained(fallback)
+                self.qa_pipeline = pipeline(
+                    "question-answering",
+                    model=qa_model,
+                    tokenizer=self.tokenizer,
+                    device=device
+                )
+                self.model_name_in_use = fallback
+                print(f"✓ Fallback QA model loaded: {fallback}")
+            except Exception as e2:
+                print(f"⚠ Failed to load fallback QA model: {e2}")
+                print("Falling back to regex-only extraction. QA pipeline will be disabled.")
+                self.qa_pipeline = None
+                self.tokenizer = None
+                self.model_name_in_use = None
 
         # Expanded questions for QA extraction
         self.questions = {
@@ -94,15 +247,15 @@ class NLPLegalExtractionService:
             ],
             "partner_entity_type": [
                 "What type of entity is the partner?",
-                "Is the partner a university or organization?",
+                "Is the partner a university, company, or organization?",
                 "Partner entity type"
             ],
             "partner_country": [
-                "What country is the partner from?",
+                "What country is the partner located in?",
                 "Partner country"
             ],
             "partner_region": [
-                "What region is the partner from?",
+                "What region is the partner in?",
                 "Partner region"
             ],
             "partner_address": [
@@ -165,23 +318,26 @@ class NLPLegalExtractionService:
             # Detect file extension
             _, ext = os.path.splitext(file_path)
             ext = ext.lstrip('.').lower()
-            
+
             # Extract text
             text_data = self.doc_processor.extract_text_from_file(file_path, ext)
             if not text_data.get("success", False):
                 return {"error": text_data.get("error", "Text extraction failed")}
-            
+
             text = text_data["text"]
-            
+
+            if not text.strip():
+                return {"error": "The document does not contain readable text. Please ensure the document is a text-based PDF or DOCX file and try again."}
+
             # Extract metadata using NLP
             metadata = self.extract_moa_for_agreement_response(text)
-            
+
             # Build output dict matching AgreementCreate
             partner = metadata.get("partner", {})
             result = {
                 "partner_data": {
                     "name": partner.get("name", ""),
-                    "entity_type": partner.get("entity_type", "University"),
+                    "entity_type": partner.get("entity_type", ""),
                     "country": partner.get("country", ""),
                     "region": partner.get("region", ""),
                     "address": partner.get("address", ""),
@@ -189,12 +345,12 @@ class NLPLegalExtractionService:
                     "description": partner.get("description", ""),
                     "logo_path": None,
                     "status": "active",
-                    "contact_persons": []  # Can be populated if extracted separately
+                    "contact_persons": []  # Will populate below
                 },
                 "source_unit": None,
                 "dts_number": metadata.get("dts_number"),
-                "dts_status": metadata.get("dts_status"),
-                "entry_date": None,  # Set to today or extracted if available
+                "dts_status": metadata.get("dts_status", "OPEN - OIA"),
+                "entry_date": datetime.now().strftime("%Y-%m-%d"),
                 "date_received": metadata.get("date_received"),
                 "date_endorsed_to_ulco": metadata.get("date_endorsed_to_ulco"),
                 "date_ulco_approved": metadata.get("date_ulco_approved"),
@@ -217,7 +373,7 @@ class NLPLegalExtractionService:
                 ],
                 "agreement_status": metadata.get("agreement_status", "Active"),
                 "hardcopy_location": metadata.get("hardcopy_location"),
-                "entry_type": metadata.get("entry_type", "New"),
+                "entry_type": metadata.get("entry_type", "Extracted"),
                 "renewed_from_agreement_id": None,
                 "MOU_to_MOA_id": None,
                 "contact_persons": [
@@ -242,19 +398,19 @@ class NLPLegalExtractionService:
         clean_text = self._preprocess_text(text)
         extracted: Dict[str, Any] = {}
 
-        # Use QA for main fields
+        # Use QA for main fields (chunked)
         for field, question_list in self.questions.items():
             answer = self._extract_with_qa(clean_text, question_list)
             if answer:
                 extracted[field] = answer
-                print(f"✓ BERT extracted {field}: {answer}")
+                print(f"✓ QA extracted {field}: {answer}")
             else:
-                print(f"⚠ BERT failed for {field}, will use regex fallback")
+                print(f"⚠ QA returned no answer for {field}; will use regex fallback")
 
         # Post-process and map to schema
-        extracted = self._map_to_agreement_fields(extracted)
+        extracted = self._map_to_agreement_fields(extracted, clean_text)
 
-        # Enhanced regex fallback extractions when QA fails
+        # Enhanced regex fallback extractions when QA fails (preserves previous behavior)
         # Document type detection
         if not extracted.get("document_type"):
             if re.search(r'\bmemorandum of agreement\b|\bmoa\b', clean_text, re.IGNORECASE):
@@ -262,7 +418,7 @@ class NLPLegalExtractionService:
             elif re.search(r'\bmemorandum of understanding\b|\bmou\b', clean_text, re.IGNORECASE):
                 extracted["document_type"] = "MOU"
 
-        # Partner name extraction - more patterns
+        # Partner name extraction - more patterns (improved selection logic)
         if not extracted.get("partner_name"):
             partner_patterns = [
                 r"between\s+(.+?)\s+and\s+(.+?)(?:\s*,|\s*\.|\s*and|\s*with)",
@@ -273,14 +429,19 @@ class NLPLegalExtractionService:
             for pattern in partner_patterns:
                 matches = re.findall(pattern, clean_text, re.IGNORECASE | re.DOTALL)
                 if matches:
-                    # Take the longer name as likely the partner (not PUP)
                     for match in matches:
                         party1, party2 = match[0].strip(), match[1].strip()
-                        if "pup" not in party1.lower() and len(party1) > len(party2):
-                            extracted["partner_name"] = party1
-                            break
-                        elif "pup" not in party2.lower() and len(party2) > len(party1):
+                        p1_lower = party1.lower()
+                        p2_lower = party2.lower()
+                        # If one contains 'pup' and the other does not -> choose the non-PUP party
+                        if ("pup" in p1_lower or "polytechnic" in p1_lower) and ("pup" not in p2_lower and "polytechnic" not in p2_lower):
                             extracted["partner_name"] = party2
+                        elif ("pup" in p2_lower or "polytechnic" in p2_lower) and ("pup" not in p1_lower and "polytechnic" not in p1_lower):
+                            extracted["partner_name"] = party1
+                        else:
+                            # fallback: pick the longer, non-empty candidate
+                            extracted["partner_name"] = party1 if len(party1) >= len(party2) else party2
+                        if extracted.get("partner_name"):
                             break
                     if extracted.get("partner_name"):
                         break
@@ -301,7 +462,7 @@ class NLPLegalExtractionService:
                         parsed = parser.parse(date_str, fuzzy=True)
                         extracted["date_signed"] = parsed.strftime("%Y-%m-%d")
                         break
-                    except:
+                    except Exception:
                         continue
 
         # Validity period - more patterns
@@ -321,7 +482,7 @@ class NLPLegalExtractionService:
                         years = int(match.group(1))
                         extracted["validity_period"] = years
                         break
-                    except:
+                    except Exception:
                         continue
 
         # DTS number extraction
@@ -339,50 +500,155 @@ class NLPLegalExtractionService:
                     extracted["dts_number"] = match.group(1).upper()
                     break
 
-        # Regex for DTS
-        dts_number_match = re.search(r"DTS\s*Number[:\s]*(\w+)", clean_text, re.IGNORECASE)
-        if dts_number_match:
-            extracted["dts_number"] = dts_number_match.group(1)
-
+        # Regex for DTS status
         dts_status_match = re.search(r"DTS\s*Status[:\s]*(\w+)", clean_text, re.IGNORECASE)
         if dts_status_match:
             extracted["dts_status"] = dts_status_match.group(1)
+
+        # Compute date_expiry if validity and date_signed are available
+        if extracted.get("validity_period") and extracted.get("date_signed"):
+            try:
+                signed_date = datetime.strptime(extracted["date_signed"], "%Y-%m-%d")
+                expiry_date = signed_date.replace(year=signed_date.year + int(extracted["validity_period"]))
+                extracted["date_expiry"] = expiry_date.strftime("%Y-%m-%d")
+            except Exception:
+                pass
 
         return extracted
 
     def _extract_with_qa(self, text: str, questions: List[str]) -> str:
         """
         Use QA pipeline to extract answer from text.
-        Falls back to empty string if pipeline not available.
+
+        - Enforce per-question token budget: question tokens + context tokens <= tokenizer.model_max_length - SAFETY_BUFFER.
+        - Chunk text per question with an allowed context token budget.
+        - Aggregate the highest-scoring answer across chunks/questions.
+        - Returns an empty string on failure.
         """
-        if not self.qa_pipeline:
+        if not self.qa_pipeline or not self.tokenizer:
             return ""
-            
+
         best_answer = ""
         best_score = 0.0
 
+        # Model token limit
+        max_model_tokens = getattr(self.tokenizer, "model_max_length", 512)
+        # Minimum context tokens we consider meaningful
+        MIN_CONTEXT_TOKENS = 64
+        # Safety buffer for special tokens
+        SAFETY_BUFFER = 8
+        # Base chunk cap (do not exceed this even if model_max is large)
+        DEFAULT_CHUNK_BASE = min(512, max_model_tokens - 32)
+
         for question in questions:
+            # Determine token length of question
             try:
-                result = self.qa_pipeline(question=question, context=text)
-                if result['score'] > best_score and result['score'] > 0.1:  # Confidence threshold
-                    best_answer = result['answer']
-                    best_score = result['score']
+                q_enc = self.tokenizer.encode(question, add_special_tokens=False)
+                q_len = len(q_enc)
             except Exception:
+                # fallback heuristic: number of words
+                q_len = min(128, max(1, len(question.split())))
+
+            # Compute allowed context tokens for this question
+            allowed_context_tokens = max_model_tokens - q_len - SAFETY_BUFFER
+
+            if allowed_context_tokens < MIN_CONTEXT_TOKENS:
+                # Question too long to allow meaningful context — skip it
+                print(f"⚠ Skipping QA question (too long for model): '{question[:80]}...' (q_len={q_len}, model_max={max_model_tokens})")
                 continue
+
+            # Choose chunk size for this question
+            chunk_size = min(DEFAULT_CHUNK_BASE, allowed_context_tokens)
+            # overlap as fraction of chunk_size
+            overlap = min(128, max(16, int(chunk_size * 0.15)))
+
+            # Create chunks sized for this question
+            chunks = self._chunk_text_tokenizer(text, self.tokenizer, chunk_size=chunk_size, overlap=overlap)
+
+            for chunk_text in chunks:
+                try:
+                    result = self.qa_pipeline(question=question, context=chunk_text)
+                    if isinstance(result, list):
+                        candidate = result[0] if result else None
+                    else:
+                        candidate = result
+
+                    if not candidate:
+                        continue
+
+                    score = float(candidate.get("score", 0.0))
+                    answer_text = candidate.get("answer", "").strip()
+                    if answer_text and score >= self.qa_confidence_threshold and score > best_score:
+                        best_answer = answer_text
+                        best_score = score
+                except Exception:
+                    # Skip this chunk on failure (avoid crashing)
+                    continue
 
         return best_answer.strip() if best_answer else ""
 
-    def _map_to_agreement_fields(self, extracted: Dict[str, Any]) -> Dict[str, Any]:
+    def _chunk_text_tokenizer(self, text: str, tokenizer: AutoTokenizer, chunk_size: int = 512, overlap: int = 64) -> List[str]:
+        """
+        Break text into token-aware chunks using the tokenizer, then decode them back to text.
+        """
+        if not tokenizer:
+            # fallback naive splitting (word-based)
+            words = text.split()
+            chunks = []
+            current = []
+            cur_len = 0
+            for w in words:
+                if cur_len + len(w) + 1 > chunk_size and current:
+                    chunks.append(" ".join(current))
+                    current = current[-overlap:] + [w]
+                    cur_len = sum(len(x) + 1 for x in current)
+                else:
+                    current.append(w)
+                    cur_len += len(w) + 1
+            if current:
+                chunks.append(" ".join(current))
+            return chunks
+
+        # Tokenize full text to ids
+        try:
+            encoding = tokenizer.encode(text, add_special_tokens=False)
+        except Exception:
+            encoding = tokenizer.encode(text)
+
+        total_tokens = len(encoding)
+        if total_tokens == 0:
+            return [text]
+
+        chunks = []
+        start = 0
+        while start < total_tokens:
+            end = min(start + chunk_size, total_tokens)
+            chunk_ids = encoding[start:end]
+            try:
+                chunk_text = tokenizer.decode(chunk_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+            except Exception:
+                # fallback: slice words
+                words = text.split()
+                chunk_text = " ".join(words[max(0, start - overlap):min(len(words), end + overlap)])
+            chunks.append(chunk_text)
+            if end == total_tokens:
+                break
+            start = max(0, end - overlap)
+
+        return chunks
+
+    def _map_to_agreement_fields(self, extracted: Dict[str, Any], text: str) -> Dict[str, Any]:
         """
         Map QA answers to agreement schema fields.
         """
-        mapped = {}
+        mapped: Dict[str, Any] = {}
 
         # Document type
-        doc_type = extracted.get("document_type", "").lower()
-        if "memorandum of agreement" in doc_type or "moa" in doc_type:
+        doc_type = extracted.get("document_type", "") or ""
+        low_doc_type = doc_type.lower()
+        if "memorandum of agreement" in low_doc_type or "moa" in low_doc_type:
             mapped["document_type"] = "MOA"
-        elif "memorandum of understanding" in doc_type or "mou" in doc_type:
+        elif "memorandum of understanding" in low_doc_type or "mou" in low_doc_type:
             mapped["document_type"] = "MOU"
 
         # Partnership type - match to frontend options
@@ -395,40 +661,61 @@ class NLPLegalExtractionService:
             try:
                 parsed = parser.parse(date_str, fuzzy=True)
                 mapped["date_signed"] = parsed.strftime("%Y-%m-%d")
-            except:
+            except Exception:
                 mapped["date_signed"] = date_str
 
         # Validity
         validity_str = extracted.get("validity_period", "")
         if validity_str:
             try:
-                years = int(re.search(r'\d+', validity_str).group())
+                years = int(re.search(r'\d+', str(validity_str)).group())
                 mapped["validity_period"] = years
-            except:
+            except Exception:
                 pass
 
         # Partner as dict
         partner_name = extracted.get("partner_name", "")
         if partner_name:
+            # Extract entity type
+            entity_type = extracted.get("partner_entity_type", "")
+            if not entity_type:
+                pn_lower = partner_name.lower()
+                if "university" in pn_lower or "college" in pn_lower:
+                    entity_type = "University"
+                elif "company" in pn_lower or "corp" in pn_lower or "inc" in pn_lower:
+                    entity_type = "Company"
+                else:
+                    entity_type = "Organization"
+
+            # Extract country and region
+            country = extracted.get("partner_country", "")
+            if not country:
+                # scan for country names in the document text
+                for c in self.country_options:
+                    if c.lower() in text.lower():
+                        country = c
+                        break
+            region = self.region_mapping.get(country, "") if country else ""
+
             mapped["partner"] = {
                 "name": partner_name,
-                "entity_type": extracted.get("partner_entity_type", "University"),
-                "country": extracted.get("partner_country", ""),
-                "region": extracted.get("partner_region", ""),
+                "entity_type": entity_type,
+                "country": country,
+                "region": region,
                 "address": extracted.get("partner_address", ""),
                 "website": extracted.get("partner_website", ""),
                 "description": extracted.get("partner_description", "")
             }
 
         # Signatories as list of dicts
-        sigs_text = extracted.get("signatories", "")
+        sigs_text = extracted.get("signatories", "") or ""
         mapped["signatories_list"] = self._parse_signatories(sigs_text)
 
         # Contacts and points as list of dicts
-        contacts_text = extracted.get("contact_persons", "")
+        contacts_text = extracted.get("contact_persons", "") or ""
         mapped["contact_persons"] = self._parse_persons(contacts_text)
 
-        points_text = extracted.get("point_persons", "")
+        points_text = extracted.get("point_persons", "") or ""
         mapped["point_persons"] = self._parse_persons(points_text)
 
         # Additional fields
@@ -440,6 +727,12 @@ class NLPLegalExtractionService:
         mapped["date_pup_signed"] = extracted.get("date_pup_signed", "")
         mapped["remarks"] = extracted.get("remarks", "")
 
+        # DTS and status
+        if extracted.get("dts_number"):
+            mapped["dts_number"] = extracted.get("dts_number")
+        if extracted.get("dts_status"):
+            mapped["dts_status"] = extracted.get("dts_status")
+
         return mapped
 
     def _parse_signatories(self, text: str) -> List[Dict[str, str]]:
@@ -447,11 +740,11 @@ class NLPLegalExtractionService:
         Parse signatories text into list of dicts {name, position, institution}.
         Assumes format: "Name, Position, Institution; Name2, Position2, Institution2"
         """
-        signatories = []
+        signatories: List[Dict[str, str]] = []
         if not text:
             return signatories
         for sig in text.split(";"):
-            parts = [p.strip() for p in sig.split(",")]
+            parts = [p.strip() for p in sig.split(",") if p.strip()]
             if len(parts) >= 3:
                 signatories.append({"name": parts[0], "position": parts[1], "institution": parts[2]})
             elif len(parts) == 2:
@@ -465,11 +758,11 @@ class NLPLegalExtractionService:
         Parse contact/point persons text into list of dicts {name, position, email}.
         Assumes format: "Name, Position, Email; Name2, Position2, Email2"
         """
-        persons = []
+        persons: List[Dict[str, str]] = []
         if not text:
             return persons
         for person in text.split(";"):
-            parts = [p.strip() for p in person.split(",")]
+            parts = [p.strip() for p in person.split(",") if p.strip()]
             if len(parts) >= 3:
                 persons.append({"name": parts[0], "position": parts[1], "email": parts[2]})
             elif len(parts) == 2:
@@ -486,7 +779,7 @@ class NLPLegalExtractionService:
             return ""
         matches = get_close_matches(extracted.lower(), [opt.lower() for opt in self.partnership_options], n=1, cutoff=0.6)
         if matches:
-            # Find the original case
+            # Find original case
             for opt in self.partnership_options:
                 if opt.lower() == matches[0]:
                     return opt
@@ -498,7 +791,7 @@ class NLPLegalExtractionService:
         return text.strip()
 
     def _normalize_dates(self, dates: List[str]) -> List[str]:
-        normalized = []
+        normalized: List[str] = []
         for d in dates:
             try:
                 parsed = parser.parse(d, fuzzy=True)
@@ -510,8 +803,8 @@ class NLPLegalExtractionService:
 
 class NLPService:
     """
-    Prepares extracted document text for Legal-BERT / NLP pipeline.
-    Handles cleanup and chunking for model input.
+    Prepares extracted document text for BERT / NLP pipeline.
+    Handles cleanup and simple chunking for systems that don't have tokenizer available.
     """
 
     def prepare_for_bert_extraction(self, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
