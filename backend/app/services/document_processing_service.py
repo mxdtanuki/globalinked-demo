@@ -1,6 +1,7 @@
 import io
 from typing import Dict, Any
 import pdfplumber
+import os
 try:
     from docx import Document as DocxDocument
     DOCX_AVAILABLE = True
@@ -9,15 +10,13 @@ except ImportError:
     print("Warning: python-docx not available, DOCX processing disabled")
 
 try:
-    import fitz  # PyMuPDF
+    import fitz  
     FITZ_AVAILABLE = True
 except ImportError:
     FITZ_AVAILABLE = False
     print("Warning: PyMuPDF not available, advanced PDF processing disabled")
 
-from paddleocr import PaddleOCR
 from PIL import Image
-
 
 class DocumentProcessingService:
     """
@@ -25,131 +24,31 @@ class DocumentProcessingService:
     Falls back to OCR if text extraction fails.
     """
 
-
     def __init__(self):
-        # Initialize PaddleOCR (English, angle detection enabled, no verbose logs)
-        self.ocr = PaddleOCR(use_angle_cls=True, lang="en")
+        self.ocr = None
+        # allow disabling paddleocr via env var (useful for deployments)
+        self._paddleocr_disabled = os.environ.get("DISABLE_PADDLEOCR", "0") in ("1", "true", "True")
 
-    def extract_text_from_file(self, file_path: str, file_extension: str) -> Dict[str, Any]:
+    def _ensure_ocr(self):
         """
-        Extract text from PDF, DOCX, or image files. Falls back to OCR for PDFs if needed.
+        Lazily import and instantiate PaddleOCR when first needed.
+        Returns True if OCR is available, False otherwise.
         """
-        try:
-            if file_extension.lower() == "pdf":
-                return self._extract_from_pdf(file_path)
-            elif file_extension.lower() in ["docx", "doc"]:
-                return self._extract_from_docx(file_path)
-            elif file_extension.lower() in ["jpg", "jpeg", "png", "bmp", "tiff", "tif"]:
-                return self._extract_from_image(file_path)
-            else:
-                raise ValueError(f"Unsupported file type: {file_extension}")
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "text": "",
-                "pages": []
-            }
+        if self._paddleocr_disabled:
+            return False
 
-    def _extract_from_pdf(self, file_path: str) -> Dict[str, Any]:
-        """
-        Extract text from a PDF. Uses pdfplumber first, then OCR if no text.
-        """
-        extracted_text = []
-        pages_data = []
+        if self.ocr is not None:
+            return True
 
         try:
-            with pdfplumber.open(file_path) as pdf:
-                for page_num, page in enumerate(pdf.pages):
-                    text = page.extract_text()
-
-                    if text and text.strip():
-                        # Direct extraction success
-                        extracted_text.append(text)
-                        pages_data.append({
-                            "page_number": page_num + 1,
-                            "text": text,
-                            "method": "direct"
-                        })
-                    else:
-                        # OCR fallback for scanned/image-only pages
-                        ocr_text = self._ocr_page_from_pdf(file_path, page_num)
-                        extracted_text.append(ocr_text)
-                        pages_data.append({
-                            "page_number": page_num + 1,
-                            "text": ocr_text,
-                            "method": "ocr"
-                        })
+            from paddleocr import PaddleOCR
+            self.ocr = PaddleOCR(use_angle_cls=True, lang="en")
+            return True
         except Exception as e:
-            # If pdfplumber fails entirely, OCR the whole PDF
-            try:
-                ocr_text = self._ocr_entire_pdf(file_path)
-                extracted_text = [ocr_text]
-                pages_data = [{
-                    "page_number": 1,
-                    "text": ocr_text,
-                    "method": "ocr_fallback"
-                }]
-            except Exception as ocr_error:
-                return {
-                    "success": False,
-                    "error": f"PDF extraction failed: {str(e)}, OCR fallback failed: {str(ocr_error)}",
-                    "text": "",
-                    "pages": []
-                }
-
-        return {
-            "success": True,
-            "text": "\n\n".join(extracted_text),
-            "pages": pages_data,
-            "total_pages": len(pages_data),
-            "extraction_method": "pdfplumber_with_ocr_fallback"
-        }
-
-    def _extract_from_docx(self, file_path: str) -> Dict[str, Any]:
-        """
-        Extract text from a DOCX file using python-docx.
-        """
-        if not DOCX_AVAILABLE:
-            return {
-                "success": False,
-                "error": "DOCX processing not available - python-docx not installed",
-                "text": "",
-                "pages": []
-            }
-        
-        try:
-            doc = DocxDocument(file_path)
-            paragraphs = [para.text for para in doc.paragraphs if para.text.strip()]
-
-            # Extract table text too
-            for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        if cell.text.strip():
-                            paragraphs.append(cell.text)
-
-            full_text = "\n\n".join(paragraphs)
-
-            return {
-                "success": True,
-                "text": full_text,
-                "pages": [{
-                    "page_number": 1,
-                    "text": full_text,
-                    "method": "docx"
-                }],
-                "total_pages": 1,
-                "extraction_method": "python-docx"
-            }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "error": f"DOCX extraction failed: {str(e)}",
-                "text": "",
-                "pages": []
-            }
+            # Log the error and mark OCR as unavailable (avoid raising)
+            print(f"Warning: PaddleOCR not available or failed to initialize: {e}")
+            self.ocr = None
+            return False
 
     def _extract_from_image(self, file_path: str) -> Dict[str, Any]:
         """
@@ -157,6 +56,15 @@ class DocumentProcessingService:
         """
         try:
             img = Image.open(file_path)
+
+            if not self._ensure_ocr():
+                return {
+                    "success": False,
+                    "error": "OCR not available (PaddleOCR disabled or failed to initialize)",
+                    "text": "",
+                    "pages": []
+                }
+
             ocr_result = self.ocr.ocr(img, cls=True)
             text = "\n".join(line[1][0] for line in ocr_result[0]) if ocr_result and ocr_result[0] else ""
             return {
@@ -184,11 +92,14 @@ class DocumentProcessingService:
         """
         if not FITZ_AVAILABLE:
             return "PDF OCR not available - PyMuPDF not installed"
-            
+
         try:
+            if not self._ensure_ocr():
+                return "PDF OCR not available - PaddleOCR disabled or failed to initialize"
+
             pdf_doc = fitz.open(file_path)
             page = pdf_doc.load_page(page_num)
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # upscale for OCR accuracy
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
             img = Image.open(io.BytesIO(pix.tobytes("png")))
 
             ocr_result = self.ocr.ocr(img, cls=True)
@@ -204,18 +115,24 @@ class DocumentProcessingService:
         """
         if not FITZ_AVAILABLE:
             return "PDF OCR not available - PyMuPDF not installed"
-            
-        pdf_doc = fitz.open(file_path)
-        all_text = []
 
-        for page_num in range(len(pdf_doc)):
-            page = pdf_doc.load_page(page_num)
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-            img = Image.open(io.BytesIO(pix.tobytes("png")))
+        try:
+            if not self._ensure_ocr():
+                return "PDF OCR not available - PaddleOCR disabled or failed to initialize"
 
-            ocr_result = self.ocr.ocr(img, cls=True)
-            if ocr_result and ocr_result[0]:
-                all_text.append("\n".join(line[1][0] for line in ocr_result[0]))
+            pdf_doc = fitz.open(file_path)
+            all_text = []
 
-        pdf_doc.close()
-        return "\n\n".join(all_text)
+            for page_num in range(len(pdf_doc)):
+                page = pdf_doc.load_page(page_num)
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+
+                ocr_result = self.ocr.ocr(img, cls=True)
+                if ocr_result and ocr_result[0]:
+                    all_text.append("\n".join(line[1][0] for line in ocr_result[0]))
+
+            pdf_doc.close()
+            return "\n\n".join(all_text)
+        except Exception as e:
+            return f"PDF OCR failed: {e}"
