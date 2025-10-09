@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 from datetime import datetime
 from dateutil import parser
 from typing import Dict, Any, List, Optional, Tuple
@@ -16,18 +17,18 @@ from transformers import (
 
 from .document_processing_service import DocumentProcessingService
 
+logger = logging.getLogger(__name__)
+
 
 class NLPLegalExtractionService:
     """
     Service to extract structured metadata from agreements using
     a Legal-BERT encoder and a question-answering head.
 
-    Constructor accepts:
-      - model_override: Optional[str] overrides env var QA_MODEL_OVERRIDE and default model.
-      - qa_confidence_threshold: Optional[float] overrides env var QA_CONFIDENCE_THRESHOLD.
-
+    
     Behavior:
       - Preferred model resolution: explicit arg > QA_MODEL_OVERRIDE env var > default 'nlpaueb/legal-bert-base-uncased'
+      - QA model loading is lazy and controlled by QA_LOAD_AT_STARTUP env var.
       - If model chosen lacks QA head, AutoModelForQuestionAnswering will initialize one (fine-tune recommended).
       - Fallback to a known QA-finetuned model ('deepset/roberta-base-squad2') if loading preferred model fails.
       - Per-question token-budgeting in the QA stage to avoid model token-limit errors.
@@ -153,18 +154,18 @@ class NLPLegalExtractionService:
         # Initialize document processor
         self.doc_processor = DocumentProcessingService()
 
-        # QA pipeline + tokenizer placeholders
+        # QA pipeline + tokenizer placeholders (lazy-loaded)
         self.qa_pipeline: Optional[Pipeline] = None
         self.tokenizer: Optional[AutoTokenizer] = None
         self.model_name_in_use: Optional[str] = None
 
-        # Resolve model override: explicit arg > env var > default
+        # track preferred model name for lazy loading
         env_override = os.getenv("QA_MODEL_OVERRIDE", "").strip() or None
         override_model = model_override.strip() if (model_override and model_override.strip()) else env_override
         legal_bert_name = "nlpaueb/legal-bert-base-uncased"
-        preferred_model = override_model if override_model else legal_bert_name
+        self._preferred_model = override_model if override_model else legal_bert_name
 
-        # Resolve threshold: explicit arg > env var > default
+        # store threshold
         if qa_confidence_threshold is not None:
             try:
                 self.qa_confidence_threshold = float(qa_confidence_threshold)
@@ -173,45 +174,8 @@ class NLPLegalExtractionService:
         else:
             self.qa_confidence_threshold = float(os.getenv("QA_CONFIDENCE_THRESHOLD", "0.10"))
 
-        device = 0 if torch.cuda.is_available() else -1
-
-        try:
-            # Load tokenizer + QA model
-            self.tokenizer = AutoTokenizer.from_pretrained(preferred_model, use_fast=True)
-            qa_model = AutoModelForQuestionAnswering.from_pretrained(preferred_model)
-            self.qa_pipeline = pipeline(
-                "question-answering",
-                model=qa_model,
-                tokenizer=self.tokenizer,
-                device=device
-            )
-            self.model_name_in_use = preferred_model
-            if override_model:
-                print(f"✓ QA pipeline loaded using override model: {preferred_model}")
-            else:
-                print(f"✓ QA pipeline loaded with {preferred_model}. If this is the encoder-only Legal-BERT checkpoint, the QA head may be randomly initialized — fine-tune Legal-BERT for best results.")
-        except Exception as e:
-            # Fallback to a known QA-finetuned model
-            fallback = "deepset/roberta-base-squad2"
-            try:
-                print(f"⚠ Failed to load preferred QA model ({preferred_model}): {e}")
-                print(f"Attempting to load fallback QA model: {fallback}")
-                self.tokenizer = AutoTokenizer.from_pretrained(fallback, use_fast=True)
-                qa_model = AutoModelForQuestionAnswering.from_pretrained(fallback)
-                self.qa_pipeline = pipeline(
-                    "question-answering",
-                    model=qa_model,
-                    tokenizer=self.tokenizer,
-                    device=device
-                )
-                self.model_name_in_use = fallback
-                print(f"✓ Fallback QA model loaded: {fallback}")
-            except Exception as e2:
-                print(f"⚠ Failed to load fallback QA model: {e2}")
-                print("Falling back to regex-only extraction. QA pipeline will be disabled.")
-                self.qa_pipeline = None
-                self.tokenizer = None
-                self.model_name_in_use = None
+        # internal flags for loading
+        self._qa_loading = False
 
         # Expanded questions for QA extraction
         self.questions = {
@@ -308,6 +272,70 @@ class NLPLegalExtractionService:
             ]
         }
 
+    def _ensure_qa(self) -> bool:
+        """
+        Lazily load the QA tokenizer + model + pipeline.
+        Returns True if QA pipeline is ready, False otherwise.
+
+        Respects QA_LOAD_AT_STARTUP env var: if set to "0" or "false", do NOT auto-load.
+        """
+        # If already loaded, OK
+        if self.qa_pipeline is not None and self.tokenizer is not None:
+            return True
+
+        # If configured to not auto-load, don't try to load at runtime
+        if os.getenv("QA_LOAD_AT_STARTUP", "1").strip().lower() in ("0", "false", "no"):
+            logger.info("QA auto-load disabled via QA_LOAD_AT_STARTUP; skipping model load.")
+            return False
+
+        # prevent concurrent loads
+        if self._qa_loading:
+            logger.debug("QA pipeline is currently loading by another thread/process; skipping.")
+            return False
+
+        self._qa_loading = True
+        try:
+            device = 0 if torch.cuda.is_available() else -1
+
+            preferred = os.getenv("QA_MODEL_OVERRIDE") or self._preferred_model
+            try:
+                logger.info(f"Loading QA pipeline for model: {preferred}")
+                self.tokenizer = AutoTokenizer.from_pretrained(preferred, use_fast=True)
+                qa_model = AutoModelForQuestionAnswering.from_pretrained(preferred)
+                self.qa_pipeline = pipeline(
+                    "question-answering",
+                    model=qa_model,
+                    tokenizer=self.tokenizer,
+                    device=device
+                )
+                self.model_name_in_use = preferred
+                logger.info(f"✓ QA pipeline loaded: {preferred}")
+                return True
+            except Exception as e:
+                # fallback to a known QA-finetuned model
+                fallback = "deepset/roberta-base-squad2"
+                logger.warning(f"Failed to load preferred QA model ({preferred}): {e}; attempting fallback {fallback}")
+                try:
+                    self.tokenizer = AutoTokenizer.from_pretrained(fallback, use_fast=True)
+                    qa_model = AutoModelForQuestionAnswering.from_pretrained(fallback)
+                    self.qa_pipeline = pipeline(
+                        "question-answering",
+                        model=qa_model,
+                        tokenizer=self.tokenizer,
+                        device=device
+                    )
+                    self.model_name_in_use = fallback
+                    logger.info(f"✓ Fallback QA model loaded: {fallback}")
+                    return True
+                except Exception as e2:
+                    logger.error(f"Failed to load fallback QA model ({fallback}): {e2}; QA disabled, falling back to regex-only.")
+                    self.qa_pipeline = None
+                    self.tokenizer = None
+                    self.model_name_in_use = None
+                    return False
+        finally:
+            self._qa_loading = False
+
     def extract_agreement_metadata(self, file_path: str) -> Dict[str, Any]:
         """
         Main function to extract agreement metadata from a file.
@@ -389,6 +417,7 @@ class NLPLegalExtractionService:
             }
             return result
         except Exception as e:
+            logger.exception("Extraction failed")
             return {"error": f"Extraction failed: {str(e)}"}
 
     def extract_moa_for_agreement_response(self, text: str) -> Dict[str, Any]:
@@ -403,14 +432,14 @@ class NLPLegalExtractionService:
             answer = self._extract_with_qa(clean_text, question_list)
             if answer:
                 extracted[field] = answer
-                print(f"✓ QA extracted {field}: {answer}")
+                logger.debug(f"QA extracted {field}: {answer}")
             else:
-                print(f"⚠ QA returned no answer for {field}; will use regex fallback")
+                logger.debug(f"QA returned no answer for {field}; will use regex fallback")
 
         # Post-process and map to schema
         extracted = self._map_to_agreement_fields(extracted, clean_text)
 
-        # Enhanced regex fallback extractions when QA fails (preserves previous behavior)
+        # (rest of regex fallbacks unchanged...)
         # Document type detection
         if not extracted.get("document_type"):
             if re.search(r'\bmemorandum of agreement\b|\bmoa\b', clean_text, re.IGNORECASE):
@@ -525,8 +554,12 @@ class NLPLegalExtractionService:
         - Aggregate the highest-scoring answer across chunks/questions.
         - Returns an empty string on failure.
         """
+        # Try to ensure QA pipeline is ready (this will respect QA_LOAD_AT_STARTUP)
         if not self.qa_pipeline or not self.tokenizer:
-            return ""
+            loaded = self._ensure_qa()
+            if not loaded:
+                # QA unavailable by design (QA_LOAD_AT_STARTUP disabled or failure) -> return empty so regex fallback applies
+                return ""
 
         best_answer = ""
         best_score = 0.0
@@ -554,7 +587,7 @@ class NLPLegalExtractionService:
 
             if allowed_context_tokens < MIN_CONTEXT_TOKENS:
                 # Question too long to allow meaningful context — skip it
-                print(f"⚠ Skipping QA question (too long for model): '{question[:80]}...' (q_len={q_len}, model_max={max_model_tokens})")
+                logger.debug(f"Skipping QA question (too long): '{question[:80]}...' (q_len={q_len}, model_max={max_model_tokens})")
                 continue
 
             # Choose chunk size for this question
@@ -581,8 +614,8 @@ class NLPLegalExtractionService:
                     if answer_text and score >= self.qa_confidence_threshold and score > best_score:
                         best_answer = answer_text
                         best_score = score
-                except Exception:
-                    # Skip this chunk on failure (avoid crashing)
+                except Exception as e:
+                    logger.debug(f"QA chunk call failed: {e}")
                     continue
 
         return best_answer.strip() if best_answer else ""
