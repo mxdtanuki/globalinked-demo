@@ -34,24 +34,26 @@ const Analytics = () => {
     fetchAndProcessData();
   }, []);
 
-  const fetchAndProcessData = async () => {
-    try {
-      setLoading(true);
-      console.log('📊 Fetching agreements for analytics...');
-      
-      const data = await agreementService.getAgreements();
-      setAgreements(data);
-      
-      console.log('📊 Processing', data.length, 'agreements');
-      processAgreementData(data);
-      
-    } catch (err) {
-      setError('Failed to fetch agreements: ' + err.message);
-      console.error('Error fetching agreements:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchAndProcessData = async () => { 
+  try {
+    setLoading(true);
+    console.log('📊 Fetching agreements for analytics...');
+    
+    const data = await agreementService.getAgreements();
+    // Only keep agreements with status "Active"
+    const activeAgreements = data.filter(a => a.agreement_status === "Active");
+    setAgreements(activeAgreements);
+    
+    console.log('📊 Processing', activeAgreements.length, 'active agreements');
+    processAgreementData(activeAgreements);
+    
+  } catch (err) {
+    setError('Failed to fetch agreements: ' + err.message);
+    console.error('Error fetching agreements:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const processAgreementData = (agreementData) => {
     const mouData = {};
@@ -226,7 +228,6 @@ const Analytics = () => {
         >
 
           {/* Content */}
-
             <div className="analytics-chart-table">
              <MOUChart ref={mouChartRef} data={DATA_MOU} onDataUpdate={setMouData} />
               <MOUTable data={mouData} />

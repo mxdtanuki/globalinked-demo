@@ -255,9 +255,6 @@ const Email = () => {
     return preview;
   };
 
-  // Loading state
-  if (loading) return <div className="dashboard-container">Loading email data...</div>;
-
   return (
     <div className="dashboard-container">
       <TopBar toggleSidebar={toggleMobileSidebar} />
@@ -277,7 +274,14 @@ const Email = () => {
           className="main-content"
           onClick={() => mobileShow && setMobileShow(false)}
         >
-
+          {loading ? (
+                <p>Loading agreements...</p>
+              ) : error ? (
+                <p style={{ color: "red" }}>{error}</p>
+              ) : (
+                <>
+          
+          
           <div className="email-dashboard">
             <h2 className="email-title">Email Dashboard</h2>
 
@@ -504,13 +508,15 @@ const Email = () => {
                     {editingDraftId ? "Update Draft" : "Save as Draft"}
                   </button>
                 </div>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </>
+        )}
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Email;

@@ -16,8 +16,16 @@ const Footer = () => {
               <img src={logo} alt="PUP Logo" className="footer-logo" />
               <div className="footer-university-info">
                 <h3 className="footer-university-name">
-                  Polytechnic University <br />
-                  of the Philippines <br />
+                  <a
+                    href="https://www.pup.edu.ph/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer-link"
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
+                    Polytechnic University <br />
+                    of the Philippines <br />
+                  </a>
                 </h3>
                 <p className="footer-office-name">
                   Office of International Affairs
