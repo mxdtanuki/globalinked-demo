@@ -136,3 +136,135 @@ class DocumentProcessingService:
             return "\n\n".join(all_text)
         except Exception as e:
             return f"PDF OCR failed: {e}"
+        
+    def extract_text_from_file(self, file_path: str, ext: str) -> Dict[str, Any]:
+        """
+        Unified interface expected by NLPLegalExtractionService.
+        Returns:
+          {
+            "success": bool,
+            "text": str,
+            "pages": List[{"page_number": int, "text": str, "method": str}],
+            "total_pages": int,
+            "extraction_method": str,
+            "error": Optional[str]
+          }
+        """
+        try:
+            ext = (ext or "").lower()
+
+            # PDF handling
+            if ext == "pdf":
+                pages = []
+                text_chunks = []
+                extraction_method = "pdfplumber"
+
+                try:
+                    with pdfplumber.open(file_path) as pdf:
+                        for i, page in enumerate(pdf.pages):
+                            page_text = page.extract_text() or ""
+                            pages.append({
+                                "page_number": i + 1,
+                                "text": page_text,
+                                "method": "pdfplumber"
+                            })
+                            if page_text.strip():
+                                text_chunks.append(page_text)
+                except Exception as e:
+                    # If pdfplumber fails entirely, try OCR whole PDF
+                    ocr_all = self._ocr_entire_pdf(file_path)
+                    if isinstance(ocr_all, str) and ocr_all.startswith("PDF OCR failed"):
+                        return {
+                            "success": False,
+                            "error": f"PDF parsing failed and OCR fallback failed: {ocr_all}",
+                            "text": "",
+                            "pages": [],
+                            "total_pages": 0,
+                            "extraction_method": "pdfplumber+ocr"
+                        }
+                    return {
+                        "success": True,
+                        "text": ocr_all or "",
+                        "pages": [{"page_number": 1, "text": ocr_all or "", "method": "paddleocr_pdf"}],
+                        "total_pages": 1,
+                        "extraction_method": "paddleocr_pdf"
+                    }
+
+                full_text = "\n\n".join(text_chunks).strip()
+
+                # If no text was extracted, fallback to OCR
+                if not full_text:
+                    ocr_all = self._ocr_entire_pdf(file_path)
+                    return {
+                        "success": bool(ocr_all and ocr_all.strip()),
+                        "error": None if (ocr_all and ocr_all.strip()) else "Unable to extract text from PDF (OCR also empty)",
+                        "text": ocr_all or "",
+                        "pages": [{"page_number": 1, "text": ocr_all or "", "method": "paddleocr_pdf"}],
+                        "total_pages": 1,
+                        "extraction_method": "paddleocr_pdf"
+                    }
+
+                return {
+                    "success": True,
+                    "text": full_text,
+                    "pages": pages,
+                    "total_pages": len(pages),
+                    "extraction_method": extraction_method
+                }
+
+            # DOCX handling
+            if ext in ("docx", "doc"):
+                if not DOCX_AVAILABLE:
+                    return {
+                        "success": False,
+                        "error": "DOCX support not available (python-docx not installed)",
+                        "text": "",
+                        "pages": [],
+                        "total_pages": 0,
+                        "extraction_method": "docx"
+                    }
+                try:
+                    doc = DocxDocument(file_path)
+                    paragraphs = [p.text for p in doc.paragraphs if p.text]
+                    text = "\n".join(paragraphs).strip()
+                    return {
+                        "success": bool(text),
+                        "error": None if text else "Document contains no readable text",
+                        "text": text,
+                        "pages": [{"page_number": 1, "text": text, "method": "docx"}],
+                        "total_pages": 1,
+                        "extraction_method": "docx"
+                    }
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "error": f"DOCX parsing failed: {str(e)}",
+                        "text": "",
+                        "pages": [],
+                        "total_pages": 0,
+                        "extraction_method": "docx"
+                    }
+
+            # Image handling
+            if ext in ("png", "jpg", "jpeg", "tif", "tiff", "bmp", "gif"):
+                result = self._extract_from_image(file_path)
+                return result
+
+            return {
+                "success": False,
+                "error": f"Unsupported file type: .{ext}",
+                "text": "",
+                "pages": [],
+                "total_pages": 0,
+                "extraction_method": "unsupported"
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Text extraction failed: {str(e)}",
+                "text": "",
+                "pages": [],
+                "total_pages": 0,
+                "extraction_method": "unknown"
+            }

@@ -87,7 +87,13 @@
   animation: pulse 2s infinite;
 }
 
-.footer-university-info h3 {
+.footer-university-name a { /*pup link*/
+  color: inherit;
+  text-decoration: none;
+  font: inherit;
+}
+
+.footer-university-info h3 {  /*pup info*/
   font-family: "Trajan Pro", serif;
   font-size: 0.8rem;
   font-weight: 700;

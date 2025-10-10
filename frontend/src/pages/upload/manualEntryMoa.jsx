@@ -418,7 +418,11 @@ const handleSubmit = async (e) => {
       partnership_type: partnershipType,
       agreement_status: data.status,
       entry_type: data.entryType,
-      entry_date: entryDate || null, // Use state for entryDate
+            entry_date: entryDate || null, // not from form
+      related_agreement_id:
+        selectedRelatedAgreement?.value === "NA"
+          ? null
+          : selectedRelatedAgreement?.value || null, 
       date_received: data.dateReceived || null,
       date_endorsed_to_ulco: data.dateEndorsed || null,
       date_ulco_approved: data.dateUlcoApproved || null,
@@ -516,6 +520,36 @@ const handleSubmit = async (e) => {
   }
 };
 
+  const [relatedAgreements, setRelatedAgreements] = useState([]);
+  const [selectedRelatedAgreement, setSelectedRelatedAgreement] = useState(null);
+
+  // Fetch related agreements based on documentType
+  useEffect(() => {
+    const fetchRelated = async () => {
+      if (!documentType) {
+        setRelatedAgreements([]);
+        setSelectedRelatedAgreement(null);
+        return;
+      }
+      try {
+        // Fetch agreements of the opposite type
+        const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
+        const agreements = await agreementService.getAgreementsByType(typeToFetch);
+        const options = agreements.map(a => ({
+          value: a.agreement_id,
+          label: `${a.dts_number} - ${a.partner_name}`,
+        }));
+        options.unshift({ value: "NA", label: "N/A" });
+        setRelatedAgreements(options);
+        setSelectedRelatedAgreement(options[0]);
+      } catch (err) {
+        setRelatedAgreements([{ value: "NA", label: "N/A" }]);
+        setSelectedRelatedAgreement({ value: "NA", label: "N/A" });
+      }
+    };
+    fetchRelated();
+  }, [documentType]);
+
     return (
   <TopbarSidebar>
     <div className="manual-entry-wrapper">
@@ -536,19 +570,6 @@ const handleSubmit = async (e) => {
         )}
         <form className="manual-entry-form" onSubmit={handleSubmit}>
 
-          {/* DATE */}
-          <div className="form-group">
-            <label htmlFor="entryDate">Date:</label>
-            <input
-              id="entryDate"
-              name="entryDate"
-              type="date"
-              required
-              value={entryDate}
-              onChange={(e) => setEntryDate(e.target.value)}
-            />
-          </div> 
-
           {/* Document Type */}
           <div className="form-group">
           <label htmlFor="docType">Document Type:*</label>
@@ -567,21 +588,48 @@ const handleSubmit = async (e) => {
           </select>
           </div>
 
+         {/* Related MOU/MOA */}
+          <div className="form-group">
+            <label htmlFor="relatedAgreement">
+              {documentType === "MOA"
+                ? "Related MOU"
+                : documentType === "MOU"
+                ? "Related MOA"
+                : "Related MOU/MOA"}
+              :
+            </label>
+            <Select
+              id="relatedAgreement"
+              name="relatedAgreement"
+              options={relatedAgreements}
+              value={selectedRelatedAgreement}
+              onChange={setSelectedRelatedAgreement}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select Related Agreement"
+              isDisabled={!documentType}
+            />
+          </div>
+
           {/* AGREEMENT STATUS */}
           <div className="form-group">
           <label htmlFor="status">Agreement Status:*</label>
           <select id="status" name="status" required>
-            <option value="">Select Agreement Status</option>
-            <option value="Endorse">Endorse to ULCO for review and approval</option>
-            <option value="Revert">Revert to Initiator with comments</option>
-            <option value="Replication">For Replication of Copies (6 set)</option>
-            <option value="SignituresPUP">For Signitures of PUP Officials</option>
-            <option value="SignedPUP">Signed By PUP Officials</option>
-            <option value="SignituresPartner">For Signiture of Partner</option>
-            <option value="Complete">Completly Signed</option>
+            <option value="">Select Status</option>
+            <option value="InitialReview">Initial Review</option>
+            <option value="Endorse">Endorse to ULCO for Review and Approval</option>
+            <option value="Revert">Revert To Initiator with Comments</option>
+            <option value="Consultation">For Consultation</option>
+            <option value="Replication">Replication of Copies (8 sets)</option>
+            <option value="SignituresPUP">For Signatures of PUP Officials</option>
+            <option value="SignedPUP">Signed by PUP Officials</option>
+            <option value="SignituresPartner">For Signatures of Partner</option>
+            <option value="SignedPartner">Signed by Partner Institution</option>
+            <option value="Complete">Completely Signed</option>
             <option value="Notary">For Notary</option>
-            <option value="FFUPCopy">For FFUP Copy from college/campus</option>
-            <option value="Renewal">Renewal</option>
+            <option value="FFUPCopy">FFUP Copy From College/Campus</option>
+            <option value="Active">Active</option>
+            <option value="Withdrawn">Withdrawn</option>
           </select>
           </div>
 
@@ -640,10 +688,8 @@ const handleSubmit = async (e) => {
             <label htmlFor="dtsStatus">DTS Status:*</label>
             <select id="dtsStatus" name="dtsStatus" required>
               <option value="">Select Status</option>
-              <option value="Open - OIA">OPEN - OIA</option>
-              <option value="Closed - OIA">Closed - OIA</option>
-              <option value="Open - Other Office">Open - Other Office</option>
-              <option value="Closed - Other Office">Closed - Other Office</option>
+              <option value="Open - OIA">OPEN</option>
+              <option value="Open - Other Office">CLOSE</option>
             </select>
           </div>
 
@@ -956,33 +1002,6 @@ const handleSubmit = async (e) => {
           <input id="dateUlcoApproved" name="dateUlcoApproved" type="date" />
           </div>
 
-            {/* DEADLINE DATE */}
-            <div className="form-group full-width">
-              <label htmlFor="deadlineDate">Deadline Date:</label>
-              <input id="deadlineDate" name="deadlineDate" type="date" />
-            </div>
-
-            {/* REMINDER INTERVAL*/}
-            <div className="form-group full-width">
-              <label>Reminder Interval:</label>
-              <div className="deadline-selects">
-                <select name="days">
-                  {[...Array(31).keys()].map((d) => (
-                    <option key={d} value={d}>{d} days</option>
-                  ))}
-                </select>
-                <select name="hours">
-                  {[...Array(24).keys()].map((h) => (
-                    <option key={h} value={h}>{h} hours</option>
-                  ))}
-                </select>
-                <select name="minutes">
-                  {[...Array(60).keys()].map((m) => (
-                    <option key={m} value={m}>{m} minutes</option>
-                  ))}
-                </select>
-              </div>
-            </div>
 
           {/* HARDCOPY LOCATOR */}
           <div className="form-group full-width">

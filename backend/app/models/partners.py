@@ -13,8 +13,8 @@ class Partners(Base):
     address = Column(String(255), nullable=True)
     website_url = Column(String(255), nullable=True)
     description = Column(Text, nullable=True)
-    # logo_path = Column(String(255), nullable=True)
-    logo_path = Column(LargeBinary, nullable=True)
+    logo_path = Column(String(255), nullable=True)
+    #logo_path = Column(LargeBinary, nullable=True)
     status = Column(String(20), nullable=False)
     created_at = Column(DateTime, nullable=False)
 

@@ -45,7 +45,8 @@ class PartnerCreate(BaseModel):
     address: Optional[str] = Field(None, max_length=255)
     website_url: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None
-    logo_path: Optional[bytes] = None  # Changed to bytes for LargeBinary
+    #logo_path: Optional[bytes] = None  # Changed to bytes for LargeBinary
+    logo_path: Optional[str] = None  
     status: str = Field(default="active", max_length=20)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     contact_persons: List[ContactPersonCreate] = Field(default_factory=list)
