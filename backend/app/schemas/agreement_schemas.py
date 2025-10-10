@@ -45,7 +45,6 @@ class PartnerCreate(BaseModel):
     address: Optional[str] = Field(None, max_length=255)
     website_url: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None
-    #logo_path: Optional[bytes] = None  # Changed to bytes for LargeBinary
     logo_path: Optional[str] = None  
     status: str = Field(default="active", max_length=20)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -130,7 +129,7 @@ class AgreementResponse(BaseModel):
     entity_type: Optional[str]
     website_url: Optional[str]
     description: Optional[str]
-    logo_path: Optional[bytes]  # Changed to bytes for LargeBinary
+    logo_path: Optional[str] = None 
 
     # Agreement info 
     dts_number: str
