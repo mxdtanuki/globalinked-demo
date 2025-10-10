@@ -12,11 +12,22 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 Base.metadata.create_all(bind=engine)
 
-# Professional, polished templates
+# Polished templates
 templates = [
     {
+        "template_name": "Initial Review",
+        "subject": "Agreement Under Initial Review",
+        "body_html": """Dear {{PARTNER_NAME}},<br><br>
+        This is to notify you that the {{DOCUMENT_TYPE}} with <strong>{{PARTNER_NAME}}</strong> 
+        is under initial review in the International Affairs Office.<br><br>
+        <b>DTS Number:</b> {{DTS_NUMBER}}<br>
+        <b>Status:</b> Under Initial Review<br><br>
+        Thank you.<br>
+        <i>Office of International Affairs, PUP</i>"""
+    },
+    {
         "template_name": "Endorse To ULCO for Review and Approval",
-        "subject": "Agreement Endorsed to ULCO for Review",
+        "subject": "Agreement Endorsed to ULCO",
         "body_html": """Dear {{PARTNER_NAME}},<br><br>
         This is to notify you that the {{DOCUMENT_TYPE}} with <strong>{{PARTNER_NAME}}</strong> 
         has been formally endorsed to ULCO for review and approval.<br><br>
@@ -25,13 +36,22 @@ templates = [
         Thank you.<br>
         <i>Office of International Affairs, PUP</i>"""
     },
-    {
-        "template_name": "Revert To Initiator with Comments",
+        {
+    "template_name": "Revert To Initiator with Comments",
         "subject": "Agreement Reverted for Revision",
         "body_html": """Dear {{PARTNER_NAME}},<br><br>
         The {{DOCUMENT_TYPE}} with <strong>{{PARTNER_NAME}}</strong> has been reverted to the initiator 
         with comments for revision.<br><br>
         <b>Status:</b> Revert to Initiator with Comments<br><br>
+        Thank you.<br>
+        <i>Office of International Affairs, PUP</i>"""
+    },
+    {
+        "template_name": "For Consultation",
+        "subject": "Agreement Under Consultation",
+        "body_html": """Dear {{PARTNER_NAME}},<br><br>
+        The {{DOCUMENT_TYPE}} with <strong>{{PARTNER_NAME}}</strong> is currently under consultation.<br><br>
+        <b>Status:</b> Under Consultation<br><br>
         Thank you.<br>
         <i>Office of International Affairs, PUP</i>"""
     },
