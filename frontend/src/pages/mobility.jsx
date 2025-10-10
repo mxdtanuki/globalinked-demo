@@ -33,31 +33,33 @@ const Mobility = () => {
     fetchAgreements();
   }, []);
 
-//fetch agreements from backend
-  const fetchAgreements = async () => {
-    try {
-      setLoading(true);
-      const data = await agreementService.getAgreements();
+const fetchAgreements = async () => {
+  try {
+    setLoading(true);
+    const data = await agreementService.getAgreements();
 
-      const allowedClassifications = [
-        "MOA on Student Competition",
-        "MOA on Internship",
-        "MOA on Faculty Exchange",
-        "MOA on Student Exchange",
-        "MOA on Faculty and Student Exchange"
-      ];
+    // Only include agreements with status "Active"
+    const activeData = data.filter(item => item.agreement_status === "Active");
 
-      const filteredData = data.filter(item =>
-        allowedClassifications.includes(item.partnership_type)
-      );
+    const allowedClassifications = [
+      "MOA on Student Competition",
+      "MOA on Internship",
+      "MOA on Faculty Exchange",
+      "MOA on Student Exchange",
+      "MOA on Faculty and Student Exchange"
+    ];
 
-      setAgreements(filteredData);
-    } catch (err) {
-      setError("Failed to fetch agreements: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const filteredData = activeData.filter(item =>
+      allowedClassifications.includes(item.partnership_type)
+    );
+
+    setAgreements(filteredData);
+  } catch (err) {
+    setError("Failed to fetch agreements: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
   
   const dynamicOptions = {
     partnersClassification: [
@@ -227,8 +229,14 @@ const handleGenerateExcel = async () => {
           className="main-content"
           onClick={() => mobileShow && setMobileShow(false)}
         >
-
+         {loading ? (
+            <p>Loading agreements...</p>
+          ) : error ? (
+            <p style={{ color: "red" }}>{error}</p>
+          ) : (
+            <>
           <h2 className="mobility-title">Mobility Office</h2>
+          
 
           <div className="mobility-wrapper">
             <div className="mobility-header">
@@ -253,7 +261,7 @@ const handleGenerateExcel = async () => {
                 Generate PDF
               </button>
               <button className="generate-btn" onClick={handleGenerateExcel}>
-              Generate 
+              Generate Excel
             </button>
             </div>
 
@@ -403,8 +411,10 @@ const handleGenerateExcel = async () => {
               >
                 Next →
               </button>
-            </div>
-          </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

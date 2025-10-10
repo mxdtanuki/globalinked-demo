@@ -63,7 +63,7 @@ const AgreementDocument = () => {
       console.log("Sample remarks:", filteredAgreements[0]?.remarks);
 
 
-      const filtered = data.filter(a => a.agreement_status === "FFUPCopy");
+      const filtered = data.filter(a => a.agreement_status === "Active");
       setAgreements(filtered);
       setFilteredAgreements(filtered);
     } catch (err) {
@@ -170,21 +170,22 @@ useEffect(() => {
     currentPage > 1 && setCurrentPage((prev) => prev - 1);
 
   // Editing 
-  const handleEdit = (agreement) => {
-    const normalizedRemarks = Array.isArray(agreement.remarks)
-      ? agreement.remarks.map((r) =>
-          typeof r === "object"
-            ? r.remark_text || r.text || r.remark || ""
-            : r
-        )
-      : [];
+const handleEdit = (agreement) => {
+  const normalizedRemarks = Array.isArray(agreement.remarks)
+    ? agreement.remarks.map((r) =>
+        typeof r === "object"
+          ? r.remark_text || r.text || r.remark || ""
+          : r
+      )
+    : [];
 
-    setEditId(agreement.agreement_id);
-    setEditData({
-      hardcopy_location: agreement.hardcopy_location || "",
-      remarks: normalizedRemarks,
-    });
-  };
+  setEditId(agreement.agreement_id);
+  setEditData({
+    hardcopy_location: agreement.hardcopy_location || "",
+    remarks: normalizedRemarks,
+    agreement_status: agreement.agreement_status || "", 
+  });
+};
 
 
   const handleSave = async (id) => {
@@ -372,14 +373,13 @@ const exportToExcel = async () => {
           className="main-content"
           onClick={() => mobileShow && setMobileShow(false)}
         >
-          <h2 className="archive-title">Agreements</h2>
-
           {loading ? (
             <p>Loading agreements...</p>
           ) : error ? (
             <p style={{ color: "red" }}>{error}</p>
           ) : (
             <>
+            <h2 className="archive-title">Agreements</h2>
               <div className="stats-row">
                 {stats.map((s, i) => (
                   <button
@@ -525,6 +525,7 @@ const exportToExcel = async () => {
                         <th>Expiry Date</th>
                         <th>Point Person</th>
                         <th>Contact Person</th>
+                        <th>Status</th> 
                         <th>Hardcopy Locator</th>
                         <th>Remarks</th>
                         <th>Action</th>
@@ -544,6 +545,35 @@ const exportToExcel = async () => {
                             <td>{a.date_expiry || "N/A"}</td>
                             <td>{a.point_persons_display || a.point_persons || "N/A"}</td>
                             <td>{a.contact_persons_display || a.contact_persons || "N/A"}</td>
+                            <td>
+                            {editId === a.agreement_id ? (
+                              <select
+                                value={editData.agreement_status || a.agreement_status || ""}
+                                onChange={e =>
+                                  setEditData({ ...editData, agreement_status: e.target.value })
+                                }
+                                style={{ minWidth: "180px" }}
+                              >
+                                <option value="">Select Status</option>
+                                <option value="InitialReview">Initial Review</option>
+                                <option value="Endorse">Endorse to ULCO for Review and Approval</option>
+                                <option value="Revert">Revert To Initiator with Comments</option>
+                                <option value="Consultation">For Consultation</option>
+                                <option value="Replication">Replication of Copies (8 sets)</option>
+                                <option value="SignituresPUP">For Signatures of PUP Officials</option>
+                                <option value="SignedPUP">Signed by PUP Officials</option>
+                                <option value="SignituresPartner">For Signatures of Partner</option>
+                                <option value="SignedPartner">Signed by Partner Institution</option>
+                                <option value="Complete">Completely Signed</option>
+                                <option value="Notary">For Notary</option>
+                                <option value="FFUPCopy">FFUP Copy From College/Campus</option>
+                                <option value="Active">Active</option>
+                                <option value="Withdrawn">Withdrawn</option>
+                              </select>
+                            ) : (
+                              a.agreement_status || "N/A"
+                            )}
+                          </td>
                             <td>
                               {editId === a.agreement_id ? (
                                 <input

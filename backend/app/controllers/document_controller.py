@@ -433,7 +433,6 @@ async def extract_agreement_metadata(
 
         print(f"Saved uploaded file to temporary path: {tmp_path}")
 
-        # Use the shared NLP service created at FastAPI startup (preferred)
         try:
             nlp_service = getattr(request.app.state, "nlp_service", None)
             if nlp_service is None:

@@ -12,7 +12,7 @@ const OverviewDash = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [agreements, setAgreements] = useState([]);
   const [filteredAgreements, setFilteredAgreements] = useState([]);
-  const [statFilter, setStatFilter] = useState('OPEN - OIA');
+  const [statFilter, setStatFilter] = useState('OPEN');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(null);
@@ -42,9 +42,13 @@ const fetchAgreements = async () => {
     const data = await agreementService.getAgreements();
     setAgreements(data);
 
-    // Show only OPEN - OIA by default
-    const openOIA = data.filter(a => a.dts_status === 'Open - OIA');
-    setFilteredAgreements(openOIA);
+    // Show only OPEN by default
+    const openOnly = data.filter(a => 
+      a.dts_status === 'Open - OIA' &&
+      a.agreement_status !== 'Active' &&
+      a.agreement_status !== 'Withdrawn'
+    );
+    setFilteredAgreements(openOnly);
   } catch (err) {
     setError('Failed to fetch agreements: ' + err.message);
   } finally {
@@ -474,28 +478,30 @@ const handleDateSort = () => {
     }
 
     // Special handling for different field types
-    if (field === 'agreement_status') {
-      return (
-        <select
-          value={editedData[field] || ''}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          className="edit-input"
-        >
-          <option value="">Select Status</option>
-          <option value="Endorse">Endorse to ULCO for Review and Approval</option>
-          <option value="Revert">Revert To Initiator with Comments</option>
-          <option value="Replication">Replication of Copies (8 sets)</option>
-          <option value="SignituresPUP">For Signatures of PUP Officials</option>
-          <option value="SignedPUP">Signed by PUP Officials</option>
-          <option value="SignituresPartner">For Signatures of Partner</option>
-          <option value="SignedPartner">Signed by Partner Institution</option>
-          <option value="Complete">Completely Signed</option>
-          <option value="Notary">For Notary</option>
-          <option value="FFUPCopy">FFUP Copy From College/Campus</option>
-          <option value="Active">Active</option>
-          <option value="Withdrawn">Withdrawn</option>
-        </select>
-      );
+  if (field === 'agreement_status') {
+    return (
+      <select
+        value={editedData[field] || ''}
+        onChange={(e) => handleInputChange(field, e.target.value)}
+        className="edit-input"
+      >
+        <option value="">Select Status</option>
+        <option value="InitialReview">Initial Review</option>
+        <option value="Endorse">Endorse to ULCO for Review and Approval</option>
+        <option value="Revert">Revert To Initiator with Comments</option>
+        <option value="Consultation">For Consultation</option>
+        <option value="Replication">Replication of Copies (8 sets)</option>
+        <option value="SignituresPUP">For Signatures of PUP Officials</option>
+        <option value="SignedPUP">Signed by PUP Officials</option>
+        <option value="SignituresPartner">For Signatures of Partner</option>
+        <option value="SignedPartner">Signed by Partner Institution</option>
+        <option value="Complete">Completely Signed</option>
+        <option value="Notary">For Notary</option>
+        <option value="FFUPCopy">FFUP Copy From College/Campus</option>
+        <option value="Active">Active</option>
+        <option value="Withdrawn">Withdrawn</option>
+      </select>
+    );
     } else if (field === 'dts_status') {
       return (
         <select
@@ -504,10 +510,8 @@ const handleDateSort = () => {
           className="edit-input"
         >
           <option value="">Select Status</option>
-          <option value="Open - OIA">Open - OIA</option>
-          <option value="Closed - OIA">Closed - OIA</option>
-          <option value="Open - Other Office">Open - Other Office</option>
-          <option value="Closed - Other Office">Closed - Other Office</option>
+          <option value="Open - OIA">Open</option>
+          <option value="Open - Other Office">Close</option>
         </select>
       );
     } else if (field === 'document_type') {
@@ -556,20 +560,20 @@ const handleDateSort = () => {
 const handleSearch = useCallback(() => {
   let data = agreements;
 
-  // Always filter by statFilter first
+  // Exclude Active and Withdrawn
+  data = data.filter(a =>
+    a.agreement_status !== "Active" &&
+    a.agreement_status !== "Withdrawn"
+  );
+
+  // Filter by statFilter
   if (statFilter) {
     switch (statFilter) {
-      case 'OPEN - OIA':
+      case 'OPEN':
         data = data.filter(a => a.dts_status === 'Open - OIA');
         break;
-      case 'CLOSED - OIA':
-        data = data.filter(a => a.dts_status === 'Closed - OIA');
-        break;
-      case 'OPEN - OTHER OFFICE':
+      case 'CLOSE':
         data = data.filter(a => a.dts_status === 'Open - Other Office');
-        break;
-      case 'CLOSED - OTHER OFFICE':
-        data = data.filter(a => a.dts_status === 'Closed - Other Office');
         break;
       default:
         break;
@@ -608,20 +612,20 @@ useEffect(() => {
 const applyIndependentFilter = () => {
   let data = agreements;
 
+  // Exclude Active and Withdrawn
+  data = data.filter(a =>
+    a.agreement_status !== "Active" &&
+    a.agreement_status !== "Withdrawn"
+  );
+
   // Always filter by statFilter first
   if (statFilter) {
     switch (statFilter) {
-      case 'OPEN - OIA':
+      case 'OPEN':
         data = data.filter(a => a.dts_status === 'Open - OIA');
         break;
-      case 'CLOSED - OIA':
-        data = data.filter(a => a.dts_status === 'Closed - OIA');
-        break;
-      case 'OPEN - OTHER OFFICE':
+      case 'CLOSE':
         data = data.filter(a => a.dts_status === 'Open - Other Office');
-        break;
-      case 'CLOSED - OTHER OFFICE':
-        data = data.filter(a => a.dts_status === 'Closed - Other Office');
         break;
       default:
         break;
@@ -672,30 +676,42 @@ const clearIndependentFilter = () => {
 };
 
 const stats = [
-  { label: 'OPEN - OIA', count: agreements.filter(a => a.dts_status === 'Open - OIA').length },
-  { label: 'CLOSED - OIA', count: agreements.filter(a => a.dts_status === 'Closed - OIA').length },
-  { label: 'OPEN - OTHER OFFICE', count: agreements.filter(a => a.dts_status === 'Open - Other Office').length },
-  { label: 'CLOSED - OTHER OFFICE', count: agreements.filter(a => a.dts_status === 'Closed - Other Office').length }
+  { 
+    label: 'OPEN', 
+    count: agreements.filter(a => 
+      a.dts_status === 'Open - OIA' &&
+      a.agreement_status !== 'Active' &&
+      a.agreement_status !== 'Withdrawn'
+    ).length 
+  },
+  { 
+    label: 'CLOSE', 
+    count: agreements.filter(a => 
+      a.dts_status === 'Open - Other Office' &&
+      a.agreement_status !== 'Active' &&
+      a.agreement_status !== 'Withdrawn'
+    ).length 
+  },
 ];
   
 const filteredForLifecycle = agreements.filter(a => {
+  // Exclude Active and Withdrawn
+  if (a.agreement_status === "Active" || a.agreement_status === "Withdrawn") return false;
   switch (statFilter) {
-    case 'OPEN - OIA':
+    case 'OPEN':
       return a.dts_status === 'Open - OIA';
-    case 'CLOSED - OIA':
-      return a.dts_status === 'Closed - OIA';
-    case 'OPEN - OTHER OFFICE':
+    case 'CLOSE':
       return a.dts_status === 'Open - Other Office';
-    case 'CLOSED - OTHER OFFICE':
-      return a.dts_status === 'Closed - Other Office';
     default:
       return true;
   }
 });
 
 const lifecycleStages = [
+  { label: 'Initial Review', status: 'InitialReview' },
   { label: 'Endorse to ULCO', status: 'Endorse' },
   { label: 'Revert to Initiator', status: 'Revert' },
+  { label: 'For Consultation', status: 'Consultation' },
   { label: 'For Replication', status: 'Replication' },
   { label: 'For Signature of PUP Official', status: 'SignituresPUP' },
   { label: 'Signed by PUP Official', status: 'SignedPUP' },

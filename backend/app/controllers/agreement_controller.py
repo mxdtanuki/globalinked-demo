@@ -20,7 +20,8 @@ from app.schemas.agreement_schemas import (
     PointPersonResponse,
     ContactPersonResponse,
     TimerResponse,
-    ArchiveAgreementResponse
+    ArchiveAgreementResponse,
+    RemarkResponse
 )
 from app.utils.utils import get_current_user
 from app.utils.audit_utils import log_add_entry, log_update_entry, log_delete_entry
@@ -33,10 +34,12 @@ router = APIRouter(
     tags=["Agreements"]
 )
 
-def encode_logo(logo_bytes: bytes | None) -> str | None:
-    if not logo_bytes:
+def encode_logo(logo: bytes | str | None) -> str | None:
+    if not logo:
         return None
-    return base64.b64encode(logo_bytes).decode("utf-8")
+    if isinstance(logo, str):
+        return logo  
+    return base64.b64encode(logo).decode("utf-8")
 
 def decode_logo(base64_str: str | None) -> bytes | None:
     if not base64_str:
@@ -134,8 +137,7 @@ async def get_agreements(
 
             # remarks
             remarks = db.query(AgreementRemarks).filter(
-                AgreementRemarks.agreement_id == agreement.agreement_id
-            ).all()
+                AgreementRemarks.agreement_id == agreement.agreement_id).all()
 
             # pre-concatenated display strings
             contact_persons_display = ", ".join(
@@ -189,13 +191,14 @@ async def get_agreements(
                 ],
                 contact_persons_display=contact_persons_display,
                 point_persons_display=point_persons_display,
-                remarks=remarks,
+                remarks=[RemarkResponse.model_validate(r, from_attributes=True) for r in remarks],
                 created_at=partner.created_at
             ))
 
         return agreements_list
 
     except Exception as e:
+        traceback.print_exc() 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching agreements: {str(e)}"
@@ -365,7 +368,7 @@ async def create_agreement(
                         ContactPersonResponse.model_validate(cp, from_attributes=True)
                         for cp in contact_persons
                     ],
-                    remarks=remarks,
+                    remarks=[RemarkResponse.model_validate(r, from_attributes=True) for r in remarks],
                     created_at=partner.created_at
                 )
             }
@@ -549,7 +552,7 @@ async def create_agreement(
                     ContactPersonResponse.model_validate(cp, from_attributes=True)
                     for cp in contact_persons
                 ],
-                remarks=remarks,
+                remarks=[RemarkResponse.model_validate(r, from_attributes=True) for r in remarks],
                 point_persons=[
                     PointPersonResponse.model_validate(pp, from_attributes=True)
                     for pp in point_persons
@@ -741,7 +744,7 @@ async def update_agreement(
                 ContactPersonResponse.model_validate(cp, from_attributes=True)
                 for cp in contact_persons
             ],
-            remarks=remarks,
+            remarks=[RemarkResponse.model_validate(r, from_attributes=True) for r in remarks],
             point_persons=[
                 PointPersonResponse.model_validate(pp, from_attributes=True)
                 for pp in point_persons
@@ -808,5 +811,5 @@ async def delete_agreement(
     except Exception as e:
         db.rollback()
         print("🔥 Unhandled error in delete_agreement:", e)
-        traceback.print_exc()   # <-- full traceback in Render logs
+        traceback.print_exc() 
         raise HTTPException(status_code=500, detail="Internal Server Error")
