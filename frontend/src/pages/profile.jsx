@@ -15,38 +15,23 @@ const Profile = () => {
   const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const data = await getCurrentUser();
-        console.log("getCurrentUser() response:", data); 
-        setProfilePic(
-          data.user_profile_img
-            ? `data:image/png;base64,${data.user_profile_img}`
-            : null
-        );
-      } catch (err) {
-        console.error("Failed to load user from API:", err);
+useEffect(() => {
+  const loadProfile = async () => {
+    try {
+      const data = await getCurrentUser();
+      console.log("getCurrentUser() response:", data);
+      setCurrentUser(data);
+      setProfilePic(data.user_profile_img ? `data:image/png;base64,${data.user_profile_img}` : null);
+      localStorage.setItem("user", JSON.stringify(data)); // optional cache
+    } catch (err) {
+      console.error("Failed to load user from API:", err);
+      const cached = localStorage.getItem("user");
+      if (cached) setCurrentUser(JSON.parse(cached));
+    }
+  };
+  loadProfile();
+}, []);
 
-        // fallback to cached localStorage
-        const cached = localStorage.getItem("user");
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            setCurrentUser(parsed);
-            setProfilePic(
-              parsed.user_profile_img
-                ? `data:image/png;base64,${parsed.user_profile_img}`
-                : null
-            );
-          } catch (e) {
-            console.error("Failed to parse cached user:", e);
-          }
-        }
-      }
-    };
-    loadProfile();
-  }, []);
 
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
