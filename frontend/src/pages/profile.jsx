@@ -2,80 +2,93 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
 import { FiCamera } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';   
+import { useNavigate } from 'react-router-dom';
+import { getCurrentUser, updateUserProfile } from '../services/registrationService';
 import '../components/layout.css';
-import './profile.css'; 
+import './profile.css';
 
 const Profile = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);  
+  const [currentUser, setCurrentUser] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
-  const navigate = useNavigate();  
+  const [isSaving, setIsSaving] = useState(false);
+  const navigate = useNavigate();
 
-  const toggleCollapse = () => setCollapsed(!collapsed);
-  const toggleMobileSidebar = () => setMobileShow(!mobileShow);
-
-  // Load user data from localStorage on mount
-  useEffect(() => {
+useEffect(() => {
+  const loadProfile = async () => {
     try {
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        const parsedUser = JSON.parse(userStr);
-        setCurrentUser(parsedUser);
-        setProfilePic(parsedUser.profile_pic || null);
-      }
+      const data = await getCurrentUser();
+      console.log("getCurrentUser() response:", data);
+      setCurrentUser(data);
+      setProfilePic(data.user_profile_img ? `data:image/png;base64,${data.user_profile_img}` : null);
+      localStorage.setItem("user", JSON.stringify(data)); // optional cache
     } catch (err) {
-      console.error("Error parsing user from localStorage:", err);
+      console.error("Failed to load user from API:", err);
+      const cached = localStorage.getItem("user");
+      if (cached) setCurrentUser(JSON.parse(cached));
     }
-  }, []);
+  };
+  loadProfile();
+}, []);
 
-  // local storage pa lng yung picture, hindi pa sha connected to database or backend
+
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePic(reader.result);
-        const updatedUser = { ...currentUser, profile_pic: reader.result };
-        setCurrentUser(updatedUser);
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-      };
-      reader.readAsDataURL(file); 
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Str = reader.result.split(",")[1]; // only keep base64 data
+      setProfilePic(reader.result);
+      setCurrentUser(prev => ({
+        ...prev,
+        user_profile_img: base64Str,
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async () => {
+    if (!currentUser) return;
+    setIsSaving(true);
+    try {
+      const updated = await updateUserProfile(currentUser.user_id, {
+        user_name: currentUser.user_name,
+        user_email: currentUser.user_email,
+        user_position: currentUser.user_position,
+        user_profile_img: currentUser.user_profile_img,
+      });
+
+      setCurrentUser(updated);
+      localStorage.setItem("user", JSON.stringify(updated));
+      alert("Profile updated successfully!");
+    } catch (err) {
+      alert("Failed to update profile: " + err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
     <div className="dashboard-container">
-      <TopBar toggleSidebar={toggleMobileSidebar} />
-
+      <TopBar toggleSidebar={() => setMobileShow(!mobileShow)} />
       {mobileShow && <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />}
 
       <div className="content-body">
-        <Sidebar
-          collapsed={collapsed}
-          toggleCollapse={toggleCollapse}
-          mobileShow={mobileShow}
-        />
-
-        <div
-          className="main-content"
-          onClick={() => mobileShow && setMobileShow(false)}
-        >
+        <Sidebar collapsed={collapsed} toggleCollapse={() => setCollapsed(!collapsed)} mobileShow={mobileShow} />
+        <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
           <div className="profile-container">
             <div className="profile-card">
               <h3 className="profile-title">Profile</h3>
 
               <div className="profile-pic-wrapper">
                 <img
-                  src={profilePic}
+                  src={profilePic || "/default-profile.png"}
                   alt="Profile"
                   className="profile-pic"
                 />
-                <div
-                  className="camera-icon"
-                  onClick={() => document.getElementById("profilePicInput").click()}
-                >
+                <div className="camera-icon" onClick={() => document.getElementById("profilePicInput").click()}>
                   <FiCamera />
                 </div>
                 <input
@@ -88,44 +101,44 @@ const Profile = () => {
               </div>
 
               <div className="form-group">
-                <label>Password</label>
-                <input 
-                  type="password" 
-                  value="********"   // always show as dots
-                  readOnly 
+                <label>Name</label>
+                <input
+                  type="text"
+                  value={currentUser?.user_name || ""}
+                  onChange={(e) => setCurrentUser({ ...currentUser, user_name: e.target.value })}
                 />
               </div>
 
-            <div className="form-group">
-              <label>User Email</label>
-              <input 
-                type="text" 
-                value={currentUser?.user_email || ""}  
-                readOnly 
-              />
-            </div>
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  type="text"
+                  value={currentUser?.user_email || ""}
+                  onChange={(e) => setCurrentUser({ ...currentUser, user_email: e.target.value })}
+                />
+              </div>
 
               <div className="form-group">
                 <label>Position</label>
-                <input 
-                  type="text" 
-                  value={currentUser?.user_position || currentUser?.user_role?.toUpperCase() || ""} 
-                  readOnly 
+                <input
+                  type="text"
+                  value={currentUser?.user_position || ""}
+                  onChange={(e) => setCurrentUser({ ...currentUser, user_position: e.target.value })}
                 />
               </div>
 
               <div className="profile-actions">
-                <button className="btn-save">Save</button>
-                <button className="btn-cancel">Cancel</button>
+                <button className="btn-save" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save"}
+                </button>
+                <button className="btn-cancel" onClick={() => window.location.reload()}>
+                  Cancel
+                </button>
               </div>
 
-              {/* Manage User Request Button */}
               {currentUser?.user_role?.toLowerCase() === "admin" && (
                 <div className="manage-user-requests">
-                  <button 
-                    className="btn-manage" 
-                    onClick={() => navigate('/userManagement')}
-                  >
+                  <button className="btn-manage" onClick={() => navigate('/userManagement')}>
                     Manage User Requests
                   </button>
                 </div>

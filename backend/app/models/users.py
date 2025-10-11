@@ -14,5 +14,4 @@ class Users(Base):
     forgot_pass_token = Column(String(255), nullable=True) # token for password reset
     user_email = Column(String(255), nullable=False, unique=True) # added to be able to send email confirmation
     user_status = Column(String(10), nullable=True)  # e.g., approved, pending, rejected
-    # Note: add user_status to your db, and if not done yet, drop point_person_list in agreements table 
     reset_token_expiry = Column(DateTime, nullable=True)
