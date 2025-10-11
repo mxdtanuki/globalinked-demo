@@ -2,9 +2,8 @@ import os
 import re
 import logging
 from datetime import datetime
-from dateutil import parser as _dateparser
+from dateutil import parser
 from typing import Dict, Any, List, Optional
-
 
 from difflib import get_close_matches
 
@@ -448,26 +447,6 @@ class NLPLegalExtractionService:
         except Exception as e:
             logger.exception("Extraction failed")
             return {"error": f"Extraction failed: {str(e)}"}
-        
-    def _normalize_date_str(self, s: Optional[str]) -> Optional[str]:
-        if not s: return None
-        try:
-            d = _dateparser.parse(s, fuzzy=True)
-            return d.date().isoformat()
-        except Exception:
-            return None
-
-    def _normalize_int(self, s: Optional[str]) -> Optional[int]:
-        if s is None: return None
-        # try direct int
-        if isinstance(s, int): return s
-        try:
-            return int(str(s).strip())
-        except Exception:
-            # simple word-to-num fallback
-            w = str(s).strip().lower()
-            m = {"one":1,"two":2,"three":3,"four":4,"five":5,"six":6,"seven":7,"eight":8,"nine":9,"ten":10}
-            return m.get(w)
 
     def extract_moa_for_agreement_response(self, text: str) -> Dict[str, Any]:
         """
@@ -569,19 +548,6 @@ class NLPLegalExtractionService:
 
         # Merge QA results
         extracted.update(qa_results)
-
-        for key in ["date_signed", "date_pup_signed", "date_expiry", "date_received", "date_endorsed_to_ulco", "date_ulco_approved"]:
-            if extracted.get(key):
-                norm = self._normalize_date_str(extracted[key])
-                if norm: extracted[key] = norm
-
-            if extracted.get("validity_period") not in (None, 0, ""):
-                vp = self._normalize_int(extracted["validity_period"])
-                if vp: extracted["validity_period"] = vp
-
-            # Trim event_info if long (e.g., DB column limit 255)
-            if extracted.get("event_info") and len(extracted["event_info"]) > 255:
-                extracted["event_info"] = extracted["event_info"][:255]
 
         # Map to final structure
         return self._map_to_agreement_fields(extracted, clean_text)

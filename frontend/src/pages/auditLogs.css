@@ -73,6 +73,20 @@
   background: #fff7f7;
 }
 
+/* Checkbox column adjustment */
+.auditlogs-table th:first-child,
+.auditlogs-table td:first-child {
+  width: 35px;  
+  text-align: center;
+  padding: 4px 0;      
+}
+
+.auditlogs-table input[type="checkbox"] {
+  transform: scale(1.1);
+  margin: 0;            
+  cursor: pointer;
+}
+
 /* Filter Buttons */
 .filter-btn {
   padding: 8px 16px;

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import Header from "./components/Header";
 import MainBanner from "./components/MainBanner";
@@ -12,6 +13,17 @@ import Footer from "./components/Footer";
 import "./components/styles/PublicPage.css";
 
 export default function PublicPage() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.targetId) {
+      const target = document.querySelector(location.state.targetId);
+      if (target) {
+        setTimeout(() => target.scrollIntoView({ behavior: "smooth" }), 100);
+      }
+    }
+  }, [location]);
+
   const sectionVariants = {
     hidden: { opacity: 0, y: 50 },
     visible: {

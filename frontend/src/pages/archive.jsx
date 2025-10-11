@@ -308,9 +308,9 @@ const renderEditableCell = (item, field, value) => {
           onClick={() => mobileShow && setMobileShow(false)}
         >
           {loading ? (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <span className="loader" /> {/* Optional: add a spinner CSS class */}
-              <p>Loading archive data...</p>
+            <div className="lloading-container">
+              <div className="spinner"></div>
+              <p>Loading Archives...</p>
             </div>
           ) : (
             <>

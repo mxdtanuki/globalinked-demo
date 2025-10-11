@@ -171,24 +171,26 @@ const fetchAndProcessData = async () => {
   const moaChartRef = useRef();
   const moaActChartRef = useRef();
 
-    if (loading) {
-    return (
-      <div className="dashboard-container">
-        <TopBar toggleSidebar={toggleMobileSidebar} />
-        <div className="content-body">
-          <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
-          <div className="main-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-            <div style={{ textAlign: 'center', fontSize: '18px' }}>
-              <div>📊 Loading analytics data...</div>
-              <div style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
-                Processing agreement entries...
-              </div>
-            </div>
+if (loading) {
+  return (
+    <div className="dashboard-container">
+      <TopBar toggleSidebar={toggleMobileSidebar} />
+      <div className="content-body">
+        <Sidebar
+          collapsed={collapsed}
+          toggleCollapse={toggleCollapse}
+          mobileShow={mobileShow}
+        />
+        <div className="main-content">
+          <div className="lloading-container">
+            <div className="spinner"></div>
+            <p>Loading analytics data...</p>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (
