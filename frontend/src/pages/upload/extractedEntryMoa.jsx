@@ -225,7 +225,7 @@ const regionOptions = [
   { value: 'Middle Africa', label: 'Middle Africa' },
   { value: 'Northern Africa', label: 'Northern Africa' },
   { value: 'Southern Africa', label: 'Southern Africa' },
-  { value: 'Western Africa', label: 'Western Africa' }
+  { value: 'Western Africa', label: 'Western Africa' },
 ];
 
 const partnershipTypeOptions = [
@@ -523,21 +523,21 @@ const handleSubmit = async (e) => {
     const data = Object.fromEntries(form);
 
     let agreementData = {
-      source_unit: source,
+      source_unit: data.source,
       dts_number: dtsNumber,
-      dts_status: dtsStatus,
+      dts_status: data.dtsStatus,
       document_type: documentType,
       partnership_type: partnershipType,
       agreement_status: data.status,
       entry_type: data.entryType,
-      entry_date: entryDate || null, //not from form
+      entry_date: entryDate || null, // not from form
       related_agreement_id:
         selectedRelatedAgreement?.value === "NA"
           ? null
           : selectedRelatedAgreement?.value || null,
       date_received: data.dateReceived || null,
       date_endorsed_to_ulco: data.dateEndorsed || null,
-      date_ulco_approved: dateUlcoApproved || null,
+      date_ulco_approved: data.dateUlcoApproved || null,
       date_signed_by_pup: datePupSigned || null,
       date_signed: dateSigned || null,
       date_expiry: dateExpiry || null,
@@ -566,8 +566,8 @@ const handleSubmit = async (e) => {
       renewed_from_agreement_id: data.renewedFrom
         ? String(data.renewedFrom)
         : null,
-      initial_remarks: remarks
-        ? [{ remark_text: remarks }]
+      initial_remarks: data.remarks
+        ? [{ remark_text: data.remarks }]
         : [],
     };
 
@@ -1178,8 +1178,8 @@ const handleSubmit = async (e) => {
             id="datePupSigned" 
             name="datePupSigned" 
             type="date" 
-            value={dateSigned}
-            onChange={(e) => setDateSigned(e.target.value)}
+            value={datePupSigned}
+            onChange={(e) => setDatePupSigned(e.target.value)}
           />
           </div>
 
