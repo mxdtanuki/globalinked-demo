@@ -112,3 +112,46 @@ export async function deleteUser(userId) {
 
   return response.json();
 }
+
+// Get current logged-in user
+export async function getCurrentUser() {
+  const token = localStorage.getItem("access_token");
+  console.log("getCurrentUser token:", token); // <-- debug
+  if (!token) throw new Error("No access token found");
+
+  const response = await fetch(`${API_BASE_URL}/registration/me`, {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
+    throw new Error(errorData.detail || "Failed to load user profile");
+  }
+
+  return response.json();
+}
+
+// Update user profile (including profile picture)
+export async function updateUserProfile(userId, updateData) {
+  const token = localStorage.getItem("access_token");
+  if (!token) throw new Error("No access token found");
+
+  const response = await fetch(`${API_BASE_URL}/registration/${userId}`, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(updateData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || "Failed to update profile");
+  }
+
+  return response.json();
+}
