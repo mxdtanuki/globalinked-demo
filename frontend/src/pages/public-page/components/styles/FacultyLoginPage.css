@@ -80,14 +80,14 @@
   justify-content: center;
   background-color: #712929;
   color: white;
-  padding: 0.8rem 2rem;
+  padding: 0.8rem 0;
   border-radius: 8px;
   text-decoration: none;
   font-size: 1.1rem;
   font-weight: 600;
   transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  width: 200px;
+  width: 180px;
   border: none;
   cursor: pointer;
 }
@@ -105,13 +105,13 @@
   background-color: transparent;
   color: #712929;
   border: 2px solid #712929;
-  padding: 0.8rem 2.5rem;
+  padding: 0.8rem 0;
   border-radius: 8px;
   font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  width: 200px;
+  width: 180px;
   text-decoration: none;
 }
 
@@ -122,11 +122,11 @@
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
- .faculty-login-buttons {
+.faculty-login-buttons {
   display: flex !important;
   justify-content: center;
   align-items: center;
-  gap: 5 rem !important; 
+  gap: 2rem !important; 
   margin-top: 2rem;
   flex-wrap: wrap;
 }
@@ -159,11 +159,11 @@
   }
   .faculty-login-button,
   .faculty-go-back-button {
-   min-width: 180px;
-   text-align: center;
-   padding: 0.8rem 0;
-   font-size: 1rem;
-}
+    min-width: 160px;
+    text-align: center;
+    padding: 0.8rem 0;
+    font-size: 1rem;
+  }
 }
 
 /* Hide footer for a cleaner look */
