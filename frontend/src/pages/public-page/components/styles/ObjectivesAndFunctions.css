@@ -2,6 +2,7 @@
 .objectives-functions {
   padding: 4rem 0 4rem;
   background: linear-gradient(135deg, #f7f2f2 0%, #fff 100%);
+  scroll-margin-top: 50px; 
 }
 
 /* Layout */

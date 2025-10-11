@@ -2,6 +2,7 @@
 .officials {
   padding: 4rem 0 5rem;
   background: white;
+  scroll-margin-top: 50px; 
 }
 
 /* Section Title */

@@ -44,9 +44,7 @@ const Login = () => {
         setError(errorData.detail || 'Login failed');
       }
     } catch (error) {
-      setError(
-        'Cannot connect to backend'
-      );
+      setError('Cannot connect to backend');
     } finally {
       setLoading(false);
     }
@@ -57,6 +55,18 @@ const Login = () => {
       <div className="auth-container">
         {/* LEFT PANEL */}
         <div className="auth-left">
+          {/* animation/gradient added */}
+          <div className="floating-element floating-1"></div>
+          <div className="floating-element floating-2"></div>
+          <div className="floating-element floating-3"></div>
+          <div className="floating-element floating-4"></div>
+          <div className="floating-element floating-5"></div>
+          <div className="floating-element floating-6"></div>
+          <div className="floating-element floating-7"></div>
+          <div className="floating-element floating-8"></div>
+          <div className="floating-element floating-9"></div>
+          <div className="floating-element floating-10"></div>
+
           <div className="brand-row">
             <img src="/globalMap.png" alt="Globe" className="logo-globe" />
             <span className="brand-text">GLOBALINKED</span>
@@ -104,7 +114,12 @@ const Login = () => {
             </div>
 
             <div className="form-footer">
-              <span className="link-forgot" onClick={() => navigate('/forgot-password')}>Forgot Password?</span>
+              <span
+                className="link-forgot"
+                onClick={() => navigate('/forgot-password')}
+              >
+                Forgot Password?
+              </span>
             </div>
 
             <button type="submit" disabled={loading}>

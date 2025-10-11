@@ -161,246 +161,266 @@ const handleSave = async () => {
       <div className="content-body">
         <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
         <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
-          <h2 className="doc-ver-title">Document Version Control</h2>
 
-          <div className="contact-person-wrapper">
-            {/* Search + Filter toggle button */}
-            <div className="search-filter-bar">
-              <input
-                type="text"
-                placeholder="Search here"
-                className="search-input"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-              <button
-                className="filter-btn"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                {showFilters ? " Filters" : " Filters"}
-              </button>
-            </div>
+      {loading ? (
+        <div className="lloading-container">
+          <div className="spinner"></div>
+          <p>Loading document versions...</p>
+        </div>
+      ) : (
+        <>
+    <h2 className="doc-ver-title">Document Version Control</h2>
 
-            {/* Filters */}
-            {showFilters && (
-              <div className="filter-section">
-                <select
-                  value={filterDocType}
-                  onChange={(e) => {
-                    setFilterDocType(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Document Types</option>
-                  <option value="MOA">MOA</option>
-                  <option value="MOU">MOU</option>
-                </select>
+    <div className="contact-person-wrapper">
+      {/* Search + Filter toggle button */}
+      <div className="search-filter-bar">
+        <input
+          type="text"
+          placeholder="Search here"
+          className="search-input"
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1);
+          }}
+        />
+        <button
+          className="filter-btn"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          {showFilters ? " Filters" : " Filters"}
+        </button>
+      </div>
 
-                <select
-                  value={filterPartnershipType}
-                  onChange={(e) => {
-                    setFilterPartnershipType(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Partnership Types</option>
-                  {partnershipTypes.map((type, i) => (
-                    <option key={i} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
+      {/* Filters */}
+      {showFilters && (
+        <div className="filter-section">
+          <select
+            value={filterDocType}
+            onChange={(e) => {
+              setFilterDocType(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="">All Document Types</option>
+            <option value="MOA">MOA</option>
+            <option value="MOU">MOU</option>
+          </select>
 
-                <select
-                  value={filterVersion}
-                  onChange={(e) => {
-                    setFilterVersion(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Versions</option>
-                  {versions.map((v, i) => (
-                    <option key={i} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
+          <select
+            value={filterPartnershipType}
+            onChange={(e) => {
+              setFilterPartnershipType(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="">All Partnership Types</option>
+            {partnershipTypes.map((type, i) => (
+              <option key={i} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
 
-                <select
-                  value={filterStatus}
-                  onChange={(e) => {
-                    setFilterStatus(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Status</option>
-                  {statuses.map((s, i) => (
-                    <option key={i} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+          <select
+            value={filterVersion}
+            onChange={(e) => {
+              setFilterVersion(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="">All Versions</option>
+            {versions.map((v, i) => (
+              <option key={i} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
 
-            {/* Table */}
-            <div className="table-container">
-              <table className="contact-person-table">
-                <thead>
+          <select
+            value={filterStatus}
+            onChange={(e) => {
+              setFilterStatus(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="">All Status</option>
+            {statuses.map((s, i) => (
+              <option key={i} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="table-container">
+        <table className="contact-person-table">
+          <thead>
+            <tr>
+              <th>UPLOAD DATE</th>
+              <th>DTS NUMBER</th>
+              <th>PARTNER NAME</th>
+              <th>DOCUMENT TYPE</th>
+              <th>PARTNERSHIP TYPE</th>
+              <th>VERSION</th>
+              <th>COMMENTS</th>
+              <th>STATUS AT UPLOAD</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentData.length > 0 ? (
+              currentData.map((doc) => (
+                <React.Fragment key={doc.version_id}>
                   <tr>
-                    <th>UPLOAD DATE</th>
-                    <th>DTS NUMBER</th>
-                    <th>PARTNER NAME</th>
-                    <th>DOCUMENT TYPE</th>
-                    <th>PARTNERSHIP TYPE</th>
-                    <th>VERSION</th>
-                    <th>COMMENTS</th>
-                    <th>STATUS AT UPLOAD</th>
-                    <th>ACTION</th>
+                    <td>{new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                    <td>{doc.dts_number}</td>
+                    <td>{doc.partner_name}</td>
+                    <td>{doc.document_type}</td>
+                    <td>{doc.partnership_type}</td>
+                    <td>{doc.version_number}</td>
+                    <td>{doc.version_comment || "-"}</td>
+                    <td>{doc.status_at_upload || "-"}</td>
+                    <td>
+                      <div className="docu-action-buttons">
+                        <div className="docu-top-actions">
+                          <button
+                            className="docu-edit-btn"
+                            onClick={() => handleEdit(doc)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="docu-delete-btn"
+                            disabled={
+                              doc.version_number !==
+                              latestByDts[doc.dts_number]
+                            }
+                            onClick={() => handleDelete(doc.version_id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                        <div className="docu-bottom-action">
+                          <button
+                            className="docu-view-btn"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(doc.download_url, {
+                                  headers: { Accept: "application/pdf" },
+                                });
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                window.open(url, "_blank");
+                              } catch (err) {
+                                console.error("View failed:", err);
+                              }
+                            }}
+                          >
+                            View
+                          </button>
+                          <button
+                            className="docu-download-btn"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(doc.download_url, {
+                                  headers: { Accept: "application/pdf" },
+                                });
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const link =
+                                  document.createElement("a");
+                                link.href = url;
+                                link.download = `${doc.dts_number}_v${doc.version_number}.pdf`;
+                                document.body.appendChild(link);
+                                link.click();
+                                link.remove();
+                                window.URL.revokeObjectURL(url);
+                              } catch (err) {
+                                console.error("Download failed:", err);
+                              }
+                            }}
+                          >
+                            Download
+                          </button>
+                        </div>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                    {loading ? (
-                    <tr>
-                      <td colSpan="9" style={{ textAlign: "center" }}>
-                        Loading records...
-                      </td>
-                    </tr>
-                  ) : currentData.length > 0 ? (
-                    currentData.map((doc) => (
-                      <React.Fragment key={doc.version_id}>
-                        <tr>
-                          <td>{new Date(doc.uploaded_at).toLocaleDateString()}</td>
-                          <td>{doc.dts_number}</td>
-                          <td>{doc.partner_name}</td>
-                          <td>{doc.document_type}</td>
-                          <td>{doc.partnership_type}</td>
-                          <td>{doc.version_number}</td>
-                          <td>{doc.version_comment || "-"}</td>
-                          <td>{doc.status_at_upload || "-"}</td>
-                          <td>
-                            <div className="docu-action-buttons">
-                              <div className="docu-top-actions">
-                                <button className="docu-edit-btn" onClick={() => handleEdit(doc)}>
-                                  Edit
-                                </button>
-                                <button
-                                  className="docu-delete-btn"
-                                  disabled={doc.version_number !== latestByDts[doc.dts_number]}
-                                  onClick={() => handleDelete(doc.version_id)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                              <div className="docu-bottom-action">
-                                <button
-                                  className="docu-view-btn"
-                                  onClick={async () => {
-                                    try {
-                                      const response = await fetch(doc.download_url, {
-                                        headers: { Accept: "application/pdf" },
-                                      });
-                                      const blob = await response.blob();
-                                      const url = window.URL.createObjectURL(blob);
-                                      window.open(url, "_blank");
-                                    } catch (err) {
-                                      console.error("View failed:", err);
-                                    }
-                                  }}
-                                >
-                                  View
-                                </button>
-                                <button
-                                  className="docu-download-btn"
-                                  onClick={async () => {
-                                    try {
-                                      const response = await fetch(doc.download_url, {
-                                        headers: { Accept: "application/pdf" },
-                                      });
-                                      const blob = await response.blob();
-                                      const url = window.URL.createObjectURL(blob);
-                                      const link = document.createElement("a");
-                                      link.href = url;
-                                      link.download = `${doc.dts_number}_v${doc.version_number}.pdf`;
-                                      document.body.appendChild(link);
-                                      link.click();
-                                      link.remove();
-                                      window.URL.revokeObjectURL(url);
-                                    } catch (err) {
-                                      console.error("Download failed:", err);
-                                    }
-                                  }}
-                                >
-                                  Download
-                                </button>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
 
-                        {editingDoc?.version_id === doc.version_id && (
-                          <tr className="edit-row">
-                            <td colSpan="9">
-                              <div className="edit-form-expanded">
-                                <textarea
-                                  value={editComment}
-                                  onChange={(e) => setEditComment(e.target.value)}
-                                  placeholder="Edit comment"
-                                />
-                                <input
-                                  type="file"
-                                  accept="application/pdf"
-                                  onChange={(e) => setEditFile(e.target.files[0])}
-                                />
-                                <div className="inline-edit-actions">
-                                  <button className="save-btn" onClick={handleSave}>Save</button>
-                                  <button className="cancel-btn" onClick={() => setEditingDoc(null)}>Cancel</button>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="9" style={{ textAlign: "center" }}>
-                        No records found
+                  {editingDoc?.version_id === doc.version_id && (
+                    <tr className="edit-row">
+                      <td colSpan="9">
+                        <div className="edit-form-expanded">
+                          <textarea
+                            value={editComment}
+                            onChange={(e) => setEditComment(e.target.value)}
+                            placeholder="Edit comment"
+                          />
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={(e) =>
+                              setEditFile(e.target.files[0])
+                            }
+                          />
+                          <div className="inline-edit-actions">
+                            <button className="save-btn" onClick={handleSave}>
+                              Save
+                            </button>
+                            <button
+                              className="cancel-btn"
+                              onClick={() => setEditingDoc(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   )}
-                </tbody>
-                </table>
-            </div>
+                </React.Fragment>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="9" style={{ textAlign: "center" }}>
+                  No records found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-            {/* Pagination */}
-            <div className="pagination">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                ← Previous
-              </button>
-              {[...Array(totalPages)].map((_, index) => (
-                <button
-                  key={index}
-                  className={currentPage === index + 1 ? "active" : ""}
-                  onClick={() => handlePageChange(index + 1)}
-                >
-                  {index + 1}
-                </button>
-              ))}
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next →
-              </button>
-            </div>
+      {/* Pagination */}
+      <div className="pagination">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          ← Previous
+        </button>
+        {[...Array(totalPages)].map((_, index) => (
+          <button
+            key={index}
+            className={currentPage === index + 1 ? "active" : ""}
+            onClick={() => handlePageChange(index + 1)}
+          >
+            {index + 1}
+          </button>
+        ))}
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Next →
+        </button>
           </div>
+        </div>
+          </>
+        )}
         </div>
       </div>
     </div>

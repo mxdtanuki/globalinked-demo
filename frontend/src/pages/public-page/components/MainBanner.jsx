@@ -2,16 +2,13 @@ import React, { useState, useEffect } from "react";
 import "./styles/MainBanner.css";
 import { agreementService } from "../../../services/agreementService";
 
-// OIA PICS (fallback images)
 import mainBuilding from "./assets/pup-main-building.jpg";
 import img1 from "./assets/oia/OIA_P1.jpg";
 import img2 from "./assets/oia/OIA_P2.jpg";
 import img3 from "./assets/oia/OIA_P3.jpg";
 import img4 from "./assets/oia/OIA_P4.jpg";
+import wuriLogo from "./assets/wuri logo.png";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
-// Mapping of country names to ISO codes for flags
 const countryToCode = {
   "Afghanistan": "af", "Albania": "al", "Algeria": "dz", "Andorra": "ad", "Angola": "ao", "Antigua and Barbuda": "ag", "Argentina": "ar", "Armenia": "am", "Australia": "au", "Austria": "at", "Azerbaijan": "az",
   "Bahamas": "bs", "Bahrain": "bh", "Bangladesh": "bd", "Barbados": "bb", "Belarus": "by", "Belgium": "be", "Belize": "bz", "Benin": "bj", "Bhutan": "bt", "Bolivia": "bo", "Bosnia and Herzegovina": "ba", "Botswana": "bw", "Brazil": "br", "Brunei": "bn", "Bulgaria": "bg", "Burkina Faso": "bf", "Burundi": "bi",
@@ -34,7 +31,6 @@ const countryToCode = {
   "Vanuatu": "vu", "Vatican City": "va", "Venezuela": "ve", "Vietnam": "vn",
   "Yemen": "ye",
   "Zambia": "zm", "Zimbabwe": "zw",
-  // Special/territories
   "Hong Kong": "hk", "Macau": "mo", "Palestinian Territories": "ps", "Kosovo": "xk"
 };
 
@@ -42,7 +38,10 @@ export default function MainBanner() {
   const [currentFlagIndex, setCurrentFlagIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [flags, setFlags] = useState([]);
-  const [slideshowImages, setSlideshowImages] = useState([
+  const [partnerLogos, setPartnerLogos] = useState([]);
+  
+  // slideshow images top ng page
+  const defaultSlideshowImages = [
     mainBuilding,
     img1,
     img2,
@@ -51,62 +50,51 @@ export default function MainBanner() {
     mainBuilding,
     img4,
     mainBuilding,
-  ]);
+  ];
+  const [slideshowImages] = useState(defaultSlideshowImages);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch agreements to get countries and partner logos
         const agreements = await agreementService.getAgreements();
-        
-        // Extract unique countries
+
+        const activeAgreements = agreements.filter(
+          (ag) => ag.agreement_status === "Active"
+        );
+
         const countriesSet = new Set();
         const logosSet = new Set();
-        agreements.forEach(ag => {
+
+        activeAgreements.forEach((ag) => {
           if (ag.country) countriesSet.add(ag.country);
           if (ag.logo_path) logosSet.add(ag.logo_path);
         });
+
+        // Partner countries (flags)
         const countries = Array.from(countriesSet);
-        
-        // Set flags
         const partnerFlags = countries
-          .filter(country => countryToCode[country])
-          .map(country => ({
+          .filter((country) => countryToCode[country])
+          .map((country) => ({
             country,
-            flag: `https://flagcdn.com/${countryToCode[country]}.svg`
+            flag: `https://flagcdn.com/${countryToCode[country]}.svg`,
           }));
-        setFlags(partnerFlags.length > 0 ? partnerFlags : [
-          { country: "Philippines", flag: "https://flagcdn.com/ph.svg" },
-        ]);
-        
-        // Set slideshow images (partner logos, fallback to static)
-        const logos = Array.from(logosSet).filter(logo => logo);
-        setSlideshowImages(logos.length > 0 ? logos : [
-          mainBuilding,
-          img1,
-          img2,
-          mainBuilding,
-          img3,
-          mainBuilding,
-          img4,
-          mainBuilding,
-        ]);
+
+        setFlags(
+          partnerFlags.length > 0
+            ? partnerFlags
+            : [{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]
+        );
+
+        // Partner universities (univ logos) 
+        const logos = Array.from(logosSet).filter((logo) => logo);
+        setPartnerLogos(logos);
       } catch (error) {
         console.error("Error fetching data:", error);
-        // Fallbacks
         setFlags([{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]);
-        setSlideshowImages([
-          mainBuilding,
-          img1,
-          img2,
-          mainBuilding,
-          img3,
-          mainBuilding,
-          img4,
-          mainBuilding,
-        ]);
+        setPartnerLogos([]);
       }
     };
+
     fetchData();
   }, []);
 
@@ -114,7 +102,7 @@ export default function MainBanner() {
     if (flags.length > 0) {
       const interval = setInterval(() => {
         setCurrentFlagIndex((prev) => (prev + 1) % flags.length);
-      }, 3000); // Change flag every 3 seconds
+      }, 3000);
       return () => clearInterval(interval);
     }
   }, [flags.length]);
@@ -123,7 +111,7 @@ export default function MainBanner() {
     if (slideshowImages.length > 0) {
       const interval = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % slideshowImages.length);
-      }, 5000); // Change image every 5 seconds
+      }, 5000);
       return () => clearInterval(interval);
     }
   }, [slideshowImages.length]);
@@ -140,25 +128,19 @@ export default function MainBanner() {
                 key={index}
                 src={image}
                 alt={`Slide ${index + 1}`}
-                className={`hero-image ${
-                  index === currentImageIndex ? "active" : ""
-                }`}
+                className={`hero-image ${index === currentImageIndex ? "active" : ""}`}
               />
             ))}
           </div>
         </div>
 
-        {/* Two-column grid layout */}
         <div className="carousel-quote-grid">
-          {/* Left column: Flag carousel + title */}
           <div className="carousel-column">
             <div className="flag-carousel">
               <div className="flag-carousel-container">
                 <div
                   className="flag-slider"
-                  style={{
-                    transform: `translateX(-${currentFlagIndex * 100}%)`,
-                  }}
+                  style={{ transform: `translateX(-${currentFlagIndex * 100}%)` }}
                 >
                   {flags.map((flagData) => (
                     <div key={flagData.country} className="flag-slide">
@@ -178,7 +160,6 @@ export default function MainBanner() {
             <h3 className="carousel-title">Our Partner Countries</h3>
           </div>
 
-          {/* Right column: Quote */}
           <div className="quote-column">
             <div className="banner-quote">
               <h2>
@@ -211,8 +192,36 @@ export default function MainBanner() {
             <li>International Linkages</li>
           </ul>
         </div>
-      </div>{" "}
-      {/* closes banner-overlay */}
+
+        <div className="partner-universities-section">
+          <div className="wuri-container">
+            <div className="polytechnic-wrapper">
+              <div className="poly-line">The Country’s</div>
+              <div className="poly-line">1st PolytechnicU</div>
+            </div>
+            <div className="wuri-logo-wrap">
+              <img src={wuriLogo} alt="WURI Logo" className="wuri-logo" />
+            </div>
+          </div>
+          <h3 className="partner-universities-title">Our Partner Universities</h3>
+          <div className="partner-logos-grid">
+            {partnerLogos.length > 0 ? (
+              partnerLogos.map((logo, index) => (
+                <img
+                  key={index}
+                  src={`data:image/png;base64,${logo}`}
+                  alt={`Partner University ${index + 1}`}
+                  className="partner-logo-image"
+                />
+              ))
+            ) : (
+              <p className="no-partners-text">
+                partner university logos will appear here
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

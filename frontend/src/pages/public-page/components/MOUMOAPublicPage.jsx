@@ -1,9 +1,9 @@
-// MOUMOAPage.jsx
+// MOUMOAPublicPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { agreementService } from "../../../services/agreementService";
 import Header from "./Header";
 import Footer from "./Footer";
-import "./styles/MOUMOAPage.css";
+import "./styles/MOUMOAPublicPage.css";
 
 // icons
 import searchIcon from "./assets/search.png";
@@ -15,7 +15,7 @@ import overviewIcon from "./assets/overview.png";
 import countriesIcon from "./assets/countries.png";
 import regionsIcon from "./assets/regions.png";
 
-const MOUMOAPage = () => {
+const MOUMOAPublicPage = () => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -567,4 +567,4 @@ const MOUMOAPage = () => {
   );
 };
 
-export default MOUMOAPage;
+export default MOUMOAPublicPage;
