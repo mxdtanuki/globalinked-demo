@@ -432,7 +432,7 @@ const handleSubmit = async (e) => {
       partnership_type: partnershipType,
       agreement_status: data.status,
       entry_type: data.entryType,
-            entry_date: entryDate || null, // not from form
+      entry_date: entryDate || null, // not from form
       related_agreement_id:
         selectedRelatedAgreement?.value === "NA"
           ? null
