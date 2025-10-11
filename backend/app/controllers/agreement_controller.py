@@ -26,28 +26,11 @@ from app.schemas.agreement_schemas import (
 from app.utils.utils import get_current_user
 from app.utils.audit_utils import log_add_entry, log_update_entry, log_delete_entry
 import traceback
-import base64
-
 
 router = APIRouter(
     prefix="/agreements",
     tags=["Agreements"]
 )
-
-def encode_logo(logo: bytes | str | None) -> str | None:
-    if not logo:
-        return None
-    if isinstance(logo, str):
-        return logo  
-    return base64.b64encode(logo).decode("utf-8")
-
-def decode_logo(base64_str: str | None) -> bytes | None:
-    if not base64_str:
-        return None
-    try:
-        return base64.b64decode(base64_str)
-    except Exception:
-        return None
 
 @router.get("/archive", response_model=List[ArchiveAgreementResponse])
 async def get_archived_agreements(
@@ -161,7 +144,7 @@ async def get_agreements(
                 entity_type=partner.entity_type,
                 website_url=partner.website_url,
                 description=partner.description,
-                logo_path=encode_logo(partner.logo_path),
+                logo_path=partner.logo_path,
                 dts_number=agreement.dts_number,
                 dts_status=agreement.dts_status,
                 entry_date=agreement.entry_date,
@@ -204,109 +187,6 @@ async def get_agreements(
             detail=f"Error fetching agreements: {str(e)}"
         )
 
-'''
-@router.get("/", response_model=List[AgreementResponse])
-async def get_agreements(
-    db: Session = Depends(get_db),
-    current_user: Users = Depends(get_current_user)
-):
-    """
-    Return all agreements with partner, contact persons, point persons and remarks.
-    NOTE: Source unit is now a string field on Agreements (agreements.source_unit).
-    """
-    try:
-        # join Agreements with Partners only (SourceUnits removed)
-        query = db.query(Agreements, Partners).join(
-            Partners, Agreements.partner_id == Partners.partner_id
-        )
-
-        results = query.all()
-        agreements_list = []
-
-        for agreement, partner in results:
-            # contact persons: prefer those linked to agreement_id, but fallback to partner_id
-            contact_persons = db.query(ContactPersons).filter(
-                or_(
-                    ContactPersons.agreement_id == agreement.agreement_id,
-                    ContactPersons.partner_id == partner.partner_id
-                )
-            ).all()
-
-            # point persons are directly linked to agreement now
-            point_persons = db.query(PointPersons).filter(
-                PointPersons.agreement_id == agreement.agreement_id
-            ).all()
-
-            # remarks
-            remarks = db.query(AgreementRemarks).filter(
-                AgreementRemarks.agreement_id == agreement.agreement_id
-            ).all()
-
-            # pre-concatenated display strings (for dashboard)
-            contact_persons_display = ", ".join(
-                f"{cp.contact_person_position}: {cp.contact_person_name} ({cp.contact_person_email})"
-                for cp in contact_persons
-            ) if contact_persons else ""
-
-            point_persons_display = ", ".join(
-                f"{pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})"
-                for pp in point_persons
-            ) if point_persons else ""
-
-            agreements_list.append(AgreementResponse(
-                agreement_id=agreement.agreement_id,
-                partner_id=partner.partner_id,
-                source_unit=agreement.source_unit,   # now a string
-                name=partner.name,
-                country=partner.country,
-                region=partner.region,
-                address=partner.address,
-                entity_type=partner.entity_type,
-                website_url=partner.website_url,
-                description=partner.description,
-                logo_path=encode_logo(partner.logo_path),
-                dts_number=agreement.dts_number,
-                dts_status=agreement.dts_status,
-                entry_date=agreement.entry_date,
-                date_received=agreement.date_received,
-                date_endorsed_to_ulco=agreement.date_endorsed_to_ulco,
-                date_ulco_approved=agreement.date_ulco_approved,
-                date_signed_by_pup=agreement.date_signed_by_pup,
-                date_signed=agreement.date_signed,
-                date_expiry=agreement.date_expiry,
-                document_type=agreement.document_type,
-                partnership_type=agreement.partnership_type,
-                validity_period=agreement.validity_period,
-                event_info=agreement.event_info,
-                signatories_list=agreement.signatories_list,
-                agreement_status=agreement.agreement_status,
-                hardcopy_location=agreement.hardcopy_location,
-                entry_type=agreement.entry_type,
-                renewed_from_agreement_id=agreement.renewed_from_agreement_id,
-                MOU_to_MOA_id=agreement.MOU_to_MOA_id,
-                contact_persons=[
-                    ContactPersonResponse.model_validate(cp, from_attributes=True)
-                    for cp in contact_persons
-                ],
-                point_persons=[
-                    PointPersonResponse.model_validate(pp, from_attributes=True)
-                    for pp in point_persons
-                ],
-                contact_persons_display=contact_persons_display,
-                point_persons_display=point_persons_display,
-                remarks=remarks,
-                created_at=partner.created_at
-            ))
-
-        return agreements_list
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching agreements: {str(e)}"
-        )
-'''
-
 @router.post("/", response_model=dict)
 async def create_agreement(
     agreement: AgreementCreate,
@@ -344,7 +224,7 @@ async def create_agreement(
                     entity_type=partner.entity_type,
                     website_url=partner.website_url,
                     description=partner.description,
-                    logo_path=encode_logo(partner.logo_path),
+                    logo_path=partner.logo_path,
                     dts_number=existing.dts_number,
                     dts_status=existing.dts_status,
                     entry_date=existing.entry_date,
@@ -644,7 +524,7 @@ async def update_agreement(
 
         # Handle logo update (expects base64 string from frontend)
         if 'logo_path' in up and up['logo_path']:
-            partner.logo_path = decode_logo(up['logo_path'])
+            partner.logo_path = up['logo_path']
 
         # Handle contact persons update (delete all for this agreement, then recreate)
         if 'contact_persons' in up:
@@ -720,7 +600,7 @@ async def update_agreement(
             entity_type=partner.entity_type,
             website_url=partner.website_url,
             description=partner.description,
-            logo_path=encode_logo(partner.logo_path),
+            logo_path=partner.logo_path,
             dts_number=agreement.dts_number,
             dts_status=agreement.dts_status,
             entry_date=agreement.entry_date,

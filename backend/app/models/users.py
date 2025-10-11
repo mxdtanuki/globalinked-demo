@@ -1,5 +1,5 @@
 from xmlrpc.client import DateTime
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Text
 from app.database import Base
 
 class Users(Base):
@@ -8,7 +8,7 @@ class Users(Base):
     user_id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(50), nullable=False)
     user_pass = Column(String(255), nullable=False)
-    user_profile_img = Column(String(255), nullable=True)
+    user_profile_img = Column(Text, nullable=True)
     user_position = Column(String(100), nullable=False) # e.g., user -- Director, Mobility
     user_role = Column(String(20), nullable=False, default='staff') # e.g., role -- admin, staff
     forgot_pass_token = Column(String(255), nullable=True) # token for password reset
