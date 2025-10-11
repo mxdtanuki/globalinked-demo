@@ -215,11 +215,11 @@ const handleDateSort = () => {
       'contact_persons', 'document_type', 'partnership_type', 'event_info',
       'validity_period', 'date_signed', 'date_expiry', 'date_received',
       'date_endorsed_to_ulco', 'date_ulco_approved', 'date_signed_by_pup',
-      'agreement_status', 'website_url', 'description', 'hardcopy_location', 'remarks', 'logo_url'
+      'agreement_status', 'website_url', 'description', 'hardcopy_location', 'remarks'
     ];
 
     const isEditable = editableFields.includes(field);
-    if (field === 'logo_url') {
+    if (field === 'logo_path') {
       if (!isEditing) {
         return value ? (
           <img
@@ -234,9 +234,9 @@ const handleDateSort = () => {
 
       return (
         <div>
-          {editedData.logo_url ? (
+          {editedData.logo_path ? (
             <img
-              src={`data:image/png;base64,${editedData.logo_url}`}
+              src={`data:image/png;base64,${editedData.logo_path}`}
               alt="Partner Logo"
               style={{ width: "80px", height: "80px", objectFit: "contain" }}
             />
@@ -256,30 +256,25 @@ const handleDateSort = () => {
             onChange={(e) => {
               const file = e.target.files[0];
               if (!file) return;
+
+              // Check size
               if (file.size > 2 * 1024 * 1024) {
                 alert("Logo file is too large. Maximum size is 2MB.");
                 return;
               }
 
+              // Read as base64
               const reader = new FileReader();
-              reader.onloadend = async () => {
-                try {
-                  const base64String = reader.result.split(",")[1]; // remove `data:image/...;base64,`
-                  const updated = { ...editedData, logo_url: base64String };
+              reader.onload = () => {
+                const base64String = reader.result.split(",")[1]; // remove "data:image/png;base64,"
 
-                  const res = await agreementService.updateAgreement(
-                    agreement.agreement_id,
-                    updated
-                  );
-                  handleInputChange("logo_url", res.logo_url); // update state
-                  alert("Logo uploaded!");
-                } catch (err) {
-                  alert("Logo upload failed: " + err.message);
-                }
+                // Just update your local state
+                handleInputChange("logo_path", base64String);
               };
               reader.readAsDataURL(file);
             }}
           />
+
         </div>
       );
     }
@@ -807,7 +802,7 @@ const exportToExcel = async () => {
       a.agreement_status,
       a.website_url,
       a.description,
-      a.logo_url,
+      a.logo_path,
       a.hardcopy_location,
       a.remarks,
     ]);
@@ -1024,7 +1019,7 @@ const exportToExcel = async () => {
                       }
                     </td>
                     <td>{renderEditableCell(agreement, 'description', agreement.description)}</td>
-                    <td>{renderEditableCell(agreement, 'logo_url', agreement.logo_url)}</td>
+                    <td>{renderEditableCell(agreement, 'logo_path', agreement.logo_path)}</td>
                     <td>{renderEditableCell(agreement, 'hardcopy_location', agreement.hardcopy_location)}</td>
                     <td>{renderEditableCell(agreement, 'remarks', agreement.remarks)}</td>
                     <td>

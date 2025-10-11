@@ -384,7 +384,7 @@ useEffect(() => {
         address: opt.address,
         website: opt.website_url,
         description: opt.description,
-        logo: opt.logo || null,
+        logo: opt.logo_path || null,
       });
       const countryOption = countryOptions.find(c => c.value === opt.country);
       if (countryOption) {
@@ -399,6 +399,20 @@ useEffect(() => {
       }
     }
   };
+  
+// Convert file to base64 string
+const toBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const result = reader.result.split(",")[1]; // remove 'data:image/...;base64,'
+      console.log("✅ Base64 string preview:", result.slice(0, 80) + "..."); // to verify
+      resolve(result);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+
 
   // Submit handler
 const handleSubmit = async (e) => {
@@ -418,7 +432,7 @@ const handleSubmit = async (e) => {
       partnership_type: partnershipType,
       agreement_status: data.status,
       entry_type: data.entryType,
-            entry_date: entryDate || null, // not from form
+      entry_date: entryDate || null, // not from form
       related_agreement_id:
         selectedRelatedAgreement?.value === "NA"
           ? null
@@ -471,6 +485,7 @@ const handleSubmit = async (e) => {
         address: partnerData.address,
         website_url: partnerData.website || "",
         description: partnerData.description || "",
+        logo_path: partnerData.logo || "", // <-- send the base64 string
         status: "active",
         contact_persons: contacts
           .filter((c) => c.name)
@@ -812,13 +827,37 @@ const handleSubmit = async (e) => {
 
           <div className="form-group">
             <label>Logo:</label>
-            <input
-              type="file"
-              onChange={(e) =>
-                setPartnerData({ ...partnerData, logo: e.target.files[0] })
-              }
-              disabled={partnerEntryType === "Existing"}
-            />
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {partnerData.logo && typeof partnerData.logo === "string" && (
+                <img
+                  src={`data:image/png;base64,${partnerData.logo}`}
+                  alt="Partner Logo"
+                  style={{ width: "120px", height: "120px", objectFit: "contain", border: "1px solid #ccc" }}
+                />
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) {
+                    alert("Logo too large. Maximum size is 2MB.");
+                    return;
+                  }
+
+                  try {
+                    const base64 = await toBase64(file);
+                    setPartnerData({ ...partnerData, logo: base64 });
+                  } catch (err) {
+                    console.error("Base64 conversion failed:", err);
+                    alert("Failed to process image.");
+                  }
+                }}
+                disabled={partnerEntryType === "Existing"}
+              />
+            </div>
           </div>
 
           <div className="form-group">
