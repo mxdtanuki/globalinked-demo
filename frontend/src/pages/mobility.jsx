@@ -230,7 +230,10 @@ const handleGenerateExcel = async () => {
           onClick={() => mobileShow && setMobileShow(false)}
         >
          {loading ? (
-            <p>Loading agreements...</p>
+            <div className="lloading-container">
+              <div className="spinner"></div>
+              <p>Loading Mobility...</p>
+            </div>
           ) : error ? (
             <p style={{ color: "red" }}>{error}</p>
           ) : (

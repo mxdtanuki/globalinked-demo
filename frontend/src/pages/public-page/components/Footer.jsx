@@ -1,16 +1,39 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import facebookIcon from "./assets/facebook.png";
 import logo from "./assets/logo.png";
 import "./styles/Footer.css";
 
 const Footer = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleFacultyLinkClick = (e) => {
+    e.preventDefault();
+    
+    if (location.pathname === '/faculty-login') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      navigate('/faculty-login');
+    }
+  };
+
+  const handleScrollLinkClick = (e, targetId) => {
+    e.preventDefault();
+    if (location.pathname !== "/") {
+      navigate("/", { state: { targetId } });
+    } else {
+      const target = document.querySelector(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
+
   return (
     <footer className="footer">
       <div className="footer-container">
-        {/* Main Footer Content */}
         <div className="footer-content">
-          {/* University Info Section */}
           <div className="footer-section">
             <div className="footer-logo-section">
               <img src={logo} alt="PUP Logo" className="footer-logo" />
@@ -40,32 +63,31 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* Quick Links Section */}
           <div className="footer-section">
             <h4 className="footer-section-title">Quick Links</h4>
             <ul className="footer-links">
               <li>
-                <a href="#objectives" className="footer-link">
+                <a href="/#objectives" className="footer-link" onClick={(e) => handleScrollLinkClick(e, "#objectives")}>
                   Objective and Functions
                 </a>
               </li>
               <li>
-                <a href="#services" className="footer-link">
+                <a href="/#services" className="footer-link" onClick={(e) => handleScrollLinkClick(e, "#services")}>
                   Services
                 </a>
               </li>
               <li>
-                <a href="#faq" className="footer-link">
+                <a href="/#faq" className="footer-link" onClick={(e) => handleScrollLinkClick(e, "#faq")}>
                   Frequently Asked Questions
                 </a>
               </li>
               <li>
-                <a href="#officials" className="footer-link">
+                <a href="/#officials" className="footer-link" onClick={(e) => handleScrollLinkClick(e, "#officials")}>
                   Officials and Staff
                 </a>
               </li>
               <li>
-                <a href="#contact" className="footer-link">
+                <a href="/#contact" className="footer-link" onClick={(e) => handleScrollLinkClick(e, "#contact")}>
                   Contact Information
                 </a>
               </li>
@@ -77,7 +99,6 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Services Section */}
           <div className="footer-section">
             <h4 className="footer-section-title">Our Services</h4>
             <ul className="footer-services-text">
@@ -89,14 +110,17 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Faculty and Social Media Combined Section */}
           <div className="footer-section">
             <h4 className="footer-section-title">Faculty</h4>
             <ul className="footer-links">
               <li>
-                <Link to="/faculty-login" className="footer-link">
+                <a 
+                  href="/faculty-login" 
+                  className="footer-link"
+                  onClick={handleFacultyLinkClick}
+                >
                   Globalinked
-                </Link>
+                </a>
               </li>
             </ul>
 
@@ -122,7 +146,6 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Floating Elements for Animation */}
       <div className="footer-floating-elements">
         <div className="floating-element floating-1"></div>
         <div className="floating-element floating-2"></div>

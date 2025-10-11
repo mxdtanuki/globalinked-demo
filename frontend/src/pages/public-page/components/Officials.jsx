@@ -2,9 +2,9 @@ import React from "react";
 import "./styles/Officials.css";
 
 import trinidad from "./assets/trinidad.jpg";
-import linkageschief from "./assets/ChiefPartnershipandLinkagesSection.jpg";
+import linkageschief from "./assets/logo.png";
 import sasot from "./assets/sasot.jpg";
-import chiefseps from "./assets/chiefseps.jpg";
+import chiefseps from "./assets/logo.png";
 import murao from "./assets/murao.jpg";
 import cynthia from "./assets/trinidad2.jpg";
 import enguerra from "./assets/enguerra.jpg";
@@ -27,7 +27,7 @@ export default function Officials() {
       image: sasot,
     },
     {
-      name: "TBA",
+      name: " ", //to be edited, need kunin name ng bago
       position: "Chief, Study and Exchange Program Section",
       image: chiefseps,
     },

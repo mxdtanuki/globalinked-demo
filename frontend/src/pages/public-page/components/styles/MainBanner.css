@@ -5,6 +5,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "Trajan";
+  src: url("../assets/fonts/TrajanPro-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 .main-banner {
   position: relative;
   min-height: calc(100vh - 70px);
@@ -25,6 +32,7 @@
   color: white;
   overflow: hidden;
   padding: 2rem 1rem;
+  padding-bottom: 6rem;
 }
 
 .main-banner::before {
@@ -198,7 +206,6 @@
   }
 }
 
-/* 2-column grid layout */
 .carousel-quote-grid {
   display: grid;
   grid-template-columns: 450px 1fr;
@@ -209,7 +216,6 @@
   margin: 0 auto;
 }
 
-/* Left column (carousel tas title) */
 .carousel-column {
   display: flex;
   flex-direction: column;
@@ -217,7 +223,6 @@
   gap: 1rem;
 }
 
-/* title below the carousel */
 .carousel-title {
   font-size: 1.3rem;
   font-weight: 700;
@@ -230,7 +235,6 @@
   margin-top: -0.5rem;
 }
 
-/* Right column (quote) */
 .quote-column {
   display: flex;
   flex-direction: column;
@@ -273,7 +277,6 @@
   font-size: 0.9em;
 }
 
-/* Flag Carousel */
 .flag-carousel {
   max-width: 450px;
   width: 100%;
@@ -284,7 +287,6 @@
   height: 140px;
 }
 
-/* Container holding the slides*/
 .flag-carousel-container {
   overflow: hidden;
   width: 100%;
@@ -297,7 +299,6 @@
   position: relative;
 }
 
-/* Slide container with flex */
 .flag-slider {
   display: flex;
   transition: transform 0.5s ease-in-out;
@@ -305,7 +306,6 @@
   width: 100%;
 }
 
-/* Each slide */
 .flag-slide {
   flex: 0 0 100%;
   display: flex;
@@ -316,7 +316,6 @@
   min-width: 100%;
 }
 
-/* Content inside slides */
 .flag-content {
   display: flex;
   flex-wrap: wrap;
@@ -325,7 +324,6 @@
   align-items: center;
 }
 
-/* Flag image style */
 .flag-image-main {
   width: 100px;
   height: 70px;
@@ -342,7 +340,6 @@
   box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
 }
 
-/* Country names */
 .flag-country {
   font-size: 1.1rem;
   font-weight: 600;
@@ -393,7 +390,6 @@
   }
 }
 
-/* Banner */
 .banner-description {
   max-width: 900px;
   margin: 0 auto;
@@ -553,7 +549,71 @@
   }
 }
 
-/* Hero Section */
+.wuri-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 120px;
+  width: 100%;
+  max-width: none;
+  margin: 2rem auto;
+}
+
+.polytechnic-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.poly-line {
+  font-family: "Trajan", serif;
+  color: #ffffff;
+  font-size: 1.8rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.wuri-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 30px;
+  max-width: none;
+}
+
+.wuri-logo {
+  width: 5000px !important;;
+  height: auto !important;;
+  margin-top: 3 rem;
+  display: block;
+  filter: brightness(1.8) contrast(120%);
+}
+
+@media (max-width: 768px) {
+  .wuri-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .polytechnic-wrapper {
+    width: auto;
+    align-items: center;
+    text-align: center;
+  }
+
+  .poly-line {
+    font-size: 1.1rem;
+    white-space: normal;
+  }
+
+  .wuri-logo {
+    width: 130px;
+  }
+}
+
 .hero-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -659,5 +719,100 @@
 
   .hero-images {
     height: 200px;
+  }
+}
+
+.partner-universities-section {
+  max-width: 1200px;
+  margin: 4rem auto 0;
+  text-align: center;
+  padding: 0 2rem;
+}
+
+.wuri-logo {
+  max-width: 200px;
+  height: auto;
+  margin: 0 auto 1.5rem;
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.partner-universities-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffd700;
+  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
+  margin: 0 0 2rem;
+  font-family: "Playfair Display", serif;
+  letter-spacing: 0.5px;
+}
+
+.partner-logos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.partner-logo-image {
+  max-width: 150px;
+  max-height: 100px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.no-partners-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  font-style: italic;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .partner-universities-section {
+    margin-top: 3rem;
+  }
+
+  .wuri-logo {
+    max-width: 150px;
+  }
+
+  .partner-universities-title {
+    font-size: 1.6rem;
+  }
+
+  .partner-logos-grid {
+    gap: 2rem;
+  }
+
+  .partner-logo-image {
+    max-width: 120px;
+    max-height: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .partner-universities-section {
+    margin-top: 2rem;
+    padding: 0 1rem;
+  }
+
+  .wuri-logo {
+    max-width: 120px;
+  }
+
+  .partner-universities-title {
+    font-size: 1.4rem;
+  }
+
+  .partner-logos-grid {
+    gap: 1.5rem;
+  }
+
+  .partner-logo-image {
+    max-width: 100px;
+    max-height: 70px;
   }
 }

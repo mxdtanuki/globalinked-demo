@@ -374,9 +374,10 @@ const exportToExcel = async () => {
           onClick={() => mobileShow && setMobileShow(false)}
         >
           {loading ? (
-            <p>Loading agreements...</p>
-          ) : error ? (
-            <p style={{ color: "red" }}>{error}</p>
+            <div className="lloading-container">
+              <div className="spinner"></div>
+              <p>Loading Agreements...</p>
+            </div>
           ) : (
             <>
             <h2 className="archive-title">Agreements</h2>

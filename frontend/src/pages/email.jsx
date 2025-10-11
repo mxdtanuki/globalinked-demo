@@ -275,7 +275,10 @@ const Email = () => {
           onClick={() => mobileShow && setMobileShow(false)}
         >
           {loading ? (
-                <p>Loading agreements...</p>
+            <div className="lloading-container">
+              <div className="spinner"></div>
+              <p>Loading Email...</p>
+            </div>
               ) : error ? (
                 <p style={{ color: "red" }}>{error}</p>
               ) : (

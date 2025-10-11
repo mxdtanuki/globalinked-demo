@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './globalUpload.css';
 //import axios from "axios";
-
+  
 const countryOptions = [
   { value: "Afghanistan", label: "Afghanistan", region: "Southern Asia" },
   { value: "Albania", label: "Albania", region: "Southern Europe" },
@@ -268,7 +268,7 @@ const partnershipTypeOptions = [
   { value: 'MOA Tripartite', label: 'MOA Tripartite' },
   { value: 'MOA on English and Cultural Program', label: 'MOA on English and Cultural Program' },
   { value: 'MOA on Student Competition', label: 'MOA on Student Competition' },
-  { value: 'MOA on Faculty and Student Exchange', label: 'MOA on Faculty and Student Exchange' },
+  { value: 'MOA on Faculty and Student Exchange', label: 'MOA on Faculty and Student Exchange' }
 ];
 
   const ManualEntryMOA = () => {
@@ -280,6 +280,10 @@ const partnershipTypeOptions = [
   const [documentType, setDocumentType] = useState("");
   const [partnershipType, setPartnershipType] = useState("");
 
+  const [dtsStatus, setDtsStatus] = useState("");
+  const [source, setSource] = useState("");
+  const [dateUlcoApproved, setDateUlcoApproved] = useState("");
+  const [remarks, setRemarks] = useState("");
   // Partner state
   const [partnerEntryType, setPartnerEntryType] = useState("New"); 
   const [existingPartners, setExistingPartners] = useState([]);
@@ -298,7 +302,7 @@ const partnershipTypeOptions = [
   const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
 
   // Date states
-  const [entryDate, setEntryDate] = useState(""); // Added entryDate state
+  const [entryDate, setEntryDate] = useState(""); 
   const [dateSigned, setDateSigned] = useState("");
   const [validityPeriod, setValidityPeriod] = useState("");
   const [dateExpiry, setDateExpiry] = useState("");
@@ -338,8 +342,9 @@ const partnershipTypeOptions = [
 
 // Set entry date to today automatically
 useEffect(() => {
-  const today = new Date().toISOString().split('T')[0];
-  setEntryDate(today);
+  const today = new Date();
+  const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  setEntryDate(localDate);
 }, []);
 
 // Effect to calculate Expiration Date
@@ -441,9 +446,9 @@ const handleSubmit = async (e) => {
       date_endorsed_to_ulco: data.dateEndorsed || null,
       date_ulco_approved: data.dateUlcoApproved || null,
       date_signed_by_pup: datePupSigned || null,
-      date_signed: dateSigned || null, // Use state for dateSigned
-      date_expiry: dateExpiry || null, // Use state for dateExpiry
-      validity_period: validityPeriod || null, // Use state for validityPeriod
+      date_signed: dateSigned || null, 
+      date_expiry: dateExpiry || null, 
+      validity_period: validityPeriod || null, 
       event_info: data.eventInfo || null,
       signatories_list: data.signatories || null,
 
@@ -497,7 +502,7 @@ const handleSubmit = async (e) => {
       };
     }
 
-    // Send request
+    // Send request to backend
     const response = await agreementService.createAgreement(agreementData);
 
     if (response.status === "duplicate") {
@@ -521,7 +526,7 @@ const handleSubmit = async (e) => {
       setPartnershipType("");
       setPointPersons([{ name: "", position: "", email: "" }]);
       setContacts([{ name: "", position: "", email: "" }]);
-      setEntryDate(""); // Reset entryDate
+      setEntryDate(""); 
       setDateSigned("");
       setValidityPeriod("");
       setDateExpiry("");
@@ -547,12 +552,20 @@ const handleSubmit = async (e) => {
         return;
       }
       try {
-        // Fetch agreements of the opposite type
+        // Opposite type
         const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
-        const agreements = await agreementService.getAgreementsByType(typeToFetch);
-        const options = agreements.map(a => ({
+        // Fetch all agreements of the opposite type
+        const agreements = await agreementService.getAgreements({
+          document_type: typeToFetch
+        });
+        // Filter out Withdrawn
+        const filtered = agreements.filter(
+          a => a.document_type === typeToFetch && a.agreement_status !== "Withdrawn"
+        );
+        const options = filtered.map(a => ({
           value: a.agreement_id,
-          label: `${a.dts_number} - ${a.partner_name}`,
+          label: a.dts_number,
+          dts_number: a.dts_number
         }));
         options.unshift({ value: "NA", label: "N/A" });
         setRelatedAgreements(options);
@@ -564,6 +577,24 @@ const handleSubmit = async (e) => {
     };
     fetchRelated();
   }, [documentType]);
+
+  const handlePartnerEntryTypeChange = (type) => {
+  setPartnerEntryType(type);
+  if (type === "New") {
+    setSelectedPartner(null);
+    setPartnerData({
+      name: "",
+      entityType: "",
+      address: "",
+      website: "",
+      description: "",
+      logo: null,
+    });
+    setSelectedCountry(null);
+    setSelectedRegion(null);
+  }
+};
+  
 
     return (
   <TopbarSidebar>
@@ -692,7 +723,7 @@ const handleSubmit = async (e) => {
             type="text"
             required
             value={dtsNumber}
-            onChange={(e) => setDtsNumber(e.target.value)}
+            onChange={(e) => setDtsNumber(e.target.value) }
             placeholder="DT2025123456"
             style={{ opacity: 0.6, color: '#888' }}
           />
@@ -701,7 +732,13 @@ const handleSubmit = async (e) => {
           {/* DTS STATUS */}
           <div className="form-group">
             <label htmlFor="dtsStatus">DTS Status:*</label>
-            <select id="dtsStatus" name="dtsStatus" required>
+              <select 
+              id="dtsStatus" 
+              name="dtsStatus" 
+              value={dtsStatus}
+              onChange={(e) => setDtsStatus(e.target.value)}
+              required
+            >
               <option value="">Select Status</option>
               <option value="Open - OIA">OPEN</option>
               <option value="Open - Other Office">CLOSE</option>
@@ -711,7 +748,14 @@ const handleSubmit = async (e) => {
           {/* SOURCE UNIT */}
           <div className="form-group">
             <label htmlFor="source">Source (Campus/College Dept):*</label>
-            <input id="source" name="source" type="text" required />
+            <input 
+              id="source" 
+              name="source" 
+              type="text" 
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              required 
+            />
           </div>
 
           {/* PARTNERSHIP TYPE */}
@@ -735,7 +779,7 @@ const handleSubmit = async (e) => {
             <select
               id="partnerEntryType"
               value={partnerEntryType}
-              onChange={(e) => setPartnerEntryType(e.target.value)}
+              onChange={(e) => handlePartnerEntryTypeChange(e.target.value)}
             >
               <option value="New">New</option>
               <option value="Existing">Existing</option>
@@ -777,7 +821,6 @@ const handleSubmit = async (e) => {
               required
               readOnly={partnerEntryType === "Existing"}
               placeholder="e.g., University, Company, NGO"
-              style={{ opacity: 0.6, color: '#888' }}
             />
           </div>
 
@@ -791,6 +834,7 @@ const handleSubmit = async (e) => {
                 className="react-select-container"
                 classNamePrefix="react-select"
                 placeholder="Select Country"
+                required
               />
             ) : (
               <input type="text" value={selectedCountry?.label || ""} readOnly />
@@ -807,6 +851,7 @@ const handleSubmit = async (e) => {
                 className="react-select-container"
                 classNamePrefix="react-select"
                 placeholder="Select Region"
+                required
               />
             ) : (
               <input type="text" value={selectedRegion?.label || ""} readOnly />
@@ -1038,9 +1083,14 @@ const handleSubmit = async (e) => {
           {/* DATE ULCO APPROVED */}
           <div className="form-group">
           <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
-          <input id="dateUlcoApproved" name="dateUlcoApproved" type="date" />
+          <input 
+            id="dateUlcoApproved" 
+            name="dateUlcoApproved" 
+            type="date" 
+            value={dateUlcoApproved}
+            onChange={(e) => setDateUlcoApproved(e.target.value)}
+          />
           </div>
-
 
           {/* HARDCOPY LOCATOR */}
           <div className="form-group full-width">
@@ -1057,7 +1107,12 @@ const handleSubmit = async (e) => {
           {/* REMARKS */}
           <div className="form-group full-width">
           <label htmlFor="remarks">Remarks:</label>
-          <textarea id="remarks" name="remarks" />
+           <textarea 
+            id="remarks" 
+            name="remarks" 
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+          />
           </div>
 
           <div className="form-actions">

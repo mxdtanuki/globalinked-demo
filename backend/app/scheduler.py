@@ -21,8 +21,10 @@ scheduler = BackgroundScheduler(timezone=PH_TZ)
 # Mapping for per-status thresholds
 STATUS_THRESHOLD_DAYS = {
     # status -> days before the alert
+    "Initial Review": 1,
     "Endorse": 1,
     "Revert": 1,
+    "For Consultation": 1,
     "Replication": 1,
     "SignituresPUP": 1,
     "SignedPUP": 1,
@@ -30,8 +32,6 @@ STATUS_THRESHOLD_DAYS = {
     "Notary": 1,
     "FFUPCopy": 1,
 }
-
-
 
 
 def _open_session():
@@ -52,55 +52,6 @@ def _parse_point_persons(raw):
     except Exception:
         return []
 
-
-def _collect_recipient_emails(db: Session, agreement: Agreements, partner: Partners):
-    """
-    Collect emails from:
-      - partner contact_persons table
-      - agreement -> agreement_point_persons -> point_persons join
-      - fallback: agreements.point_persons_list JSON (if present)
-    Returns deduplicated list of lowercased emails.
-    """
-    emails = []
-
-    # partner contact persons
-    try:
-        cps = db.query(ContactPersons).filter(ContactPersons.partner_id == partner.partner_id).all()
-        for cp in cps:
-            if getattr(cp, "contact_person_email", None):
-                emails.append(cp.contact_person_email.strip().lower())
-    except Exception:
-        pass
-
-   
-    try:
-        from app.models.agreement_point_persons import AgreementPointPersons
-        from app.models.point_persons import PointPersons
-
-        rows = (
-            db.query(AgreementPointPersons, PointPersons)
-              .join(PointPersons, AgreementPointPersons.point_person_id == PointPersons.point_person_id)
-              .filter(AgreementPointPersons.agreement_id == agreement.agreement_id)
-              .all()
-        )
-        for ap, pp in rows:
-            if getattr(pp, "point_person_email", None):
-                emails.append(pp.point_person_email.strip().lower())
-    except Exception:
-        pass
-
-    #  fallback: column on Agreements (if any)
-    try:
-        for pp in _parse_point_persons(getattr(agreement, "point_persons_list", None) or []):
-            # support multiple possible key names
-            email = pp.get("email") or pp.get("contact_person_email") or pp.get("point_person_email")
-            if email:
-                emails.append(email.strip().lower())
-    except Exception:
-        pass
-
-    # deduplicate while preserving order
-    return list(dict.fromkeys(emails))
 
 
 def _format_subject(category: str, a: Agreements, partner_name: str):
@@ -164,6 +115,11 @@ def _recommended_actions_for_category(category, status=None):
         ]
     if category == "pending_long":
         status_actions = {
+            "Initial Review": [
+                "conduct initial document review.",
+                "Verify all required documents and information are complete.",
+                "Schedule review meeting if necessary and proceed to next status."
+            ],
             "Endorse": [
                 "Follow up with the endorsing authority for approval.",
                 "Verify all required documents are complete and submitted.",
@@ -173,6 +129,11 @@ def _recommended_actions_for_category(category, status=None):
                 "Contact the initiator to address feedback and resubmit.",
                 "Review comments and prepare revised documentation.",
                 "Set deadline for resubmission to avoid further delays."
+            ],
+            "For Consultation": [
+                "Reach out to relevant stakeholders for consultation.",
+                "Prepare consultation materials and agenda items.",
+                "Follow up with consulted parties for feedback and recommendations."
             ],
             "Replication": [
                 "Check with document processing team for replication status.",

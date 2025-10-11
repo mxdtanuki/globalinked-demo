@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './globalUpload.css';
 import { useLocation } from 'react-router-dom';
-
+ 
 const countryOptions = [
   { value: "Afghanistan", label: "Afghanistan", region: "Southern Asia" },
   { value: "Albania", label: "Albania", region: "Southern Europe" },
@@ -283,10 +283,9 @@ const ExtractedEntryMOA = () => {
   // Additional form states for initial data
   const [source, setSource] = useState("");
   const [dtsStatus, setDtsStatus] = useState("");
-  const [datePupSigned, setDatePupSigned] = useState("");
   const [dateUlcoApproved, setDateUlcoApproved] = useState("");
   const [remarks, setRemarks] = useState("");
-
+ 
   const location = useLocation();  
   const uploadedFile = location.state?.uploadedFile;  // Retrieve file
   const formData = location.state?.formData;  // Retrieve form data
@@ -316,6 +315,7 @@ const ExtractedEntryMOA = () => {
   const [dateSigned, setDateSigned] = useState("");
   const [validityPeriod, setValidityPeriod] = useState("");
   const [dateExpiry, setDateExpiry] = useState("");
+   const [datePupSigned, setDatePupSigned] = useState("");
 
 
   // Contact functions
@@ -658,6 +658,7 @@ const handleSubmit = async (e) => {
       setDateSigned("");
       setValidityPeriod("");
       setDateExpiry("");
+      setDatePupSigned("");
     }
   } catch (error) {
     console.error("Full error:", error);
@@ -671,32 +672,56 @@ const handleSubmit = async (e) => {
   const [selectedRelatedAgreement, setSelectedRelatedAgreement] = useState(null);
 
   // Fetch related agreements based on documentType
-  useEffect(() => {
-    const fetchRelated = async () => {
-      if (!documentType) {
-        setRelatedAgreements([]);
-        setSelectedRelatedAgreement(null);
-        return;
-      }
-      try {
-        // Fetch agreements of the opposite type
-        const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
-        const agreements = await agreementService.getAgreementsByType(typeToFetch);
-        const options = agreements.map(a => ({
-          value: a.agreement_id,
-          label: `${a.dts_number} - ${a.partner_name}`,
-        }));
-        options.unshift({ value: "NA", label: "N/A" });
-        setRelatedAgreements(options);
-        setSelectedRelatedAgreement(options[0]);
-      } catch (err) {
-        setRelatedAgreements([{ value: "NA", label: "N/A" }]);
-        setSelectedRelatedAgreement({ value: "NA", label: "N/A" });
-      }
-    };
-    fetchRelated();
-  }, [documentType]);
+useEffect(() => {
+  const fetchRelated = async () => {
+    if (!documentType) {
+      setRelatedAgreements([]);
+      setSelectedRelatedAgreement(null);
+      return;
+    }
+    try {
+      // Opposite type
+      const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
+      // Fetch all agreements of the opposite type
+      const agreements = await agreementService.getAgreements({
+        document_type: typeToFetch
+      });
+      // Filter out Withdrawn
+      const filtered = agreements.filter(
+        a => a.document_type === typeToFetch && a.agreement_status !== "Withdrawn"
+      );
+      const options = filtered.map(a => ({
+        value: a.agreement_id,
+        label: a.dts_number,
+        dts_number: a.dts_number
+      }));
+      options.unshift({ value: "NA", label: "N/A" });
+      setRelatedAgreements(options);
+      setSelectedRelatedAgreement(options[0]);
+    } catch (err) {
+      setRelatedAgreements([{ value: "NA", label: "N/A" }]);
+      setSelectedRelatedAgreement({ value: "NA", label: "N/A" });
+    }
+  };
+  fetchRelated();
+}, [documentType]);
 
+  const handlePartnerEntryTypeChange = (type) => {
+  setPartnerEntryType(type);
+  if (type === "New") {
+    setSelectedPartner(null);
+    setPartnerData({
+      name: "",
+      entityType: "",
+      address: "",
+      website: "",
+      description: "",
+      logo: null,
+    });
+    setSelectedCountry(null);
+    setSelectedRegion(null);
+  }
+};
 
     return (
   <TopbarSidebar>
@@ -900,7 +925,7 @@ const handleSubmit = async (e) => {
             <select
               id="partnerEntryType"
               value={partnerEntryType}
-              onChange={(e) => setPartnerEntryType(e.target.value)}
+              onChange={(e) => handlePartnerEntryTypeChange(e.target.value)}
             >
               <option value="New">New</option>
               <option value="Existing">Existing</option>
@@ -942,7 +967,6 @@ const handleSubmit = async (e) => {
               required
               readOnly={partnerEntryType === "Existing"}
               placeholder="e.g., University, Company, NGO"
-              style={{ opacity: 0.6, color: '#888' }}
             />
           </div>
 
@@ -1026,6 +1050,7 @@ const handleSubmit = async (e) => {
               />
             </div>
           </div>
+          
           <div className="form-group">
             <label>Website:</label>
             <input

@@ -169,29 +169,28 @@ const UserManagement = () => {
       setProcessingUserId(null);
     }
   };
-
+ 
   // Loading state
   if (loading) {
     return (
       <div className="dashboard-container">
         <TopBar toggleSidebar={toggleMobileSidebar} />
         <div className="content-body">
-          <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
+          <Sidebar
+            collapsed={collapsed}
+            toggleCollapse={toggleCollapse}
+            mobileShow={mobileShow}
+          />
           <div className="main-content">
-            <div className="loading-container">
-              <div className="loading-content">
-                <div> Loading user management...</div>
-                <div className="loading-subtitle">
-                  Fetching all user accounts...
-                </div>
-              </div>
+            <div className="lloading-container">
+              <div className="spinner"></div>
+              <p>Loading Users...</p>
             </div>
           </div>
         </div>
       </div>
     );
   }
-
   // Access denied state for non-admin users
   if (!isAdmin) {
     return (
