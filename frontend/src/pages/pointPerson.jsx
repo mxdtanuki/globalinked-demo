@@ -4,42 +4,48 @@ import TopBar from '../components/topbar';
 import './pointPerson.css'; 
 import { agreementService } from '../services/agreementService';
 
-
 const PointPerson = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const itemsPerPage = 10;
 
   const [rows, setRows] = useState([]);
-  // Modal state
-  const [selectedPerson, setSelectedPerson] = useState(null);
-  const [agreements, setAgreements] = useState([]);
-
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
 
   useEffect(() => {
     (async () => {
       try {
+        setLoading(true);
         const data = await agreementService.getAgreements();
         const flattened = [];
-        data.forEach(a => {
-          (a.point_persons || []).forEach(pp => {
-            flattened.push({
-              position: pp.point_person_position || '',
-              name: pp.point_person_name || '',
-              email: pp.point_person_email || '',
-              agreementId: a.agreement_id,
-              documentType: a.document_type,
-              partnershipType: a.partnership_type || '-',
+        data
+          .filter(a =>
+            a.agreement_status !== "Withdrawn" &&
+            (!a.date_expiry || new Date(a.date_expiry) > new Date())
+          )
+          .forEach(a => {
+            (a.point_persons || []).forEach(pp => {
+              flattened.push({
+                dts_number: a.dts_number || '',
+                source_unit: a.source_unit || '',
+                position: pp.point_person_position || '',
+                name: pp.point_person_name || '',
+                email: pp.point_person_email || '',
+                agreementId: a.agreement_id,
+                documentType: a.document_type,
+                partnershipType: a.partnership_type || '-',
+              });
             });
           });
-        });
         setRows(flattened);
       } catch (e) {
         console.error('Failed to load point persons', e);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -65,20 +71,6 @@ const PointPerson = () => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  // Handle View Agreements
-  const handleViewAgreements = (person) => {
-    setSelectedPerson(person);
-    const seen = new Set();
-    const related = rows
-      .filter(r => r.email === person.email && !seen.has(r.agreementId) && seen.add(r.agreementId))
-      .map(r => ({
-        agreement_id: r.agreementId,
-        document_type: r.documentType,
-        partnership_type: r.partnershipType,
-      }));
-    setAgreements(related);
-  };
-
   return (
     <div className="dashboard-container">
       <TopBar toggleSidebar={toggleMobileSidebar} />
@@ -86,127 +78,85 @@ const PointPerson = () => {
       <div className="content-body">
         <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
         <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
-
-          <h2 className="point-title">Point Person List | Initiator</h2>
-
-          <div className="point-person-wrapper">
-            <div className="search-filter-bar">
-              <input
-                type="text"
-                placeholder="Search here"
-                className="search-input"
-                value={searchText}
-                onChange={(e) => {
-                  setSearchText(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
+          
+          {loading ? (
+            <div className="lloading-container">
+              <div className="spinner"></div>
+              <p>Loading point persons...</p>
             </div>
+          ) : (
+            <>
+              <h2 className="point-title">Point Person List | Initiator</h2>
 
-            <div className="table-container">
-              <table className="point-person-table">
-                <thead>
-                  <tr>
-                    <th>POSITION</th>
-                    <th>NAME</th>
-                    <th>EMAIL ADDRESS</th>
-                    <th>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentData.length > 0 ? (
-                    currentData.map((person, index) => (
-                      <tr key={index}>
-                        <td>{person.position}</td>
-                        <td>{person.name}</td>
-                        <td>{person.email}</td>
-                        <td>
-                          <button className="view-btn" onClick={() => handleViewAgreements(person)}>
-                            View Agreements
-                          </button>
-                        </td>
+              <div className="point-person-wrapper">
+                <div className="search-filter-bar">
+                  <input
+                    type="text"
+                    placeholder="Search here"
+                    className="search-input"
+                    value={searchText}
+                    onChange={(e) => {
+                      setSearchText(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                <div className="table-container">
+                  <table className="point-person-table">
+                    <thead>
+                      <tr>
+                        <th>DTS NO.</th>
+                        <th>SOURCE</th>
+                        <th>POSITION</th>
+                        <th>NAME</th>
+                        <th>EMAIL ADDRESS</th>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="4" style={{ textAlign: "center" }}>
-                        No results found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {currentData.length > 0 ? (
+                        currentData.map((person, index) => (
+                          <tr key={index}>
+                            <td>{person.dts_number}</td>
+                            <td>{person.source_unit}</td>
+                            <td>{person.position}</td>
+                            <td>{person.name}</td>
+                            <td>{person.email}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="5" style={{ textAlign: "center" }}>
+                            No results found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-            <div className="pagination">
-              <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
-                ← Previous
-              </button>
-              {[...Array(totalPages)].map((_, index) => (
-                <button
-                  key={index}
-                  className={currentPage === index + 1 ? 'active' : ''}
-                  onClick={() => handlePageChange(index + 1)}
-                >
-                  {index + 1}
-                </button>
-              ))}
-              <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
-                Next →
-              </button>
-            </div>
-          </div>
+                <div className="pagination">
+                  <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+                    ← Previous
+                  </button>
+                  {[...Array(totalPages)].map((_, index) => (
+                    <button
+                      key={index}
+                      className={currentPage === index + 1 ? 'active' : ''}
+                      onClick={() => handlePageChange(index + 1)}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                  <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+                    Next →
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
-
-      {/* Modal */}
-      {selectedPerson && (
-        <div className="modal">
-          <div className="modal-content modal-large">
-            <h3>Agreements for {selectedPerson.name}</h3>
-            {agreements.length > 0 ? (
-              <table className="agreements-table">
-                <thead>
-                  <tr>
-                    <th>Document Type</th>
-                    <th>Partner Classification</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {agreements.map((a) => (
-                    <tr key={a.id}>
-                      <td>{a.documentType}</td>
-                      <td>{a.partnerClassification}</td>
-                      <td>
-                        <button className="action-btn" onClick={() => window.open(a.fileUrl, "_blank")}>
-                          View File
-                        </button>
-                        <button
-                          className="action-btn"
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = a.fileUrl;
-                            link.download = a.documentType;
-                            link.click();
-                          }}
-                        >
-                          Download
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p>No agreements found.</p>
-            )}
-            <button onClick={() => setSelectedPerson(null)} style={{ marginTop: '10px' }}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -2,6 +2,7 @@
 .services {
   padding: 4rem 0 5rem;
   background: white;
+  scroll-margin-top: 50px; 
 }
 .services-grid {
   display: grid;

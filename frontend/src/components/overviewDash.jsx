@@ -752,7 +752,15 @@ const lifecycleStages = [
     }
   }, []);
 
-  if (loading) return <div className="overview-container">Loading agreements...</div>;
+  if (loading)
+  return (
+    <div className="overview-container">
+      <div className="lloading-container">
+        <div className="spinner"></div>
+        <p>Loading Overview...</p>
+      </div>
+    </div>
+  );
   if (error) return <div className="overview-container">Error: {error}</div>;
 
 const filterByStat = (statLabel) => {
@@ -760,7 +768,7 @@ const filterByStat = (statLabel) => {
   setSelectedStatus(null);       // Reset any lifecycle/status filter
   setCurrentPage(1);             // Reset to first page
 };
-
+ 
 
 const exportToExcel = async () => {
   const workbook = new ExcelJS.Workbook();

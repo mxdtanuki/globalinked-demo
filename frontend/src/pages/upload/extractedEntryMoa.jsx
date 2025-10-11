@@ -283,10 +283,9 @@ const ExtractedEntryMOA = () => {
   // Additional form states for initial data
   const [source, setSource] = useState("");
   const [dtsStatus, setDtsStatus] = useState("");
-  const [datePupSigned, setDatePupSigned] = useState("");
   const [dateUlcoApproved, setDateUlcoApproved] = useState("");
   const [remarks, setRemarks] = useState("");
-
+ 
   const location = useLocation();  
   const uploadedFile = location.state?.uploadedFile;  // Retrieve file
   const formData = location.state?.formData;  // Retrieve form data
@@ -316,6 +315,7 @@ const ExtractedEntryMOA = () => {
   const [dateSigned, setDateSigned] = useState("");
   const [validityPeriod, setValidityPeriod] = useState("");
   const [dateExpiry, setDateExpiry] = useState("");
+   const [datePupSigned, setDatePupSigned] = useState("");
 
 
   // Contact functions
@@ -658,6 +658,7 @@ const handleSubmit = async (e) => {
       setDateSigned("");
       setValidityPeriod("");
       setDateExpiry("");
+      setDatePupSigned("");
     }
   } catch (error) {
     console.error("Full error:", error);
@@ -697,6 +698,22 @@ const handleSubmit = async (e) => {
     fetchRelated();
   }, [documentType]);
 
+  const handlePartnerEntryTypeChange = (type) => {
+  setPartnerEntryType(type);
+  if (type === "New") {
+    setSelectedPartner(null);
+    setPartnerData({
+      name: "",
+      entityType: "",
+      address: "",
+      website: "",
+      description: "",
+      logo: null,
+    });
+    setSelectedCountry(null);
+    setSelectedRegion(null);
+  }
+};
 
     return (
   <TopbarSidebar>
@@ -900,7 +917,7 @@ const handleSubmit = async (e) => {
             <select
               id="partnerEntryType"
               value={partnerEntryType}
-              onChange={(e) => setPartnerEntryType(e.target.value)}
+              onChange={(e) => handlePartnerEntryTypeChange(e.target.value)}
             >
               <option value="New">New</option>
               <option value="Existing">Existing</option>
@@ -942,7 +959,6 @@ const handleSubmit = async (e) => {
               required
               readOnly={partnerEntryType === "Existing"}
               placeholder="e.g., University, Company, NGO"
-              style={{ opacity: 0.6, color: '#888' }}
             />
           </div>
 
@@ -1026,6 +1042,7 @@ const handleSubmit = async (e) => {
               />
             </div>
           </div>
+          
           <div className="form-group">
             <label>Website:</label>
             <input
