@@ -1,10 +1,11 @@
-import React, { useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect } from "react"; 
+import { Link, useNavigate } from "react-router-dom";
 import Header from "./Header";
-import Footer from "./Footer";
 import "./styles/FacultyLoginPage.css";
 
 const FacultyLoginPage = () => {
+  const navigate = useNavigate();
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
@@ -25,12 +26,19 @@ const FacultyLoginPage = () => {
             If you are a faculty member, kindly log in using your official
             credentials.
           </p>
-          <Link to="/login" className="faculty-login-button">
-            Proceed to Login
-          </Link>
+          <div className="faculty-login-buttons">
+            <Link to="/login" className="faculty-login-button">
+              Proceed to Login
+            </Link>
+            <button 
+              className="faculty-go-back-button"
+              onClick={() => navigate(-1)}
+            >
+              Go Back
+            </button>
+          </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

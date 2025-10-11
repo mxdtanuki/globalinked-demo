@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './globalUpload.css';
 //import axios from "axios";
- 
+  
 const countryOptions = [
   { value: "Afghanistan", label: "Afghanistan", region: "Southern Asia" },
   { value: "Albania", label: "Albania", region: "Southern Europe" },
@@ -552,12 +552,20 @@ const handleSubmit = async (e) => {
         return;
       }
       try {
-        // Fetch agreements of the opposite type
+        // Opposite type
         const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
-        const agreements = await agreementService.getAgreementsByType(typeToFetch);
-        const options = agreements.map(a => ({
+        // Fetch all agreements of the opposite type
+        const agreements = await agreementService.getAgreements({
+          document_type: typeToFetch
+        });
+        // Filter out Withdrawn
+        const filtered = agreements.filter(
+          a => a.document_type === typeToFetch && a.agreement_status !== "Withdrawn"
+        );
+        const options = filtered.map(a => ({
           value: a.agreement_id,
-          label: `${a.dts_number} - ${a.partner_name}`,
+          label: a.dts_number,
+          dts_number: a.dts_number
         }));
         options.unshift({ value: "NA", label: "N/A" });
         setRelatedAgreements(options);

@@ -5,6 +5,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "Trajan";
+  src: url("../assets/fonts/TrajanPro-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 .main-banner {
   position: relative;
   min-height: calc(100vh - 70px);
@@ -539,6 +546,71 @@
 
   .search-button {
     padding: 1rem 1.5rem;
+  }
+}
+
+.wuri-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 120px;
+  width: 100%;
+  max-width: none;
+  margin: 2rem auto;
+}
+
+.polytechnic-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.poly-line {
+  font-family: "Trajan", serif;
+  color: #ffffff;
+  font-size: 1.8rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.wuri-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 30px;
+  max-width: none;
+}
+
+.wuri-logo {
+  width: 5000px !important;;
+  height: auto !important;;
+  margin-top: 3 rem;
+  display: block;
+  filter: brightness(1.8) contrast(120%);
+}
+
+@media (max-width: 768px) {
+  .wuri-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .polytechnic-wrapper {
+    width: auto;
+    align-items: center;
+    text-align: center;
+  }
+
+  .poly-line {
+    font-size: 1.1rem;
+    white-space: normal;
+  }
+
+  .wuri-logo {
+    width: 130px;
   }
 }
 

@@ -36,7 +36,7 @@
 .faculty-login-container {
   background: #ffffff;
   border-radius: 12px;
-  margin-top: 5rem;
+  margin-top: 4rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   padding: 3rem;
   max-width: 600px;
@@ -66,23 +66,69 @@
   margin-bottom: 2rem;
 }
 
+.faculty-button-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
 .faculty-login-button {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: #712929;
   color: white;
-  padding: 1rem 2.5rem;
+  padding: 0.8rem 2rem;
   border-radius: 8px;
   text-decoration: none;
   font-size: 1.1rem;
   font-weight: 600;
   transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  width: 200px;
+  border: none;
+  cursor: pointer;
 }
 
 .faculty-login-button:hover {
   background-color: #4a1d1d;
   transform: translateY(-2px);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.faculty-go-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: #712929;
+  border: 2px solid #712929;
+  padding: 0.8rem 2.5rem;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 200px;
+  text-decoration: none;
+}
+
+.faculty-go-back-button:hover {
+  background-color: #712929;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+ .faculty-login-buttons {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  gap: 5 rem !important; 
+  margin-top: 2rem;
+  flex-wrap: wrap;
 }
 
 @keyframes fadeInScale {
@@ -108,8 +154,19 @@
   .faculty-login-instruction {
     font-size: 1rem;
   }
-  .faculty-login-button {
-    padding: 0.8rem 2rem;
-    font-size: 1rem;
+  .faculty-button-container {
+    flex-direction: column;
   }
+  .faculty-login-button,
+  .faculty-go-back-button {
+   min-width: 180px;
+   text-align: center;
+   padding: 0.8rem 0;
+   font-size: 1rem;
+}
+}
+
+/* Hide footer for a cleaner look */
+.faculty-login-wrapper ~ footer {
+  display: none !important;
 }

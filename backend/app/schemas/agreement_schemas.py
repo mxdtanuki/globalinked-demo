@@ -69,16 +69,10 @@ class PointPersonResponse(BaseModel):
 
 
 class TimerCreate(BaseModel):
-    deadline: Optional[datetime] = None
-    days: Optional[int] = None
-    hours: Optional[int] = None
-    minutes: Optional[int] = None
+    last_status_change: Optional[datetime] = None
 
 class TimerResponse(BaseModel):
-    deadline: Optional[date] = None
-    days: Optional[int] = None
-    hours: Optional[int] = None
-    minutes: Optional[int] = None
+    last_status_change: Optional[date] = None
 
     class Config:
         from_attributes = True

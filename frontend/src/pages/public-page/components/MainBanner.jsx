@@ -56,37 +56,52 @@ export default function MainBanner() {
     const fetchData = async () => {
       try {
         const agreements = await agreementService.getAgreements();
-        
+
+        // show only ACTIVE agreements
+        const activeAgreements = agreements.filter(
+          (ag) => ag.agreement_status === "Active"
+        );
+
         const countriesSet = new Set();
         const logosSet = new Set();
-        agreements.forEach(ag => {
+
+        activeAgreements.forEach((ag) => {
           if (ag.country) countriesSet.add(ag.country);
           if (ag.logo_path) logosSet.add(ag.logo_path);
         });
+
         const countries = Array.from(countriesSet);
-        
+
         const partnerFlags = countries
-          .filter(country => countryToCode[country])
-          .map(country => ({
+          .filter((country) => countryToCode[country])
+          .map((country) => ({
             country,
-            flag: `https://flagcdn.com/${countryToCode[country]}.svg`
+            flag: `https://flagcdn.com/${countryToCode[country]}.svg`,
           }));
-        setFlags(partnerFlags.length > 0 ? partnerFlags : [
-          { country: "Philippines", flag: "https://flagcdn.com/ph.svg" },
-        ]);
-        
-        const logos = Array.from(logosSet).filter(logo => logo);
+
+        setFlags(
+          partnerFlags.length > 0
+            ? partnerFlags
+            : [{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]
+        );
+
+        const logos = Array.from(logosSet).filter((logo) => logo);
         setPartnerLogos(logos);
-        setSlideshowImages(logos.length > 0 ? logos : [
-          mainBuilding,
-          img1,
-          img2,
-          mainBuilding,
-          img3,
-          mainBuilding,
-          img4,
-          mainBuilding,
-        ]);
+
+        setSlideshowImages(
+          logos.length > 0
+            ? logos.map((logo) => `data:image/png;base64,${logo}`)
+            : [
+                mainBuilding,
+                img1,
+                img2,
+                mainBuilding,
+                img3,
+                mainBuilding,
+                img4,
+                mainBuilding,
+              ]
+        );
       } catch (error) {
         console.error("Error fetching data:", error);
         setFlags([{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]);
@@ -136,9 +151,7 @@ export default function MainBanner() {
                 key={index}
                 src={image}
                 alt={`Slide ${index + 1}`}
-                className={`hero-image ${
-                  index === currentImageIndex ? "active" : ""
-                }`}
+                className={`hero-image ${index === currentImageIndex ? "active" : ""}`}
               />
             ))}
           </div>
@@ -206,15 +219,30 @@ export default function MainBanner() {
         </div>
 
         <div className="partner-universities-section">
-          <img src={wuriLogo} alt="WURI Logo" className="wuri-logo" />
+          <div className="wuri-container">
+            <div className="polytechnic-wrapper">
+              <div className="poly-line">The Country’s</div>
+              <div className="poly-line">1st PolytechnicU</div>
+            </div>
+            <div className="wuri-logo-wrap">
+              <img src={wuriLogo} alt="WURI Logo" className="wuri-logo" />
+            </div>
+          </div>
           <h3 className="partner-universities-title">Our Partner Universities</h3>
           <div className="partner-logos-grid">
             {partnerLogos.length > 0 ? (
               partnerLogos.map((logo, index) => (
-                <img key={index} src={logo} alt={`Partner University ${index + 1}`} className="partner-logo-image" />
+                <img
+                  key={index}
+                  src={`data:image/png;base64,${logo}`}
+                  alt={`Partner University ${index + 1}`}
+                  className="partner-logo-image"
+                />
               ))
             ) : (
-              <p className="no-partners-text">partner university logos will appear here</p>
+              <p className="no-partners-text">
+                partner university logos will appear here
+              </p>
             )}
           </div>
         </div>

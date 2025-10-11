@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './globalUpload.css';
 import { useLocation } from 'react-router-dom';
-
+ 
 const countryOptions = [
   { value: "Afghanistan", label: "Afghanistan", region: "Southern Asia" },
   { value: "Albania", label: "Albania", region: "Southern Europe" },
@@ -672,31 +672,39 @@ const handleSubmit = async (e) => {
   const [selectedRelatedAgreement, setSelectedRelatedAgreement] = useState(null);
 
   // Fetch related agreements based on documentType
-  useEffect(() => {
-    const fetchRelated = async () => {
-      if (!documentType) {
-        setRelatedAgreements([]);
-        setSelectedRelatedAgreement(null);
-        return;
-      }
-      try {
-        // Fetch agreements of the opposite type
-        const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
-        const agreements = await agreementService.getAgreementsByType(typeToFetch);
-        const options = agreements.map(a => ({
-          value: a.agreement_id,
-          label: `${a.dts_number} - ${a.partner_name}`,
-        }));
-        options.unshift({ value: "NA", label: "N/A" });
-        setRelatedAgreements(options);
-        setSelectedRelatedAgreement(options[0]);
-      } catch (err) {
-        setRelatedAgreements([{ value: "NA", label: "N/A" }]);
-        setSelectedRelatedAgreement({ value: "NA", label: "N/A" });
-      }
-    };
-    fetchRelated();
-  }, [documentType]);
+useEffect(() => {
+  const fetchRelated = async () => {
+    if (!documentType) {
+      setRelatedAgreements([]);
+      setSelectedRelatedAgreement(null);
+      return;
+    }
+    try {
+      // Opposite type
+      const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
+      // Fetch all agreements of the opposite type
+      const agreements = await agreementService.getAgreements({
+        document_type: typeToFetch
+      });
+      // Filter out Withdrawn
+      const filtered = agreements.filter(
+        a => a.document_type === typeToFetch && a.agreement_status !== "Withdrawn"
+      );
+      const options = filtered.map(a => ({
+        value: a.agreement_id,
+        label: a.dts_number,
+        dts_number: a.dts_number
+      }));
+      options.unshift({ value: "NA", label: "N/A" });
+      setRelatedAgreements(options);
+      setSelectedRelatedAgreement(options[0]);
+    } catch (err) {
+      setRelatedAgreements([{ value: "NA", label: "N/A" }]);
+      setSelectedRelatedAgreement({ value: "NA", label: "N/A" });
+    }
+  };
+  fetchRelated();
+}, [documentType]);
 
   const handlePartnerEntryTypeChange = (type) => {
   setPartnerEntryType(type);

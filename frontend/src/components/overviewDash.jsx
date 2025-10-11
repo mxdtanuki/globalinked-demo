@@ -952,10 +952,11 @@ const exportToExcel = async () => {
                 {dateSortOrder === 'desc' && <span> ▼</span>}
                 {!dateSortOrder && <span style={{ opacity: 0.5 }}> ⇅</span>}
               </th>
+              <th>STATUS</th>
+              <th>DTS NO.</th>
+              <th>DTS STATUS</th>
               <th>SOURCE</th>
               <th>POINT PERSON / POSITION</th>
-              <th>DTS NO.</th>
-              <th>DTS LOCATION</th>
               <th>PARTNER'S NAME</th>
               <th>ENTITY TYPE</th>
               <th>COUNTRY</th>
@@ -973,7 +974,6 @@ const exportToExcel = async () => {
               <th>DATE ENDORSED TO ULCO</th>
               <th>ULCO'S APPROVAL</th>
               <th>PUP OFFICIALS' SIGNATURE</th>
-              <th>STATUS</th>
               <th>WEBSITE LINK</th>
               <th>Brief Profile</th>
               <th>LOGO</th>
@@ -994,10 +994,11 @@ const exportToExcel = async () => {
                   <tr key={agreement.agreement_id}
                     className={editingRow === agreement.agreement_id ? 'editing-row' : ''}>
                     <td>{renderEditableCell(agreement, 'entry_date', agreement.entry_date)}</td>
-                    <td>{renderEditableCell(agreement, 'source_unit', agreement.source_unit)}</td>
-                    <td>{renderEditableCell(agreement, 'point_persons', agreement.point_persons)}</td>
+                    <td>{renderEditableCell(agreement, 'agreement_status', agreement.agreement_status)}</td>
                     <td>{renderEditableCell(agreement, 'dts_number', agreement.dts_number)}</td>
                     <td>{renderEditableCell(agreement, 'dts_status', agreement.dts_status)}</td>
+                    <td>{renderEditableCell(agreement, 'source_unit', agreement.source_unit)}</td>
+                    <td>{renderEditableCell(agreement, 'point_persons', agreement.point_persons)}</td>
                     <td>{renderEditableCell(agreement, 'name', agreement.name)}</td>
                     <td>{renderEditableCell(agreement, 'entity_type', agreement.entity_type)}</td>
                     <td>{renderEditableCell(agreement, 'country', agreement.country)}</td>
@@ -1015,7 +1016,6 @@ const exportToExcel = async () => {
                     <td>{renderEditableCell(agreement, 'date_endorsed_to_ulco', agreement.date_endorsed_to_ulco)}</td>
                     <td>{renderEditableCell(agreement, 'date_ulco_approved', agreement.date_ulco_approved)}</td>
                     <td>{renderEditableCell(agreement, 'date_signed_by_pup', agreement.date_signed_by_pup)}</td>
-                    <td>{renderEditableCell(agreement, 'agreement_status', agreement.agreement_status)}</td>
                     <td>
                       {editingRow === agreement.agreement_id ?
                         renderEditableCell(agreement, 'website_url', agreement.website_url) :
