@@ -315,19 +315,21 @@ async def create_agreement(
         db.add(new_agreement)
         db.flush()
         log_add_entry(db, current_user, agreement.document_type, agreement.dts_number)
-
+        
         # TIMER creation (NEW)
         if getattr(agreement, "timer", None):
             timer_data = agreement.timer
-            timer = Timer(
-                agreement_id=new_agreement.agreement_id,
-                deadline=timer_data.deadline,
-                days=timer_data.days,
-                hours=timer_data.hours,
-                minutes=timer_data.minutes
-            )
-            db.add(timer)
+            last_change = timer_data.last_status_change or agreement.entry_date or datetime.utcnow()
+        else:
+            last_change = agreement.entry_date or datetime.utcnow()
 
+        timer = Timer(
+            agreement_id=new_agreement.agreement_id,
+            last_status_change=last_change
+        )
+        db.add(timer)
+
+        
         # CONTACT PERSONS
         created_contact_persons = []
         contact_list = []
@@ -503,6 +505,18 @@ async def update_agreement(
             agreement.signatories_list = up['signatories_list']
         if 'agreement_status' in up:
             agreement.agreement_status = up['agreement_status']
+            # Update last_status_change in Timer when agreement_status changes
+            timer = db.query(Timer).filter(Timer.agreement_id == agreement.agreement_id).first()
+            if timer:
+                timer.last_status_change = datetime.utcnow()
+            else:
+                # Safety net — create one if missing
+                timer = Timer(
+                    agreement_id=agreement.agreement_id,
+                    last_status_change=datetime.utcnow()
+                )
+                db.add(timer)
+
         if 'hardcopy_location' in up:
             agreement.hardcopy_location = up['hardcopy_location']
 
