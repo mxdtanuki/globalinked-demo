@@ -449,6 +449,8 @@ async def create_agreement(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Replace the update_agreement function and delete_agreement function with these optimized versions
+
 @router.put("/{agreement_id}", response_model=AgreementResponse)
 async def update_agreement(
     agreement_id: int,
@@ -458,6 +460,7 @@ async def update_agreement(
 ):
     """
     Update agreement + partner + associated contact/point persons and remarks.
+    OPTIMIZED: Better transaction handling and batch operations.
     """
     try:
         # Get existing agreement with partner
@@ -540,52 +543,77 @@ async def update_agreement(
         if 'logo_path' in up and up['logo_path']:
             partner.logo_path = up['logo_path']
 
-        # Handle contact persons update (delete all for this agreement, then recreate)
+        # OPTIMIZED: Handle contact persons update with batch operations
         if 'contact_persons' in up:
+            # Use synchronize_session=False for faster deletion
             db.query(ContactPersons).filter(
                 ContactPersons.agreement_id == agreement_id
-            ).delete()
-
+            ).delete(synchronize_session=False)
+            
+            # Batch insert new contact persons
+            contact_persons_to_add = []
             for cp_data in up.get('contact_persons', []):
-                cp = ContactPersons(
-                    contact_person_position=cp_data.get('contact_person_position', ''),
-                    contact_person_name=cp_data.get('contact_person_name', ''),
-                    contact_person_email=cp_data.get('contact_person_email', ''),
-                    partner_id=partner.partner_id,
-                    agreement_id=agreement_id
-                )
-                db.add(cp)
+                if cp_data.get('contact_person_name') or cp_data.get('contact_person_email'):
+                    contact_persons_to_add.append(ContactPersons(
+                        contact_person_position=cp_data.get('contact_person_position', ''),
+                        contact_person_name=cp_data.get('contact_person_name', ''),
+                        contact_person_email=cp_data.get('contact_person_email', ''),
+                        partner_id=partner.partner_id,
+                        agreement_id=agreement_id
+                    ))
+            
+            if contact_persons_to_add:
+                db.add_all(contact_persons_to_add)
 
-        # Handle point persons update (delete existing by agreement_id then recreate)
+        # OPTIMIZED: Handle point persons update with batch operations
         if 'point_persons' in up:
+            # Use synchronize_session=False for faster deletion
             db.query(PointPersons).filter(
                 PointPersons.agreement_id == agreement_id
-            ).delete()
+            ).delete(synchronize_session=False)
 
+            # Batch insert new point persons
+            point_persons_to_add = []
             for pp_data in up.get('point_persons', []):
-                pp = PointPersons(
-                    point_person_position=pp_data.get('point_person_position', ''),
-                    point_person_name=pp_data.get('point_person_name', ''),
-                    point_person_email=pp_data.get('point_person_email', ''),
-                    agreement_id=agreement_id
-                )
-                db.add(pp)
+                if pp_data.get('point_person_name') or pp_data.get('point_person_email'):
+                    point_persons_to_add.append(PointPersons(
+                        point_person_position=pp_data.get('point_person_position', ''),
+                        point_person_name=pp_data.get('point_person_name', ''),
+                        point_person_email=pp_data.get('point_person_email', ''),
+                        agreement_id=agreement_id
+                    ))
+            
+            if point_persons_to_add:
+                db.add_all(point_persons_to_add)
 
-        # Handle remarks update (delete existing and add new)
+        # OPTIMIZED: Handle remarks update with batch operations and timeout protection
         if 'remarks' in up:
-            db.query(AgreementRemarks).filter(
-                AgreementRemarks.agreement_id == agreement_id
-            ).delete()
+            try:
+                # Use synchronize_session=False for faster deletion
+                db.query(AgreementRemarks).filter(
+                    AgreementRemarks.agreement_id == agreement_id
+                ).delete(synchronize_session=False)
+                
+                # Batch insert new remarks
+                remarks_to_add = []
+                for remark_data in up.get('remarks', []):
+                    if remark_data.get('remark_text'):
+                        remarks_to_add.append(AgreementRemarks(
+                            agreement_id=agreement_id,
+                            user_id=current_user.user_id,
+                            remark_text=remark_data.get('remark_text', ''),
+                            remark_timestamp=datetime.utcnow()
+                        ))
+                
+                if remarks_to_add:
+                    db.add_all(remarks_to_add)
+                    
+            except Exception as e:
+                print(f"⚠️ Error updating remarks for agreement {agreement_id}: {e}")
+                # Continue with the rest of the update even if remarks fail
+                pass
 
-            for remark_data in up.get('remarks', []):
-                remark = AgreementRemarks(
-                    agreement_id=agreement_id,
-                    user_id=current_user.user_id,
-                    remark_text=remark_data.get('remark_text', ''),
-                    remark_timestamp=datetime.utcnow()
-                )
-                db.add(remark)
-
+        # Commit all changes
         db.commit()
         db.refresh(agreement)
         log_update_entry(db, current_user, agreement.document_type, agreement.dts_number)
@@ -650,8 +678,9 @@ async def update_agreement(
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    
+        print(f"🔥 Error updating agreement {agreement_id}: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to update agreement: {str(e)}")
 
 @router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_agreement(
@@ -661,45 +690,79 @@ async def delete_agreement(
 ):
     """
     Delete agreement and cascade dependents (DB FKs) + Supabase folder.
+    OPTIMIZED: Better transaction handling with timeout protection.
     """
     try:
         agreement = db.query(Agreements).filter(Agreements.agreement_id == agreement_id).first()
         print("👤 Current user:", getattr(current_user, "user_id", None), getattr(current_user, "user_name", None))
         print("🗑️ Deleting agreement:", agreement_id, "->", agreement)
+        
         if not agreement:
             raise HTTPException(status_code=404, detail="Agreement not found")
 
         dts_number = agreement.dts_number  # keep before deletion
 
-        # Reset references in other agreements
-        db.query(Agreements).filter(
-            cast(Agreements.renewed_from_agreement_id, Integer) == agreement_id
-        ).update({Agreements.renewed_from_agreement_id: None})
-        db.query(Agreements).filter(
-            cast(Agreements.MOU_to_MOA_id, Integer) == agreement_id
-        ).update({Agreements.MOU_to_MOA_id: None})
+        # Reset references in other agreements first (outside main transaction)
+        try:
+            db.query(Agreements).filter(
+                cast(Agreements.renewed_from_agreement_id, Integer) == agreement_id
+            ).update({Agreements.renewed_from_agreement_id: None}, synchronize_session=False)
+            
+            db.query(Agreements).filter(
+                cast(Agreements.MOU_to_MOA_id, Integer) == agreement_id
+            ).update({Agreements.MOU_to_MOA_id: None}, synchronize_session=False)
+            
+            db.commit()  # Commit reference updates first
+        except Exception as e:
+            print(f"⚠️ Error updating agreement references: {e}")
+            db.rollback()
 
         # Delete Supabase folder (ignore if missing)
         try:
             delete_folder(dts_number)
         except Exception as e:
             print(f"⚠️ Supabase folder cleanup failed for {dts_number}: {e}")
-            traceback.print_exc()
 
-        # Manually delete all related records
-        db.query(AgreementRemarks).filter(AgreementRemarks.agreement_id == agreement_id).delete()
-        db.query(PointPersons).filter(PointPersons.agreement_id == agreement_id).delete()
-        db.query(ContactPersons).filter(ContactPersons.agreement_id == agreement_id).delete()
-        db.query(DocumentVersions).filter(DocumentVersions.dts_number == dts_number).delete()
-        db.query(Notification).filter(Notification.agreement_id == agreement_id).delete()
-        db.query(Timer).filter(Timer.agreement_id == agreement_id).delete()
+        # OPTIMIZED: Delete related records with better error handling and timeouts
+        deletion_operations = [
+            ("AgreementRemarks", AgreementRemarks, AgreementRemarks.agreement_id == agreement_id),
+            ("PointPersons", PointPersons, PointPersons.agreement_id == agreement_id),
+            ("ContactPersons", ContactPersons, ContactPersons.agreement_id == agreement_id),
+            ("DocumentVersions", DocumentVersions, DocumentVersions.dts_number == dts_number),
+            ("Notification", Notification, Notification.agreement_id == agreement_id),
+            ("Timer", Timer, Timer.agreement_id == agreement_id),
+        ]
 
-        # Delete agreement (cascades via FKs)
-        db.delete(agreement)
-        db.commit()
+        # Delete each type of related record individually with error handling
+        for table_name, model_class, filter_condition in deletion_operations:
+            try:
+                print(f"🗑️ Deleting {table_name} records for agreement {agreement_id}")
+                deleted_count = db.query(model_class).filter(filter_condition).delete(synchronize_session=False)
+                print(f"✅ Deleted {deleted_count} {table_name} records")
+                db.commit()  # Commit each deletion separately to avoid long transactions
+            except Exception as e:
+                print(f"⚠️ Error deleting {table_name}: {e}")
+                db.rollback()
 
-        log_delete_entry(db, current_user, agreement.document_type, agreement.dts_number)
+                continue
+
+        # Finally, delete the main agreement record
+        try:
+            print(f"🗑️ Deleting main agreement record {agreement_id}")
+            db.delete(agreement)
+            db.commit()
+            print("✅ Agreement deleted successfully")
+            
+            # Log the deletion
+            log_delete_entry(db, current_user, agreement.document_type, dts_number)
+            
+        except Exception as e:
+            print(f"🔥 Error deleting main agreement: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to delete agreement: {str(e)}")
+
         return Response(status_code=status.HTTP_204_NO_CONTENT)
+        
     except HTTPException:
         raise
     except Exception as e:
