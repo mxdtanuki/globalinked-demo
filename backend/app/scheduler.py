@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import json
 from zoneinfo import ZoneInfo
-
 from app.database import SessionLocal
 from app.models.agreements import Agreements
 from app.models.partners import Partners
 from app.models.contact_persons import ContactPersons
+from app.models.point_persons import PointPersons
+from app.models.timer import Timer
 
 # Timeframe constants
 EXPIRY_WINDOW_DAYS = int(__import__("os").environ.get("EXPIRY_WINDOW_DAYS", "30"))
@@ -21,22 +22,20 @@ scheduler = BackgroundScheduler(timezone=PH_TZ)
 # Mapping for per-status thresholds
 STATUS_THRESHOLD_DAYS = {
     # status -> days before the alert
-    "Initial Review": 1,
-    "Endorse": 1,
-    "Revert": 1,
-    "For Consultation": 1,
-    "Replication": 1,
-    "SignituresPUP": 1,
-    "SignedPUP": 1,
-    "SignituresPartner": 1,
-    "Notary": 1,
-    "FFUPCopy": 1,
+    "Initial Review": 3,
+    "Endorse": 3,
+    "Revert": 3,
+    "For Consultation": 3,
+    "Replication": 3,
+    "SignituresPUP": 3,
+    "SignedPUP": 3,
+    "SignituresPartner": 3,
+    "Notary": 3,
+    "FFUPCopy": 3,
 }
-
 
 def _open_session():
     return SessionLocal()
-
 
 def _parse_point_persons(raw):
     """
@@ -52,8 +51,6 @@ def _parse_point_persons(raw):
     except Exception:
         return []
 
-
-
 def _format_subject(category: str, a: Agreements, partner_name: str):
     prefix = {
         "expiring_soon": "Expiring Soon",
@@ -62,8 +59,7 @@ def _format_subject(category: str, a: Agreements, partner_name: str):
     }.get(category, "Notification")
     return f"[Globalinked] {prefix}: {partner_name} — {a.document_type} {a.dts_number}"
 
-
-def _format_body(category: str, a: Agreements, partner_name: str, recommended_actions):
+def _format_body(category: str, a: Agreements, partner_name: str, recommended_actions, last_status_change=None):
     expiry = a.date_expiry.isoformat() if a.date_expiry else "-"
     actions_str = "\n- ".join(recommended_actions)
     return f"""Partner: {partner_name}
@@ -71,13 +67,12 @@ def _format_body(category: str, a: Agreements, partner_name: str, recommended_ac
     Type: {a.document_type}
     Name: {partner_name}
     Status: {a.agreement_status or '-'}
-    Entry: {a.entry_date}
+    Last status change: {last_status_change or '-'}
     Expiry: {expiry}
 
     Recommended actions:
     - {actions_str}
     """
-
 
 def _format_days_ago(days):
     if days is None:
@@ -184,7 +179,6 @@ def _recommended_actions_for_category(category, status=None):
         ]
     return ["Review and act accordingly."]
 
-
 def agreement_notification_job():
     #  service imports
     from app.services.notif_service import create_notification_if_new
@@ -226,18 +220,27 @@ def agreement_notification_job():
             days_threshold = threshold_map.get(status, PENDING_DAYS_DEFAULT)
             cutoff = today - timedelta(days=days_threshold)
             pending_rows = (
-                db.query(Agreements, Partners)
+                db.query(Agreements, Partners, Timer)
                   .join(Partners, Agreements.partner_id == Partners.partner_id)
+                  .join(Timer, Timer.agreement_id == Agreements.agreement_id)
                   .filter(Agreements.agreement_status == status)
-                  .filter(Agreements.entry_date != None)
-                  .filter(Agreements.entry_date <= cutoff)
+                  .filter(Timer.last_status_change != None)
+                  .filter(Timer.last_status_change <= datetime.combine(cutoff, datetime.min.time()))
                   .all()
             )
-            for a, p in pending_rows:
+
+            for a, p, t in pending_rows:
                 category = "pending_long"
-                days_pending = (today - a.entry_date).days if a.entry_date else None
+                days_pending = (today - t.last_status_change.date()).days if t.last_status_change else None
                 time_pending = _format_days_ago(days_pending)
-                msg = f"{a.document_type} for {p.name} - '{a.dts_number}' has been in status '{a.agreement_status}' for {time_pending}."
+
+                print(f"[DormantCheck] Agreement {a.agreement_id} ({a.agreement_status}) last change: {t.last_status_change}, days: {days_pending}")
+                # LOG: For debugging dormant check
+
+                msg = (
+                    f"{a.document_type} for {p.name} - '{a.dts_number}' has been in "
+                    f"status '{a.agreement_status}' for {time_pending}."
+                )
                 actions = _recommended_actions_for_category(category, a.agreement_status)
                 notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
 
@@ -262,7 +265,6 @@ def agreement_notification_job():
         print("[Scheduler] agreement_notification_job error:", exc)
     finally:
         db.close()
-
 
 def start_scheduler():
     # schedule the scan once at startup and daily
