@@ -26,12 +26,16 @@ const COLORS = [
   "#BB8FCE"
 ];
 
-const MOAChart = forwardRef(({ data, onDataUpdate }, ref) => {
+const MONTHS_ORDER = [
+  'January','February','March','April','May','June','July','August','September','October','November','December'
+];
+
+const MOAChart = forwardRef(({ data, onDataUpdate, selectedYear: propSelectedYear, visibleStartMonth, visibleEndMonth }, ref) => {
   const years = Object.keys(data || {});
   const [filterVisible, setFilterVisible] = useState(false);
 
   const [selectedYear, setSelectedYear] = useState(years[0] || "");
-  const months = selectedYear && data[selectedYear] ? Object.keys(data[selectedYear]) : [];
+  const months = selectedYear && data[selectedYear] ? MONTHS_ORDER.filter(m => Object.keys(data[selectedYear] || {}).includes(m)) : [];
   const [startMonth, setStartMonth] = useState(months[0] || "");
   const [endMonth, setEndMonth] = useState(months[0] || "");
   const [chartData, setChartData] = useState([]);
@@ -45,35 +49,88 @@ const MOAChart = forwardRef(({ data, onDataUpdate }, ref) => {
     return arr.sort((a, b) => b.value - a.value);
   };
 
-  useEffect(() => {
-    if (selectedYear && months.length > 0) {
-      const initialArr = data[selectedYear][months[0]];
-      setChartData(processAllData(initialArr));
-      onDataUpdate(initialArr);
-    }
-  }, []); 
+  // rely on the data-driven effect below; no mount-only initialization
 
   useEffect(() => {
+    console.debug('MOAChart effect', { dataKeys: Object.keys(data || {}), propSelectedYear, visibleStartMonth, visibleEndMonth });
     if (data && Object.keys(data).length > 0) {
       const years = Object.keys(data);
-      const latestYear = years.sort().reverse()[0]; 
+      const latestYear = years.sort().reverse()[0];
       const months = Object.keys(data[latestYear]);
-      const latestMonth = months.sort().reverse()[0]; 
+      const latestMonth = months.sort().reverse()[0];
 
-      // Reset selected year/months
-      setSelectedYear(latestYear);
-      setStartMonth(latestMonth);
-      setEndMonth(latestMonth);
+      // If parent supplied a selectedYear, prefer it; otherwise use latest
+      const useYear = propSelectedYear || latestYear;
+  const yearMonthsUnsorted = Object.keys(data[useYear] || {});
+  const yearMonths = MONTHS_ORDER.filter(m => yearMonthsUnsorted.includes(m));
+  const useLatestMonth = yearMonths.length ? yearMonths[yearMonths.length - 1] : (latestMonth || yearMonthsUnsorted.sort().reverse()[0]);
 
-      // Set chart data from the latest available dataset
-      const latestArr = data[latestYear][latestMonth] || [];
-      setChartData(processAllData(latestArr));
-      onDataUpdate(latestArr);
+      setSelectedYear(useYear);
+      setStartMonth(visibleStartMonth || useLatestMonth);
+      setEndMonth(visibleEndMonth || useLatestMonth);
 
-      // Update label
-      setRangeLabel(`${latestMonth} ${latestYear}`);
+      if (propSelectedYear && data[useYear] && yearMonths.length > 0) {
+        const combined = {};
+        yearMonths.forEach((m) => {
+          const entries = data[useYear][m] || [];
+          entries.forEach((e) => {
+            combined[e.name] = (combined[e.name] || 0) + e.value;
+          });
+        });
+        const result = Object.entries(combined).map(([name, value]) => ({ name, value }));
+        setChartData(processAllData(result));
+        setRangeLabel(
+          yearMonths.length === 1
+            ? `${yearMonths[0]} ${useYear}`
+            : `${yearMonths[0]} – ${yearMonths[yearMonths.length - 1]} ${useYear}`
+        );
+        console.debug('MOAChart full-year', { useYear, monthsShown: yearMonths.length, resultCount: result.length });
+
+      } else if (visibleStartMonth && visibleEndMonth && data[useYear]) {
+        const startIndex = yearMonths.indexOf(visibleStartMonth);
+        const endIndex = yearMonths.indexOf(visibleEndMonth);
+        const range = startIndex >= 0 && endIndex >= 0 && endIndex >= startIndex ? yearMonths.slice(startIndex, endIndex + 1) : [];
+        const combined = {};
+        range.forEach((m) => {
+          const entries = data[useYear][m] || [];
+          entries.forEach((e) => {
+            combined[e.name] = (combined[e.name] || 0) + e.value;
+          });
+        });
+        const result = Object.entries(combined).map(([name, value]) => ({ name, value }));
+        setChartData(processAllData(result));
+        setRangeLabel(
+          visibleStartMonth === visibleEndMonth
+            ? `${visibleStartMonth} ${useYear}`
+            : `${visibleStartMonth} – ${visibleEndMonth} ${useYear}`
+        );
+        console.debug('MOAChart combined range', { useYear, rangeLength: range.length, resultCount: result.length });
+
+      } else {
+        const latestArr = data[useYear][useLatestMonth] || [];
+        setChartData(processAllData(latestArr));
+        setRangeLabel(`${useLatestMonth} ${useYear}`);
+        console.debug('MOAChart latest', { useYear, useLatestMonth, latestArrLen: (latestArr || []).length });
+      }
+
+      // Fallback: if chartData would be empty but data has entries, aggregate first available month across any year
+      const hasAnyData = Object.keys(data).some(y => Object.keys(data[y] || {}).length > 0);
+      if ((chartData == null || chartData.length === 0) && hasAnyData) {
+        for (const y of Object.keys(data)) {
+          const months = Object.keys(data[y] || {});
+          if (months.length > 0) {
+            const arr = data[y][months[0]] || [];
+            if (arr.length > 0) {
+              const processed = processAllData(arr);
+              setChartData(processed);
+              setRangeLabel(`${months[0]} ${y}`);
+              break;
+            }
+          }
+        }
+      }
     }
-  }, [data]);
+  }, [data, propSelectedYear, visibleStartMonth, visibleEndMonth]);
 
   const handleApplyFilter = () => {
     if (!selectedYear || months.length === 0) return;

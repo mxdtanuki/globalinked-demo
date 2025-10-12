@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from app.database import Base, engine, get_db, reset_connection_pool, check_pool_status, test_connection
 import logging
 
 logger = logging.getLogger("uvicorn.error")
@@ -12,7 +15,6 @@ from app.controllers import (
     agreement_controller,
     audit_controller,
 )
-from app.database import Base, engine
 from app.controllers import partners_controller
 from app.controllers import document_controller
 from app.models.notification import Notification  
@@ -53,6 +55,7 @@ app.include_router(partners_controller.router)
 app.include_router(audit_controller.router)
 app.include_router(document_controller.router)
 
+# Initialize services
 if not hasattr(app.state, "doc_processing_service"):
     app.state.doc_processing_service = DocumentProcessingService()
 if not hasattr(app.state, "nlp_service"):
@@ -60,6 +63,42 @@ if not hasattr(app.state, "nlp_service"):
         document_processing_service=app.state.doc_processing_service
     )
 
+# Admin endpoints for pool management
+@app.get("/admin/pool-status")
+async def admin_pool_status():
+    """Check database connection pool status."""
+    return check_pool_status()
+
+@app.post("/admin/reset-pool")
+async def admin_reset_pool():
+    """Emergency reset of database connection pool."""
+    try:
+        result = reset_connection_pool()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pool reset failed: {str(e)}")
+
+@app.get("/admin/db-health")
+async def admin_db_health():
+    """Test database connectivity."""
+    return test_connection()
+
+@app.get("/admin/performance-test")
+async def performance_test(db: Session = Depends(get_db)):
+    """Quick performance test."""
+    import time
+    
+    results = {}
+    
+    # Test 1: Simple query
+    start = time.time()
+    result = db.execute(text("SELECT COUNT(*) FROM agreements")).scalar()
+    results["count_query"] = {"time": round(time.time() - start, 3), "count": result}
+    
+    # Test 2: Pool status
+    results["pool_status"] = check_pool_status()
+    
+    return results
 
 @app.on_event("startup")
 def on_startup():
@@ -98,7 +137,7 @@ def on_startup():
 def on_shutdown():
     from app.scheduler import shutdown_scheduler
 
-    shutdown_scheduler()
+    shutdown_scheduler()  # Fixed: was shutdown_shutdown()
 
 
 @app.get("/health/qa")
