@@ -551,8 +551,12 @@ const exportToExcel = async () => {
                               {a.logo_path && a.logo_path.trim() !== "" ? (
                                 <img
                                   src={
-                                    a.logo_path.startsWith("data:image") || a.logo_path.startsWith("iVBORw0") 
-                                      ? `data:image/png;base64,${a.logo_path.replace(/^data:image\/[a-z]+;base64,/, "")}`
+                                    a.logo_path.startsWith("data:image")
+                                      ? a.logo_path
+                                      : a.logo_path.startsWith("iVBORw0")
+                                      ? `data:image/png;base64,${a.logo_path}`
+                                      : a.logo_path.startsWith("/9j/")
+                                      ? `data:image/jpeg;base64,${a.logo_path}`
                                       : a.logo_path.startsWith("http")
                                       ? a.logo_path
                                       : `${API_BASE_URL.replace(/\/$/, "")}/${a.logo_path.replace(/^\/+/, "")}`
@@ -569,7 +573,7 @@ const exportToExcel = async () => {
                                   onError={(e) => {
                                     console.warn("Logo failed to load:", e.target.src);
                                     e.target.onerror = null;
-                                    e.target.style.display = "none"; 
+                                    e.target.style.display = "none";
                                   }}
                                 />
                               ) : (

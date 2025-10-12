@@ -27,20 +27,26 @@ const MOUMOAPublicPage = () => {
   const modalRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const agreements = await agreementService.getAgreements();
-        setAgreementData(agreements);
-      } catch (err) {
-        setError("Failed to load agreement data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+        // get active agreements only
+      const agreements = await agreementService.getAgreements();
+      const activeAgreements = agreements.filter(
+        (ag) => ag.agreement_status === "Active"
+      );
+      setAgreementData(activeAgreements);
+    } catch (err) {
+      console.error("Error fetching agreements:", err);
+      setError("Failed to load agreement data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  fetchData();
+}, []);
+
 
   useEffect(() => {
     if (selectedCountry && modalRef.current) {
