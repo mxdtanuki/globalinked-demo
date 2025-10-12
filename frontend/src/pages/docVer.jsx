@@ -311,7 +311,10 @@ const handleSave = async () => {
                                 const response = await fetch(doc.download_url, {
                                   headers: { Accept: "application/pdf" },
                                 });
-                                const blob = await response.blob();
+                                // Ensure we create a Blob with the proper MIME type so the browser
+                                // renders it as a PDF instead of showing raw content.
+                                const arrayBuffer = await response.arrayBuffer();
+                                const blob = new Blob([arrayBuffer], { type: "application/pdf" });
                                 const url = window.URL.createObjectURL(blob);
                                 window.open(url, "_blank");
                               } catch (err) {
@@ -328,10 +331,10 @@ const handleSave = async () => {
                                 const response = await fetch(doc.download_url, {
                                   headers: { Accept: "application/pdf" },
                                 });
-                                const blob = await response.blob();
+                                const arrayBuffer = await response.arrayBuffer();
+                                const blob = new Blob([arrayBuffer], { type: "application/pdf" });
                                 const url = window.URL.createObjectURL(blob);
-                                const link =
-                                  document.createElement("a");
+                                const link = document.createElement("a");
                                 link.href = url;
                                 link.download = `${doc.dts_number}_v${doc.version_number}.pdf`;
                                 document.body.appendChild(link);

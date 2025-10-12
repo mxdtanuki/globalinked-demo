@@ -157,7 +157,7 @@ export default function MainBanner() {
                 </div>
               </div>
             </div>
-            <h3 className="carousel-title">Our Partner Countries</h3>
+            <h3 className="carousel-title">OUR PARTNER COUNTRIES</h3>
           </div>
 
           <div className="quote-column">
@@ -203,7 +203,7 @@ export default function MainBanner() {
               <img src={wuriLogo} alt="WURI Logo" className="wuri-logo" />
             </div>
           </div>
-          <h3 className="partner-universities-title">Our Partner Universities</h3>
+          <h3 className="partner-universities-title">OUR PARTNER UNIVERSITIES</h3>
           <div className="partner-logos-grid">
             {partnerLogos.length > 0 ? (
               partnerLogos.map((logo, index) => (

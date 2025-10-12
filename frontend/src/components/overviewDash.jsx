@@ -31,7 +31,7 @@ const OverviewDash = () => {
   const [savingRows, setSavingRows] = useState(new Set());
   const [deletingRows, setDeletingRows] = useState(new Set());
 
-  const rowsPerPage = 20;
+  const rowsPerPage = 10;
 
   useEffect(() => {
     fetchAgreements();
