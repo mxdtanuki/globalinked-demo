@@ -156,10 +156,8 @@ const MOAUpload = () => {
                 required
               >
                 <option value="">Select Status</option>
-                <option value="Open - OIA">Open - OIA</option>
-                <option value="Closed - OIA">Closed - OIA</option>
-                <option value="Open - Other Office">Open - Other Office</option>
-                <option value="Closed - Other Office">Closed - Other Office</option>
+              <option value="Open - OIA">OPEN</option>
+              <option value="Open - Other Office">CLOSE</option>
               </select>
             </div>
 

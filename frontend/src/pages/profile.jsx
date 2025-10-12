@@ -13,25 +13,27 @@ const Profile = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true); // ✅ added
   const navigate = useNavigate();
 
-useEffect(() => {
-  const loadProfile = async () => {
-    try {
-      const data = await getCurrentUser();
-      console.log("getCurrentUser() response:", data);
-      setCurrentUser(data);
-      setProfilePic(data.user_profile_img ? `data:image/png;base64,${data.user_profile_img}` : null);
-      localStorage.setItem("user", JSON.stringify(data)); // optional cache
-    } catch (err) {
-      console.error("Failed to load user from API:", err);
-      const cached = localStorage.getItem("user");
-      if (cached) setCurrentUser(JSON.parse(cached));
-    }
-  };
-  loadProfile();
-}, []);
-
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const data = await getCurrentUser();
+        console.log("getCurrentUser() response:", data);
+        setCurrentUser(data);
+        setProfilePic(data.user_profile_img ? `data:image/png;base64,${data.user_profile_img}` : null);
+        localStorage.setItem("user", JSON.stringify(data));
+      } catch (err) {
+        console.error("Failed to load user from API:", err);
+        const cached = localStorage.getItem("user");
+        if (cached) setCurrentUser(JSON.parse(cached));
+      } finally {
+        setLoading(false); // ✅ stop loading after fetch
+      }
+    };
+    loadProfile();
+  }, []);
 
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
@@ -39,7 +41,7 @@ useEffect(() => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64Str = reader.result.split(",")[1]; // only keep base64 data
+      const base64Str = reader.result.split(",")[1];
       setProfilePic(reader.result);
       setCurrentUser(prev => ({
         ...prev,
@@ -78,73 +80,81 @@ useEffect(() => {
       <div className="content-body">
         <Sidebar collapsed={collapsed} toggleCollapse={() => setCollapsed(!collapsed)} mobileShow={mobileShow} />
         <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
-          <div className="profile-container">
-            <div className="profile-card">
-              <h3 className="profile-title">Profile</h3>
+          
+          {loading ? (
+            <div className="lloading-container">
+              <div className="spinner"></div>
+              <p>Loading Profile...</p>
+            </div>
+          ) : (
+            <div className="profile-container">
+              <div className="profile-card">
+                <h3 className="profile-title">Profile</h3>
 
-              <div className="profile-pic-wrapper">
-                <img
-                  src={profilePic || "/default-profile.png"}
-                  alt="Profile"
-                  className="profile-pic"
-                />
-                <div className="camera-icon" onClick={() => document.getElementById("profilePicInput").click()}>
-                  <FiCamera />
+                <div className="profile-pic-wrapper">
+                  <img
+                    src={profilePic || "/default-profile.png"}
+                    alt="Profile"
+                    className="profile-pic"
+                  />
+                  <div className="camera-icon" onClick={() => document.getElementById("profilePicInput").click()}>
+                    <FiCamera />
+                  </div>
+                  <input
+                    id="profilePicInput"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleProfilePicChange}
+                  />
                 </div>
-                <input
-                  id="profilePicInput"
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={handleProfilePicChange}
-                />
-              </div>
 
-              <div className="form-group">
-                <label>Name</label>
-                <input
-                  type="text"
-                  value={currentUser?.user_name || ""}
-                  onChange={(e) => setCurrentUser({ ...currentUser, user_name: e.target.value })}
-                />
-              </div>
+                <div className="form-group">
+                  <label>Name</label>
+                  <input
+                    type="text"
+                    value={currentUser?.user_name || ""}
+                    onChange={(e) => setCurrentUser({ ...currentUser, user_name: e.target.value })}
+                  />
+                </div>
 
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="text"
-                  value={currentUser?.user_email || ""}
-                  onChange={(e) => setCurrentUser({ ...currentUser, user_email: e.target.value })}
-                />
-              </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="text"
+                    value={currentUser?.user_email || ""}
+                    onChange={(e) => setCurrentUser({ ...currentUser, user_email: e.target.value })}
+                  />
+                </div>
 
-              <div className="form-group">
-                <label>Position</label>
-                <input
-                  type="text"
-                  value={currentUser?.user_position || ""}
-                  onChange={(e) => setCurrentUser({ ...currentUser, user_position: e.target.value })}
-                />
-              </div>
+                <div className="form-group">
+                  <label>Position</label>
+                  <input
+                    type="text"
+                    value={currentUser?.user_position || ""}
+                    onChange={(e) => setCurrentUser({ ...currentUser, user_position: e.target.value })}
+                  />
+                </div>
 
-              <div className="profile-actions">
-                <button className="btn-save" onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
-                <button className="btn-cancel" onClick={() => window.location.reload()}>
-                  Cancel
-                </button>
-              </div>
-
-              {currentUser?.user_role?.toLowerCase() === "admin" && (
-                <div className="manage-user-requests">
-                  <button className="btn-manage" onClick={() => navigate('/userManagement')}>
-                    Manage User Requests
+                <div className="profile-actions">
+                  <button className="btn-save" onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? "Saving..." : "Save"}
+                  </button>
+                  <button className="btn-cancel" onClick={() => window.location.reload()}>
+                    Cancel
                   </button>
                 </div>
-              )}
+
+                {currentUser?.user_role?.toLowerCase() === "admin" && (
+                  <div className="manage-user-requests">
+                    <button className="btn-manage" onClick={() => navigate('/userManagement')}>
+                      Manage User Requests
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

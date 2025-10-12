@@ -871,7 +871,6 @@ useEffect(() => {
             value={dtsNumber}
             onChange={(e) => setDtsNumber(e.target.value) }
             placeholder="DT2025123456"
-            style={{ opacity: 0.6, color: '#888' }}
           />
           </div>
 

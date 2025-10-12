@@ -721,19 +721,27 @@ const lifecycleStages = [
 }));
 
   const tableColumns = [
-    'Date', 'SOURCE', 'POINT PERSON / POSITION', 'DTS NO.', 'DTS LOCATION',
+    'Date',  'STATUS','DTS NO.', 'DTS LOCATION','SOURCE', 'POINT PERSON / POSITION',
     "PARTNER'S NAME", 'ENTITY TYPE', 'COUNTRY', 'REGION', 'ADDRESS',
     'SIGNATORIES / POSITION', 'CONTACT PERSON / DETAILS', 'DOCUMENT TYPE',
     'PARTNERSHIP CLASSIFICATION', 'EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT',
     'VALIDITY PERIOD', 'DATE / YEAR OF SIGNING', 'EXPIRY DATE / YEAR',
     'DATE RECEIVED', 'DATE ENDORSED TO ULCO', "ULCO'S APPROVAL",
-    "PUP OFFICIALS' SIGNATURE", 'STATUS', 'WEBSITE LINK',
+    "PUP OFFICIALS' SIGNATURE", 'WEBSITE LINK',
     'Brief Profile', 'LOGO', 'HARDCOPY LOCATOR', 'REMARKS', 'ACTIONS'
   ];
 
   const totalPages = Math.ceil(filteredAgreements.length / rowsPerPage);
-  const paginatedData = filteredAgreements.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  
+  // added update: sort by entry_date descending by default (newest first) 
+  const sortedFilteredAgreements = [...filteredAgreements].sort((a, b) => new Date(b.entry_date) - new Date(a.entry_date));
+  // added update: paginate after sorting 
+  const paginatedData = sortedFilteredAgreements.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage); 
+
   const [showUploadForm, setShowUploadForm] = useState(false);
+
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadComment, setUploadComment] = useState("");
@@ -786,10 +794,11 @@ const exportToExcel = async () => {
   filteredAgreements.forEach((a) => {
     worksheet.addRow([
       a.entry_date,
-      a.source_unit,
-      a.point_persons,
+      a.agreement_status,
       a.dts_number,
       a.dts_status,
+      a.source_unit,
+      a.point_persons,
       a.name,
       a.entity_type,
       a.country,
@@ -807,7 +816,6 @@ const exportToExcel = async () => {
       a.date_endorsed_to_ulco,
       a.date_ulco_approved,
       a.date_signed_by_pup,
-      a.agreement_status,
       a.website_url,
       a.description,
       a.logo_path,
@@ -947,11 +955,9 @@ const exportToExcel = async () => {
           <thead>
             <tr>
               <th style={{ cursor: 'pointer' }} onClick={handleDateSort}>
-                Date
-                {dateSortOrder === 'asc' && <span> ▲</span>}
-                {dateSortOrder === 'desc' && <span> ▼</span>}
-                {!dateSortOrder && <span style={{ opacity: 0.5 }}> ⇅</span>}
-              </th>
+                  Date {dateSortOrder === 'asc' ? '▲' : dateSortOrder === 'desc' ? '▼' : '⇅'}
+                </th>
+              <th>DOCUMENT TYPE</th>  
               <th>STATUS</th>
               <th>DTS NO.</th>
               <th>DTS STATUS</th>
@@ -964,7 +970,6 @@ const exportToExcel = async () => {
               <th>ADDRESS</th>
               <th>SIGNATORIES / POSITION</th>
               <th>CONTACT PERSON / DETAILS</th>
-              <th>DOCUMENT TYPE</th>
               <th>PARTNERSHIP CLASSIFICATION</th>
               <th>EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT</th>
               <th>VALIDITY PERIOD</th>
@@ -994,6 +999,7 @@ const exportToExcel = async () => {
                   <tr key={agreement.agreement_id}
                     className={editingRow === agreement.agreement_id ? 'editing-row' : ''}>
                     <td>{renderEditableCell(agreement, 'entry_date', agreement.entry_date)}</td>
+                    <td>{renderEditableCell(agreement, 'document_type', agreement.document_type)}</td>
                     <td>{renderEditableCell(agreement, 'agreement_status', agreement.agreement_status)}</td>
                     <td>{renderEditableCell(agreement, 'dts_number', agreement.dts_number)}</td>
                     <td>{renderEditableCell(agreement, 'dts_status', agreement.dts_status)}</td>
@@ -1006,7 +1012,6 @@ const exportToExcel = async () => {
                     <td>{renderEditableCell(agreement, 'address', agreement.address)}</td>
                     <td>{renderEditableCell(agreement, 'signatories_list', agreement.signatories_list)}</td>
                     <td>{renderEditableCell(agreement, 'contact_persons', agreement.contact_persons)}</td>
-                    <td>{renderEditableCell(agreement, 'document_type', agreement.document_type)}</td>
                     <td>{renderEditableCell(agreement, 'partnership_type', agreement.partnership_type)}</td>
                     <td>{renderEditableCell(agreement, 'event_info', agreement.event_info)}</td>
                     <td>{renderEditableCell(agreement, 'validity_period', agreement.validity_period)}</td>
@@ -1021,7 +1026,7 @@ const exportToExcel = async () => {
                         renderEditableCell(agreement, 'website_url', agreement.website_url) :
                         (agreement.website_url ? (
                           <a href={agreement.website_url} target="_blank" rel="noopener noreferrer">
-                            Link
+                            {agreement.website_url.length > 30 ? agreement.website_url.slice(0, 30) + '...' : agreement.website_url}
                           </a>
                         ) : '-')
                       }
@@ -1073,42 +1078,50 @@ const exportToExcel = async () => {
                             )}
                           </>
                         )}
-                        <div className="menu-wrapper">
+                                                <div className="menu-wrapper">
                           <button
                             className="dots-btn"
-                            onClick={() => toggleMenu(rowIndex)}
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setDropdownPosition({
+                                top: rect.bottom,
+                                left: rect.left,
+                              });
+                              toggleMenu(rowIndex);
+                            }}
                             title="More actions"
                           >
                             &#8942;
                           </button>
                           {openMenuIndex === rowIndex && (
-                            <div className="dropdown-menu">
+                            <div
+                              className="dropdown-menu"
+                              style={{
+                                position: "fixed",
+                                zIndex: 1000,
+                                top: dropdownPosition.top,
+                                left: dropdownPosition.left,
+                              }}
+                            >
                               <div
                                 className="dropdown-item"
-                                onClick={() => {
-                                  toggleMenu(rowIndex);
-                                  handleViewLatestFile(agreement.dts_number);
-                                }}
+                                onClick={() => handleViewLatestFile(agreement.dts_number)}
                               >
                                 View File
                               </div>
                               <div
                                 className="dropdown-item"
-                                onClick={() => {
-                                  toggleMenu(rowIndex);
-                                  navigate(`/docVer?dts_number=${agreement.dts_number}`);
-                                }}
+                                onClick={() => navigate(`/docVer?dts_number=${agreement.dts_number}`)}
                               >
                                 View Older File
                               </div>
                               {currentUser?.user_role?.toLowerCase() === "admin" && (
                                 <div
+                                  className="dropdown-item"
                                   onClick={() => {
                                     setSelectedAgreement(agreement);
                                     setShowUploadForm(true);
-                                    toggleMenu(rowIndex);
                                   }}
-                                  className="dropdown-item"
                                 >
                                   Upload New File
                                 </div>
@@ -1116,6 +1129,7 @@ const exportToExcel = async () => {
                             </div>
                           )}
                         </div>
+
                       </div>
                     </td>
                   </tr>

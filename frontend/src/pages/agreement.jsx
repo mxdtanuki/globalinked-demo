@@ -56,23 +56,22 @@ const AgreementDocument = () => {
 
 
   // Fetch agreements
-  const fetchAgreements = async () => {
-    try {
-      const data = await agreementService.getAgreements();
-      console.log("Fetched agreements:", data);
-      console.log("Sample remarks:", filteredAgreements[0]?.remarks);
+const fetchAgreements = async () => {
+  try {
+    const data = await agreementService.getAgreements();
+    console.log("Fetched agreements:", data);
 
+    const filtered = data.filter(a => a.agreement_status === "Active");
+    setAgreements(filtered);
+    setFilteredAgreements(filtered);
+  } catch (err) {
+    console.error(err);
+    setError("Failed to fetch agreements: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const filtered = data.filter(a => a.agreement_status === "Active");
-      setAgreements(filtered);
-      setFilteredAgreements(filtered);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch agreements: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     fetchAgreements();
@@ -294,7 +293,7 @@ const exportToExcel = async () => {
     "Point Person",
     "Contact Person",
     "Hardcopy Locator",
-    "Remarks",
+    "Remarks"
   ]);
 
   const headerRow = worksheet.getRow(2);
@@ -319,6 +318,7 @@ const exportToExcel = async () => {
       a.date_expiry || "N/A",
       a.point_persons_display || a.point_persons || "N/A",
       a.contact_persons_display || a.contact_persons || "N/A",
+
       a.hardcopy_location || "N/A",
       Array.isArray(a.remarks)
         ? a.remarks
@@ -526,6 +526,7 @@ const exportToExcel = async () => {
                         <th>Expiry Date</th>
                         <th>Point Person</th>
                         <th>Contact Person</th>
+                        <th> Logo </th>
                         <th>Status</th> 
                         <th>Hardcopy Locator</th>
                         <th>Remarks</th>
@@ -546,6 +547,35 @@ const exportToExcel = async () => {
                             <td>{a.date_expiry || "N/A"}</td>
                             <td>{a.point_persons_display || a.point_persons || "N/A"}</td>
                             <td>{a.contact_persons_display || a.contact_persons || "N/A"}</td>
+                            <td>
+                              {a.logo_path && a.logo_path.trim() !== "" ? (
+                                <img
+                                  src={
+                                    a.logo_path.startsWith("data:image") || a.logo_path.startsWith("iVBORw0") 
+                                      ? `data:image/png;base64,${a.logo_path.replace(/^data:image\/[a-z]+;base64,/, "")}`
+                                      : a.logo_path.startsWith("http")
+                                      ? a.logo_path
+                                      : `${API_BASE_URL.replace(/\/$/, "")}/${a.logo_path.replace(/^\/+/, "")}`
+                                  }
+                                  alt="Partner Logo"
+                                  style={{
+                                    width: "80px",
+                                    height: "80px",
+                                    objectFit: "contain",
+                                    borderRadius: "4px",
+                                    backgroundColor: "#f9f9f9",
+                                    border: "1px solid #ddd",
+                                  }}
+                                  onError={(e) => {
+                                    console.warn("Logo failed to load:", e.target.src);
+                                    e.target.onerror = null;
+                                    e.target.style.display = "none"; 
+                                  }}
+                                />
+                              ) : (
+                                <span style={{ color: "#888", fontStyle: "italic" }}>No Logo</span>
+                              )}
+                            </td>
                             <td>
                             {editId === a.agreement_id ? (
                               <select
