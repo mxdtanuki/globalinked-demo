@@ -29,6 +29,28 @@ const Analytics = () => {
   const [moaData, setMoaData] = useState([]);
   const [moaActivityData, setMoaActivityData] = useState([]);
 
+  // Year selection and available years
+  const [availableYears, setAvailableYears] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(null);
+
+  const MONTHS_ORDER = [
+    'January','February','March','April','May','June','July','August','September','October','November','December'
+  ];
+
+  const getMonthsForYear = (fullData, year) => {
+    if (!fullData || !year || !fullData[year]) return [];
+    const months = Object.keys(fullData[year]);
+    // return months in calendar order
+    return MONTHS_ORDER.filter(m => months.includes(m));
+  };
+
+  const getRangeLabelFromMonths = (monthsArr) => {
+    if (!monthsArr || monthsArr.length === 0) return 'No Data';
+    const first = monthsArr[0];
+    const last = monthsArr[monthsArr.length - 1];
+    return first === last ? `${first}` : `${first} → ${last}`;
+  };
+
   // Fetch and process real data
   useEffect(() => {
     fetchAndProcessData();
@@ -136,6 +158,21 @@ const fetchAndProcessData = async () => {
     setDATA_MOA(processedMOA);
     setDATA_MOA_ACTIVITY(processedMOAActivity);
 
+    // Populate available years (sorted descending). Default to latest year visually
+    const yearsSet = new Set([
+      ...Object.keys(processedMOU),
+      ...Object.keys(processedMOA),
+      ...Object.keys(processedMOAActivity),
+    ]);
+    const yearsArr = Array.from(yearsSet).sort((a, b) => b - a);
+    setAvailableYears(yearsArr);
+
+
+  // Default selected year: prefer current year if present, otherwise latest available
+  const currentYearStr = new Date().getFullYear().toString();
+  const defaultYear = yearsArr.includes(currentYearStr) ? currentYearStr : (yearsArr[0] || null);
+  setSelectedYear(prev => prev || defaultYear);
+
     // Set current display data to latest available data
     const getLatestData = (data) => {
       const years = Object.keys(data).sort().reverse();
@@ -150,18 +187,62 @@ const fetchAndProcessData = async () => {
       return [];
     };
 
-    const latestMOU = getLatestData(processedMOU);
-    const latestMOA = getLatestData(processedMOA);
-    const latestMOAActivity = getLatestData(processedMOAActivity);
-
-    console.log('📊 Latest data - MOU:', latestMOU.length, 'items');
-    console.log('📊 Latest data - MOA:', latestMOA.length, 'items');
-    console.log('📊 Latest data - MOA Activity:', latestMOAActivity.length, 'items');
-
-    setMouData(latestMOU);
-    setMoaData(latestMOA);
-    setMoaActivityData(latestMOAActivity);
+  // Do not set table/chart data to only the single latest month here.
+  // The effect below (watching selectedYear and DATA_*) will populate the full-year data for the selected year.
   };
+
+  // When selectedYear or full data changes, compute displayed table data and visible months
+  const [visibleStartMonth, setVisibleStartMonth] = useState(null);
+  const [visibleEndMonth, setVisibleEndMonth] = useState(null);
+  const [monthsLabel, setMonthsLabel] = useState('');
+
+  const getYearlyData = (fullData, year) => {
+    if (!fullData || !year || !fullData[year]) return [];
+    const months = getMonthsForYear(fullData, year);
+    const combined = [];
+    months.forEach(month => {
+      const arr = fullData[year][month] || [];
+      arr.forEach(item => combined.push({ ...item, month }));
+    });
+    return combined;
+  };
+
+  useEffect(() => {
+    if (!selectedYear) return;
+
+    // compute months present for each dataset
+    const mouMonths = getMonthsForYear(DATA_MOU, selectedYear);
+    const moaMonths = getMonthsForYear(DATA_MOA, selectedYear);
+    const moaActMonths = getMonthsForYear(DATA_MOA_ACTIVITY, selectedYear);
+
+    // visible month range is union across datasets (first present to last present)
+    const allMonths = Array.from(new Set([...mouMonths, ...moaMonths, ...moaActMonths]));
+    const ordered = MONTHS_ORDER.filter(m => allMonths.includes(m));
+    const start = ordered[0] || null;
+    const end = ordered[ordered.length - 1] || null;
+
+    setVisibleStartMonth(start);
+    setVisibleEndMonth(end);
+    setMonthsLabel(ordered.length > 0 ? `Data: ${getRangeLabelFromMonths(ordered)}` : 'No Data');
+
+    console.debug('analytics selection', {
+      selectedYear,
+      visibleStartMonth: start,
+      visibleEndMonth: end,
+      mouMonths: mouMonths.length,
+      moaMonths: moaMonths.length,
+      moaActMonths: moaActMonths.length,
+    });
+
+    // Update table data to include only months in the ordered range
+    const newMou = getYearlyData(DATA_MOU, selectedYear);
+    const newMoa = getYearlyData(DATA_MOA, selectedYear);
+    const newMoaAct = getYearlyData(DATA_MOA_ACTIVITY, selectedYear);
+
+    setMouData(newMou);
+    setMoaData(newMoa);
+    setMoaActivityData(newMoaAct);
+  }, [selectedYear, DATA_MOU, DATA_MOA, DATA_MOA_ACTIVITY]);
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
@@ -231,12 +312,20 @@ if (loading) {
 
           {/* Content */}
             <div className="analytics-chart-table">
-             <MOUChart ref={mouChartRef} data={DATA_MOU} onDataUpdate={setMouData} />
+             <MOUChart ref={mouChartRef} data={DATA_MOU} onDataUpdate={setMouData}
+               selectedYear={selectedYear}
+               visibleStartMonth={visibleStartMonth}
+               visibleEndMonth={visibleEndMonth}
+             />
               <MOUTable data={mouData} />
             </div>
 
             <div className="analytics-chart-table">
-              <MOAChart ref={moaChartRef} data={DATA_MOA} onDataUpdate={setMoaData} />
+              <MOAChart ref={moaChartRef} data={DATA_MOA} onDataUpdate={setMoaData}
+                selectedYear={selectedYear}
+                visibleStartMonth={visibleStartMonth}
+                visibleEndMonth={visibleEndMonth}
+              />
               <MOATable data={moaData} />
             </div>
 
@@ -245,6 +334,9 @@ if (loading) {
                 ref={moaActChartRef}
                 data={DATA_MOA_ACTIVITY}
                 onDataUpdate={setMoaActivityData}
+                selectedYear={selectedYear}
+                visibleStartMonth={visibleStartMonth}
+                visibleEndMonth={visibleEndMonth}
               />
               <MOAActivityTable data={moaActivityData} />
             </div>

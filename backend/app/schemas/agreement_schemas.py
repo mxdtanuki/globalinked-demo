@@ -227,4 +227,4 @@ class ArchiveAgreementResponse(BaseModel):
     point_persons_display: str
 
     class Config:
-        orm_mode = True
+        orm_mode =  True

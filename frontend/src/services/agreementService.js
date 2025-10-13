@@ -69,6 +69,8 @@ export const agreementService = {
     return response.json();
   },
 
+  
+
   async getAgreementById(id) {
     const token = localStorage.getItem('access_token');
     

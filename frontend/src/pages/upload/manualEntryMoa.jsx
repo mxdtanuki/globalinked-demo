@@ -725,7 +725,6 @@ const handleSubmit = async (e) => {
             value={dtsNumber}
             onChange={(e) => setDtsNumber(e.target.value) }
             placeholder="DT2025123456"
-            style={{ opacity: 0.6, color: '#888' }}
           />
           </div>
 
@@ -1046,7 +1045,6 @@ const handleSubmit = async (e) => {
             type="date"
             value={dateExpiry}
             onChange={(e) => setDateExpiry(e.target.value)}
-            required
           />
           </div>
 

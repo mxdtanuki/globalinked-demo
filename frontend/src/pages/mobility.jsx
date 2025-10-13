@@ -7,6 +7,7 @@ import "./mobility.css";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { agreementService } from '../services/agreementService';
+import { documentService } from '../services/documentService';
 
 const Mobility = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -207,6 +208,27 @@ const handleGenerateExcel = async () => {
   saveAs(new Blob([buffer]), "mobility-report.xlsx");
 };
 
+  const handleViewLatestFile = async (dtsNumber) => {
+    console.log("Fetching document for DTS:", dtsNumber);
+    try {
+      const latest = await documentService.getLatestVersion(dtsNumber);
+      if (!latest) {
+        alert("No document versions found for this DTS number.");
+        return;
+      }
+      const resp = await fetch(latest.download_url, { headers: { Accept: "application/pdf" } });
+      if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
+      const blob = await resp.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      console.error("View failed:", err);
+      alert("Failed to open file: " + (err.message || err));
+    }
+  };
+
   // Loading and error states
   if (error) return <div className="dashboard-container">Error: {error}</div>;
 
@@ -239,8 +261,6 @@ const handleGenerateExcel = async () => {
           ) : (
             <>
           <h2 className="mobility-title">Mobility Office</h2>
-          
-
           <div className="mobility-wrapper">
             <div className="mobility-header">
               <input
@@ -382,7 +402,12 @@ const handleGenerateExcel = async () => {
                         <td>{formatPointPersons(row.point_persons)}</td>
                         <td>{formatContactPersons(row.contact_persons)}</td>
                         <td>
-                          <button className="view-btn">View File</button>
+                          <button
+                            className="view-btn"
+                            onClick={() => handleViewLatestFile(row.dts_number)} 
+                          >
+                            View File
+                          </button>
                         </td>
                       </tr>
                     ))
