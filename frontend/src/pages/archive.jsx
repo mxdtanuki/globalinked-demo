@@ -441,6 +441,7 @@ const renderEditableCell = (item, field, value) => {
                   <thead>
                     <tr>
                       <th>SOURCE</th>
+                      <th>DOCUMENT TYPE</th>
                       <th>POINT PERSON / POSITION</th>
                       <th>DTS NO.</th>
                       <th>DTS LOCATION</th>
@@ -451,7 +452,6 @@ const renderEditableCell = (item, field, value) => {
                       <th>ADDRESS</th>
                       <th>SIGNATORIES / POSITION</th>
                       <th>CONTACT PERSON / DETAILS</th>
-                      <th>DOCUMENT TYPE</th>
                       <th>PARTNERSHIP CLASSIFICATION</th>
                       <th>EVENT TITLE / OTHER IMPT INFO</th>
                       <th>VALIDITY PERIOD</th>
@@ -475,6 +475,7 @@ const renderEditableCell = (item, field, value) => {
                       currentData.map((item, index) => (
                         <tr key={index}>
                           <td>{renderEditableCell(item, "source_unit", item.source_unit)}</td>
+                          <td>{renderEditableCell(item, 'document_type', item.document_type)}</td>
                           <td>
                             {Array.isArray(item.point_persons)
                               ? item.point_persons.map((pp, i) => (
@@ -484,8 +485,8 @@ const renderEditableCell = (item, field, value) => {
                                 ))
                               : "—"}
                           </td>
-                          <td>{renderEditableCell(item, "dts_number", item.dts_number)}</td>
-                          <td>{renderEditableCell(item, "dts_status", item.dts_status)}</td>
+                          <td>{renderEditableCell(item, 'dts_number', item.dts_number)}</td>
+                          <td>{renderEditableCell(item, 'dts_status', item.dts_status)}</td>
                           <td>{renderEditableCell(item, "name", item.name)}</td>
                           <td>{renderEditableCell(item, "entity_type", item.entity_type)}</td>
                           <td>{renderEditableCell(item, "country", item.country)}</td>
@@ -515,7 +516,6 @@ const renderEditableCell = (item, field, value) => {
                                 ))
                               : "—"}
                           </td>
-                          <td>{renderEditableCell(item, "document_type", item.document_type)}</td>
                           <td>{renderEditableCell(item, "partnership_type", item.partnership_type)}</td>
                           <td>{renderEditableCell(item, "event_info", item.event_info)}</td>
                           <td>{renderEditableCell(item, "validity_period", item.validity_period)}</td>
@@ -525,12 +525,13 @@ const renderEditableCell = (item, field, value) => {
                           <td>{renderEditableCell(item, "date_endorsed_to_ulco", item.date_endorsed_to_ulco)}</td>
                           <td>{renderEditableCell(item, "date_ulco_approved", item.date_ulco_approved)}</td>
                           <td>{renderEditableCell(item, "date_signed_by_pup", item.date_signed_by_pup)}</td>
-                          <td>{renderEditableCell(item, "agreement_status", item.agreement_status)}</td>
+                          <td>{renderEditableCell(item, 'agreement_status', item.agreement_status)}</td>
                           <td>
                             {editingRow === item.agreement_id
                               ? renderEditableCell(item, "website_url", item.website_url)
                               : item.website_url ? (
-                                <a href={item.website_url} target="_blank" rel="noopener noreferrer">Link</a>
+                                <a href={item.website_url} target="_blank" rel="noopener noreferrer">{item.website_url.length > 30 ? item.website_url.slice(0, 30) + '...' : item.website_url}
+                          </a>
                               ) : "—"}
                           </td>
                           <td>{renderEditableCell(item, "description", item.description)}</td>

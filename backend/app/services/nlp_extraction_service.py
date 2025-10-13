@@ -191,95 +191,96 @@ class NLPLegalExtractionService:
         # Expanded questions for QA extraction
         self.questions = {
             "document_type": [
-                "What type of document is this?",
-                "Is this a Memorandum of Agreement or Memorandum of Understanding?",
-                "Document type"
+            "Is this document a Memorandum of Agreement or Memorandum of Understanding?",
+            "What type of legal document is this - MOA or MOU?",
+            "Document classification"
             ],
             "partnership_type": [
-                "What is the agreement on?",
-                "What is the partnership type?",
-                "What is the subject of the agreement?"
+            "What is the specific purpose or subject matter of this agreement?",
+            "What type of cooperation or partnership does this agreement establish?",
+            "What activities or programs are covered by this agreement?"
             ],
             "date_signed": [
-                "When was the agreement signed?",
-                "What is the date of signing?",
-                "Date signed"
+            "When was the agreement signed?",
+            "What is the date of signing?",
+            "Date signed"
             ],
             "validity_period": [
-                "What is the validity period?",
-                "How many years is the agreement valid for?",
-                "Validity period in years"
+            "For how many years is this agreement valid or effective?",
+            "What is the term or duration of this agreement in years?",
+            "How long will this agreement remain in effect?"
             ],
             "date_expiry": [
-                "What is the expiry date?",
-                "When does the agreement expire?",
-                "Date of expiry"
+            "What is the expiry date?",
+            "When does the agreement expire?",
+            "Date of expiry"
             ],
             "partner_name": [
-                "What is the name of the partner institution?",
-                "Who is the other party to the agreement?",
-                "Partner name"
+            "What is the full legal name of the partner institution or organization?",
+            "Who is the other contracting party besides PUP?",
+            "What institution or entity is partnering with PUP?"
             ],
             "partner_entity_type": [
-                "What type of entity is the partner?",
-                "Is the partner a university, company, or organization?",
-                "Partner entity type"
+            "What type of entity is the partner?",
+            "Is the partner a university, company, or organization?",
+            "Partner entity type"
             ],
             "partner_country": [
-                "What country is the partner located in?",
-                "Partner country"
+            "In which country is the partner institution located?",
+            "What is the partner's country of origin or location?",
+            "Where is the partnering organization based geographically?"
             ],
             "partner_region": [
-                "What region is the partner in?",
-                "Partner region"
+            "What region is the partner in?",
+            "Partner region"
             ],
             "partner_address": [
-                "What is the address of the partner?",
-                "Partner address"
+            "What is the complete address of the partner institution?",
+            "Where is the partner organization's principal office located?",
+            "What is the partner's business or institutional address?"
             ],
             "partner_website": [
-                "What is the website of the partner?",
-                "Partner website"
+            "What is the website of the partner?",
+            "Partner website"
             ],
             "partner_description": [
-                "What is the description of the partner?",
-                "Partner description"
+            "What is the description of the partner?",
+            "Partner description"
             ],
             "signatories": [
-                "Who are the signatories?",
-                "Who signed the agreement?",
-                "List the signatories with their names, positions"
+            "Who are the signatories?",
+            "Who signed the agreement?",
+            "List the signatories with their names, positions"
             ],
             "contact_persons": [
-                "Who are the contact persons?",
-                "Contact persons with names, positions, and emails",
-                "Notices to"
+            "Who should be contacted regarding notices or communications for this agreement?",
+            "What are the contact details for correspondence about this agreement?",
+            "Who are the designated contact persons and their email addresses?"
             ],
             "point_persons": [
-                "Who are the point persons?",
-                "Point persons with names, positions, and emails"
+            "Who are the point persons?",
+            "Point persons with names, positions, and emails"
             ],
             "event_info": [
-                "What are the objectives of the agreement?",
-                "What is the purpose of the cooperation?",
-                "What activities are planned?",
-                "Event info or context"
+            "What are the main objectives or goals of this partnership?",
+            "What specific activities or programs will be implemented under this agreement?",
+            "What is the scope of cooperation outlined in this document?"
             ],
             "date_received": [
-                "What is the date received?",
-                "Date received"
+            "What is the date received?",
+            "Date received"
             ],
             "date_endorsed_to_ulco": [
-                "What is the date endorsed to ULCO?",
-                "Date endorsed to ULCO"
+            "What is the date endorsed to ULCO?",
+            "Date endorsed to ULCO"
             ],
             "date_ulco_approved": [
-                "What is the date ULCO approved?",
-                "Date ULCO approved"
+            "What is the date ULCO approved?",
+            "Date ULCO approved"
             ],
             "date_pup_signed": [
-                "What is the date PUP signed?",
-                "Date PUP signed"
+            "What is the date PUP signed?",
+            "Date PUP signed"
             ]
         }
 
@@ -390,6 +391,51 @@ class NLPLegalExtractionService:
 
             # Build output dict matching AgreementCreate
             partner = metadata.get("partner", {})
+            
+            # Safely handle point_persons - ensure they're dictionaries
+            point_persons = metadata.get("point_persons", [])
+            if not isinstance(point_persons, list):
+                point_persons = []
+            
+            # Filter out non-dict items and ensure proper structure
+            formatted_point_persons = []
+            for p in point_persons:
+                if isinstance(p, dict):
+                    formatted_point_persons.append({
+                        "point_person_position": p.get("position", ""),
+                        "point_person_name": p.get("name", ""),
+                        "point_person_email": p.get("email", "")
+                    })
+                elif isinstance(p, str):
+                    # Handle case where point person is just a string
+                    formatted_point_persons.append({
+                        "point_person_position": p,
+                        "point_person_name": "",
+                        "point_person_email": ""
+                    })
+
+            # Safely handle contact_persons - ensure they're dictionaries
+            contact_persons = metadata.get("contact_persons", [])
+            if not isinstance(contact_persons, list):
+                contact_persons = []
+            
+            # Filter out non-dict items and ensure proper structure
+            formatted_contact_persons = []
+            for c in contact_persons:
+                if isinstance(c, dict):
+                    formatted_contact_persons.append({
+                        "contact_person_position": c.get("position", ""),
+                        "contact_person_name": c.get("name", ""),
+                        "contact_person_email": c.get("email", "")
+                    })
+                elif isinstance(c, str):
+                    # Handle case where contact person is just a string
+                    formatted_contact_persons.append({
+                        "contact_person_position": c,
+                        "contact_person_name": "",
+                        "contact_person_email": ""
+                    })
+
             result = {
                 "partner_data": {
                     "name": partner.get("name", ""),
@@ -419,26 +465,15 @@ class NLPLegalExtractionService:
                 "event_info": metadata.get("event_info"),
                 "signatories_list": "; ".join(
                     f"{s['name']}, {s['position']}, {s['institution']}" for s in metadata.get("signatories_list", [])
+                    if isinstance(s, dict)
                 ) if metadata.get("signatories_list") else None,
-                "point_persons": [
-                    {
-                        "point_person_position": p.get("position", ""),
-                        "point_person_name": p.get("name", ""),
-                        "point_person_email": p.get("email", "")
-                    } for p in metadata.get("point_persons", [])
-                ],
+                "point_persons": formatted_point_persons,
                 "agreement_status": metadata.get("agreement_status", "Active"),
                 "hardcopy_location": metadata.get("hardcopy_location"),
                 "entry_type": metadata.get("entry_type", "Extracted"),
                 "renewed_from_agreement_id": None,
                 "MOU_to_MOA_id": None,
-                "contact_persons": [
-                    {
-                        "contact_person_position": c.get("position", ""),
-                        "contact_person_name": c.get("name", ""),
-                        "contact_person_email": c.get("email", "")
-                    } for c in metadata.get("contact_persons", [])
-                ],
+                "contact_persons": formatted_contact_persons,
                 "initial_remarks": [
                     {"remark_text": metadata.get("remarks", "")}
                 ] if metadata.get("remarks") else []
@@ -529,16 +564,16 @@ class NLPLegalExtractionService:
             print(f"✍️  Signatories found: {len(signatories)} people")
 
         # Enhanced contacts extraction from NOTICES section (PUP side)
-        contacts = self._extract_contacts_pup_side(clean_text)
+        contacts = self._extract_contact_persons_partner_side(clean_text)
         if contacts:
             extracted["contact_persons"] = contacts
-            print(f"📞 PUP contacts found: {len(contacts)} people")
+            print(f"📞 Partner contacts found: {len(contacts)} people")
 
-        # Enhanced point persons extraction (partner side)
-        point_persons = self._extract_point_persons_partner_side(clean_text)
+        # Enhanced point persons extraction (PUP side)
+        point_persons = self._extract_point_persons_pup_side(clean_text)
         if point_persons:
             extracted["point_persons"] = point_persons
-            print(f"👥 Partner point persons: {len(point_persons)} people")
+            print(f"👥 PUP point persons: {len(point_persons)} people")
 
         # Entity type inference
         if extracted.get("partner_name"):
@@ -555,44 +590,107 @@ class NLPLegalExtractionService:
     def _extract_partner_name(self, text: str) -> str:
         """Extract partner name from BETWEEN ... AND ... pattern"""
         patterns = [
-            r"between\s+(.+?)\s+\((?:PUP|POLYTECHNIC)\)\s*,?\s*.*?\s+and\s+(.+?)(?:\s*,|\s*\(|\s*;)",
-            r"between\s+(?:POLYTECHNIC.*?)\s+and\s+(.+?)(?:\s*,|\s*\(|\s*;)",
-            r"POLYTECHNIC.*?and\s+(.+?)(?:\s*,|\s*\(|\s*;)",
-            r"-and-\s*(.+?)(?:\s*,|\s*\(|\s*;)"
+            # Pattern 1: "between ... and PARTNER_NAME," - capture the partner name after "and"
+            r"between\s+.*?\s+and\s+([^,;\.]+?)(?:\s*,|\s*\(|\s*;|\s+are\s+hereinafter|\s+herein)",
+            
+            # Pattern 2: More specific - look for "between PUP/POLYTECHNIC and PARTNER_NAME"
+            r"between\s+(?:.*?(?:pup|polytechnic).*?)\s+and\s+([^,;\.]+?)(?:\s*,|\s*\(|\s*;|\s+are\s+hereinafter|\s+herein)",
+            
+            # Pattern 3: "POLYTECHNIC ... and PARTNER_NAME"
+            r"polytechnic.*?and\s+([^,;\.]+?)(?:\s*,|\s*\(|\s*;|\s+are\s+hereinafter|\s+herein)",
+            
+            # Pattern 4: Simple "and PARTNER_NAME" after PUP context
+            r"(?:pup|polytechnic).*?and\s+([A-Z][A-Z\s&\-\.]+?)(?:\s*,|\s*\(|\s*;|\s+are\s+hereinafter|\s+herein)"
         ]
 
         for pattern in patterns:
             match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
             if match:
-                groups = match.groups()
-                # Find the group that doesn't contain PUP/POLYTECHNIC
-                for group in groups:
-                    clean_name = group.strip()
-                    if clean_name and not re.search(r'\b(pup|polytechnic)\b', clean_name, re.IGNORECASE):
-                        # Clean up common endings
-                        clean_name = re.sub(r'\s*,\s*a\s+(higher education|state|private|public).*$', '', clean_name, flags=re.IGNORECASE)
-                        return clean_name.strip()
+                partner_name = match.group(1).strip()
+                
+                # Skip if it contains PUP/POLYTECHNIC
+                if re.search(r'\b(pup|polytechnic)\b', partner_name, re.IGNORECASE):
+                    continue
+                    
+                # Clean up the partner name
+                # Remove common legal phrases
+                partner_name = re.sub(r'\s+(are\s+hereinafter.*|herein.*|collectively.*)', '', partner_name, flags=re.IGNORECASE)
+                
+                # Remove trailing punctuation and whitespace
+                partner_name = re.sub(r'[,;\.]\s*$', '', partner_name.strip())
+                
+                # Remove extra whitespace
+                partner_name = re.sub(r'\s+', ' ', partner_name)
+                
+                if partner_name and len(partner_name) > 2:  # Ensure it's not just initials
+                    return partner_name
 
         return ""
 
     def _extract_partner_address(self, text: str) -> str:
-        """Extract partner address from 'principal office at ...' pattern"""
-        patterns = [
-            r"principal office at\s+(.+?)(?:\s*,\s*represented|,\s*herein|\.|$)",
+        """Extract partner address from different sections based on document type"""
+        
+        # First, try MOA-style extraction from header/parties section
+        moa_patterns = [
+            # Pattern for "with principal offices at ADDRESS, represented herein"
+            r"offices at\s+(.+?)(?:\s*,\s*represented|,\s*herein|\.|$)",
+            r"office at\s+(.+?)(?:\s*,\s*represented|,\s*herein|\.|$)",
             r"located at\s+(.+?)(?:\s*,\s*represented|,\s*herein|\.|$)",
             r"office address[:\s]+(.+?)(?:\s*,\s*represented|,\s*herein|\.|$)",
-            r"address[:\s]+(.+?)(?:\s*attention|tel\.|fax|\n|$)"
         ]
 
-        for pattern in patterns:
+        # Try MOA-style patterns first
+        for pattern in moa_patterns:
             matches = re.findall(pattern, text, re.IGNORECASE | re.DOTALL)
             for match in matches:
                 address = match.strip()
-                # Skip if it's clearly PUP's address
-                if not re.search(r'\b(manila|sta\.?\s*mesa|anonas)\b', address, re.IGNORECASE):
+                # Skip if it's clearly PUP's address (Manila/Sta Mesa context)
+                if not re.search(r'\b(manila.*sta\.?\s*mesa|sta\.?\s*mesa.*manila|mabini.*campus)\b', address, re.IGNORECASE):
                     # Clean up the address
                     address = re.sub(r'\s+', ' ', address)
-                    return address[:200]  # Limit length
+                    if len(address) > 10:  # Ensure it's substantial
+                        return address[:200]  # Limit length
+
+        # If no MOA-style address found, try MOU-style from NOTICES section
+        mou_patterns = [
+            # Pattern for NOTICES section addresses
+            r"To\s*:\s*(?!.*pup)(.+?)(?:\n\s*Attention|Address[:\s]|Tel\.|Fax|E-mail|\n\s*To\s*:|$)",
+            r"Address[:\s]+(.+?)(?:\n|Tel\.|Fax|E-mail|Attention|$)",
+            r"(?:Address|Located at)[:\s]+(.+?)(?:\n|$)",
+        ]
+
+        # Look for addresses in NOTICES or similar sections
+        notices_section = re.search(r"NOTICES?\s*[:.]?\s*(.*?)(?:\n\s*IN WITNESS|$)", text, re.IGNORECASE | re.DOTALL)
+        if notices_section:
+            notices_text = notices_section.group(1)
+            
+            for pattern in mou_patterns:
+                matches = re.findall(pattern, notices_text, re.IGNORECASE | re.DOTALL)
+                for match in matches:
+                    address = match.strip()
+                    # Skip PUP addresses
+                    if not re.search(r'\b(pup|polytechnic|manila.*sta\.?\s*mesa|sta\.?\s*mesa.*manila|mabini)\b', address, re.IGNORECASE):
+                        # Clean up address
+                        address = re.sub(r'\s+', ' ', address)
+                        address = re.sub(r'\n', ' ', address)  # Remove newlines
+                        if len(address) > 10:
+                            return address[:200]
+
+        # Fallback: general address patterns in full document
+        fallback_patterns = [
+            r"address[:\s]+(.+?)(?:\s*attention|tel\.|fax|\n|$)",
+            r"located at\s+(.+?)(?:\n|tel\.|fax|attention|$)"
+        ]
+
+        for pattern in fallback_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                address = match.strip()
+                # Skip PUP addresses
+                if not re.search(r'\b(pup|polytechnic|manila.*sta\.?\s*mesa|mabini)\b', address, re.IGNORECASE):
+                    address = re.sub(r'\s+', ' ', address)
+                    if len(address) > 10:
+                        return address[:200]
 
         return ""
 
@@ -620,11 +718,35 @@ class NLPLegalExtractionService:
         return text[start:end]
 
     def _extract_document_type(self, text: str) -> str:
-        """Extract document type (MOA/MOU)"""
-        if re.search(r'\bmemorandum of agreement\b|\bmoa\b', text, re.IGNORECASE):
-            return "MOA"
-        elif re.search(r'\bmemorandum of understanding\b|\bmou\b', text, re.IGNORECASE):
+        """Extract document type (MOA/MOU) - prioritize document title"""
+        
+        # First, check the document title/header (first few lines) for primary document type
+        header_lines = '\n'.join(text.split('\n')[:10])  # First 10 lines
+        
+        # Check header for primary document type
+        if re.search(r'\bmemorandum of understanding\b', header_lines, re.IGNORECASE):
             return "MOU"
+        elif re.search(r'\bmemorandum of agreement\b', header_lines, re.IGNORECASE):
+            return "MOA"
+        
+        # If not found in header, check for abbreviations in header
+        if re.search(r'\bmou\b', header_lines, re.IGNORECASE):
+            return "MOU"
+        elif re.search(r'\bmoa\b', header_lines, re.IGNORECASE):
+            return "MOA"
+        
+        # Fallback: check entire document, but prioritize full forms over abbreviations
+        if re.search(r'\bmemorandum of understanding\b', text, re.IGNORECASE):
+            return "MOU"
+        elif re.search(r'\bmemorandum of agreement\b', text, re.IGNORECASE):
+            return "MOA"
+        
+        # Last resort: check for abbreviations in full document
+        if re.search(r'\bmou\b', text, re.IGNORECASE):
+            return "MOU" 
+        elif re.search(r'\bmoa\b', text, re.IGNORECASE):
+            return "MOA"
+        
         return ""
 
     def _extract_date_signed(self, text: str) -> str:
@@ -762,9 +884,50 @@ class NLPLegalExtractionService:
 
         return signatories
 
-    def _extract_contacts_pup_side(self, text: str) -> List[Dict[str, str]]:
-        """Extract contact persons from NOTICES section (PUP side)"""
+    def _extract_contact_persons_partner_side(self, text: str) -> List[Dict[str, str]]:
+        """Extract contact persons from NOTICES section (PARTNER side)"""
         contacts = []
+
+        # Look for non-PUP contact info (partner side)
+        sections = re.split(r"To\s*:", text, flags=re.IGNORECASE)
+
+        for section in sections:
+            if not re.search(r'\bpup\b', section, re.IGNORECASE) and "@" in section:
+                # Extract email
+                email_match = re.search(r"e-mail\s*:\s*(\S+@\S+)", section, re.IGNORECASE)
+                email = email_match.group(1) if email_match else ""
+
+                # Extract attention line
+                attention_match = re.search(r"Attention\s*:\s*(.+?)(?:\n|$)", section, re.IGNORECASE)
+                position = attention_match.group(1) if attention_match else ""
+
+                if email:
+                    contacts.append({
+                        "name": "",
+                        "position": position,
+                        "email": email
+                    })
+
+        # Fallback: if no structured contacts found, try to extract from partner context
+        if not contacts:
+            # Look for email addresses that aren't clearly PUP-related
+            email_pattern = r"([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})"
+            emails = re.findall(email_pattern, text)
+            
+            for email in emails[:2]:  # Limit to first 2 partner emails
+                # Skip PUP emails
+                if not re.search(r'pup|polytechnic', email, re.IGNORECASE):
+                    contacts.append({
+                        "name": "",
+                        "position": "",
+                        "email": email
+                    })
+
+        return contacts
+
+    def _extract_point_persons_pup_side(self, text: str) -> List[Dict[str, str]]:
+        """Extract point persons from NOTICES section (PUP side)"""
+        point_persons = []
 
         # Look for PUP contact info in notices section
         pup_pattern = r"To\s*:\s*PUP.*?\n(.*?)(?:\n\s*To\s*:|$)"
@@ -782,35 +945,24 @@ class NLPLegalExtractionService:
             position = attention_match.group(1) if attention_match else ""
 
             if position or email:
-                contacts.append({
+                point_persons.append({
                     "name": "",  # Usually just position given
                     "position": position,
                     "email": email
                 })
 
-        return contacts
-
-    def _extract_point_persons_partner_side(self, text: str) -> List[Dict[str, str]]:
-        """Extract point persons from partner side of NOTICES section"""
-        point_persons = []
-
-        # Look for non-PUP contact info
-        sections = re.split(r"To\s*:", text, flags=re.IGNORECASE)
-
-        for section in sections:
-            if not re.search(r'\bpup\b', section, re.IGNORECASE) and "@" in section:
-                # Extract email
-                email_match = re.search(r"e-mail\s*:\s*(\S+@\S+)", section, re.IGNORECASE)
-                email = email_match.group(1) if email_match else ""
-
-                # Extract attention line
-                attention_match = re.search(r"Attention\s*:\s*(.+?)(?:\n|$)", section, re.IGNORECASE)
-                position = attention_match.group(1) if attention_match else ""
-
-                if email:
+        # Fallback: look for general PUP email patterns in document
+        if not point_persons:
+            pup_email_patterns = [
+                r"([a-zA-Z0-9._%+-]+@pup\.edu\.ph)",
+                r"([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]*pup[a-zA-Z0-9.-]*\.[a-zA-Z]{2,})"
+            ]
+            for pattern in pup_email_patterns:
+                emails = re.findall(pattern, text, re.IGNORECASE)
+                for email in emails[:3]:  # Limit to first 3 PUP emails found
                     point_persons.append({
                         "name": "",
-                        "position": position,
+                        "position": "",
                         "email": email
                     })
 

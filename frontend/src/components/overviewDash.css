@@ -103,7 +103,7 @@
   border-bottom-right-radius: 12px;
 }
 
-/* Table Section */
+/* old Table Section 
 .table-section {
   background-color: white;
   border-radius: 12px;
@@ -112,7 +112,17 @@
   overflow-x: auto; 
   overflow-y: unset; 
   margin-top: 15px;
-}
+} */
+
+/* TABLE SECTION update: remove inner scroll bar */ 
+.table-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  overflow: visible;
+  margin-top: 15px;
+} 
 
 /* Top bar for search and buttons */
 .table-header {
@@ -353,6 +363,7 @@
   color: #555;
 }
 
+/* old dropdown menu
 .dropdown-menu {
   position: absolute;
   right: 0;
@@ -361,6 +372,17 @@
   box-shadow: 0 3px 6px rgba(0,0,0,0.2);
   border-radius: 6px;
   z-index: 99;
+  min-width: 140px;
+} */
+
+.dropdown-menu {
+  position: fixed; /* update: now relative to the viewport */ 
+  right: auto;
+  top: auto;
+  background-color: white;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+  border-radius: 6px;
+  z-index: 9999; /* add. above everything else */ 
   min-width: 140px;
 }
 

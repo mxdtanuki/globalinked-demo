@@ -74,6 +74,32 @@
   grid-column: span 2;
 }
 
+/* placeholder color for DTS num */ 
+.form-group input::-webkit-input-placeholder {
+  opacity: 0.6;
+  color: #888;
+}
+
+.form-group input::-moz-placeholder {
+  opacity: 0.6;
+  color: #888;
+}
+
+.form-group input:-ms-input-placeholder {
+  opacity: 0.6;
+  color: #888;
+}
+
+.form-group input::-ms-input-placeholder {
+  opacity: 0.6;
+  color: #888;
+}
+
+.form-group input::placeholder {
+  opacity: 0.6;
+  color: #888;
+}
+
 /* Buttons */
 .form-actions {
   grid-column: span 2;
