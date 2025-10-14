@@ -228,3 +228,10 @@ class ArchiveAgreementResponse(BaseModel):
 
     class Config:
         orm_mode =  True
+
+class PaginatedAgreementResponse(BaseModel):
+    data: List[AgreementResponse]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

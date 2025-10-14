@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
-import "./docVer.css";
+import "./docVer.css";                                                                                       
 import { useSearchParams } from "react-router-dom";
+import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
 
 const DocumentVersion = () => {
   const [searchParams] = useSearchParams();
@@ -21,6 +22,7 @@ const DocumentVersion = () => {
   const [editingDoc, setEditingDoc] = useState(null);
   const [editComment, setEditComment] = useState("");
   const [editFile, setEditFile] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
   const itemsPerPage = 10;
@@ -40,6 +42,28 @@ const DocumentVersion = () => {
       .then((data) => setDocuments(data))
       .catch((err) => console.error("Failed to fetch versions:", err))
       .finally(() => setLoading(false)); 
+  }, []);
+
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const parsedUser = JSON.parse(userStr);
+        setCurrentUser(parsedUser);
+
+        if (parsedUser.user_role && parsedUser.user_role.toLowerCase() === "admin") {
+          setIsAdmin(true);
+          console.log("Is Admin:", true);
+        } else {
+          setIsAdmin(false);
+          console.log("Is Admin:", false);
+        }
+      }
+    } catch (err) {
+      console.error("Error parsing user from localStorage:", err);
+    }
   }, []);
 
   const partnershipTypes = [...new Set(documents.map((d) => d.partnership_type))];
@@ -76,6 +100,10 @@ const DocumentVersion = () => {
 
   // Editing 
   const handleEdit = (doc) => {
+    if (!isAdmin) {
+      alert("You do not have permission to edit this version.");
+      return;
+    }
     setEditingDoc(doc);
     setEditComment(doc.version_comment || "");
     setEditFile(null);
@@ -126,7 +154,11 @@ const handleSave = async () => {
 };
 
   const handleDelete = async (versionId) => {
-  if (!window.confirm("Are you sure you want to delete this version?")) return;
+    if (!isAdmin) {
+      alert("You do not have permission to delete this version.");
+      return;
+    }
+    if (!window.confirm("Are you sure you want to delete this version?")) return;
 
     try {
       const res = await fetch(`/documents/versions/${versionId}`, {
@@ -272,13 +304,13 @@ const handleSave = async () => {
           </thead>
           <tbody>
             {currentData.length > 0 ? (
-              currentData.map((doc) => (
+               currentData.map((doc) => (
                 <React.Fragment key={doc.version_id}>
                   <tr>
                     <td>{new Date(doc.uploaded_at).toLocaleDateString()}</td>
                     <td>{doc.dts_number}</td>
                     <td>{doc.partner_name}</td>
-                    <td>{doc.document_type}</td>
+                    <td>{renderDocumentTypeBadge(doc.document_type)}</td>
                     <td>{doc.partnership_type}</td>
                     <td>{doc.version_number}</td>
                     <td>{doc.version_comment || "-"}</td>
@@ -286,22 +318,23 @@ const handleSave = async () => {
                     <td>
                       <div className="docu-action-buttons">
                         <div className="docu-top-actions">
-                          <button
-                            className="docu-edit-btn"
-                            onClick={() => handleEdit(doc)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="docu-delete-btn"
-                            disabled={
-                              doc.version_number !==
-                              latestByDts[doc.dts_number]
-                            }
-                            onClick={() => handleDelete(doc.version_id)}
-                          >
-                            Delete
-                          </button>
+                          {isAdmin && (
+                            <>
+                              <button
+                                className="docu-edit-btn"
+                                onClick={() => handleEdit(doc)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="docu-delete-btn"
+                                disabled={doc.version_number !== latestByDts[doc.dts_number]}
+                                onClick={() => handleDelete(doc.version_id)}
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
                         </div>
                         <div className="docu-bottom-action">
                           <button
@@ -311,8 +344,6 @@ const handleSave = async () => {
                                 const response = await fetch(doc.download_url, {
                                   headers: { Accept: "application/pdf" },
                                 });
-                                // Ensure we create a Blob with the proper MIME type so the browser
-                                // renders it as a PDF instead of showing raw content.
                                 const arrayBuffer = await response.arrayBuffer();
                                 const blob = new Blob([arrayBuffer], { type: "application/pdf" });
                                 const url = window.URL.createObjectURL(blob);
@@ -353,7 +384,7 @@ const handleSave = async () => {
                     </td>
                   </tr>
 
-                  {editingDoc?.version_id === doc.version_id && (
+                  {isAdmin && editingDoc?.version_id === doc.version_id && (
                     <tr className="edit-row">
                       <td colSpan="9">
                         <div className="edit-form-expanded">

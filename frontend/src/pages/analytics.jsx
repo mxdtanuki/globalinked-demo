@@ -61,17 +61,14 @@ const fetchAndProcessData = async () => {
     setLoading(true);
     console.log('📊 Fetching agreements for analytics...');
     
-    const data = await agreementService.getAgreements();
-    // Only keep agreements with status "Active"
-    const activeAgreements = data.filter(a => a.agreement_status === "Active");
-    setAgreements(activeAgreements);
+    const data = await agreementService.getActiveAgreements();
+    setAgreements(data);
     
-    console.log('📊 Processing', activeAgreements.length, 'active agreements');
-    processAgreementData(activeAgreements);
+    console.log('📊 Processing', data.length, 'active agreements');
+    processAgreementData(data);
     
   } catch (err) {
     setError('Failed to fetch agreements: ' + err.message);
-    console.error('Error fetching agreements:', err);
   } finally {
     setLoading(false);
   }
@@ -186,12 +183,8 @@ const fetchAndProcessData = async () => {
       }
       return [];
     };
-
-  // Do not set table/chart data to only the single latest month here.
-  // The effect below (watching selectedYear and DATA_*) will populate the full-year data for the selected year.
   };
 
-  // When selectedYear or full data changes, compute displayed table data and visible months
   const [visibleStartMonth, setVisibleStartMonth] = useState(null);
   const [visibleEndMonth, setVisibleEndMonth] = useState(null);
   const [monthsLabel, setMonthsLabel] = useState('');
