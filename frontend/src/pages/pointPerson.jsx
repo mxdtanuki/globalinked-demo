@@ -20,7 +20,7 @@ const PointPerson = () => {
     (async () => {
       try {
         setLoading(true);
-        const data = await agreementService.getAgreements();
+        const data = await agreementService.getActiveAgreements();
         const flattened = [];
         data
           .filter(a =>

@@ -5,7 +5,6 @@ import Header from "./Header";
 import Footer from "./Footer";
 import "./styles/MOUMOAPublicPage.css";
 
-// icons
 import searchIcon from "./assets/search.png";
 import sortIcon from "./assets/sort.png";
 import globeIcon from "./assets/globe.png";
@@ -27,26 +26,24 @@ const MOUMOAPublicPage = () => {
   const modalRef = useRef(null);
 
   useEffect(() => {
-  const fetchData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-        // get active agreements only
-      const agreements = await agreementService.getAgreements();
-      const activeAgreements = agreements.filter(
-        (ag) => ag.agreement_status === "Active"
-      );
-      setAgreementData(activeAgreements);
-    } catch (err) {
-      console.error("Error fetching agreements:", err);
-      setError("Failed to load agreement data");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  fetchData();
-}, []);
-
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const agreements = await agreementService.getAgreements();
+        const activeAgreements = agreements.filter(
+          (ag) => ag.agreement_status === "Active"
+        );
+        setAgreementData(activeAgreements);
+      } catch (err) {
+        console.error("Error fetching agreements:", err);
+        setError("Failed to load agreement data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (selectedCountry && modalRef.current) {
@@ -54,36 +51,210 @@ const MOUMOAPublicPage = () => {
     }
   }, [selectedCountry]);
 
-
-  // Helper: get country code from country name (for flagcdn)
-  // ISO 3166-1 alpha-2 country codes (lowercase)
   const countryCodeMap = {
-    "Afghanistan": "af", "Albania": "al", "Algeria": "dz", "Andorra": "ad", "Angola": "ao", "Antigua and Barbuda": "ag", "Argentina": "ar", "Armenia": "am", "Australia": "au", "Austria": "at", "Azerbaijan": "az",
-    "Bahamas": "bs", "Bahrain": "bh", "Bangladesh": "bd", "Barbados": "bb", "Belarus": "by", "Belgium": "be", "Belize": "bz", "Benin": "bj", "Bhutan": "bt", "Bolivia": "bo", "Bosnia and Herzegovina": "ba", "Botswana": "bw", "Brazil": "br", "Brunei": "bn", "Bulgaria": "bg", "Burkina Faso": "bf", "Burundi": "bi",
-    "Cabo Verde": "cv", "Cambodia": "kh", "Cameroon": "cm", "Canada": "ca", "Central African Republic": "cf", "Chad": "td", "Chile": "cl", "China": "cn", "Colombia": "co", "Comoros": "km", "Congo": "cg", "Costa Rica": "cr", "Croatia": "hr", "Cuba": "cu", "Cyprus": "cy", "Czechia": "cz", "Czech Republic": "cz",
-    "Democratic Republic of the Congo": "cd", "Denmark": "dk", "Djibouti": "dj", "Dominica": "dm", "Dominican Republic": "do", "Ecuador": "ec", "Egypt": "eg", "El Salvador": "sv", "Equatorial Guinea": "gq", "Eritrea": "er", "Estonia": "ee", "Eswatini": "sz", "Ethiopia": "et",
-    "Fiji": "fj", "Finland": "fi", "France": "fr", "Gabon": "ga", "Gambia": "gm", "Georgia": "ge", "Germany": "de", "Ghana": "gh", "Greece": "gr", "Grenada": "gd", "Guatemala": "gt", "Guinea": "gn", "Guinea-Bissau": "gw", "Guyana": "gy",
-    "Haiti": "ht", "Honduras": "hn", "Hungary": "hu", "Iceland": "is", "India": "in", "Indonesia": "id", "Iran": "ir", "Iraq": "iq", "Ireland": "ie", "Israel": "il", "Italy": "it",
-    "Jamaica": "jm", "Japan": "jp", "Jordan": "jo",
-    "Kazakhstan": "kz", "Kenya": "ke", "Kiribati": "ki", "Kuwait": "kw", "Kyrgyzstan": "kg",
-    "Laos": "la", "Latvia": "lv", "Lebanon": "lb", "Lesotho": "ls", "Liberia": "lr", "Libya": "ly", "Liechtenstein": "li", "Lithuania": "lt", "Luxembourg": "lu",
-    "Madagascar": "mg", "Malawi": "mw", "Malaysia": "my", "Maldives": "mv", "Mali": "ml", "Malta": "mt", "Marshall Islands": "mh", "Mauritania": "mr", "Mauritius": "mu", "Mexico": "mx", "Micronesia": "fm", "Moldova": "md", "Monaco": "mc", "Mongolia": "mn", "Montenegro": "me", "Morocco": "ma", "Mozambique": "mz", "Myanmar": "mm",
-    "Namibia": "na", "Nauru": "nr", "Nepal": "np", "Netherlands": "nl", "New Zealand": "nz", "Nicaragua": "ni", "Niger": "ne", "Nigeria": "ng", "North Korea": "kp", "North Macedonia": "mk", "Norway": "no",
-    "Oman": "om",
-    "Pakistan": "pk", "Palau": "pw", "Palestine": "ps", "Panama": "pa", "Papua New Guinea": "pg", "Paraguay": "py", "Peru": "pe", "Philippines": "ph", "Poland": "pl", "Portugal": "pt",
-    "Qatar": "qa",
-    "Romania": "ro", "Russia": "ru", "Rwanda": "rw",
-    "Saint Kitts and Nevis": "kn", "Saint Lucia": "lc", "Saint Vincent and the Grenadines": "vc", "Samoa": "ws", "San Marino": "sm", "Sao Tome and Principe": "st", "Saudi Arabia": "sa", "Senegal": "sn", "Serbia": "rs", "Seychelles": "sc", "Sierra Leone": "sl", "Singapore": "sg", "Slovakia": "sk", "Slovenia": "si", "Solomon Islands": "sb", "Somalia": "so", "South Africa": "za", "South Korea": "kr", "South Sudan": "ss", "Spain": "es", "Sri Lanka": "lk", "Sudan": "sd", "Suriname": "sr", "Sweden": "se", "Switzerland": "ch", "Syria": "sy",
-    "Taiwan": "tw", "Tajikistan": "tj", "Tanzania": "tz", "Thailand": "th", "Timor-Leste": "tl", "Togo": "tg", "Tonga": "to", "Trinidad and Tobago": "tt", "Tunisia": "tn", "Turkey": "tr", "Turkmenistan": "tm", "Tuvalu": "tv",
-    "Uganda": "ug", "Ukraine": "ua", "United Arab Emirates": "ae", "United Kingdom": "gb", "United States": "us", "U.S.A.": "us", "Uruguay": "uy", "Uzbekistan": "uz",
-    "Vanuatu": "vu", "Vatican City": "va", "Venezuela": "ve", "Vietnam": "vn",
-    "Yemen": "ye",
-    "Zambia": "zm", "Zimbabwe": "zw",
-    // Special/territories
-    "Hong Kong": "hk", "Macau": "mo", "Palestinian Territories": "ps", "Kosovo": "xk"
+    Afghanistan: "af",
+    Albania: "al",
+    Algeria: "dz",
+    Andorra: "ad",
+    Angola: "ao",
+    "Antigua and Barbuda": "ag",
+    Argentina: "ar",
+    Armenia: "am",
+    Australia: "au",
+    Austria: "at",
+    Azerbaijan: "az",
+    Bahamas: "bs",
+    Bahrain: "bh",
+    Bangladesh: "bd",
+    Barbados: "bb",
+    Belarus: "by",
+    Belgium: "be",
+    Belize: "bz",
+    Benin: "bj",
+    Bhutan: "bt",
+    Bolivia: "bo",
+    "Bosnia and Herzegovina": "ba",
+    Botswana: "bw",
+    Brazil: "br",
+    Brunei: "bn",
+    Bulgaria: "bg",
+    "Burkina Faso": "bf",
+    Burundi: "bi",
+    "Cabo Verde": "cv",
+    Cambodia: "kh",
+    Cameroon: "cm",
+    Canada: "ca",
+    "Central African Republic": "cf",
+    Chad: "td",
+    Chile: "cl",
+    China: "cn",
+    Colombia: "co",
+    Comoros: "km",
+    Congo: "cg",
+    "Costa Rica": "cr",
+    Croatia: "hr",
+    Cuba: "cu",
+    Cyprus: "cy",
+    Czechia: "cz",
+    "Czech Republic": "cz",
+    "Democratic Republic of the Congo": "cd",
+    Denmark: "dk",
+    Djibouti: "dj",
+    Dominica: "dm",
+    "Dominican Republic": "do",
+    Ecuador: "ec",
+    Egypt: "eg",
+    "El Salvador": "sv",
+    "Equatorial Guinea": "gq",
+    Eritrea: "er",
+    Estonia: "ee",
+    Eswatini: "sz",
+    Ethiopia: "et",
+    Fiji: "fj",
+    Finland: "fi",
+    France: "fr",
+    Gabon: "ga",
+    Gambia: "gm",
+    Georgia: "ge",
+    Germany: "de",
+    Ghana: "gh",
+    Greece: "gr",
+    Grenada: "gd",
+    Guatemala: "gt",
+    Guinea: "gn",
+    "Guinea-Bissau": "gw",
+    Guyana: "gy",
+    Haiti: "ht",
+    Honduras: "hn",
+    Hungary: "hu",
+    Iceland: "is",
+    India: "in",
+    Indonesia: "id",
+    Iran: "ir",
+    Iraq: "iq",
+    Ireland: "ie",
+    Israel: "il",
+    Italy: "it",
+    Jamaica: "jm",
+    Japan: "jp",
+    Jordan: "jo",
+    Kazakhstan: "kz",
+    Kenya: "ke",
+    Kiribati: "ki",
+    Kuwait: "kw",
+    Kyrgyzstan: "kg",
+    Laos: "la",
+    Latvia: "lv",
+    Lebanon: "lb",
+    Lesotho: "ls",
+    Liberia: "lr",
+    Libya: "ly",
+    Liechtenstein: "li",
+    Lithuania: "lt",
+    Luxembourg: "lu",
+    Madagascar: "mg",
+    Malawi: "mw",
+    Malaysia: "my",
+    Maldives: "mv",
+    Mali: "ml",
+    Malta: "mt",
+    "Marshall Islands": "mh",
+    Mauritania: "mr",
+    Mauritius: "mu",
+    Mexico: "mx",
+    Micronesia: "fm",
+    Moldova: "md",
+    Monaco: "mc",
+    Mongolia: "mn",
+    Montenegro: "me",
+    Morocco: "ma",
+    Mozambique: "mz",
+    Myanmar: "mm",
+    Namibia: "na",
+    Nauru: "nr",
+    Nepal: "np",
+    Netherlands: "nl",
+    "New Zealand": "nz",
+    Nicaragua: "ni",
+    Niger: "ne",
+    Nigeria: "ng",
+    "North Korea": "kp",
+    "North Macedonia": "mk",
+    Norway: "no",
+    Oman: "om",
+    Pakistan: "pk",
+    Palau: "pw",
+    Palestine: "ps",
+    Panama: "pa",
+    "Papua New Guinea": "pg",
+    Paraguay: "py",
+    Peru: "pe",
+    Philippines: "ph",
+    Poland: "pl",
+    Portugal: "pt",
+    Qatar: "qa",
+    Romania: "ro",
+    Russia: "ru",
+    Rwanda: "rw",
+    "Saint Kitts and Nevis": "kn",
+    "Saint Lucia": "lc",
+    "Saint Vincent and the Grenadines": "vc",
+    Samoa: "ws",
+    "San Marino": "sm",
+    "Sao Tome and Principe": "st",
+    "Saudi Arabia": "sa",
+    Senegal: "sn",
+    Serbia: "rs",
+    Seychelles: "sc",
+    "Sierra Leone": "sl",
+    Singapore: "sg",
+    Slovakia: "sk",
+    Slovenia: "si",
+    "Solomon Islands": "sb",
+    Somalia: "so",
+    "South Africa": "za",
+    "South Korea": "kr",
+    "South Sudan": "ss",
+    Spain: "es",
+    "Sri Lanka": "lk",
+    Sudan: "sd",
+    Suriname: "sr",
+    Sweden: "se",
+    Switzerland: "ch",
+    Syria: "sy",
+    Taiwan: "tw",
+    Tajikistan: "tj",
+    Tanzania: "tz",
+    Thailand: "th",
+    "Timor-Leste": "tl",
+    Togo: "tg",
+    Tonga: "to",
+    "Trinidad and Tobago": "tt",
+    Tunisia: "tn",
+    Turkey: "tr",
+    Turkmenistan: "tm",
+    Tuvalu: "tv",
+    Uganda: "ug",
+    Ukraine: "ua",
+    "United Arab Emirates": "ae",
+    "United Kingdom": "gb",
+    "United States": "us",
+    "U.S.A.": "us",
+    Uruguay: "uy",
+    Uzbekistan: "uz",
+    Vanuatu: "vu",
+    "Vatican City": "va",
+    Venezuela: "ve",
+    Vietnam: "vn",
+    Yemen: "ye",
+    Zambia: "zm",
+    Zimbabwe: "zw",
+    "Hong Kong": "hk",
+    Macau: "mo",
+    "Palestinian Territories": "ps",
+    Kosovo: "xk",
   };
 
-  // Aggregate agreements by country
   const countryAgg = {};
   agreementData.forEach((ag) => {
     if (!ag.country) return;
@@ -105,12 +276,10 @@ const MOUMOAPublicPage = () => {
     total: item.mou + item.moa,
   }));
 
-  // Calculate max MOU/MOA for progress bar scaling
   const maxMou = data.length ? Math.max(...data.map((item) => item.mou)) : 0;
   const maxMoa = data.length ? Math.max(...data.map((item) => item.moa)) : 0;
   const maxAgreement = Math.max(maxMou, maxMoa);
 
-  // Filter and sort data
   const filteredData = data
     .filter((item) => {
       const matchesSearch = item.country
@@ -149,144 +318,142 @@ const MOUMOAPublicPage = () => {
 
   if (isLoading) {
     return (
-      <div className="moumoa-page">
+      <div className="moumoa-public-page">
         <Header />
         <div
-          className="loading-container"
+          className="moumoa-loading-container"
           role="status"
           aria-live="polite"
           aria-label="Loading content"
         >
-          <div className="loading-spinner">
-            <div className="spinner-ring"></div>
+          <div className="moumoa-loading-spinner">
+            <div className="moumoa-spinner-ring"></div>
           </div>
-          <p className="loading-text">Loading partnership data...</p>
+          <p className="moumoa-loading-text">Loading partnership data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="moumoa-page">
+    <div className="moumoa-public-page">
       <Header />
 
-      {/* Hero Section */}
-      <section className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title">International Affairs</h1>
+      <section className="moumoa-hero-section">
+        <div className="moumoa-hero-content">
+          <h1 className="moumoa-hero-title">International Affairs</h1>
 
-          {/* Stats Row */}
-          <div className="quick-stats-row">
-            <div className="stat-item-row">
+          <div className="moumoa-quick-stats-row">
+            <div className="moumoa-stat-item-row">
               <img
                 src={globeIcon}
                 alt="Partner Countries"
-                className="stat-icon-row"
+                className="moumoa-stat-icon-row"
               />
-              <div className="stat-content">
-                <span className="stat-number-row">{data.length}</span>
-                <span className="stat-label-row">Partner Countries</span>
+              <div className="moumoa-stat-content">
+                <span className="moumoa-stat-number-row">{data.length}</span>
+                <span className="moumoa-stat-label-row">Partner Countries</span>
               </div>
             </div>
-            <div className="stat-item-row">
+            <div className="moumoa-stat-item-row">
               <img
                 src={agreementIcon}
                 alt="MOUs Signed"
-                className="stat-icon-row"
+                className="moumoa-stat-icon-row"
               />
-              <div className="stat-content">
-                <span className="stat-number-row">{totalMOU}</span>
-                <span className="stat-label-row">MOUs Signed</span>
+              <div className="moumoa-stat-content">
+                <span className="moumoa-stat-number-row">{totalMOU}</span>
+                <span className="moumoa-stat-label-row">MOUs Signed</span>
               </div>
             </div>
-            <div className="stat-item-row">
+            <div className="moumoa-stat-item-row">
               <img
                 src={partnershipIcon}
                 alt="MOAs Active"
-                className="stat-icon-row"
+                className="moumoa-stat-icon-row"
               />
-              <div className="stat-content">
-                <span className="stat-number-row">{totalMOA}</span>
-                <span className="stat-label-row">MOAs Active</span>
+              <div className="moumoa-stat-content">
+                <span className="moumoa-stat-number-row">{totalMOA}</span>
+                <span className="moumoa-stat-label-row">MOAs Active</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Main Content */}
-      <main className="main-container">
-        {/* Navigation Tabs */}
-        <nav className="view-navigation" role="tablist">
+      <main className="moumoa-main-container">
+        <nav className="moumoa-view-navigation" role="tablist">
           <button
-            className={`nav-tab ${selectedView === "overview" ? "active" : ""}`}
+            className={`moumoa-nav-tab ${
+              selectedView === "overview" ? "moumoa-active" : ""
+            }`}
             onClick={() => setSelectedView("overview")}
             aria-selected={selectedView === "overview"}
             role="tab"
-            id="overview-tab"
+            id="moumoa-overview-tab"
             tabIndex={selectedView === "overview" ? 0 : -1}
           >
             <img
               src={overviewIcon}
               alt=""
-              className="tab-icon"
+              className="moumoa-tab-icon"
               aria-hidden="true"
             />
             <span>Overview</span>
           </button>
           <button
-            className={`nav-tab ${
-              selectedView === "countries" ? "active" : ""
+            className={`moumoa-nav-tab ${
+              selectedView === "countries" ? "moumoa-active" : ""
             }`}
             onClick={() => setSelectedView("countries")}
             aria-selected={selectedView === "countries"}
             role="tab"
-            id="countries-tab"
+            id="moumoa-countries-tab"
             tabIndex={selectedView === "countries" ? 0 : -1}
           >
             <img
               src={countriesIcon}
               alt=""
-              className="tab-icon"
+              className="moumoa-tab-icon"
               aria-hidden="true"
             />
             <span>Countries</span>
           </button>
           <button
-            className={`nav-tab ${selectedView === "regions" ? "active" : ""}`}
+            className={`moumoa-nav-tab ${
+              selectedView === "regions" ? "moumoa-active" : ""
+            }`}
             onClick={() => setSelectedView("regions")}
             aria-selected={selectedView === "regions"}
             role="tab"
-            id="regions-tab"
+            id="moumoa-regions-tab"
             tabIndex={selectedView === "regions" ? 0 : -1}
           >
             <img
               src={regionsIcon}
               alt=""
-              className="tab-icon"
+              className="moumoa-tab-icon"
               aria-hidden="true"
             />
             <span>Regions</span>
           </button>
         </nav>
 
-        {/* Content Views */}
-        <div className="content-area">
+        <div className="moumoa-content-area">
           {selectedView === "overview" && (
             <section
-              className="overview-view"
+              className="moumoa-overview-view"
               role="tabpanel"
-              aria-labelledby="overview-tab"
+              aria-labelledby="moumoa-overview-tab"
             >
-              <h2 className="section-title">Partnership Distribution</h2>
+              <h2 className="moumoa-section-title">Partnership Distribution</h2>
 
-              {/*Search n Filter Bar */}
-              <div className="controls-bar">
-                <div className="search-wrapper">
+              <div className="moumoa-controls-bar">
+                <div className="moumoa-search-wrapper">
                   <img
                     src={searchIcon}
                     alt=""
-                    className="search-icon"
+                    className="moumoa-search-icon"
                     aria-hidden="true"
                   />
                   <input
@@ -294,16 +461,16 @@ const MOUMOAPublicPage = () => {
                     placeholder="Search countries..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="search-input"
+                    className="moumoa-search-input"
                     aria-label="Search countries"
                   />
                 </div>
 
-                <div className="filter-controls">
+                <div className="moumoa-filter-controls">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="sort-select"
+                    className="moumoa-sort-select"
                     aria-label="Sort data by"
                   >
                     <option value="" disabled>
@@ -317,17 +484,17 @@ const MOUMOAPublicPage = () => {
                   <img
                     src={sortIcon}
                     alt="Sort Icon"
-                    className="custom-sort-icon"
+                    className="moumoa-custom-sort-icon"
                   />
                 </div>
               </div>
 
-              <div className="chart-section">
+              <div className="moumoa-chart-section">
                 {filteredData.length > 0 ? (
                   filteredData.map((item) => (
                     <div
                       key={item.country}
-                      className="chart-item"
+                      className="moumoa-chart-item"
                       onClick={() => setSelectedCountry(item)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
@@ -338,17 +505,19 @@ const MOUMOAPublicPage = () => {
                       role="button"
                       aria-label={`View details for ${item.country}. Has ${item.mou} MOUs and ${item.moa} MOAs.`}
                     >
-                      <div className="country-info">
+                      <div className="moumoa-country-info">
                         <img
                           src={`https://flagcdn.com/24x18/${item.code}.png`}
                           alt={`Flag of ${item.country}`}
-                          className="country-flag"
+                          className="moumoa-country-flag"
                         />
-                        <span className="country-name">{item.country}</span>
+                        <span className="moumoa-country-name">
+                          {item.country}
+                        </span>
                       </div>
-                      <div className="progress-container">
+                      <div className="moumoa-progress-container">
                         <div
-                          className="progress-bar"
+                          className="moumoa-progress-bar"
                           role="progressbar"
                           aria-valuenow={item.mou}
                           aria-valuemin="0"
@@ -356,16 +525,18 @@ const MOUMOAPublicPage = () => {
                           aria-label={`${item.mou} MOUs`}
                         >
                           <div
-                            className="progress-fill mou-fill"
+                            className="moumoa-progress-fill moumoa-mou-fill"
                             style={{
                               width: `${(item.mou / maxAgreement) * 100}%`,
                             }}
                           >
-                            <span className="progress-label">{item.mou}</span>
+                            <span className="moumoa-progress-label">
+                              {item.mou}
+                            </span>
                           </div>
                         </div>
                         <div
-                          className="progress-bar"
+                          className="moumoa-progress-bar"
                           role="progressbar"
                           aria-valuenow={item.moa}
                           aria-valuemin="0"
@@ -373,17 +544,19 @@ const MOUMOAPublicPage = () => {
                           aria-label={`${item.moa} MOAs`}
                         >
                           <div
-                            className="progress-fill moa-fill"
+                            className="moumoa-progress-fill moumoa-moa-fill"
                             style={{
                               width: `${(item.moa / maxAgreement) * 100}%`,
                             }}
                           >
-                            <span className="progress-label">{item.moa}</span>
+                            <span className="moumoa-progress-label">
+                              {item.moa}
+                            </span>
                           </div>
                         </div>
                       </div>
                       <div
-                        className="total-badge"
+                        className="moumoa-total-badge"
                         aria-label={`Total agreements: ${item.total}`}
                       >
                         {item.total}
@@ -391,7 +564,7 @@ const MOUMOAPublicPage = () => {
                     </div>
                   ))
                 ) : (
-                  <p className="no-results">
+                  <p className="moumoa-no-results">
                     No countries match your search criteria.
                   </p>
                 )}
@@ -401,16 +574,16 @@ const MOUMOAPublicPage = () => {
 
           {selectedView === "countries" && (
             <section
-              className="countries-view"
+              className="moumoa-countries-view"
               role="tabpanel"
-              aria-labelledby="countries-tab"
+              aria-labelledby="moumoa-countries-tab"
             >
-              <div className="countries-grid">
+              <div className="moumoa-countries-grid">
                 {filteredData.length > 0 ? (
                   filteredData.map((item) => (
                     <div
                       key={item.country}
-                      className="country-card"
+                      className="moumoa-country-card"
                       onClick={() => setSelectedCountry(item)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
@@ -421,33 +594,37 @@ const MOUMOAPublicPage = () => {
                       role="button"
                       aria-label={`View details for ${item.country}. Region: ${item.region}, MOUs: ${item.mou}, MOAs: ${item.moa}, Total: ${item.total}.`}
                     >
-                      <div className="card-header">
+                      <div className="moumoa-card-header">
                         <img
                           src={`https://flagcdn.com/32x24/${item.code}.png`}
                           alt={`Flag of ${item.country}`}
-                          className="card-flag"
+                          className="moumoa-card-flag"
                         />
                         <h3>{item.country}</h3>
                       </div>
-                      <div className="card-stats">
-                        <div className="stat-item">
-                          <span className="stat-value">{item.mou}</span>
-                          <span className="stat-label">MOUs</span>
+                      <div className="moumoa-card-stats">
+                        <div className="moumoa-stat-item">
+                          <span className="moumoa-stat-value">{item.mou}</span>
+                          <span className="moumoa-stat-label">MOUs</span>
                         </div>
-                        <div className="stat-divider"></div>
-                        <div className="stat-item">
-                          <span className="stat-value">{item.moa}</span>
-                          <span className="stat-label">MOAs</span>
+                        <div className="moumoa-stat-divider"></div>
+                        <div className="moumoa-stat-item">
+                          <span className="moumoa-stat-value">{item.moa}</span>
+                          <span className="moumoa-stat-label">MOAs</span>
                         </div>
                       </div>
-                      <div className="card-footer">
-                        <span className="region-label">{item.region}</span>
-                        <span className="total-label">Total: {item.total}</span>
+                      <div className="moumoa-card-footer">
+                        <span className="moumoa-region-label">
+                          {item.region}
+                        </span>
+                        <span className="moumoa-total-label">
+                          Total: {item.total}
+                        </span>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="no-results">
+                  <p className="moumoa-no-results">
                     No countries match your search criteria.
                   </p>
                 )}
@@ -457,33 +634,37 @@ const MOUMOAPublicPage = () => {
 
           {selectedView === "regions" && (
             <section
-              className="regions-view"
+              className="moumoa-regions-view"
               role="tabpanel"
-              aria-labelledby="regions-tab"
+              aria-labelledby="moumoa-regions-tab"
             >
-              <div className="regions-grid">
+              <div className="moumoa-regions-grid">
                 {regionData.length > 0 ? (
                   regionData.map((region) => (
-                    <div key={region.region} className="region-card">
-                      <h3 className="region-name">{region.region}</h3>
-                      <div className="region-stats">
-                        <div className="region-stat">
-                          <span className="stat-number">
+                    <div key={region.region} className="moumoa-region-card">
+                      <h3 className="moumoa-region-name">{region.region}</h3>
+                      <div className="moumoa-region-stats">
+                        <div className="moumoa-region-stat">
+                          <span className="moumoa-stat-number">
                             {region.countries}
                           </span>
-                          <span className="stat-text">Countries</span>
+                          <span className="moumoa-stat-text">Countries</span>
                         </div>
-                        <div className="region-stat">
-                          <span className="stat-number">{region.mou}</span>
-                          <span className="stat-text">MOUs</span>
+                        <div className="moumoa-region-stat">
+                          <span className="moumoa-stat-number">
+                            {region.mou}
+                          </span>
+                          <span className="moumoa-stat-text">MOUs</span>
                         </div>
-                        <div className="region-stat">
-                          <span className="stat-number">{region.moa}</span>
-                          <span className="stat-text">MOAs</span>
+                        <div className="moumoa-region-stat">
+                          <span className="moumoa-stat-number">
+                            {region.moa}
+                          </span>
+                          <span className="moumoa-stat-text">MOAs</span>
                         </div>
                       </div>
                       <div
-                        className="region-chart"
+                        className="moumoa-region-chart"
                         role="progressbar"
                         aria-valuenow={region.mou + region.moa}
                         aria-valuemin="0"
@@ -491,7 +672,7 @@ const MOUMOAPublicPage = () => {
                         aria-label={`${region.mou} MOUs and ${region.moa} MOAs in ${region.region}`}
                       >
                         <div
-                          className="chart-segment mou-segment"
+                          className="moumoa-chart-segment moumoa-mou-segment"
                           style={{
                             width: `${
                               (region.mou / (region.mou + region.moa)) * 100
@@ -499,7 +680,7 @@ const MOUMOAPublicPage = () => {
                           }}
                         ></div>
                         <div
-                          className="chart-segment moa-segment"
+                          className="moumoa-chart-segment moumoa-moa-segment"
                           style={{
                             width: `${
                               (region.moa / (region.mou + region.moa)) * 100
@@ -510,7 +691,7 @@ const MOUMOAPublicPage = () => {
                     </div>
                   ))
                 ) : (
-                  <p className="no-results">No regions found.</p>
+                  <p className="moumoa-no-results">No regions found.</p>
                 )}
               </div>
             </section>
@@ -518,49 +699,50 @@ const MOUMOAPublicPage = () => {
         </div>
       </main>
 
-      {/* Country Detail Modal */}
       {selectedCountry && (
         <div
-          className="modal-overlay"
+          className="moumoa-modal-overlay"
           onClick={() => setSelectedCountry(null)}
           role="dialog"
           aria-modal="true"
-          aria-labelledby="modal-title"
+          aria-labelledby="moumoa-modal-title"
         >
           <div
-            className="modal-content"
+            className="moumoa-modal-content"
             ref={modalRef}
             tabIndex="-1"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="close-btn"
+              className="moumoa-close-btn"
               onClick={() => setSelectedCountry(null)}
               aria-label="Close country details"
             >
-              <span>×</span>
+              ×
             </button>
-            <div className="modal-header">
+            <div className="moumoa-modal-header">
               <img
                 src={`https://flagcdn.com/48x36/${selectedCountry.code}.png`}
                 alt={`Flag of ${selectedCountry.country}`}
-                className="modal-flag"
+                className="moumoa-modal-flag"
               />
-              <h3 id="modal-title">{selectedCountry.country}</h3>
+              <h3 id="moumoa-modal-title">{selectedCountry.country}</h3>
             </div>
-            <div className="modal-stats">
-              <div className="modal-stat">
+            <div className="moumoa-modal-stats">
+              <div className="moumoa-modal-stat">
                 <h4>{selectedCountry.mou}</h4>
                 <p>Memorandums of Understanding</p>
               </div>
-              <div className="modal-stat">
+              <div className="moumoa-modal-stat">
                 <h4>{selectedCountry.moa}</h4>
                 <p>Memorandums of Agreement</p>
               </div>
             </div>
-            <div className="modal-footer">
-              <span className="region-tag">{selectedCountry.region}</span>
-              <span className="total-tag">
+            <div className="moumoa-modal-footer">
+              <span className="moumoa-region-tag">
+                {selectedCountry.region}
+              </span>
+              <span className="moumoa-total-tag">
                 Total Agreements: {selectedCountry.total}
               </span>
             </div>

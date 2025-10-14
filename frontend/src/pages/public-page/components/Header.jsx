@@ -7,8 +7,8 @@ import "./styles/Header.css";
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState("");
+  // const [isSearchOpen, setIsSearchOpen] = useState(false);
+  // const [searchKeyword, setSearchKeyword] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,19 +20,19 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isSearchOpen && !event.target.closest(".search-modal")) {
-        setIsSearchOpen(false);
-      }
-    };
-    if (isSearchOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isSearchOpen]);
+  // useEffect(() => {
+  //   const handleClickOutside = (event) => {
+  //     if (isSearchOpen && !event.target.closest(".search-modal")) {
+  //       setIsSearchOpen(false);
+  //     }
+  //   };
+  //   if (isSearchOpen) {
+  //     document.addEventListener("mousedown", handleClickOutside);
+  //   }
+  //   return () => {
+  //     document.removeEventListener("mousedown", handleClickOutside);
+  //   };
+  // }, [isSearchOpen]);
 
   const scrollToSection = (sectionId) => {
     if (location.pathname !== "/") {
@@ -60,19 +60,19 @@ export default function Header() {
     setIsMobileMenuOpen(false);
   };
 
-  const handleSearch = () => {
-    if (searchKeyword.trim()) {
-      console.log("Searching for:", searchKeyword);
-      setIsSearchOpen(false);
-      setSearchKeyword("");
-    }
-  };
+  // const handleSearch = () => {
+  //   if (searchKeyword.trim()) {
+  //     console.log("Searching for:", searchKeyword);
+  //     setIsSearchOpen(false);
+  //     setSearchKeyword("");
+  //   }
+  // };
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSearch();
-    }
-  };
+  // const handleKeyPress = (e) => {
+  //   if (e.key === "Enter") {
+  //     handleSearch();
+  //   }
+  // };
 
   return (
     <>
@@ -122,13 +122,13 @@ export default function Header() {
               </button>
             </nav>
 
-            <button
+            {/* <button
               className="search-btn"
               onClick={() => setIsSearchOpen(true)}
               aria-label="Search"
             >
               <img src={searchIcon} alt="Search" className="search-icon" />
-            </button>
+            </button> */}
 
             <button
               className="mobile-menu-toggle"
@@ -142,7 +142,7 @@ export default function Header() {
         </div>
       </header>
 
-      {isSearchOpen && (
+      {/* {isSearchOpen && (
         <div className="search-overlay">
           <div className="search-modal">
             <div className="search-header">
@@ -174,7 +174,7 @@ export default function Header() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </>
   );
 }

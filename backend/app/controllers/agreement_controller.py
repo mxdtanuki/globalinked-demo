@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
-from sqlalchemy.orm import Session
-from sqlalchemy import or_, cast, Integer
-from typing import List
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import or_, cast, Integer, and_
+from typing import List, Optional
 from datetime import datetime, date
 from app.database import get_db
 from app.models.agreements import Agreements
@@ -32,101 +32,145 @@ router = APIRouter(
     tags=["Agreements"]
 )
 
-@router.get("/archive", response_model=List[ArchiveAgreementResponse])
-async def get_archived_agreements(
-    db: Session = Depends(get_db),
-    current_user: Users = Depends(get_current_user)
-):
-    """
-    Return expired agreements (date_expiry < today) with partner info + point persons.
-    """
-    try:
-        today = date.today()
-        query = db.query(Agreements, Partners).join(
-            Partners, Agreements.partner_id == Partners.partner_id
-        ).filter(Agreements.date_expiry <= today)
-
-        results = query.all()
-        archive_list = []
-
-        for agreement, partner in results:
-            # point persons linked to agreement
-            point_persons = db.query(PointPersons).filter(
-                PointPersons.agreement_id == agreement.agreement_id
-            ).all()
-
-            point_persons_display = ", ".join(
-                f"{pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})"
-                for pp in point_persons
-            ) if point_persons else ""
-
-            archive_list.append(ArchiveAgreementResponse(
-                agreement_id=agreement.agreement_id,
-                dts_number=agreement.dts_number,
-                partner_name=partner.name,
-                document_type=agreement.document_type,
-                partnership_type=agreement.partnership_type,
-                date_expiry=agreement.date_expiry,
-                point_persons_display=point_persons_display
-            ))
-
-        return archive_list
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error fetching archive: {str(e)}"
-        )
-    
 @router.get("/", response_model=List[AgreementResponse])
 async def get_agreements(
     db: Session = Depends(get_db),
-    current_user: Users = Depends(get_current_user)
+    current_user: Users = Depends(get_current_user),
+    status_filter: Optional[str] = None,
+    document_type: Optional[str] = None,
+    partnership_type: Optional[str] = None,
+    country: Optional[str] = None,
+    limit: Optional[int] = None
 ):
     """
-    Return all *active* agreements (not expired) with partner, contact persons,
-    point persons, and remarks.
-    NOTE: Source unit is now a string field on Agreements (agreements.source_unit).
+    OPTIMIZED: Eliminates N+1 query problem by using batch queries.
+    No database schema changes needed!
     """
     try:
         today = date.today()
 
-        # join Agreements with Partners, filter out expired
-        query = db.query(Agreements, Partners).join(
-            Partners, Agreements.partner_id == Partners.partner_id
-        ).filter(
-            or_(
-                Agreements.date_expiry == None,            # no expiry set
-                Agreements.date_expiry >= today            # still valid
-            )
-        )
-
-        results = query.all()
-        agreements_list = []
-
-        for agreement, partner in results:
-            # contact persons (agreement-specific OR partner fallback)
-            contact_persons = db.query(ContactPersons).filter(
+        # Step 1: Build base query differently based on status filter
+        if status_filter and status_filter.upper() == "WITHDRAWN":
+            # For withdrawn agreements, don't filter by date_expiry
+            base_query = db.query(Agreements, Partners).join(
+                Partners, Agreements.partner_id == Partners.partner_id
+            ).filter(Agreements.agreement_status == "Withdrawn")
+        else:
+            # For all other cases, filter out expired agreements
+            base_query = db.query(Agreements, Partners).join(
+                Partners, Agreements.partner_id == Partners.partner_id
+            ).filter(
                 or_(
-                    ContactPersons.agreement_id == agreement.agreement_id,
-                    ContactPersons.partner_id == partner.partner_id
+                    Agreements.date_expiry == None,
+                    Agreements.date_expiry >= today
                 )
-            ).all()
+            )
 
-            # point persons (directly linked to agreement)
-            point_persons = db.query(PointPersons).filter(
-                PointPersons.agreement_id == agreement.agreement_id
-            ).all()
+        # Apply filters dynamically
+        if status_filter:
+            if status_filter.upper() == "ACTIVE":
+                base_query = base_query.filter(Agreements.agreement_status == "Active")
+            elif status_filter.upper() == "OPEN":
+                base_query = base_query.filter(
+                    and_(
+                        Agreements.dts_status == 'Open - OIA',
+                        Agreements.agreement_status != 'Active',
+                        Agreements.agreement_status != 'Withdrawn'
+                    )
+                )
+            elif status_filter.upper() == "WITHDRAWN":
+                base_query = base_query.filter(Agreements.agreement_status == "Withdrawn")
+                # For withdrawn agreements, remove the date_expiry filter
+                base_query = db.query(Agreements, Partners).join(
+                    Partners, Agreements.partner_id == Partners.partner_id
+                ).filter(Agreements.agreement_status == "Withdrawn")
+        
+        if document_type:
+            base_query = base_query.filter(Agreements.document_type == document_type)
+        
+        if partnership_type:
+            # Handle multiple partnership types (comma-separated)
+            if ',' in partnership_type:
+                types = [t.strip() for t in partnership_type.split(',')]
+                base_query = base_query.filter(Agreements.partnership_type.in_(types))
+            else:
+                base_query = base_query.filter(Agreements.partnership_type == partnership_type)
+            
+        if country:
+            base_query = base_query.filter(Partners.country == country)
+            
+        if limit:
+            base_query = base_query.limit(limit)
 
-            # remarks
-            remarks = db.query(AgreementRemarks).filter(
-                AgreementRemarks.agreement_id == agreement.agreement_id).all()
+        # Execute main query
+        results = base_query.all()
+        
+        if not results:
+            return []
 
-            # pre-concatenated display strings
+        # Extract agreement IDs for batch queries
+        agreement_ids = [agreement.agreement_id for agreement, _ in results]
+        partner_ids = [partner.partner_id for _, partner in results]
+
+        #Batch fetch all related data 
+        contact_persons_query = db.query(ContactPersons).filter(
+            or_(
+                ContactPersons.agreement_id.in_(agreement_ids),
+                ContactPersons.partner_id.in_(partner_ids)
+            )
+        ).all()
+
+        point_persons_query = db.query(PointPersons).filter(
+            PointPersons.agreement_id.in_(agreement_ids)
+        ).all()
+
+        remarks_query = db.query(AgreementRemarks).filter(
+            AgreementRemarks.agreement_id.in_(agreement_ids)
+        ).all()
+
+    
+        contact_persons_by_agreement = {}
+        contact_persons_by_partner = {}
+        for cp in contact_persons_query:
+            if cp.agreement_id:
+                if cp.agreement_id not in contact_persons_by_agreement:
+                    contact_persons_by_agreement[cp.agreement_id] = []
+                contact_persons_by_agreement[cp.agreement_id].append(cp)
+            if cp.partner_id:
+                if cp.partner_id not in contact_persons_by_partner:
+                    contact_persons_by_partner[cp.partner_id] = []
+                contact_persons_by_partner[cp.partner_id].append(cp)
+
+        point_persons_by_agreement = {}
+        for pp in point_persons_query:
+            if pp.agreement_id not in point_persons_by_agreement:
+                point_persons_by_agreement[pp.agreement_id] = []
+            point_persons_by_agreement[pp.agreement_id].append(pp)
+
+        remarks_by_agreement = {}
+        for remark in remarks_query:
+            if remark.agreement_id not in remarks_by_agreement:
+                remarks_by_agreement[remark.agreement_id] = []
+            remarks_by_agreement[remark.agreement_id].append(remark)
+
+        # Step 4: Build response (no additional queries!)
+        agreements_list = []
+        for agreement, partner in results:
+            # Get related data from our pre-fetched collections
+            agreement_contact_persons = contact_persons_by_agreement.get(agreement.agreement_id, [])
+            partner_contact_persons = contact_persons_by_partner.get(partner.partner_id, [])
+            
+            # Combine agreement-specific and partner fallback contact persons
+            all_contact_persons = agreement_contact_persons + partner_contact_persons
+            
+            point_persons = point_persons_by_agreement.get(agreement.agreement_id, [])
+            remarks = remarks_by_agreement.get(agreement.agreement_id, [])
+
+            # Pre-concatenated display strings
             contact_persons_display = ", ".join(
                 f"{cp.contact_person_position}: {cp.contact_person_name} ({cp.contact_person_email})"
-                for cp in contact_persons
-            ) if contact_persons else ""
+                for cp in all_contact_persons
+            ) if all_contact_persons else ""
 
             point_persons_display = ", ".join(
                 f"{pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})"
@@ -166,7 +210,7 @@ async def get_agreements(
                 MOU_to_MOA_id=agreement.MOU_to_MOA_id,
                 contact_persons=[
                     ContactPersonResponse.model_validate(cp, from_attributes=True)
-                    for cp in contact_persons
+                    for cp in all_contact_persons
                 ],
                 point_persons=[
                     PointPersonResponse.model_validate(pp, from_attributes=True)
@@ -181,12 +225,133 @@ async def get_agreements(
         return agreements_list
 
     except Exception as e:
-        traceback.print_exc() 
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching agreements: {str(e)}"
         )
 
+@router.get("/archive", response_model=List[ArchiveAgreementResponse])
+async def get_archived_agreements(
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """
+    OPTIMIZED: Single query for archived agreements with batch loading.
+    """
+    try:
+        today = date.today()
+        
+        # Main query for archived agreements
+        results = db.query(Agreements, Partners).join(
+            Partners, Agreements.partner_id == Partners.partner_id
+        ).filter(
+            Agreements.date_expiry <= today
+        ).all()
+
+        if not results:
+            return []
+
+        # Batch fetch point persons
+        agreement_ids = [agreement.agreement_id for agreement, _ in results]
+        point_persons_query = db.query(PointPersons).filter(
+            PointPersons.agreement_id.in_(agreement_ids)
+        ).all()
+
+        # Organize point persons by agreement
+        point_persons_by_agreement = {}
+        for pp in point_persons_query:
+            if pp.agreement_id not in point_persons_by_agreement:
+                point_persons_by_agreement[pp.agreement_id] = []
+            point_persons_by_agreement[pp.agreement_id].append(pp)
+
+        archive_list = []
+        for agreement, partner in results:
+            point_persons = point_persons_by_agreement.get(agreement.agreement_id, [])
+            
+            point_persons_display = ", ".join(
+                f"{pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})"
+                for pp in point_persons
+            ) if point_persons else ""
+
+            archive_list.append(ArchiveAgreementResponse(
+                agreement_id=agreement.agreement_id,
+                dts_number=agreement.dts_number,
+                partner_name=partner.name,
+                document_type=agreement.document_type,
+                partnership_type=agreement.partnership_type,
+                date_expiry=agreement.date_expiry,
+                point_persons_display=point_persons_display
+            ))
+
+        return archive_list
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching archive: {str(e)}"
+        )
+
+# Add new lightweight endpoint for sidebar/summary data
+@router.get("/summary", response_model=dict)
+async def get_agreements_summary(
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """
+    OPTIMIZED: Lightweight endpoint for sidebar/dashboard stats only.
+    Returns minimal data for maximum performance.
+    """
+    try:
+        today = date.today()
+        
+        # Single query with only essential fields
+        results = db.query(
+            Agreements.agreement_id,
+            Agreements.dts_number,
+            Agreements.document_type,
+            Agreements.partnership_type,
+            Agreements.agreement_status,
+            Agreements.dts_status,
+            Agreements.date_expiry,
+            Partners.name.label('partner_name'),
+            Partners.country
+        ).join(
+            Partners, Agreements.partner_id == Partners.partner_id
+        ).filter(
+            or_(
+                Agreements.date_expiry == None,
+                Agreements.date_expiry >= today
+            )
+        ).all()
+        
+        # Calculate stats efficiently
+        total_active = len([r for r in results if r.agreement_status == "Active"])
+        total_open = len([r for r in results if r.dts_status == "Open - OIA" and r.agreement_status not in ["Active", "Withdrawn"]])
+        
+        nearing_expiry = len([
+            r for r in results 
+            if r.date_expiry and (r.date_expiry - today).days <= 30 and (r.date_expiry - today).days > 0
+        ])
+        
+        return {
+            "total_agreements": len(results),
+            "active_agreements": total_active,
+            "open_agreements": total_open,
+            "nearing_expiry": nearing_expiry,
+            "countries": list(set(r.country for r in results if r.country)),
+            "document_types": list(set(r.document_type for r in results if r.document_type)),
+            "partnership_types": list(set(r.partnership_type for r in results if r.partnership_type))
+        }
+        
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching summary: {str(e)}"
+        )
+
+    
 @router.post("/", response_model=dict)
 async def create_agreement(
     agreement: AgreementCreate,
