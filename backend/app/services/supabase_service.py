@@ -55,14 +55,19 @@ def upload_file(
 
     return object_path  # relative path only, no bucket
 
-def delete_file(object_path: str) -> None:
+def delete_file(object_path: str) -> str:
     """
     Delete object_path from bucket. object_path is the key stored in DB.
     """
     res = sb.storage.from_(SUPABASE_BUCKET).remove([object_path])
     # supabase returns dict or list; if error present raise
-    if isinstance(res, dict) and res.get("error"):
-        raise RuntimeError(f"Supabase delete error: {res['error']}")
+    if isinstance(res, dict) and "error" in res:
+        raise RuntimeError(f"Supabase delete error: {res.get('error')}")
+    elif isinstance(res, dict):
+        error = res.get("error")
+    else:
+        # Handle other types appropriately
+        error = None
 
     return object_path
 
@@ -73,10 +78,8 @@ def get_signed_url(object_path: str, expires_in: int = 3600) -> str:
     """
     try:
         res = sb.storage.from_(SUPABASE_BUCKET).create_signed_url(object_path, expires_in)
-        if isinstance(res, dict):
-            for key in ("signedURL", "signed_url", "signedurl"):
-                if res.get(key):
-                    return res[key]
+        if isinstance(res, dict) and res.get("signedURL"):
+            return res["signedURL"]
     except StorageApiError as e:
         print(f"⚠️ Supabase signed URL failed for {object_path}: {e}")
 
@@ -110,8 +113,8 @@ def delete_folder(dts_number: str) -> None:
         if object_paths:
             res = sb.storage.from_(SUPABASE_BUCKET).remove(object_paths)
             print(f"✅ Supabase remove() result: {res}")
-            if isinstance(res, dict) and res.get("error"):
-                raise RuntimeError(f"Supabase delete error: {res['error']}")
+            if isinstance(res, dict) and res.get("error") is not None:
+                raise RuntimeError(f"Supabase delete error: {res.get('error')}")
     except Exception as e:
         print(f"⚠️ Supabase folder delete warning for {dts_number}: {e}")
         traceback.print_exc()
