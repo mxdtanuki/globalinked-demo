@@ -37,23 +37,8 @@ const Mobility = () => {
 const fetchAgreements = async () => {
   try {
     setLoading(true);
-    const data = await agreementService.getAgreements();
-
-    // Only include agreements with status "Active"
-    const activeData = data.filter(item => item.agreement_status === "Active");
-
-    const allowedClassifications = [
-      "MOA on Student Competition",
-      "MOA on Internship",
-      "MOA on Faculty Exchange",
-      "MOA on Student Exchange",
-      "MOA on Faculty and Student Exchange"
-    ];
-
-    const filteredData = activeData.filter(item =>
-      allowedClassifications.includes(item.partnership_type)
-    );
-
+    // Use optimized endpoint for mobility agreements
+    const filteredData = await agreementService.getMobilityAgreements();
     setAgreements(filteredData);
   } catch (err) {
     setError("Failed to fetch agreements: " + err.message);
