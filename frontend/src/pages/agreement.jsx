@@ -8,6 +8,7 @@ import { documentService } from '../services/documentService';
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import axios from "axios";
+import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
 
 const AgreementDocument = () => {
   const [mobileShow, setMobileShow] = useState(false);
@@ -58,12 +59,12 @@ const AgreementDocument = () => {
   // Fetch agreements
 const fetchAgreements = async () => {
   try {
-    const data = await agreementService.getAgreements();
+    // Use optimized endpoint for active agreements only
+    const data = await agreementService.getActiveAgreements();
     console.log("Fetched agreements:", data);
 
-    const filtered = data.filter(a => a.agreement_status === "Active");
-    setAgreements(filtered);
-    setFilteredAgreements(filtered);
+    setAgreements(data);
+    setFilteredAgreements(data);
   } catch (err) {
     console.error(err);
     setError("Failed to fetch agreements: " + err.message);
@@ -168,15 +169,42 @@ useEffect(() => {
   const prevPage = () =>
     currentPage > 1 && setCurrentPage((prev) => prev - 1);
 
+const [isAdmin, setIsAdmin] = useState(false);
+const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const parsedUser = JSON.parse(userStr);
+        setCurrentUser(parsedUser);
+
+        if (parsedUser.user_role && parsedUser.user_role.toLowerCase() === "admin") {
+          setIsAdmin(true);
+          console.log("Is Admin:", true);
+        } else {
+          setIsAdmin(false);
+          console.log("Is Admin:", false);
+        }
+      }
+    } catch (err) {
+      console.error("Error parsing user from localStorage:", err);
+    }
+  }, []);
+
   // Editing 
 const handleEdit = (agreement) => {
-  const normalizedRemarks = Array.isArray(agreement.remarks)
-    ? agreement.remarks.map((r) =>
-        typeof r === "object"
-          ? r.remark_text || r.text || r.remark || ""
-          : r
-      )
-    : [];
+  if (!isAdmin) {
+    alert("You do not have permission to edit agreements.");
+    return;
+  }
+   const normalizedRemarks = Array.isArray(agreement.remarks)
+     ? agreement.remarks.map((r) =>
+         typeof r === "object"
+           ? r.remark_text || r.text || r.remark || ""
+           : r
+       )
+     : [];
 
   setEditId(agreement.agreement_id);
   setEditData({
@@ -215,6 +243,10 @@ const handleEdit = (agreement) => {
 
   // Delete logic
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      alert("You do not have permission to delete agreements.");
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this agreement?")) return;
 
     try {
@@ -538,7 +570,7 @@ const exportToExcel = async () => {
                         currentRows.map((a) => (
                           <tr key={a.agreement_id}>
                             <td>{a.dts_number}</td>
-                            <td>{a.document_type}</td>
+                            <td>{renderDocumentTypeBadge(a.document_type)}</td>
                             <td>{a.partnership_type}</td>
                             <td>{a.name}</td>
                             <td>{a.country}</td>
@@ -581,36 +613,37 @@ const exportToExcel = async () => {
                               )}
                             </td>
                             <td>
-                            {editId === a.agreement_id ? (
-                              <select
-                                value={editData.agreement_status || a.agreement_status || ""}
-                                onChange={e =>
-                                  setEditData({ ...editData, agreement_status: e.target.value })
-                                }
-                                style={{ minWidth: "180px" }}
-                              >
-                                <option value="">Select Status</option>
-                                <option value="InitialReview">Initial Review</option>
-                                <option value="Endorse">Endorse to ULCO for Review and Approval</option>
-                                <option value="Revert">Revert To Initiator with Comments</option>
-                                <option value="Consultation">For Consultation</option>
-                                <option value="Replication">Replication of Copies (8 sets)</option>
-                                <option value="SignituresPUP">For Signatures of PUP Officials</option>
-                                <option value="SignedPUP">Signed by PUP Officials</option>
-                                <option value="SignituresPartner">For Signatures of Partner</option>
-                                <option value="SignedPartner">Signed by Partner Institution</option>
-                                <option value="Complete">Completely Signed</option>
-                                <option value="Notary">For Notary</option>
-                                <option value="FFUPCopy">FFUP Copy From College/Campus</option>
-                                <option value="Active">Active</option>
-                                <option value="Withdrawn">Withdrawn</option>
-                              </select>
-                            ) : (
-                              a.agreement_status || "N/A"
-                            )}
-                          </td>
+                              {isAdmin && editId === a.agreement_id ? (
+                                <select
+                                  value={editData.agreement_status || a.agreement_status || ""}
+                                  onChange={e =>
+                                    setEditData({ ...editData, agreement_status: e.target.value })
+                                  }
+                                  style={{ minWidth: "180px" }}
+                                >
+                                  <option value="">Select Status</option>
+                                  <option value="InitialReview">Initial Review</option>
+                                  <option value="Endorse">Endorse to ULCO for Review and Approval</option>
+                                  <option value="Revert">Revert To Initiator with Comments</option>
+                                  <option value="Consultation">For Consultation</option>
+                                  <option value="Replication">Replication of Copies (8 sets)</option>
+                                  <option value="SignituresPUP">For Signatures of PUP Officials</option>
+                                  <option value="SignedPUP">Signed by PUP Officials</option>
+                                  <option value="SignituresPartner">For Signatures of Partner</option>
+                                  <option value="SignedPartner">Signed by Partner Institution</option>
+                                  <option value="Complete">Completely Signed</option>
+                                  <option value="Notary">For Notary</option>
+                                  <option value="FFUPCopy">FFUP Copy From College/Campus</option>
+                                  <option value="Active">Active</option>
+                                  <option value="Withdrawn">Withdrawn</option>
+                                </select>
+                              ) : (
+                                a.agreement_status || "N/A"
+                              )}
+                            </td>
+
                             <td>
-                              {editId === a.agreement_id ? (
+                              {isAdmin && editId === a.agreement_id ? (
                                 <input
                                   type="text"
                                   value={editData.hardcopy_location}
@@ -625,8 +658,9 @@ const exportToExcel = async () => {
                                 a.hardcopy_location || "N/A"
                               )}
                             </td>
+
                             <td>
-                              {editId === a.agreement_id ? (
+                              {isAdmin && editId === a.agreement_id ? (
                                 <div style={{ background: "#fff8dc", padding: "5px" }}>
                                   {editData.remarks.map((act, idx) => (
                                     <div
@@ -651,23 +685,22 @@ const exportToExcel = async () => {
                                   <button onClick={addRemarks}>+ Add</button>
                                 </div>
                               ) : (
-                                <td>
-                                  {Array.isArray(a.remarks) ? (
-                                    a.remarks.map((r, idx) => (
-                                      <div key={idx}>
-                                        {typeof r === "object"
-                                          ? r.remark_text || r.text || r.remark || ""
-                                          : r}
-                                      </div>
-                                    ))
-                                  ) : (
-                                    "N/A"
-                                  )}
-                                </td>
+                                Array.isArray(a.remarks) ? (
+                                  a.remarks.map((r, idx) => (
+                                    <div key={idx}>
+                                      {typeof r === "object"
+                                        ? r.remark_text || r.text || r.remark || ""
+                                        : r}
+                                    </div>
+                                  ))
+                                ) : (
+                                  "N/A"
+                                )
                               )}
                             </td>
+
                             <td>
-                              {editId === a.agreement_id ? (
+                              {isAdmin && editId === a.agreement_id ? (
                                 <>
                                   <button
                                     className="btn-action"
@@ -684,18 +717,22 @@ const exportToExcel = async () => {
                                 </>
                               ) : (
                                 <div className="action-buttons">
-                                  <button
-                                    className="btn-action"
-                                    onClick={() => handleEdit(a)}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    className="btn-action delete"
-                                    onClick={() => handleDelete(a.agreement_id)}
-                                  >
-                                    Delete
-                                  </button>
+                                  {isAdmin && (
+                                    <>
+                                      <button
+                                        className="btn-action"
+                                        onClick={() => handleEdit(a)}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        className="btn-action delete"
+                                        onClick={() => handleDelete(a.agreement_id)}
+                                      >
+                                        Delete
+                                      </button>
+                                    </>
+                                  )}
                                   <button className="btn-action" onClick={() => handleViewLatestFile(a.dts_number)}>View File</button>
                                 </div>
                               )}

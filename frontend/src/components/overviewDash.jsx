@@ -40,17 +40,12 @@ const OverviewDash = () => {
 const fetchAgreements = async () => {
   try {
     const data = await agreementService.getAgreements();
+    console.log("Fetched agreements:", data);
     setAgreements(data);
-
-    // Show only OPEN by default
-    const openOnly = data.filter(a => 
-      a.dts_status === 'Open - OIA' &&
-      a.agreement_status !== 'Active' &&
-      a.agreement_status !== 'Withdrawn'
-    );
-    setFilteredAgreements(openOnly);
+    setFilteredAgreements(data);
   } catch (err) {
-    setError('Failed to fetch agreements: ' + err.message);
+    console.error(err);
+    setError("Failed to fetch agreements: " + err.message);
   } finally {
     setLoading(false);
   }
@@ -219,6 +214,26 @@ const handleDateSort = () => {
     ];
 
     const isEditable = editableFields.includes(field);
+
+      if (field === 'document_type' && !isEditing) {
+    const getDocumentTypeClass = (docType) => {
+      switch (docType?.toUpperCase()) {
+        case 'MOA':
+          return 'document-type-badge document-type-moa';
+        case 'MOU':
+          return 'document-type-badge document-type-mou';
+        default:
+          return 'document-type-badge document-type-default';
+      }
+    };
+
+    return (
+      <span className={getDocumentTypeClass(value)}>
+        {value || '-'}
+      </span>
+    );
+  }
+  
     if (field === 'logo_path') {
       if (!isEditing) {
         return value ? (
@@ -645,29 +660,6 @@ const applyIndependentFilter = () => {
 
 const clearIndependentFilter = () => {
   setFilters({ documentType: '', partnershipType: '', validityPeriod: '', country: '' });
-
-  // Always filter by statFilter first
-  let data = agreements;
-  if (statFilter) {
-    switch (statFilter) {
-      case 'OPEN - OIA':
-        data = data.filter(a => a.dts_status === 'Open - OIA');
-        break;
-      case 'CLOSED - OIA':
-        data = data.filter(a => a.dts_status === 'Closed - OIA');
-        break;
-      case 'OPEN - OTHER OFFICE':
-        data = data.filter(a => a.dts_status === 'Open - Other Office');
-        break;
-      case 'CLOSED - OTHER OFFICE':
-        data = data.filter(a => a.dts_status === 'Closed - Other Office');
-        break;
-      default:
-        break;
-    }
-  }
-  setFilteredAgreements(data);
-  setCurrentPage(1);
 };
 
 const stats = [
@@ -711,7 +703,7 @@ const lifecycleStages = [
   { label: 'For Signature of PUP Official', status: 'SignituresPUP' },
   { label: 'Signed by PUP Official', status: 'SignedPUP' },
   { label: 'For Signature of Partners', status: 'SignituresPartner' },
-  { label: 'Signed by Partners', status: 'SignedPartner' },
+  { label: 'Signed by Partners', status: 'SignedPartners' },
   { label: 'Completely Signed', status: 'Complete' },
   { label: 'For Notary', status: 'Notary' },
   { label: 'To FFUP Copy', status: 'FFUPCopy' },
@@ -885,6 +877,31 @@ const exportToExcel = async () => {
               <button className="btn btn-generate" onClick={exportToExcel}>
                 Generate
               </button>
+                    <button
+        className="btn btn-scroll-nav"
+        title="Scroll to first column"
+        onClick={() => {
+          const tableScrollDiv = document.querySelector('.table-scroll');
+          if (tableScrollDiv) {
+            tableScrollDiv.scrollLeft = 0;
+          }
+        }}
+      >
+        ◄ First
+      </button>
+      <button
+        className="btn btn-scroll-nav"
+        title="Scroll to last column"
+        onClick={() => {
+          const tableScrollDiv = document.querySelector('.table-scroll');
+          if (tableScrollDiv) {
+            tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
+          }
+        }}
+      >
+        Last ►
+      </button>
+
           </div>
         </div>
         </div>
@@ -1137,55 +1154,37 @@ const exportToExcel = async () => {
               )}
             </tbody>
           </table>
-          <button
-            style={{
-              position: 'absolute',
-              left: '12px',
-              bottom: '4px',
-              padding: '6px 16px',
-              fontSize: '18px',
-              cursor: 'pointer',
-              background: '#800000', 
-              color: '#fff',
-              border: 'none',
-              borderRadius: '24px', 
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-            }}
-            title="Scroll to first column"
-            onClick={() => {
-              const tableScrollDiv = document.querySelector('.table-scroll');
-              if (tableScrollDiv) {
-                tableScrollDiv.scrollLeft = 0;
-              }
-            }}
-          >
-            ◄
-          </button>
-          <button
-            style={{
-              position: 'absolute',
-              right: '12px',
-              bottom: '4px',
-              padding: '6px 16px',
-              fontSize: '18px',
-              cursor: 'pointer',
-              background: '#800000', 
-              color: '#fff',
-              border: 'none',
-              borderRadius: '24px', 
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-            }}
-            title="Scroll to last column"
-            onClick={() => {
-              const tableScrollDiv = document.querySelector('.table-scroll');
-              if (tableScrollDiv) {
-                tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
-              }
-            }}
-          >
-            ►
-          </button>
         </div>
+
+        {paginatedData.length > 5 && (
+  <div className="table-bottom-actions">
+    <button
+      className="btn btn-scroll-nav"
+      title="Scroll to first column"
+      onClick={() => {
+        const tableScrollDiv = document.querySelector('.table-scroll');
+        if (tableScrollDiv) {
+          tableScrollDiv.scrollLeft = 0;
+        }
+      }}
+    >
+      ◄ First Column
+    </button>
+    <button
+      className="btn btn-scroll-nav"
+      title="Scroll to last column"
+      onClick={() => {
+        const tableScrollDiv = document.querySelector('.table-scroll');
+        if (tableScrollDiv) {
+          tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
+        }
+      }}
+    >
+      Last Column ►
+    </button>
+  </div>
+)}
+
 
         <div className="pagination">
           <button
