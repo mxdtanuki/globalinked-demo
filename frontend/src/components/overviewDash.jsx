@@ -40,17 +40,12 @@ const OverviewDash = () => {
 const fetchAgreements = async () => {
   try {
     const data = await agreementService.getAgreements();
+    console.log("Fetched agreements:", data);
     setAgreements(data);
-
-    // Show only OPEN by default
-    const openOnly = data.filter(a => 
-      a.dts_status === 'Open - OIA' &&
-      a.agreement_status !== 'Active' &&
-      a.agreement_status !== 'Withdrawn'
-    );
-    setFilteredAgreements(openOnly);
+    setFilteredAgreements(data);
   } catch (err) {
-    setError('Failed to fetch agreements: ' + err.message);
+    console.error(err);
+    setError("Failed to fetch agreements: " + err.message);
   } finally {
     setLoading(false);
   }

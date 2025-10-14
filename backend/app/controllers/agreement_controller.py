@@ -160,8 +160,20 @@ async def get_agreements(
             agreement_contact_persons = contact_persons_by_agreement.get(agreement.agreement_id, [])
             partner_contact_persons = contact_persons_by_partner.get(partner.partner_id, [])
             
-            # Combine agreement-specific and partner fallback contact persons
-            all_contact_persons = agreement_contact_persons + partner_contact_persons
+            seen_contact_ids = set()
+            all_contact_persons = []
+            
+            # Add agreement-specific contact persons first
+            for cp in agreement_contact_persons:
+                if cp.contact_person_id not in seen_contact_ids:
+                    all_contact_persons.append(cp)
+                    seen_contact_ids.add(cp.contact_person_id)
+            
+            # Add partner contact persons only if not already added
+            for cp in partner_contact_persons:
+                if cp.contact_person_id not in seen_contact_ids:
+                    all_contact_persons.append(cp)
+                    seen_contact_ids.add(cp.contact_person_id)
             
             point_persons = point_persons_by_agreement.get(agreement.agreement_id, [])
             remarks = remarks_by_agreement.get(agreement.agreement_id, [])
