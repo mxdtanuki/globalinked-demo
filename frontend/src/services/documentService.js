@@ -1,7 +1,6 @@
 import axios from "axios";
 
-const API_ROOT = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000";
-const API_BASE = `${API_ROOT.replace(/\/$/, "")}/documents`;
+const API_BASE = "http://127.0.0.1:8000/documents"; 
 
 export const documentService = {
   // upload a new version (multipart/form-data)

@@ -29,7 +29,7 @@ app = FastAPI(
     description="Monitoring System for OIA",
     version="1.0.0",
 )
-
+'''
 origins = [
     "https://globalinked.systems",          # Frontend domain
     "https://www.globalinked.systems",      # Frontend domain with www
@@ -40,6 +40,20 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+'''
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://globalinked.systems",
+        "https://www.globalinked.systems",
+        "https://api.globalinked.systems",
+        "http://localhost:3000",
+    ],
+    allow_origin_regex=r"https://.*\.globalinked\.systems",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -151,7 +165,7 @@ def qa_health():
         elif svc is not None:
             # Fallback: if no explicit method, assume ready after preload attempt
             ready = True
-        if ready and hasattr(svc, "qa_info"):
+        if ready and svc is not None and hasattr(svc, "qa_info"):
             info = svc.qa_info()
     except Exception:
         ready = False
