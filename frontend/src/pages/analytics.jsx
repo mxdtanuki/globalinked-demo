@@ -189,15 +189,24 @@ const fetchAndProcessData = async () => {
   const [visibleEndMonth, setVisibleEndMonth] = useState(null);
   const [monthsLabel, setMonthsLabel] = useState('');
 
-  const getYearlyData = (fullData, year) => {
+  const getYearlyData = (fullData, year, monthsToInclude = null) => {
     if (!fullData || !year || !fullData[year]) return [];
-    const months = getMonthsForYear(fullData, year);
-    const combined = [];
+    const months = Array.isArray(monthsToInclude) && monthsToInclude.length > 0
+      ? monthsToInclude
+      : getMonthsForYear(fullData, year);
+
+    const totals = {};
     months.forEach(month => {
       const arr = fullData[year][month] || [];
-      arr.forEach(item => combined.push({ ...item, month }));
+      arr.forEach(item => {
+        const key = item.name;
+        totals[key] = (totals[key] || 0) + (item.value || 0);
+      });
     });
-    return combined;
+
+    return Object.entries(totals)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
   };
 
   useEffect(() => {
@@ -227,10 +236,10 @@ const fetchAndProcessData = async () => {
       moaActMonths: moaActMonths.length,
     });
 
-    // Update table data to include only months in the ordered range
-    const newMou = getYearlyData(DATA_MOU, selectedYear);
-    const newMoa = getYearlyData(DATA_MOA, selectedYear);
-    const newMoaAct = getYearlyData(DATA_MOA_ACTIVITY, selectedYear);
+    // Update table data to include only months in the ordered range (aggregated)
+    const newMou = getYearlyData(DATA_MOU, selectedYear, ordered);
+    const newMoa = getYearlyData(DATA_MOA, selectedYear, ordered);
+    const newMoaAct = getYearlyData(DATA_MOA_ACTIVITY, selectedYear, ordered);
 
     setMouData(newMou);
     setMoaData(newMoa);

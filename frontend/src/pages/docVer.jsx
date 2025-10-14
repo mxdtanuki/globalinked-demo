@@ -4,6 +4,7 @@ import TopBar from "../components/topbar";
 import "./docVer.css";                                                                                       
 import { useSearchParams } from "react-router-dom";
 import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
+import { documentService } from "../services/documentService";
 
 const DocumentVersion = () => {
   const [searchParams] = useSearchParams();
@@ -37,11 +38,10 @@ const DocumentVersion = () => {
   // Fetch versions/all
   useEffect(() => {
     setLoading(true); 
-    fetch("/documents/versions/all")
-      .then((res) => res.json())
-      .then((data) => setDocuments(data))
+    documentService.getAllVersions()
+      .then((data) => setDocuments(data || []))
       .catch((err) => console.error("Failed to fetch versions:", err))
-      .finally(() => setLoading(false)); 
+      .finally(() => setLoading(false));
   }, []);
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -109,49 +109,38 @@ const DocumentVersion = () => {
     setEditFile(null);
   };
 
-const handleSave = async () => {
-  if (!editingDoc) return;
+  const handleSave = async () => {
+    if (!editingDoc) return;
 
-  setDocuments((prev) =>
-    prev.map((d) =>
-      d.version_id === editingDoc.version_id
-        ? { ...d, version_comment: editComment }
-        : d
-    )
-  );
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.version_id === editingDoc.version_id
+          ? { ...d, version_comment: editComment }
+          : d
+      )
+    );
 
-  setEditingDoc(null);
-  setEditFile(null);
+    setEditingDoc(null);
+    setEditFile(null);
 
-  const formData = new FormData();
-  formData.append("version_comment", editComment);
-  if (editFile) {
-    formData.append("file", editFile);
-  }
-
-  try {
-    const res = await fetch(`/documents/versions/${editingDoc.version_id}`, {
-      method: "PUT",
-      body: formData,
-    });
-
-    if (!res.ok) throw new Error("Failed to update");
-    const data = await res.json();
-
-    if (data.version) {
-      setDocuments((prev) =>
-        prev.map((d) =>
-          d.version_id === editingDoc.version_id
-            ? { ...d, ...data.version }
-            : d
-        )
-      );
+    const formData = new FormData();
+    formData.append("version_comment", editComment);
+    if (editFile) {
+      formData.append("file", editFile);
     }
-  } catch (err) {
-    console.error("Background update failed:", err);
-    alert("File upload failed, but comment was saved locally.");
-  }
-};
+
+    try {
+      const data = await documentService.updateVersion(editingDoc.version_id, formData);
+      if (data?.version) {
+        setDocuments((prev) =>
+          prev.map((d) => (d.version_id === editingDoc.version_id ? { ...d, ...data.version } : d))
+        );
+      }
+    } catch (err) {
+      console.error("Background update failed:", err);
+      alert("File upload failed, but comment was saved locally.");
+    }
+  };
 
   const handleDelete = async (versionId) => {
     if (!isAdmin) {
@@ -161,16 +150,7 @@ const handleSave = async () => {
     if (!window.confirm("Are you sure you want to delete this version?")) return;
 
     try {
-      const res = await fetch(`/documents/versions/${versionId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        alert(`Delete failed: ${err.detail}`);
-        return;
-      }
-
+      await documentService.deleteVersion(versionId);
       setDocuments((prev) => prev.filter((d) => d.version_id !== versionId));
     } catch (err) {
       console.error("Delete failed:", err);
@@ -341,15 +321,16 @@ const handleSave = async () => {
                             className="docu-view-btn"
                             onClick={async () => {
                               try {
-                                const response = await fetch(doc.download_url, {
-                                  headers: { Accept: "application/pdf" },
-                                });
+                                const signed = await documentService.getDownloadUrl(doc.version_id);
+                                const response = await fetch(signed.download_url, { headers: { Accept: "application/pdf" } });
+                                if (!response.ok) throw new Error(`Failed to fetch file (${response.status})`);
                                 const arrayBuffer = await response.arrayBuffer();
                                 const blob = new Blob([arrayBuffer], { type: "application/pdf" });
                                 const url = window.URL.createObjectURL(blob);
                                 window.open(url, "_blank");
                               } catch (err) {
                                 console.error("View failed:", err);
+                                alert("Failed to open file.");
                               }
                             }}
                           >
@@ -359,9 +340,9 @@ const handleSave = async () => {
                             className="docu-download-btn"
                             onClick={async () => {
                               try {
-                                const response = await fetch(doc.download_url, {
-                                  headers: { Accept: "application/pdf" },
-                                });
+                                const signed = await documentService.getDownloadUrl(doc.version_id);
+                                const response = await fetch(signed.download_url, { headers: { Accept: "application/pdf" } });
+                                if (!response.ok) throw new Error(`Failed to download file (${response.status})`);
                                 const arrayBuffer = await response.arrayBuffer();
                                 const blob = new Blob([arrayBuffer], { type: "application/pdf" });
                                 const url = window.URL.createObjectURL(blob);
@@ -374,6 +355,7 @@ const handleSave = async () => {
                                 window.URL.revokeObjectURL(url);
                               } catch (err) {
                                 console.error("Download failed:", err);
+                                alert("Download failed.");
                               }
                             }}
                           >
