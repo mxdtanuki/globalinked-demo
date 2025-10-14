@@ -96,7 +96,6 @@ async createAgreement(formData) {
       partnership_type: 'MOA on Student Competition,MOA on Internship,MOA on Faculty Exchange,MOA on Student Exchange,MOA on Faculty and Student Exchange'
     });
   },
-
   // NEW: Lightweight summary for dashboard
   async getAgreementsSummary() {
     const token = localStorage.getItem('access_token');
