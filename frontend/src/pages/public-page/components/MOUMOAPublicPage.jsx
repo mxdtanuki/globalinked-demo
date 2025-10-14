@@ -319,8 +319,10 @@ const MOUMOAPublicPage = () => {
   if (isLoading) {
     return (
       <div className="moumoa-public-page">
+      <div className="moumoa-public-page">
         <Header />
         <div
+          className="moumoa-loading-container"
           className="moumoa-loading-container"
           role="status"
           aria-live="polite"
@@ -328,7 +330,10 @@ const MOUMOAPublicPage = () => {
         >
           <div className="moumoa-loading-spinner">
             <div className="moumoa-spinner-ring"></div>
+          <div className="moumoa-loading-spinner">
+            <div className="moumoa-spinner-ring"></div>
           </div>
+          <p className="moumoa-loading-text">Loading partnership data...</p>
           <p className="moumoa-loading-text">Loading partnership data...</p>
         </div>
       </div>
@@ -337,41 +342,61 @@ const MOUMOAPublicPage = () => {
 
   return (
     <div className="moumoa-public-page">
+    <div className="moumoa-public-page">
       <Header />
 
+      <section className="moumoa-hero-section">
+        <div className="moumoa-hero-content">
+          <h1 className="moumoa-hero-title">International Affairs</h1>
       <section className="moumoa-hero-section">
         <div className="moumoa-hero-content">
           <h1 className="moumoa-hero-title">International Affairs</h1>
 
           <div className="moumoa-quick-stats-row">
             <div className="moumoa-stat-item-row">
+          <div className="moumoa-quick-stats-row">
+            <div className="moumoa-stat-item-row">
               <img
                 src={globeIcon}
                 alt="Partner Countries"
                 className="moumoa-stat-icon-row"
+                className="moumoa-stat-icon-row"
               />
+              <div className="moumoa-stat-content">
+                <span className="moumoa-stat-number-row">{data.length}</span>
+                <span className="moumoa-stat-label-row">Partner Countries</span>
               <div className="moumoa-stat-content">
                 <span className="moumoa-stat-number-row">{data.length}</span>
                 <span className="moumoa-stat-label-row">Partner Countries</span>
               </div>
             </div>
             <div className="moumoa-stat-item-row">
+            <div className="moumoa-stat-item-row">
               <img
                 src={agreementIcon}
                 alt="MOUs Signed"
                 className="moumoa-stat-icon-row"
+                className="moumoa-stat-icon-row"
               />
+              <div className="moumoa-stat-content">
+                <span className="moumoa-stat-number-row">{totalMOU}</span>
+                <span className="moumoa-stat-label-row">MOUs Signed</span>
               <div className="moumoa-stat-content">
                 <span className="moumoa-stat-number-row">{totalMOU}</span>
                 <span className="moumoa-stat-label-row">MOUs Signed</span>
               </div>
             </div>
             <div className="moumoa-stat-item-row">
+            <div className="moumoa-stat-item-row">
               <img
                 src={partnershipIcon}
                 alt="MOAs Active"
                 className="moumoa-stat-icon-row"
+                className="moumoa-stat-icon-row"
               />
+              <div className="moumoa-stat-content">
+                <span className="moumoa-stat-number-row">{totalMOA}</span>
+                <span className="moumoa-stat-label-row">MOAs Active</span>
               <div className="moumoa-stat-content">
                 <span className="moumoa-stat-number-row">{totalMOA}</span>
                 <span className="moumoa-stat-label-row">MOAs Active</span>
@@ -383,6 +408,8 @@ const MOUMOAPublicPage = () => {
 
       <main className="moumoa-main-container">
         <nav className="moumoa-view-navigation" role="tablist">
+      <main className="moumoa-main-container">
+        <nav className="moumoa-view-navigation" role="tablist">
           <button
             className={`moumoa-nav-tab ${
               selectedView === "overview" ? "moumoa-active" : ""
@@ -391,11 +418,13 @@ const MOUMOAPublicPage = () => {
             aria-selected={selectedView === "overview"}
             role="tab"
             id="moumoa-overview-tab"
+            id="moumoa-overview-tab"
             tabIndex={selectedView === "overview" ? 0 : -1}
           >
             <img
               src={overviewIcon}
               alt=""
+              className="moumoa-tab-icon"
               className="moumoa-tab-icon"
               aria-hidden="true"
             />
@@ -404,16 +433,20 @@ const MOUMOAPublicPage = () => {
           <button
             className={`moumoa-nav-tab ${
               selectedView === "countries" ? "moumoa-active" : ""
+            className={`moumoa-nav-tab ${
+              selectedView === "countries" ? "moumoa-active" : ""
             }`}
             onClick={() => setSelectedView("countries")}
             aria-selected={selectedView === "countries"}
             role="tab"
+            id="moumoa-countries-tab"
             id="moumoa-countries-tab"
             tabIndex={selectedView === "countries" ? 0 : -1}
           >
             <img
               src={countriesIcon}
               alt=""
+              className="moumoa-tab-icon"
               className="moumoa-tab-icon"
               aria-hidden="true"
             />
@@ -427,11 +460,13 @@ const MOUMOAPublicPage = () => {
             aria-selected={selectedView === "regions"}
             role="tab"
             id="moumoa-regions-tab"
+            id="moumoa-regions-tab"
             tabIndex={selectedView === "regions" ? 0 : -1}
           >
             <img
               src={regionsIcon}
               alt=""
+              className="moumoa-tab-icon"
               className="moumoa-tab-icon"
               aria-hidden="true"
             />
@@ -440,19 +475,26 @@ const MOUMOAPublicPage = () => {
         </nav>
 
         <div className="moumoa-content-area">
+        <div className="moumoa-content-area">
           {selectedView === "overview" && (
             <section
               className="moumoa-overview-view"
+              className="moumoa-overview-view"
               role="tabpanel"
+              aria-labelledby="moumoa-overview-tab"
               aria-labelledby="moumoa-overview-tab"
             >
               <h2 className="moumoa-section-title">Partnership Distribution</h2>
+              <h2 className="moumoa-section-title">Partnership Distribution</h2>
 
+              <div className="moumoa-controls-bar">
+                <div className="moumoa-search-wrapper">
               <div className="moumoa-controls-bar">
                 <div className="moumoa-search-wrapper">
                   <img
                     src={searchIcon}
                     alt=""
+                    className="moumoa-search-icon"
                     className="moumoa-search-icon"
                     aria-hidden="true"
                   />
@@ -462,14 +504,17 @@ const MOUMOAPublicPage = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="moumoa-search-input"
+                    className="moumoa-search-input"
                     aria-label="Search countries"
                   />
                 </div>
 
                 <div className="moumoa-filter-controls">
+                <div className="moumoa-filter-controls">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
+                    className="moumoa-sort-select"
                     className="moumoa-sort-select"
                     aria-label="Sort data by"
                   >
@@ -485,15 +530,18 @@ const MOUMOAPublicPage = () => {
                     src={sortIcon}
                     alt="Sort Icon"
                     className="moumoa-custom-sort-icon"
+                    className="moumoa-custom-sort-icon"
                   />
                 </div>
               </div>
 
               <div className="moumoa-chart-section">
+              <div className="moumoa-chart-section">
                 {filteredData.length > 0 ? (
                   filteredData.map((item) => (
                     <div
                       key={item.country}
+                      className="moumoa-chart-item"
                       className="moumoa-chart-item"
                       onClick={() => setSelectedCountry(item)}
                       onKeyDown={(e) => {
@@ -506,9 +554,11 @@ const MOUMOAPublicPage = () => {
                       aria-label={`View details for ${item.country}. Has ${item.mou} MOUs and ${item.moa} MOAs.`}
                     >
                       <div className="moumoa-country-info">
+                      <div className="moumoa-country-info">
                         <img
                           src={`https://flagcdn.com/24x18/${item.code}.png`}
                           alt={`Flag of ${item.country}`}
+                          className="moumoa-country-flag"
                           className="moumoa-country-flag"
                         />
                         <span className="moumoa-country-name">
@@ -516,7 +566,9 @@ const MOUMOAPublicPage = () => {
                         </span>
                       </div>
                       <div className="moumoa-progress-container">
+                      <div className="moumoa-progress-container">
                         <div
+                          className="moumoa-progress-bar"
                           className="moumoa-progress-bar"
                           role="progressbar"
                           aria-valuenow={item.mou}
@@ -525,6 +577,7 @@ const MOUMOAPublicPage = () => {
                           aria-label={`${item.mou} MOUs`}
                         >
                           <div
+                            className="moumoa-progress-fill moumoa-mou-fill"
                             className="moumoa-progress-fill moumoa-mou-fill"
                             style={{
                               width: `${(item.mou / maxAgreement) * 100}%`,
@@ -537,6 +590,7 @@ const MOUMOAPublicPage = () => {
                         </div>
                         <div
                           className="moumoa-progress-bar"
+                          className="moumoa-progress-bar"
                           role="progressbar"
                           aria-valuenow={item.moa}
                           aria-valuemin="0"
@@ -544,6 +598,7 @@ const MOUMOAPublicPage = () => {
                           aria-label={`${item.moa} MOAs`}
                         >
                           <div
+                            className="moumoa-progress-fill moumoa-moa-fill"
                             className="moumoa-progress-fill moumoa-moa-fill"
                             style={{
                               width: `${(item.moa / maxAgreement) * 100}%`,
@@ -557,6 +612,7 @@ const MOUMOAPublicPage = () => {
                       </div>
                       <div
                         className="moumoa-total-badge"
+                        className="moumoa-total-badge"
                         aria-label={`Total agreements: ${item.total}`}
                       >
                         {item.total}
@@ -564,6 +620,7 @@ const MOUMOAPublicPage = () => {
                     </div>
                   ))
                 ) : (
+                  <p className="moumoa-no-results">
                   <p className="moumoa-no-results">
                     No countries match your search criteria.
                   </p>
@@ -575,14 +632,18 @@ const MOUMOAPublicPage = () => {
           {selectedView === "countries" && (
             <section
               className="moumoa-countries-view"
+              className="moumoa-countries-view"
               role="tabpanel"
               aria-labelledby="moumoa-countries-tab"
+              aria-labelledby="moumoa-countries-tab"
             >
+              <div className="moumoa-countries-grid">
               <div className="moumoa-countries-grid">
                 {filteredData.length > 0 ? (
                   filteredData.map((item) => (
                     <div
                       key={item.country}
+                      className="moumoa-country-card"
                       className="moumoa-country-card"
                       onClick={() => setSelectedCountry(item)}
                       onKeyDown={(e) => {
@@ -595,9 +656,11 @@ const MOUMOAPublicPage = () => {
                       aria-label={`View details for ${item.country}. Region: ${item.region}, MOUs: ${item.mou}, MOAs: ${item.moa}, Total: ${item.total}.`}
                     >
                       <div className="moumoa-card-header">
+                      <div className="moumoa-card-header">
                         <img
                           src={`https://flagcdn.com/32x24/${item.code}.png`}
                           alt={`Flag of ${item.country}`}
+                          className="moumoa-card-flag"
                           className="moumoa-card-flag"
                         />
                         <h3>{item.country}</h3>
@@ -606,7 +669,15 @@ const MOUMOAPublicPage = () => {
                         <div className="moumoa-stat-item">
                           <span className="moumoa-stat-value">{item.mou}</span>
                           <span className="moumoa-stat-label">MOUs</span>
+                      <div className="moumoa-card-stats">
+                        <div className="moumoa-stat-item">
+                          <span className="moumoa-stat-value">{item.mou}</span>
+                          <span className="moumoa-stat-label">MOUs</span>
                         </div>
+                        <div className="moumoa-stat-divider"></div>
+                        <div className="moumoa-stat-item">
+                          <span className="moumoa-stat-value">{item.moa}</span>
+                          <span className="moumoa-stat-label">MOAs</span>
                         <div className="moumoa-stat-divider"></div>
                         <div className="moumoa-stat-item">
                           <span className="moumoa-stat-value">{item.moa}</span>
@@ -625,6 +696,7 @@ const MOUMOAPublicPage = () => {
                   ))
                 ) : (
                   <p className="moumoa-no-results">
+                  <p className="moumoa-no-results">
                     No countries match your search criteria.
                   </p>
                 )}
@@ -635,9 +707,12 @@ const MOUMOAPublicPage = () => {
           {selectedView === "regions" && (
             <section
               className="moumoa-regions-view"
+              className="moumoa-regions-view"
               role="tabpanel"
               aria-labelledby="moumoa-regions-tab"
+              aria-labelledby="moumoa-regions-tab"
             >
+              <div className="moumoa-regions-grid">
               <div className="moumoa-regions-grid">
                 {regionData.length > 0 ? (
                   regionData.map((region) => (
@@ -646,8 +721,14 @@ const MOUMOAPublicPage = () => {
                       <div className="moumoa-region-stats">
                         <div className="moumoa-region-stat">
                           <span className="moumoa-stat-number">
+                    <div key={region.region} className="moumoa-region-card">
+                      <h3 className="moumoa-region-name">{region.region}</h3>
+                      <div className="moumoa-region-stats">
+                        <div className="moumoa-region-stat">
+                          <span className="moumoa-stat-number">
                             {region.countries}
                           </span>
+                          <span className="moumoa-stat-text">Countries</span>
                           <span className="moumoa-stat-text">Countries</span>
                         </div>
                         <div className="moumoa-region-stat">
@@ -665,6 +746,7 @@ const MOUMOAPublicPage = () => {
                       </div>
                       <div
                         className="moumoa-region-chart"
+                        className="moumoa-region-chart"
                         role="progressbar"
                         aria-valuenow={region.mou + region.moa}
                         aria-valuemin="0"
@@ -673,6 +755,7 @@ const MOUMOAPublicPage = () => {
                       >
                         <div
                           className="moumoa-chart-segment moumoa-mou-segment"
+                          className="moumoa-chart-segment moumoa-mou-segment"
                           style={{
                             width: `${
                               (region.mou / (region.mou + region.moa)) * 100
@@ -680,6 +763,7 @@ const MOUMOAPublicPage = () => {
                           }}
                         ></div>
                         <div
+                          className="moumoa-chart-segment moumoa-moa-segment"
                           className="moumoa-chart-segment moumoa-moa-segment"
                           style={{
                             width: `${
@@ -691,6 +775,7 @@ const MOUMOAPublicPage = () => {
                     </div>
                   ))
                 ) : (
+                  <p className="moumoa-no-results">No regions found.</p>
                   <p className="moumoa-no-results">No regions found.</p>
                 )}
               </div>
