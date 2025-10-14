@@ -29,7 +29,7 @@ app = FastAPI(
     description="Monitoring System for OIA",
     version="1.0.0",
 )
-
+'''
 origins = [
     "https://globalinked.systems",          # Frontend domain
     "https://www.globalinked.systems",      # Frontend domain with www
@@ -40,6 +40,20 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+'''
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://globalinked.systems",
+        "https://www.globalinked.systems",
+        "https://api.globalinked.systems",
+        "http://localhost:3000",
+    ],
+    allow_origin_regex=r"https://.*\.globalinked\.systems",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
