@@ -137,7 +137,7 @@ def on_startup():
 def on_shutdown():
     from app.scheduler import shutdown_scheduler
 
-    shutdown_scheduler()  # Fixed: was shutdown_shutdown()
+    shutdown_scheduler() 
 
 
 @app.get("/health/qa")
@@ -151,7 +151,7 @@ def qa_health():
         elif svc is not None:
             # Fallback: if no explicit method, assume ready after preload attempt
             ready = True
-        if ready and hasattr(svc, "qa_info"):
+        if ready and svc is not None and hasattr(svc, "qa_info"):
             info = svc.qa_info()
     except Exception:
         ready = False
