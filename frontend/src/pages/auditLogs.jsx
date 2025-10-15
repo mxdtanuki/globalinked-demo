@@ -6,7 +6,7 @@ import "./auditLogs.css";
 import axios from "axios";
 import { FiTrash2 } from "react-icons/fi";
 
-const API_BASE_URL = 'http://localhost:8000' || process.env.REACT_APP_API_BASE_URL;
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
 const FILTERS = [
   { label: "All", value: "all" },
