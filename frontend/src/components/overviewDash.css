@@ -103,41 +103,6 @@
   border-bottom-right-radius: 12px;
 }
 
-/* Document Type Color Coding */
-.document-type-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-  min-width: 50px;
-  display: inline-block;
-  margin: 0 auto;
-}
-
-.document-type-moa {
-  background-color: #e8f5e8;
-  color: #2bb552;
-  border: 1px solid #c8e6c9;
-}
-
-.document-type-mou {
-  background-color: #e3f2fd;
-  color: #3878c2;
-  border: 1px solid #bbdefb;
-}
-
-.document-type-default {
-  background-color: #f5f5f5;
-  color: #616161;
-  border: 1px solid #e0e0e0;
-}
-
-.document-table td:nth-child(2) { /* Center the Document Type column */
-  text-align: center;
-  vertical-align: middle;
-}
-
 /* old Table Section 
 .table-section {
   background-color: white;
@@ -198,31 +163,8 @@
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s;
-  font-size: 13px;
-  font-weight: 500;
 }
 
-.table-actions .btn:hover {
-  background-color: #660000;
-}
-
-/* new styles for the scroll navigation buttons: */
-.table-actions .btn.btn-scroll-nav,
-.table-bottom-actions .btn.btn-scroll-nav {
-  background-color: #fff;
-  color: #800000;
-  border: 1.5px solid #800000;
-  font-weight: 600;
-  min-width: 70px;
-  padding: 6px 10px; 
-  font-size: 13px;
-}
-
-.table-actions .btn.btn-scroll-nav:hover,
-.table-bottom-actions .btn.btn-scroll-nav:hover {
-  background-color: #800000;
-  color: #fff;
-}
 
 .document-table {
   width: max-content;
@@ -459,45 +401,6 @@
   background-color: #f0f0f0;
 }
 
-/* Bottom scroll navigation buttons */
-.table-bottom-actions {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  margin: 15px 0 5px 0;
-  margin-top: 25px;
-  animation: fadeIn 0.4s ease;
-}
-
-.table-bottom-actions .btn.btn-scroll-nav {
-  min-width: 90px;
-  padding: 8px 14px;
-  border: 1.5px solid #800000;
-  background-color: #fff;
-  color: #800000;
-  font-weight: 600;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.table-bottom-actions .btn.btn-scroll-nav:hover {
-  background-color: #800000;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(128, 0, 0, 0.15);
-}
-
-@media (max-width: 768px) {
-  .table-bottom-actions {
-    justify-content: center;
-  }
-  .table-bottom-actions .btn.btn-scroll-nav {
-    min-width: 80px;
-    font-size: 12px;
-  }
-}
-
 /* Pagination */
 .pagination {
   display: flex;
@@ -578,10 +481,6 @@
   display: flex;
   gap: 8px; 
   flex-wrap: nowrap; 
-}
-
-.button-group .btn-scroll-nav + .btn-scroll-nav {
-  margin-left: 4px;  
 }
 
 /* Overlay */
@@ -730,85 +629,4 @@
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
-}
-
-
-/* update: table arrows */
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-/* Table Scroll Navigation Buttons */
-.table-scroll-btn {
-  position: absolute;
-  bottom: 12px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  border: 2px solid #800000;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-}
-
-.table-scroll-btn span {
-  font-size: 16px;
-  font-weight: bold;
-  color: #800000;
-  transition: transform 0.2s ease;
-}
-
-.table-scroll-btn:hover {
-  background: #800000;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.2);
-}
-
-.table-scroll-btn:hover span {
-  color: #ffffff;
-}
-
-.table-scroll-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(128, 0, 0, 0.2);
-}
-
-.table-scroll-btn-left {
-  left: 16px;
-}
-
-.table-scroll-btn-right {
-  right: 16px;
-}
-
-/* Responsive adjustments for scroll buttons */
-@media (max-width: 768px) {
-  .table-scroll-btn {
-    width: 36px;
-    height: 36px;
-  }
-
-  .table-scroll-btn span {
-    font-size: 14px;
-  }
-
-  .table-scroll-btn-left {
-    left: 8px;
-  }
-
-  .table-scroll-btn-right {
-    right: 8px;
-  }
 }
