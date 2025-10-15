@@ -20,8 +20,21 @@ const Mobility = () => {
     country: "",
     validity: "",
   });
+ const [pendingFilters, setPendingFilters] = useState({
+    partnersClassification: "",
+    entityType: "",
+    country: "",
+    validity: "",
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+    useEffect(() => {
+    if (showFilters) {
+      setPendingFilters(filters);
+    }
+  }, [showFilters, filters]);
 
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,13 +60,26 @@ const fetchAgreements = async () => {
   }
 };
   
+  const normalizeLabel = (v) => {
+    if (!v && v !== 0) return "";
+    const s = String(v).trim().replace(/\s+/g, " ");
+    return s
+      .toLowerCase()
+      .split(" ")
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+      .join(" ");
+  };
+
+  const uniqueSorted = (arr) =>
+    [...new Set((arr || []).map(normalizeLabel).filter(Boolean))].sort();
+
   const dynamicOptions = {
-    partnersClassification: [
-      ...new Set(agreements.map((d) => d.partnership_type).filter(Boolean)),
-    ],
-    entityType: [...new Set(agreements.map((d) => d.entity_type).filter(Boolean))],
-    country: [...new Set(agreements.map((d) => d.country).filter(Boolean))],
-    validity: [...new Set(agreements.map((d) => d.validity_period).filter(Boolean))],
+    partnersClassification: uniqueSorted(
+      agreements.map((d) => d.partnership_type)
+    ),
+    entityType: uniqueSorted(agreements.map((d) => d.entity_type)),
+    country: uniqueSorted(agreements.map((d) => d.country)),
+    validity: uniqueSorted(agreements.map((d) => d.validity_period)),
   };
 
   // Apply search and filters
@@ -277,9 +303,9 @@ const handleGenerateExcel = async () => {
             {showFilters && (
               <div className="filters-container">
                 <select
-                  value={filters.partnersClassification}
+                  value={pendingFilters.partnersClassification}
                   onChange={(e) =>
-                    setFilters((prev) => ({
+                    setPendingFilters((prev) => ({
                       ...prev,
                       partnersClassification: e.target.value,
                     }))
@@ -294,7 +320,7 @@ const handleGenerateExcel = async () => {
                 </select>
 
                 <select
-                  value={filters.entityType}
+                  value={pendingFilters.entityType}
                   onChange={(e) =>
                     setFilters((prev) => ({
                       ...prev,
@@ -311,9 +337,9 @@ const handleGenerateExcel = async () => {
                 </select>
 
                 <select
-                  value={filters.country}
+                  value={pendingFilters.country}
                   onChange={(e) =>
-                    setFilters((prev) => ({
+                    setPendingFilters((prev) => ({
                       ...prev,
                       country: e.target.value,
                     }))
@@ -343,6 +369,35 @@ const handleGenerateExcel = async () => {
                     </option>
                   ))}
                 </select>
+
+              <div className="filter-actions">
+                  <button
+                    className="apply-btn"
+                    onClick={() => {
+                      setFilters(pendingFilters);
+                      setCurrentPage(1);
+                      setShowFilters(false);
+                    }}
+                  >
+                    Apply
+                  </button>
+                  <button
+                    className="clear-btn"
+                    onClick={() => {
+                      const empty = {
+                        partnersClassification: "",
+                        entityType: "",
+                        country: "",
+                        validity: "",
+                      };
+                      setPendingFilters(empty);
+                      setFilters(empty);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
             )}
 

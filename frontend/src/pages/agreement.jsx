@@ -437,7 +437,7 @@ const exportToExcel = async () => {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <div className="table-actions">
+                                    <div className="table-actions">
                     <div className="button-group">
                       <button
                         className="btn"
@@ -447,6 +447,30 @@ const exportToExcel = async () => {
                       </button>
                       <button className="btn btn-generate" onClick={exportToExcel}>
                         Generate
+                      </button>
+                      <button
+                        className="btn btn-scroll-nav"
+                        title="Scroll to first column"
+                        onClick={() => {
+                          const tableScrollDiv = document.querySelector('.table-scroll');
+                          if (tableScrollDiv) {
+                            tableScrollDiv.scrollLeft = 0;
+                          }
+                        }}
+                      >
+                        ◄ First
+                      </button>
+                      <button
+                        className="btn btn-scroll-nav"
+                        title="Scroll to last column"
+                        onClick={() => {
+                          const tableScrollDiv = document.querySelector('.table-scroll');
+                          if (tableScrollDiv) {
+                            tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
+                          }
+                        }}
+                      >
+                        Last ►
                       </button>
                     </div>
                   </div>
@@ -699,81 +723,110 @@ const exportToExcel = async () => {
                               )}
                             </td>
 
-                            <td>
-                              {isAdmin && editId === a.agreement_id ? (
+                        <td>
+                          {isAdmin && editId === a.agreement_id ? (
+                            <>
+                              <button
+                                className="btn-action"
+                                onClick={() => handleSave(a.agreement_id)}
+                              >
+                                Save
+                              </button>
+                              <button
+                                className="btn-action delete"
+                                onClick={handleCancel}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <div className="action-buttons">
+                              {isAdmin && (
                                 <>
                                   <button
                                     className="btn-action"
-                                    onClick={() => handleSave(a.agreement_id)}
+                                    onClick={() => handleEdit(a)}
                                   >
-                                    Save
+                                    Edit
                                   </button>
                                   <button
                                     className="btn-action delete"
-                                    onClick={handleCancel}
+                                    onClick={() => handleDelete(a.agreement_id)}
                                   >
-                                    Cancel
+                                    Delete
                                   </button>
                                 </>
-                              ) : (
-                                <div className="action-buttons">
-                                  {isAdmin && (
-                                    <>
-                                      <button
-                                        className="btn-action"
-                                        onClick={() => handleEdit(a)}
-                                      >
-                                        Edit
-                                      </button>
-                                      <button
-                                        className="btn-action delete"
-                                        onClick={() => handleDelete(a.agreement_id)}
-                                      >
-                                        Delete
-                                      </button>
-                                    </>
-                                  )}
-                                  <button className="btn-action" onClick={() => handleViewLatestFile(a.dts_number)}>View File</button>
-                                </div>
                               )}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="13" style={{ textAlign: "center" }}>
-                            No agreements found.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                              <button className="btn-action" onClick={() => handleViewLatestFile(a.dts_number)}>View File</button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="13" style={{ textAlign: "center" }}>
+                        No agreements found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-                <div
-                  className="pagination"
-                  style={{
-                    borderTop: "1px solid #ccc",
-                    marginTop: "10px",
-                    paddingTop: "10px",
+            {currentRows.length > 5 && (
+              <div className="table-bottom-actions">
+                <button
+                  className="btn btn-scroll-nav"
+                  title="Scroll to first column"
+                  onClick={() => {
+                    const tableScrollDiv = document.querySelector('.table-scroll');
+                    if (tableScrollDiv) {
+                      tableScrollDiv.scrollLeft = 0;
+                    }
                   }}
                 >
-                  <button disabled={currentPage === 1} onClick={prevPage}>
-                    Prev
-                  </button>
-                  <span>
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <button disabled={currentPage === totalPages} onClick={nextPage}>
-                    Next
-                  </button>
-                </div>
+                  ◄ First
+                </button>
+                <button
+                  className="btn btn-scroll-nav"
+                  title="Scroll to last column"
+                  onClick={() => {
+                    const tableScrollDiv = document.querySelector('.table-scroll');
+                    if (tableScrollDiv) {
+                      tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
+                    }
+                  }}
+                >
+                  Last ►
+                </button>
               </div>
-            </>
-          )}
-        </div>
-      </div>
+            )}
+
+            <div
+              className="pagination"
+              style={{
+                borderTop: "1px solid #ccc",
+                marginTop: "10px",
+                paddingTop: "10px",
+              }}
+            >
+              <button disabled={currentPage === 1} onClick={prevPage}>
+                Prev
+              </button>
+              <span>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button disabled={currentPage === totalPages} onClick={nextPage}>
+                Next
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
+  </div>
+</div>
   );
 };
 
