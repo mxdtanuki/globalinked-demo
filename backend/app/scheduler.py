@@ -21,17 +21,17 @@ scheduler = BackgroundScheduler(timezone=PH_TZ)
 
 # Mapping for per-status thresholds
 STATUS_THRESHOLD_DAYS = {
-    # status -> days before the alert #changes to 3 days after 
-    "Initial Review": 1,
-    "Endorse": 1,
-    "Revert": 1,
-    "For Consultation": 1,
-    "Replication": 1,
-    "SignituresPUP": 1,
-    "SignedPUP": 1,
-    "SignituresPartner": 1,
-    "Notary": 1,
-    "FFUPCopy": 1,
+    # status -> days before the alert
+    "Initial Review": 3,
+    "Endorse": 3,
+    "Revert": 3,
+    "For Consultation": 3,
+    "Replication": 3,
+    "SignituresPUP": 3,
+    "SignedPUP": 3,
+    "SignituresPartner": 3,
+    "Notary": 3,
+    "FFUPCopy": 3,
 }
 
 def _open_session():

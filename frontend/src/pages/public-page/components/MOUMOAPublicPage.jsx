@@ -26,24 +26,25 @@ const MOUMOAPublicPage = () => {
   const modalRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const agreements = await agreementService.getAgreements();
-        const activeAgreements = agreements.filter(
-          (ag) => ag.agreement_status === "Active"
-        );
-        setAgreementData(activeAgreements);
-      } catch (err) {
-        console.error("Error fetching agreements:", err);
-        setError("Failed to load agreement data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const agreements = await agreementService.getAgreements();
+      const activeAgreements = agreements.filter(
+        (ag) => ag.agreement_status === "Active"
+      );
+      setAgreementData(activeAgreements);
+    } catch (err) {
+      console.error("Error fetching agreements:", err);
+      setError("Failed to load agreement data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  fetchData();
+}, []);
+
 
   useEffect(() => {
     if (selectedCountry && modalRef.current) {
@@ -51,208 +52,30 @@ const MOUMOAPublicPage = () => {
     }
   }, [selectedCountry]);
 
+
   const countryCodeMap = {
-    Afghanistan: "af",
-    Albania: "al",
-    Algeria: "dz",
-    Andorra: "ad",
-    Angola: "ao",
-    "Antigua and Barbuda": "ag",
-    Argentina: "ar",
-    Armenia: "am",
-    Australia: "au",
-    Austria: "at",
-    Azerbaijan: "az",
-    Bahamas: "bs",
-    Bahrain: "bh",
-    Bangladesh: "bd",
-    Barbados: "bb",
-    Belarus: "by",
-    Belgium: "be",
-    Belize: "bz",
-    Benin: "bj",
-    Bhutan: "bt",
-    Bolivia: "bo",
-    "Bosnia and Herzegovina": "ba",
-    Botswana: "bw",
-    Brazil: "br",
-    Brunei: "bn",
-    Bulgaria: "bg",
-    "Burkina Faso": "bf",
-    Burundi: "bi",
-    "Cabo Verde": "cv",
-    Cambodia: "kh",
-    Cameroon: "cm",
-    Canada: "ca",
-    "Central African Republic": "cf",
-    Chad: "td",
-    Chile: "cl",
-    China: "cn",
-    Colombia: "co",
-    Comoros: "km",
-    Congo: "cg",
-    "Costa Rica": "cr",
-    Croatia: "hr",
-    Cuba: "cu",
-    Cyprus: "cy",
-    Czechia: "cz",
-    "Czech Republic": "cz",
-    "Democratic Republic of the Congo": "cd",
-    Denmark: "dk",
-    Djibouti: "dj",
-    Dominica: "dm",
-    "Dominican Republic": "do",
-    Ecuador: "ec",
-    Egypt: "eg",
-    "El Salvador": "sv",
-    "Equatorial Guinea": "gq",
-    Eritrea: "er",
-    Estonia: "ee",
-    Eswatini: "sz",
-    Ethiopia: "et",
-    Fiji: "fj",
-    Finland: "fi",
-    France: "fr",
-    Gabon: "ga",
-    Gambia: "gm",
-    Georgia: "ge",
-    Germany: "de",
-    Ghana: "gh",
-    Greece: "gr",
-    Grenada: "gd",
-    Guatemala: "gt",
-    Guinea: "gn",
-    "Guinea-Bissau": "gw",
-    Guyana: "gy",
-    Haiti: "ht",
-    Honduras: "hn",
-    Hungary: "hu",
-    Iceland: "is",
-    India: "in",
-    Indonesia: "id",
-    Iran: "ir",
-    Iraq: "iq",
-    Ireland: "ie",
-    Israel: "il",
-    Italy: "it",
-    Jamaica: "jm",
-    Japan: "jp",
-    Jordan: "jo",
-    Kazakhstan: "kz",
-    Kenya: "ke",
-    Kiribati: "ki",
-    Kuwait: "kw",
-    Kyrgyzstan: "kg",
-    Laos: "la",
-    Latvia: "lv",
-    Lebanon: "lb",
-    Lesotho: "ls",
-    Liberia: "lr",
-    Libya: "ly",
-    Liechtenstein: "li",
-    Lithuania: "lt",
-    Luxembourg: "lu",
-    Madagascar: "mg",
-    Malawi: "mw",
-    Malaysia: "my",
-    Maldives: "mv",
-    Mali: "ml",
-    Malta: "mt",
-    "Marshall Islands": "mh",
-    Mauritania: "mr",
-    Mauritius: "mu",
-    Mexico: "mx",
-    Micronesia: "fm",
-    Moldova: "md",
-    Monaco: "mc",
-    Mongolia: "mn",
-    Montenegro: "me",
-    Morocco: "ma",
-    Mozambique: "mz",
-    Myanmar: "mm",
-    Namibia: "na",
-    Nauru: "nr",
-    Nepal: "np",
-    Netherlands: "nl",
-    "New Zealand": "nz",
-    Nicaragua: "ni",
-    Niger: "ne",
-    Nigeria: "ng",
-    "North Korea": "kp",
-    "North Macedonia": "mk",
-    Norway: "no",
-    Oman: "om",
-    Pakistan: "pk",
-    Palau: "pw",
-    Palestine: "ps",
-    Panama: "pa",
-    "Papua New Guinea": "pg",
-    Paraguay: "py",
-    Peru: "pe",
-    Philippines: "ph",
-    Poland: "pl",
-    Portugal: "pt",
-    Qatar: "qa",
-    Romania: "ro",
-    Russia: "ru",
-    Rwanda: "rw",
-    "Saint Kitts and Nevis": "kn",
-    "Saint Lucia": "lc",
-    "Saint Vincent and the Grenadines": "vc",
-    Samoa: "ws",
-    "San Marino": "sm",
-    "Sao Tome and Principe": "st",
-    "Saudi Arabia": "sa",
-    Senegal: "sn",
-    Serbia: "rs",
-    Seychelles: "sc",
-    "Sierra Leone": "sl",
-    Singapore: "sg",
-    Slovakia: "sk",
-    Slovenia: "si",
-    "Solomon Islands": "sb",
-    Somalia: "so",
-    "South Africa": "za",
-    "South Korea": "kr",
-    "South Sudan": "ss",
-    Spain: "es",
-    "Sri Lanka": "lk",
-    Sudan: "sd",
-    Suriname: "sr",
-    Sweden: "se",
-    Switzerland: "ch",
-    Syria: "sy",
-    Taiwan: "tw",
-    Tajikistan: "tj",
-    Tanzania: "tz",
-    Thailand: "th",
-    "Timor-Leste": "tl",
-    Togo: "tg",
-    Tonga: "to",
-    "Trinidad and Tobago": "tt",
-    Tunisia: "tn",
-    Turkey: "tr",
-    Turkmenistan: "tm",
-    Tuvalu: "tv",
-    Uganda: "ug",
-    Ukraine: "ua",
-    "United Arab Emirates": "ae",
-    "United Kingdom": "gb",
-    "United States": "us",
-    "U.S.A.": "us",
-    Uruguay: "uy",
-    Uzbekistan: "uz",
-    Vanuatu: "vu",
-    "Vatican City": "va",
-    Venezuela: "ve",
-    Vietnam: "vn",
-    Yemen: "ye",
-    Zambia: "zm",
-    Zimbabwe: "zw",
-    "Hong Kong": "hk",
-    Macau: "mo",
-    "Palestinian Territories": "ps",
-    Kosovo: "xk",
+    "Afghanistan": "af", "Albania": "al", "Algeria": "dz", "Andorra": "ad", "Angola": "ao", "Antigua and Barbuda": "ag", "Argentina": "ar", "Armenia": "am", "Australia": "au", "Austria": "at", "Azerbaijan": "az",
+    "Bahamas": "bs", "Bahrain": "bh", "Bangladesh": "bd", "Barbados": "bb", "Belarus": "by", "Belgium": "be", "Belize": "bz", "Benin": "bj", "Bhutan": "bt", "Bolivia": "bo", "Bosnia and Herzegovina": "ba", "Botswana": "bw", "Brazil": "br", "Brunei": "bn", "Bulgaria": "bg", "Burkina Faso": "bf", "Burundi": "bi",
+    "Cabo Verde": "cv", "Cambodia": "kh", "Cameroon": "cm", "Canada": "ca", "Central African Republic": "cf", "Chad": "td", "Chile": "cl", "China": "cn", "Colombia": "co", "Comoros": "km", "Congo": "cg", "Costa Rica": "cr", "Croatia": "hr", "Cuba": "cu", "Cyprus": "cy", "Czechia": "cz", "Czech Republic": "cz",
+    "Democratic Republic of the Congo": "cd", "Denmark": "dk", "Djibouti": "dj", "Dominica": "dm", "Dominican Republic": "do", "Ecuador": "ec", "Egypt": "eg", "El Salvador": "sv", "Equatorial Guinea": "gq", "Eritrea": "er", "Estonia": "ee", "Eswatini": "sz", "Ethiopia": "et",
+    "Fiji": "fj", "Finland": "fi", "France": "fr", "Gabon": "ga", "Gambia": "gm", "Georgia": "ge", "Germany": "de", "Ghana": "gh", "Greece": "gr", "Grenada": "gd", "Guatemala": "gt", "Guinea": "gn", "Guinea-Bissau": "gw", "Guyana": "gy",
+    "Haiti": "ht", "Honduras": "hn", "Hungary": "hu", "Iceland": "is", "India": "in", "Indonesia": "id", "Iran": "ir", "Iraq": "iq", "Ireland": "ie", "Israel": "il", "Italy": "it",
+    "Jamaica": "jm", "Japan": "jp", "Jordan": "jo",
+    "Kazakhstan": "kz", "Kenya": "ke", "Kiribati": "ki", "Kuwait": "kw", "Kyrgyzstan": "kg",
+    "Laos": "la", "Latvia": "lv", "Lebanon": "lb", "Lesotho": "ls", "Liberia": "lr", "Libya": "ly", "Liechtenstein": "li", "Lithuania": "lt", "Luxembourg": "lu",
+    "Madagascar": "mg", "Malawi": "mw", "Malaysia": "my", "Maldives": "mv", "Mali": "ml", "Malta": "mt", "Marshall Islands": "mh", "Mauritania": "mr", "Mauritius": "mu", "Mexico": "mx", "Micronesia": "fm", "Moldova": "md", "Monaco": "mc", "Mongolia": "mn", "Montenegro": "me", "Morocco": "ma", "Mozambique": "mz", "Myanmar": "mm",
+    "Namibia": "na", "Nauru": "nr", "Nepal": "np", "Netherlands": "nl", "New Zealand": "nz", "Nicaragua": "ni", "Niger": "ne", "Nigeria": "ng", "North Korea": "kp", "North Macedonia": "mk", "Norway": "no",
+    "Oman": "om",
+    "Pakistan": "pk", "Palau": "pw", "Palestine": "ps", "Panama": "pa", "Papua New Guinea": "pg", "Paraguay": "py", "Peru": "pe", "Philippines": "ph", "Poland": "pl", "Portugal": "pt",
+    "Qatar": "qa",
+    "Romania": "ro", "Russia": "ru", "Rwanda": "rw",
+    "Saint Kitts and Nevis": "kn", "Saint Lucia": "lc", "Saint Vincent and the Grenadines": "vc", "Samoa": "ws", "San Marino": "sm", "Sao Tome and Principe": "st", "Saudi Arabia": "sa", "Senegal": "sn", "Serbia": "rs", "Seychelles": "sc", "Sierra Leone": "sl", "Singapore": "sg", "Slovakia": "sk", "Slovenia": "si", "Solomon Islands": "sb", "Somalia": "so", "South Africa": "za", "South Korea": "kr", "South Sudan": "ss", "Spain": "es", "Sri Lanka": "lk", "Sudan": "sd", "Suriname": "sr", "Sweden": "se", "Switzerland": "ch", "Syria": "sy",
+    "Taiwan": "tw", "Tajikistan": "tj", "Tanzania": "tz", "Thailand": "th", "Timor-Leste": "tl", "Togo": "tg", "Tonga": "to", "Trinidad and Tobago": "tt", "Tunisia": "tn", "Turkey": "tr", "Turkmenistan": "tm", "Tuvalu": "tv",
+    "Uganda": "ug", "Ukraine": "ua", "United Arab Emirates": "ae", "United Kingdom": "gb", "United States": "us", "U.S.A.": "us", "Uruguay": "uy", "Uzbekistan": "uz",
+    "Vanuatu": "vu", "Vatican City": "va", "Venezuela": "ve", "Vietnam": "vn",
+    "Yemen": "ye",
+    "Zambia": "zm", "Zimbabwe": "zw",
+    "Hong Kong": "hk", "Macau": "mo", "Palestinian Territories": "ps", "Kosovo": "xk"
   };
 
   const countryAgg = {};
@@ -384,9 +207,7 @@ const MOUMOAPublicPage = () => {
       <main className="moumoa-main-container">
         <nav className="moumoa-view-navigation" role="tablist">
           <button
-            className={`moumoa-nav-tab ${
-              selectedView === "overview" ? "moumoa-active" : ""
-            }`}
+            className={`moumoa-nav-tab ${selectedView === "overview" ? "moumoa-active" : ""}`}
             onClick={() => setSelectedView("overview")}
             aria-selected={selectedView === "overview"}
             role="tab"
@@ -420,9 +241,7 @@ const MOUMOAPublicPage = () => {
             <span>Countries</span>
           </button>
           <button
-            className={`moumoa-nav-tab ${
-              selectedView === "regions" ? "moumoa-active" : ""
-            }`}
+            className={`moumoa-nav-tab ${selectedView === "regions" ? "moumoa-active" : ""}`}
             onClick={() => setSelectedView("regions")}
             aria-selected={selectedView === "regions"}
             role="tab"
@@ -511,9 +330,7 @@ const MOUMOAPublicPage = () => {
                           alt={`Flag of ${item.country}`}
                           className="moumoa-country-flag"
                         />
-                        <span className="moumoa-country-name">
-                          {item.country}
-                        </span>
+                        <span className="moumoa-country-name">{item.country}</span>
                       </div>
                       <div className="moumoa-progress-container">
                         <div
@@ -530,9 +347,7 @@ const MOUMOAPublicPage = () => {
                               width: `${(item.mou / maxAgreement) * 100}%`,
                             }}
                           >
-                            <span className="moumoa-progress-label">
-                              {item.mou}
-                            </span>
+                            <span className="moumoa-progress-label">{item.mou}</span>
                           </div>
                         </div>
                         <div
@@ -549,9 +364,7 @@ const MOUMOAPublicPage = () => {
                               width: `${(item.moa / maxAgreement) * 100}%`,
                             }}
                           >
-                            <span className="moumoa-progress-label">
-                              {item.moa}
-                            </span>
+                            <span className="moumoa-progress-label">{item.moa}</span>
                           </div>
                         </div>
                       </div>
@@ -614,12 +427,8 @@ const MOUMOAPublicPage = () => {
                         </div>
                       </div>
                       <div className="moumoa-card-footer">
-                        <span className="moumoa-region-label">
-                          {item.region}
-                        </span>
-                        <span className="moumoa-total-label">
-                          Total: {item.total}
-                        </span>
+                        <span className="moumoa-region-label">{item.region}</span>
+                        <span className="moumoa-total-label">Total: {item.total}</span>
                       </div>
                     </div>
                   ))
@@ -651,15 +460,11 @@ const MOUMOAPublicPage = () => {
                           <span className="moumoa-stat-text">Countries</span>
                         </div>
                         <div className="moumoa-region-stat">
-                          <span className="moumoa-stat-number">
-                            {region.mou}
-                          </span>
+                          <span className="moumoa-stat-number">{region.mou}</span>
                           <span className="moumoa-stat-text">MOUs</span>
                         </div>
                         <div className="moumoa-region-stat">
-                          <span className="moumoa-stat-number">
-                            {region.moa}
-                          </span>
+                          <span className="moumoa-stat-number">{region.moa}</span>
                           <span className="moumoa-stat-text">MOAs</span>
                         </div>
                       </div>
@@ -700,55 +505,53 @@ const MOUMOAPublicPage = () => {
       </main>
 
       {selectedCountry && (
-        <div
-          className="moumoa-modal-overlay"
-          onClick={() => setSelectedCountry(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="moumoa-modal-title"
-        >
-          <div
-            className="moumoa-modal-content"
-            ref={modalRef}
-            tabIndex="-1"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="moumoa-close-btn"
-              onClick={() => setSelectedCountry(null)}
-              aria-label="Close country details"
-            >
-              ×
-            </button>
-            <div className="moumoa-modal-header">
-              <img
-                src={`https://flagcdn.com/48x36/${selectedCountry.code}.png`}
-                alt={`Flag of ${selectedCountry.country}`}
-                className="moumoa-modal-flag"
-              />
-              <h3 id="moumoa-modal-title">{selectedCountry.country}</h3>
-            </div>
-            <div className="moumoa-modal-stats">
-              <div className="moumoa-modal-stat">
-                <h4>{selectedCountry.mou}</h4>
-                <p>Memorandums of Understanding</p>
-              </div>
-              <div className="moumoa-modal-stat">
-                <h4>{selectedCountry.moa}</h4>
-                <p>Memorandums of Agreement</p>
-              </div>
-            </div>
-            <div className="moumoa-modal-footer">
-              <span className="moumoa-region-tag">
-                {selectedCountry.region}
-              </span>
-              <span className="moumoa-total-tag">
-                Total Agreements: {selectedCountry.total}
-              </span>
-            </div>
-          </div>
+  <div
+    className="moumoa-modal-overlay"
+    onClick={() => setSelectedCountry(null)}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="moumoa-modal-title"
+  >
+    <div
+      className="moumoa-modal-content"
+      ref={modalRef}
+      tabIndex="-1"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        className="moumoa-close-btn"
+        onClick={() => setSelectedCountry(null)}
+        aria-label="Close country details"
+      >
+        ×
+      </button>
+      <div className="moumoa-modal-header">
+        <img
+          src={`https://flagcdn.com/48x36/${selectedCountry.code}.png`}
+          alt={`Flag of ${selectedCountry.country}`}
+          className="moumoa-modal-flag"
+        />
+        <h3 id="moumoa-modal-title">{selectedCountry.country}</h3>
+      </div>
+      <div className="moumoa-modal-stats">
+        <div className="moumoa-modal-stat">
+          <h4>{selectedCountry.mou}</h4>
+          <p>Memorandums of Understanding</p>
         </div>
-      )}
+        <div className="moumoa-modal-stat">
+          <h4>{selectedCountry.moa}</h4>
+          <p>Memorandums of Agreement</p>
+        </div>
+      </div>
+      <div className="moumoa-modal-footer">
+        <span className="moumoa-region-tag">{selectedCountry.region}</span>
+        <span className="moumoa-total-tag">
+          Total Agreements: {selectedCountry.total}
+        </span>
+      </div>
+    </div>
+  </div>
+)}
 
       <Footer />
     </div>

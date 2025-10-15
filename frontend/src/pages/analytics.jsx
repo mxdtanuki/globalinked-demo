@@ -61,14 +61,17 @@ const fetchAndProcessData = async () => {
     setLoading(true);
     console.log('📊 Fetching agreements for analytics...');
     
-    const data = await agreementService.getActiveAgreements();
-    setAgreements(data);
+    const data = await agreementService.getAgreements();
+    // Only keep agreements with status "Active"
+    const activeAgreements = data.filter(a => a.agreement_status === "Active");
+    setAgreements(activeAgreements);
     
-    console.log('📊 Processing', data.length, 'active agreements');
-    processAgreementData(data);
+    console.log('📊 Processing', activeAgreements.length, 'active agreements');
+    processAgreementData(activeAgreements);
     
   } catch (err) {
     setError('Failed to fetch agreements: ' + err.message);
+    console.error('Error fetching agreements:', err);
   } finally {
     setLoading(false);
   }
@@ -183,30 +186,25 @@ const fetchAndProcessData = async () => {
       }
       return [];
     };
+
+  // Do not set table/chart data to only the single latest month here.
+  // The effect below (watching selectedYear and DATA_*) will populate the full-year data for the selected year.
   };
 
+  // When selectedYear or full data changes, compute displayed table data and visible months
   const [visibleStartMonth, setVisibleStartMonth] = useState(null);
   const [visibleEndMonth, setVisibleEndMonth] = useState(null);
   const [monthsLabel, setMonthsLabel] = useState('');
 
-  const getYearlyData = (fullData, year, monthsToInclude = null) => {
+  const getYearlyData = (fullData, year) => {
     if (!fullData || !year || !fullData[year]) return [];
-    const months = Array.isArray(monthsToInclude) && monthsToInclude.length > 0
-      ? monthsToInclude
-      : getMonthsForYear(fullData, year);
-
-    const totals = {};
+    const months = getMonthsForYear(fullData, year);
+    const combined = [];
     months.forEach(month => {
       const arr = fullData[year][month] || [];
-      arr.forEach(item => {
-        const key = item.name;
-        totals[key] = (totals[key] || 0) + (item.value || 0);
-      });
+      arr.forEach(item => combined.push({ ...item, month }));
     });
-
-    return Object.entries(totals)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    return combined;
   };
 
   useEffect(() => {
@@ -236,10 +234,10 @@ const fetchAndProcessData = async () => {
       moaActMonths: moaActMonths.length,
     });
 
-    // Update table data to include only months in the ordered range (aggregated)
-    const newMou = getYearlyData(DATA_MOU, selectedYear, ordered);
-    const newMoa = getYearlyData(DATA_MOA, selectedYear, ordered);
-    const newMoaAct = getYearlyData(DATA_MOA_ACTIVITY, selectedYear, ordered);
+    // Update table data to include only months in the ordered range
+    const newMou = getYearlyData(DATA_MOU, selectedYear);
+    const newMoa = getYearlyData(DATA_MOA, selectedYear);
+    const newMoaAct = getYearlyData(DATA_MOA_ACTIVITY, selectedYear);
 
     setMouData(newMou);
     setMoaData(newMoa);

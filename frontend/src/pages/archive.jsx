@@ -5,7 +5,6 @@ import TopBar from "../components/topbar";
 import "./archive.css";
 import { documentService } from "../services/documentService";
 import { useNavigate } from "react-router-dom";
-import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
 
 const Archive = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -29,30 +28,35 @@ const Archive = () => {
   const navigate = useNavigate();
   const itemsPerPage = 10;
 
-  // OPTIMIZED: Fetch data with server-side filtering
+  // Fetch Expired + Withdrawn stats and data
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // OPTIMIZATION 1: Use optimized archive endpoint (already uses batch queries)
-        const expiredData = await agreementService.getArchivedAgreements();
-        
-        //  Get withdrawn agreements with server-side filtering
-        const withdrawnAgreements = await agreementService.getAgreements({ 
-          status_filter: 'WITHDRAWN' // Server filters instead of client
-        });
+        // Expired archive
+        const archiveRes = await agreementService.getArchivedAgreements();
+        const expiredOnly = archiveRes.filter(
+          (d) =>
+            d.status?.toLowerCase() === "expired" ||
+            (d.date_expiry && new Date(d.date_expiry) < new Date())
+        );
 
-        console.log("Expired agreements:", expiredData);
-        console.log("Withdrawn agreements:", withdrawnAgreements);
+        // Withdrawn agreements
+        const allAgreements = await agreementService.getAgreements();
+        const withdrawnOnly = allAgreements.filter(
+          (a) => a.agreement_status?.toLowerCase() === "withdrawn"
+        );
+        console.log("All agreements:", allAgreements);
+        console.log("Withdrawn found:", withdrawnOnly);
 
-        setAllArchiveData(expiredData);
-        setWithdrawnData(withdrawnAgreements);
-        setDisplayData(expiredData); // Default to expired view
+        setAllArchiveData(expiredOnly);
+        setWithdrawnData(withdrawnOnly);
+        setDisplayData(expiredOnly);
 
         // Compute stats
         setStats([
-          { label: "Expired", count: expiredData.length },
-          { label: "Withdrawn", count: withdrawnAgreements.length },
+          { label: "Expired", count: expiredOnly.length },
+          { label: "Withdrawn", count: withdrawnOnly.length },
         ]);
       } catch (err) {
         console.error("Failed to load archive data:", err);
@@ -63,7 +67,7 @@ const Archive = () => {
     fetchData();
   }, []);
 
-  // Switch view (Expired / Withdrawn) - No API calls needed!
+  // Switch view (Expired / Withdrawn)
   const filterByStat = (label) => {
     setActiveTab(label);
     setCurrentPage(1);
@@ -78,7 +82,7 @@ const Archive = () => {
     }
   };
 
-  // Filtering + Search logic (client-side for better UX)
+  // Filtering + Search logic
   const filteredData = displayData.filter((item) => {
     const searchMatch = Object.values(item)
       .join(" ")
@@ -127,7 +131,7 @@ const Archive = () => {
     }
   };
 
-  useEffect(() => {
+    useEffect(() => {
     try {
       const userStr = localStorage.getItem("user");
       if (userStr) setCurrentUser(JSON.parse(userStr));
@@ -136,69 +140,59 @@ const Archive = () => {
     }
   }, []);
 
-  // Edit handlers (unchanged)
+      // Edit handlers
   const startEditing = (row) => {
     setEditingRow(row.agreement_id);
     setEditedData({ ...row });
   };
-  
   const cancelEditing = () => {
     setEditingRow(null);
     setEditedData({});
   };
-  
   const handleInputChange = (field, value) => {
     setEditedData((prev) => ({ ...prev, [field]: value }));
   };
+const saveRow = async (agreementId) => {
+  try {
+    setSavingRows((prev) => new Set(prev).add(agreementId));
+    await agreementService.updateAgreement(agreementId, editedData);
 
-  const saveRow = async (agreementId) => {
-    try {
-      setSavingRows((prev) => new Set(prev).add(agreementId));
-      await agreementService.updateAgreement(agreementId, editedData);
+    // Update Withdrawn data and display data
+    setWithdrawnData((prev) =>
+      prev
+        .map((a) => (a.agreement_id === agreementId ? editedData : a))
+        .filter((a) => a.agreement_status?.toLowerCase() === "withdrawn")
+    );
+    setDisplayData((prev) =>
+      prev
+        .map((a) => (a.agreement_id === agreementId ? editedData : a))
+        .filter((a) => a.agreement_status?.toLowerCase() === "withdrawn")
+    );
 
-      // Update local data efficiently
-      const updateData = (data) =>
-        data.map((a) => (a.agreement_id === agreementId ? editedData : a));
-
-      if (activeTab === "Withdrawn") {
-        setWithdrawnData(updateData);
-        setDisplayData(updateData);
-      } else {
-        setAllArchiveData(updateData);
-        setDisplayData(updateData);
-      }
-
-      setEditingRow(null);
-      setEditedData({});
-      alert("Agreement updated successfully!");
-    } catch (err) {
-      alert("Failed to save: " + err.message);
-    } finally {
-      setSavingRows((prev) => {
-        const s = new Set(prev);
-        s.delete(agreementId);
-        return s;
-      });
-    }
-  };
-
+    setEditingRow(null);
+    setEditedData({});
+    alert("Agreement updated successfully!");
+  } catch (err) {
+    alert("Failed to save: " + err.message);
+  } finally {
+    setSavingRows((prev) => {
+      const s = new Set(prev);
+      s.delete(agreementId);
+      return s;
+    });
+  }
+};
   const deleteRow = async (agreementId) => {
     if (!window.confirm("Delete this agreement?")) return;
     try {
       setDeletingRows((prev) => new Set(prev).add(agreementId));
       await agreementService.deleteAgreement(agreementId);
-      
-      // Remove from local data efficiently
-      const removeData = (data) => data.filter((a) => a.agreement_id !== agreementId);
-      
-      if (activeTab === "Withdrawn") {
-        setWithdrawnData(removeData);
-        setDisplayData(removeData);
-      } else {
-        setAllArchiveData(removeData);
-        setDisplayData(removeData);
-      }
-      
+      setWithdrawnData((prev) =>
+        prev.filter((a) => a.agreement_id !== agreementId)
+      );
+      setDisplayData((prev) =>
+        prev.filter((a) => a.agreement_id !== agreementId)
+      );
       if (editingRow === agreementId) cancelEditing();
       alert("Deleted successfully.");
     } catch (err) {
@@ -220,10 +214,6 @@ const renderEditableCell = (item, field, value) => {
     "date_received", "date_endorsed_to_ulco", "date_ulco_approved", "date_signed_by_pup", "agreement_status",
     "website_url", "description", "hardcopy_location"
   ];
-
-  if (field === 'document_type' && !isEditing) {
-    return renderDocumentTypeBadge(value);
-  }
 
   if (!isEditing || !editableFields.includes(field)) return value || "—";
 
@@ -268,13 +258,19 @@ const renderEditableCell = (item, field, value) => {
       </select>
     );
   }
-
-  
-
-  if (field === 'document_type' && !isEditing) {
-    return renderDocumentTypeBadge(value);
+  if (field === "document_type") {
+    return (
+      <select
+        value={editedData[field] || ""}
+        onChange={(e) => handleInputChange(field, e.target.value)}
+        style={{ width: "120px" }}
+      >
+        <option value="">Select Type</option>
+        <option value="MOA">MOA</option>
+        <option value="MOU">MOU</option>
+      </select>
+    );
   }
-
   if (field.includes("date")) {
     return (
       <input
@@ -415,7 +411,7 @@ const renderEditableCell = (item, field, value) => {
                       currentData.map((item, index) => (
                         <tr key={index}>
                           <td>{item.partner_name}</td>
-                          <td>{renderDocumentTypeBadge(item.document_type)}</td>
+                          <td>{item.document_type}</td>
                           <td>{item.partnership_type}</td>
                           <td>{item.date_expiry}</td>
                           <td>{item.point_persons_display}</td>
@@ -479,7 +475,7 @@ const renderEditableCell = (item, field, value) => {
                       currentData.map((item, index) => (
                         <tr key={index}>
                           <td>{renderEditableCell(item, "source_unit", item.source_unit)}</td>
-                          <td>{renderDocumentTypeBadge(item.document_type)}</td>
+                          <td>{renderEditableCell(item, 'document_type', item.document_type)}</td>
                           <td>
                             {Array.isArray(item.point_persons)
                               ? item.point_persons.map((pp, i) => (
