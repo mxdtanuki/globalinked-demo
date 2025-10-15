@@ -138,10 +138,11 @@ const AuditLogsPage = () => {
           <div className="auditlogs-container">
             {/* Filter Buttons */}
             <div style={{ marginBottom: "18px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <div className="audit-filter-group">
               {FILTERS.map((f) => (
                 <button
                   key={f.value}
-                  className={filter === f.value ? "active-filter-btn" : "filter-btn"}
+                  className={filter === f.value ? "audit-active-filter-btn" : "audit-filter-btn"}
                   onClick={() => {
                     setFilter(f.value);
                     setCurrentPage(1);
@@ -151,6 +152,7 @@ const AuditLogsPage = () => {
                   {f.label}
                 </button>
               ))}
+            </div>
             </div>
 
           {selectedLogs.length > 0 && (
@@ -263,3 +265,4 @@ const AuditLogsPage = () => {
 };
 
 export default AuditLogsPage;
+ 

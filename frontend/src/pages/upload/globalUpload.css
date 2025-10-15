@@ -10,6 +10,22 @@
   font-family: 'Inter', sans-serif;
 }
 
+.manual-entry-container,
+.manual-entry-form,
+.manual-entry-form * {
+  font-family: 'Inter', sans-serif !important;
+}
+ 
+.react-select__control,
+.react-select__menu,
+.react-select__option,
+.react-select__single-value,
+.react-select__input,
+.react-select__value-container {
+  font-family: 'Inter', sans-serif !important;
+}
+
+
 /* Title */
 .form-title {
   font-size: 28px;

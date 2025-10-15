@@ -88,30 +88,40 @@
 }
 
 /* Filter Buttons */
-.filter-btn {
-  padding: 8px 16px;
-  border: none;
-  background: #a00000;
-  color: white;
+.audit-filter-btn,
+.audit-active-filter-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #800000;
   cursor: pointer;
-  border-radius: 5px;
-  font-size: 14px;
-  transition: background 0.2s;
-}
-
-.filter-btn:hover {
-  background: #e0e0e0;
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  background: #fff;
   color: #800000;
 }
 
-.active-filter-btn {
+.audit-filter-btn:hover {
+  background: #f2dede;
+}
+
+.audit-active-filter-btn {
   background: #800000;
-  color: white;
-  font-weight: bold;
-  border-radius: 5px;
-  padding: 8px 16px;
-  border: none;
-  font-size: 14px;
+  color: #fff;
+  border: 1px solid #800000;
+  font-weight: 600;
+}
+
+.audit-active-filter-btn:hover {
+  background: #a00000; 
+  border-color: #a00000;
+}
+
+.filter-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 /* Trash Button */
