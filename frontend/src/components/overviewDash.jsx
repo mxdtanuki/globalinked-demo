@@ -764,9 +764,9 @@ const lifecycleStages = [
   if (error) return <div className="overview-container">Error: {error}</div>;
 
 const filterByStat = (statLabel) => {
-  setStatFilter(statLabel);      
-  setSelectedStatus(null);       
-  setCurrentPage(1);             
+  setStatFilter(statLabel);      // Set the stat filter (e.g., "OPEN - OIA")
+  setSelectedStatus(null);       // Reset any lifecycle/status filter
+  setCurrentPage(1);             // Reset to first page
 };
  
 
@@ -903,13 +903,18 @@ const exportToExcel = async () => {
   return (
     <div className="overview-container">
       <div className="stats-row">
-        {stats.map((s, i) => (
-          <button key={i} className="stat-card" onClick={() => filterByStat(s.label)}>
-            <div className="stat-number">{s.count}</div>
-            <div className="stat-label">{s.label}</div>
-          </button>
-        ))}
-      </div>
+  {stats.map((s, i) => (
+    <button
+      key={i}
+      className={`stat-card ${statFilter === s.label ? 'active' : ''}`}
+      onClick={() => filterByStat(s.label)}
+    >
+      <div className="stat-number">{s.count}</div>
+      <div className="stat-label">{s.label}</div>
+    </button>
+  ))}
+</div>
+
 
       <div className="lifecycle-section">
         <h3>Lifecycle Agreement</h3>
@@ -974,8 +979,7 @@ const exportToExcel = async () => {
         </div>
 
         {showFilterPanel && (
-              <div className="filters-panel">
-               <div className="filters-row">
+          <div className="filter-panel">
             <label>
               Document Type:
               <select
@@ -1033,7 +1037,6 @@ const exportToExcel = async () => {
               <button onClick={clearIndependentFilter}>Clear</button>
             </div>
           </div>
-         </div>
         )}
 
         <div className="table-scroll">

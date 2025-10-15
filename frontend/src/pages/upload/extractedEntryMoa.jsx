@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './globalUpload.css';
 import { useLocation } from 'react-router-dom';
- 
+  
 const countryOptions = [
   { value: "Afghanistan", label: "Afghanistan", region: "Southern Asia" },
   { value: "Albania", label: "Albania", region: "Southern Europe" },
@@ -645,7 +645,23 @@ const handleSubmit = async (e) => {
       setSelectedRegion(null);
       setDtsNumber("");
       setDocumentType("");
+      setDtsStatus(""); 
+      setDateUlcoApproved("");
+      setRemarks("");
+      setDocumentType("");
       setPartnershipType("");
+      setPartnerEntryType("New");
+      setSelectedPartner(null);
+      setPartnerData({
+       name: "",
+        entityType: "",
+        address: "",
+        website: "",
+        description: "",
+        logo: null,
+      });
+      setSelectedRelatedAgreement(null);
+      setRelatedAgreements([]);
       setSource("");
       setDtsStatus("");
       setDatePupSigned("");
@@ -914,6 +930,7 @@ useEffect(() => {
               className="react-select-container"
               classNamePrefix="react-select"
               placeholder="Select Partnership Type"
+              value={partnershipTypeOptions.find(o => o.value === partnershipType) || null}
               onChange={(opt) => setPartnershipType(opt?.value || "")}
             />
           </div>
