@@ -151,7 +151,7 @@ def on_startup():
 def on_shutdown():
     from app.scheduler import shutdown_scheduler
 
-    shutdown_scheduler()  # Fixed: was shutdown_shutdown()
+    shutdown_scheduler() 
 
 
 @app.get("/health/qa")

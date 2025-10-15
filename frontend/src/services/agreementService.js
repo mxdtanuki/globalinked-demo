@@ -20,7 +20,7 @@ export const agreementService = {
     return response.json();
   },
 
-  async createAgreement(formData) {
+async createAgreement(formData) {
     const token = localStorage.getItem('access_token');
     
     if (!token) {
@@ -54,9 +54,14 @@ export const agreementService = {
       throw new Error('Please login first');
     }
     
-    const queryParams = new URLSearchParams(filters).toString();
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) {
+        queryParams.append(key, filters[key]);
+      }
+    });
     
-    const response = await fetch(`${API_BASE_URL}/agreements/?${queryParams}`, {
+    const response = await fetch(`${API_BASE_URL}/agreements/?${queryParams.toString()}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -69,7 +74,48 @@ export const agreementService = {
     return response.json();
   },
 
+    // NEW: Get withdrawn agreements with server-side filtering
+  async getWithdrawnAgreements() {
+    return this.getAgreements({ status_filter: 'WITHDRAWN' });
+  },
   
+  // NEW: Get only active agreements
+  async getActiveAgreements() {
+    return this.getAgreements({ status_filter: 'ACTIVE' });
+  },
+
+  // NEW: Get only open agreements  
+  async getOpenAgreements() {
+    return this.getAgreements({ status_filter: 'OPEN' });
+  },
+
+  // NEW: Get mobility agreements with specific partnership types
+  async getMobilityAgreements() {
+    return this.getAgreements({ 
+      status_filter: 'ACTIVE',
+      partnership_type: 'MOA on Student Competition,MOA on Internship,MOA on Faculty Exchange,MOA on Student Exchange,MOA on Faculty and Student Exchange'
+    });
+  },
+  // NEW: Lightweight summary for dashboard
+  async getAgreementsSummary() {
+    const token = localStorage.getItem('access_token');
+    
+    if (!token) {
+      throw new Error('Please login first');
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/agreements/summary`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch summary');
+    }
+
+    return response.json();
+  },
 
   async getAgreementById(id) {
     const token = localStorage.getItem('access_token');
