@@ -307,13 +307,13 @@ const exportToExcel = async () => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Agreements");
 
-  worksheet.mergeCells("A1:L1");
+  worksheet.mergeCells("A1:M1");
   const title = worksheet.getCell("A1");
   title.value = "Globalinked Agreements Report";
   title.font = { size: 16, bold: true };
   title.alignment = { horizontal: "center" };
 
-  worksheet.addRow([
+  const headerCols = [
     "DTS Number",
     "Document Type",
     "Partnership Type",
@@ -324,22 +324,47 @@ const exportToExcel = async () => {
     "Expiry Date",
     "Point Person",
     "Contact Person",
+    "Logo",
     "Hardcopy Locator",
     "Remarks"
-  ]);
+  ];
+
+  worksheet.addRow(headerCols);
 
   const headerRow = worksheet.getRow(2);
   headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
   headerRow.fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "800000" }, 
+    fgColor: { argb: "800000" },
   };
   headerRow.alignment = { horizontal: "center", vertical: "middle" };
   headerRow.height = 25;
 
-  filteredAgreements.forEach((a) => {
-    worksheet.addRow([
+  const arrayBufferToBase64 = (buffer) => {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+  };
+
+  const logoColIndex = headerCols.indexOf("Logo"); 
+
+  for (const a of filteredAgreements) {
+    const remarksText = Array.isArray(a.remarks)
+      ? a.remarks
+          .map(r =>
+            typeof r === "object"
+              ? r.remark_text || r.text || r.remark || ""
+              : r
+          )
+          .join("\n")
+      : "N/A";
+
+    const row = worksheet.addRow([
       a.dts_number || "N/A",
       a.document_type || "N/A",
       a.partnership_type || "N/A",
@@ -350,27 +375,72 @@ const exportToExcel = async () => {
       a.date_expiry || "N/A",
       a.point_persons_display || a.point_persons || "N/A",
       a.contact_persons_display || a.contact_persons || "N/A",
-
+      "",
       a.hardcopy_location || "N/A",
-      Array.isArray(a.remarks)
-        ? a.remarks
-            .map(r =>
-              typeof r === "object"
-                ? r.remark_text || r.text || r.remark || ""
-                : r
-            )
-            .join("\n") 
-        : "N/A",
+      remarksText,
     ]);
-  });
 
-  worksheet.columns.forEach((col) => {
-    let maxLength = 0;
-    col.eachCell({ includeEmpty: true }, (cell) => {
-      const val = cell.value ? cell.value.toString() : "";
-      maxLength = Math.max(maxLength, val.length);
-    });
-    col.width = maxLength < 15 ? 15 : maxLength + 2;
+    try {
+      const lp = a.logo_path;
+      if (lp && lp.toString().trim() !== "") {
+        let base64;
+        let extension = "png";
+
+        if (typeof lp === "string" && lp.startsWith("data:image")) {
+
+          const match = lp.match(/^data:(image\/[a-zA-Z]+);base64,(.*)$/);
+          if (match) {
+            extension = match[1].split("/")[1] || "png";
+            base64 = match[2];
+          } else {
+            const idx = lp.indexOf("base64,");
+            base64 = idx !== -1 ? lp.substring(idx + 7) : lp;
+          }
+        } else if (typeof lp === "string" && (lp.startsWith("iVBORw0") || lp.startsWith("/9j/"))) {
+          extension = lp.startsWith("iVBORw0") ? "png" : "jpeg";
+          base64 = lp;
+        } else {
+          let url = lp;
+          if (!/^https?:\/\//i.test(url)) {
+            url = `${API_BASE_URL.replace(/\/$/, "")}/${String(lp).replace(/^\/+/, "")}`;
+          }
+          const resp = await axios.get(url, { responseType: "arraybuffer" });
+          base64 = arrayBufferToBase64(resp.data);
+          const ct = resp.headers && resp.headers['content-type'];
+          if (ct && ct.startsWith("image/")) {
+            extension = ct.split("/")[1].split(";")[0] || "png";
+          } else {
+            extension = "png";
+          }
+        }
+
+        if (base64) {
+          const imageId = workbook.addImage({ base64, extension });
+          const rowNumber = row.number;
+          worksheet.addImage(imageId, {
+            tl: { col: logoColIndex, row: rowNumber - 1 },
+            ext: { width: 80, height: 50 },
+          });
+
+          worksheet.getRow(rowNumber).height = 40;
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to add logo for", a.dts_number, err);
+    }
+  }
+
+  worksheet.columns.forEach((col, idx) => {
+    if (idx === logoColIndex) {
+      col.width = 14; 
+    } else {
+      let maxLength = 0;
+      col.eachCell({ includeEmpty: true }, (cell) => {
+        const val = cell.value ? cell.value.toString() : "";
+        maxLength = Math.max(maxLength, val.length);
+      });
+      col.width = maxLength < 15 ? 15 : maxLength + 2;
+    }
   });
 
   worksheet.eachRow((row) => {
