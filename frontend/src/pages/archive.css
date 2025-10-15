@@ -9,8 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 1rem;
-  margin-bottom: 0.3rem;
+  margin-bottom: 1.5rem;
 }
 .stats-row {
   display: flex;
@@ -35,7 +34,6 @@
   font-weight: 500;
   border-radius: 6px;
   cursor: not-allowed;
-  margin-top: -27.5px;
 }
 
 .table-container {
