@@ -5,7 +5,7 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   transition: all 0.3s ease;
 }
-
+ 
 /* Header section */
 .mobility-header {
   display: flex;
@@ -47,6 +47,7 @@
   color: #fff !important;
   border: none !important;
   cursor: pointer !important;
+  margin-top: -27.5px;
 }
 
 .filter-btn:hover {
@@ -64,6 +65,7 @@
   color: #fff; 
   cursor: pointer; 
   border: none;
+  margin-top: -27.5px;
 }
 
 .generate-btn:hover {
@@ -81,6 +83,42 @@
   gap: 12px;
   margin: 12px 0 18px;
   flex-wrap: wrap;
+  flex-direction: column; 
+}
+
+.filters-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.apply-btn,
+.clear-btn {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  background: #fff;
+}
+
+.apply-btn {
+  background: #800000;
+  color: #fff;
+  border: none;
+}
+
+.clear-btn {
+  background: #fff;
+  color: #333;
 }
 
 .filters-container select {

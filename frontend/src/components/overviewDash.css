@@ -103,6 +103,65 @@
   border-bottom-right-radius: 12px;
 }
 
+/* Filters */
+.filters-container {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0 18px;
+  flex-wrap: wrap;
+  flex-direction: column; 
+}
+
+.filters-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.apply-btn,
+.clear-btn {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  background: #fff;
+}
+
+.apply-btn {
+  background: #800000;
+  color: #fff;
+  border: none;
+}
+
+.clear-btn {
+  background: #fff;
+  color: #333;
+}
+
+.filters-container select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filters-container select:focus {
+  border-color: #800000;
+  outline: none;
+  box-shadow: 0 0 5px rgba(128, 0, 0, 0.4);
+}
 /* Document Type Color Coding */
 .document-type-badge {
   padding: 4px 8px;

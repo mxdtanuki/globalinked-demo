@@ -703,7 +703,7 @@ const lifecycleStages = [
   { label: 'For Signature of PUP Official', status: 'SignituresPUP' },
   { label: 'Signed by PUP Official', status: 'SignedPUP' },
   { label: 'For Signature of Partners', status: 'SignituresPartner' },
-  { label: 'Signed by Partners', status: 'SignedPartners' },
+  { label: 'Signed by Partners', status: 'SignedPartner' },
   { label: 'Completely Signed', status: 'Complete' },
   { label: 'For Notary', status: 'Notary' },
   { label: 'To FFUP Copy', status: 'FFUPCopy' },
@@ -764,73 +764,140 @@ const lifecycleStages = [
   if (error) return <div className="overview-container">Error: {error}</div>;
 
 const filterByStat = (statLabel) => {
-  setStatFilter(statLabel);      // Set the stat filter (e.g., "OPEN - OIA")
-  setSelectedStatus(null);       // Reset any lifecycle/status filter
-  setCurrentPage(1);             // Reset to first page
+  setStatFilter(statLabel);      
+  setSelectedStatus(null);       
+  setCurrentPage(1);             
 };
  
 
 const exportToExcel = async () => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Agreements");
-  const excelColumns = tableColumns.filter((col) => col !== "Action");
 
-  // Set column headers
-  worksheet.columns = excelColumns.map((col) => ({
-    header: col,
-    key: col,
-    width: 25, 
-  }));
+  const rawCols = tableColumns.filter((col) => col && col.toString().toUpperCase() !== "ACTIONS");
+  const desiredStart = ['Date', 'DOCUMENT TYPE'];
+  const remaining = rawCols.filter(c => !desiredStart.includes(c));
+  const excelColumns = [...desiredStart.filter(c => rawCols.includes(c)), ...remaining];
+  worksheet.columns = excelColumns.map((col) => ({ header: col, key: col, width: 30 }));
 
-  // Add rows
-  filteredAgreements.forEach((a) => {
-    worksheet.addRow([
-      a.entry_date,
-      a.agreement_status,
-      a.dts_number,
-      a.dts_status,
-      a.source_unit,
-      a.point_persons,
-      a.name,
-      a.entity_type,
-      a.country,
-      a.region,
-      a.address,
-      a.signatories_list,
-      a.contact_persons,
-      a.document_type,
-      a.partnership_type,
-      a.event_info,
-      a.validity_period,
-      a.date_signed,
-      a.date_expiry,
-      a.date_received,
-      a.date_endorsed_to_ulco,
-      a.date_ulco_approved,
-      a.date_signed_by_pup,
-      a.website_url,
-      a.description,
-      a.logo_path,
-      a.hardcopy_location,
-      a.remarks,
-    ]);
-  });
+  const formatPointPersons = (pps) => {
+    if (!Array.isArray(pps) || pps.length === 0) return "-";
+    return pps.map(pp => {
+      const pos = pp.point_person_position || pp.position || '';
+      const name = pp.point_person_name || pp.name || '';
+      const email = pp.point_person_email || pp.email || '';
+      return [pos && pos.trim(), name && name.trim(), email && `(${email.trim()})`].filter(Boolean).join(' ');
+    }).join('; ');
+  };
 
-  // Style header row
+  const formatContactPersons = (cps) => {
+    if (!Array.isArray(cps) || cps.length === 0) return "-";
+    return cps.map(cp => {
+      const pos = cp.contact_person_position || cp.position || '';
+      const name = cp.contact_person_name || cp.name || '';
+      const email = cp.contact_person_email || cp.email || '';
+      return [pos && pos.trim(), name && name.trim(), email && `(${email.trim()})`].filter(Boolean).join(' ');
+    }).join('; ');
+  };
+
+  const formatSignatories = (list) => {
+    if (!Array.isArray(list) || list.length === 0) return "-";
+    return list.map(s => {
+      const name = s.signatory_name || s.name || s.person || '';
+      const pos = s.signatory_position || s.position || '';
+      return [name && name.trim(), pos && `(${pos.trim()})`].filter(Boolean).join(' ');
+    }).join('; ');
+  };
+
+  const formatRemarks = (rms) => {
+    if (!Array.isArray(rms) || rms.length === 0) return "-";
+    return rms.map(r => {
+      const text = r.remark_text || r.text || '';
+      const ts = r.remark_timestamp || r.timestamp || '';
+      return ts ? `${text} [${ts}]` : text;
+    }).join('; ');
+  };
+
+  const headerIndex = excelColumns.reduce((m, h, i) => {
+    m[h] = i;
+    return m;
+  }, {});
+
+  const overviewData = agreements.filter(a =>
+    a.agreement_status !== "Active" &&
+    a.agreement_status !== "Withdrawn" &&
+    (a.dts_status === 'Open - OIA' || a.dts_status === 'Open - Other Office')
+  );
+
+  for (const a of overviewData) {
+    const rowArray = new Array(excelColumns.length).fill('');
+
+    if (headerIndex['Date'] !== undefined) rowArray[headerIndex['Date']] = a.entry_date || '';
+    if (headerIndex['DOCUMENT TYPE'] !== undefined) rowArray[headerIndex['DOCUMENT TYPE']] = a.document_type || '';
+
+    if (headerIndex['STATUS'] !== undefined) rowArray[headerIndex['STATUS']] = a.agreement_status || '';
+    if (headerIndex['DTS NO.'] !== undefined) rowArray[headerIndex['DTS NO.']] = a.dts_number || '';
+    if (headerIndex['DTS LOCATION'] !== undefined) rowArray[headerIndex['DTS LOCATION']] = a.dts_status || '';
+    if (headerIndex['SOURCE'] !== undefined) rowArray[headerIndex['SOURCE']] = a.source_unit || '';
+    if (headerIndex['POINT PERSON / POSITION'] !== undefined) rowArray[headerIndex['POINT PERSON / POSITION']] = formatPointPersons(a.point_persons);
+    if (headerIndex["PARTNER'S NAME"] !== undefined) rowArray[headerIndex["PARTNER'S NAME"]] = a.name || '';
+    if (headerIndex['ENTITY TYPE'] !== undefined) rowArray[headerIndex['ENTITY TYPE']] = a.entity_type || '';
+    if (headerIndex['COUNTRY'] !== undefined) rowArray[headerIndex['COUNTRY']] = a.country || '';
+    if (headerIndex['REGION'] !== undefined) rowArray[headerIndex['REGION']] = a.region || '';
+    if (headerIndex['ADDRESS'] !== undefined) rowArray[headerIndex['ADDRESS']] = a.address || '';
+    if (headerIndex['SIGNATORIES / POSITION'] !== undefined) rowArray[headerIndex['SIGNATORIES / POSITION']] = formatSignatories(a.signatories_list);
+    if (headerIndex['CONTACT PERSON / DETAILS'] !== undefined) rowArray[headerIndex['CONTACT PERSON / DETAILS']] = formatContactPersons(a.contact_persons);
+    if (headerIndex['PARTNERSHIP CLASSIFICATION'] !== undefined) rowArray[headerIndex['PARTNERSHIP CLASSIFICATION']] = a.partnership_type || '';
+    if (headerIndex['EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT'] !== undefined) rowArray[headerIndex['EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT']] = a.event_info || '';
+    if (headerIndex['VALIDITY PERIOD'] !== undefined) rowArray[headerIndex['VALIDITY PERIOD']] = a.validity_period || '';
+    if (headerIndex['DATE / YEAR OF SIGNING'] !== undefined) rowArray[headerIndex['DATE / YEAR OF SIGNING']] = a.date_signed || '';
+    if (headerIndex['EXPIRY DATE / YEAR'] !== undefined) rowArray[headerIndex['EXPIRY DATE / YEAR']] = a.date_expiry || '';
+    if (headerIndex['DATE RECEIVED'] !== undefined) rowArray[headerIndex['DATE RECEIVED']] = a.date_received || '';
+    if (headerIndex['DATE ENDORSED TO ULCO'] !== undefined) rowArray[headerIndex['DATE ENDORSED TO ULCO']] = a.date_endorsed_to_ulco || '';
+    if (headerIndex["ULCO'S APPROVAL"] !== undefined) rowArray[headerIndex["ULCO'S APPROVAL"]] = a.date_ulco_approved || '';
+    if (headerIndex["PUP OFFICIALS' SIGNATURE"] !== undefined) rowArray[headerIndex["PUP OFFICIALS' SIGNATURE"]] = a.date_signed_by_pup || '';
+    if (headerIndex['WEBSITE LINK'] !== undefined) rowArray[headerIndex['WEBSITE LINK']] = a.website_url || '';
+    if (headerIndex['Brief Profile'] !== undefined) rowArray[headerIndex['Brief Profile']] = a.description || '';
+    if (headerIndex['LOGO'] !== undefined) rowArray[headerIndex['LOGO']] = a.logo_path ? '' : '';
+    if (headerIndex['HARDCOPY LOCATOR'] !== undefined) rowArray[headerIndex['HARDCOPY LOCATOR']] = a.hardcopy_location || '';
+    if (headerIndex['REMARKS'] !== undefined) rowArray[headerIndex['REMARKS']] = formatRemarks(a.remarks);
+
+    const row = worksheet.addRow(rowArray);
+
+    if (a.logo_path && headerIndex['LOGO'] !== undefined) {
+      try {
+        const imgId = workbook.addImage({ base64: a.logo_path, extension: 'png' });
+        const colNum = headerIndex['LOGO'] + 1;
+        worksheet.getColumn(colNum).width = Math.max(worksheet.getColumn(colNum).width || 8, 18);
+        worksheet.getRow(row.number).height = Math.max(worksheet.getRow(row.number).height || 15, 60);
+        const colLetter = worksheet.getColumn(colNum).letter;
+        const range = `${colLetter}${row.number}:${colLetter}${row.number}`;
+        worksheet.addImage(imgId, range);
+      } catch (err) {
+        if (headerIndex['LOGO'] !== undefined) {
+          row.getCell(headerIndex['LOGO'] + 1).value = 'Has Logo';
+        }
+        console.warn('Failed to embed logo for DTS', a.dts_number, err);
+      }
+    }
+  }
+
   worksheet.getRow(1).eachCell((cell) => {
     cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFB22222" }, 
-    };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFB22222" } };
     cell.alignment = { vertical: "middle", horizontal: "center" };
   });
 
-  // Generate Excel file
+  worksheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.alignment = { wrapText: true, vertical: "top" };
+    });
+  });
+
   const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), "agreements.xlsx");
+  saveAs(new Blob([buffer]), "agreements_overview.xlsx");
 };
+
 
 
   return (
@@ -907,7 +974,8 @@ const exportToExcel = async () => {
         </div>
 
         {showFilterPanel && (
-          <div className="filter-panel">
+              <div className="filters-panel">
+               <div className="filters-row">
             <label>
               Document Type:
               <select
@@ -965,6 +1033,7 @@ const exportToExcel = async () => {
               <button onClick={clearIndependentFilter}>Clear</button>
             </div>
           </div>
+         </div>
         )}
 
         <div className="table-scroll">

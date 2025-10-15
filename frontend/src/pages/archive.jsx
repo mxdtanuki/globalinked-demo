@@ -407,7 +407,7 @@ const renderEditableCell = (item, field, value) => {
                       <th>PARTNERSHIP CLASSIFICATION</th>
                       <th>EXPIRE DATE</th>
                       <th>POINT PERSON</th>
-                      <th>ACTION</th>
+                      <th>ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -420,14 +420,26 @@ const renderEditableCell = (item, field, value) => {
                           <td>{item.date_expiry}</td>
                           <td>{item.point_persons_display}</td>
                           <td>
-                            <button
-                              className="view-btn"
-                              onClick={() =>
-                                handleViewLatestFile(item.dts_number)
-                              }
-                            >
-                              View File
-                            </button>
+                            <div style={{ display: "flex", gap: "4px" }}>
+                              <button
+                                className="view-btn"
+                                onClick={() =>
+                                  handleViewLatestFile(item.dts_number)
+                                }
+                              >
+                                View File
+                              </button>
+                              {currentUser?.user_role?.toLowerCase() === "admin" && (
+                                <button
+                                  className="delete-btn"
+                                  onClick={() => deleteRow(item.agreement_id)}
+                                  disabled={deletingRows.has(item.agreement_id)}
+                                  title="Delete"
+                                >
+                                  🗑️
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -471,7 +483,7 @@ const renderEditableCell = (item, field, value) => {
                       <th>LOGO</th>
                       <th>HARDCOPY LOCATOR</th>
                       <th>REMARKS</th>
-                      <th>ACTION</th>
+                      <th>ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
