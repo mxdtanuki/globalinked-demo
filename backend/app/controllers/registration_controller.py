@@ -82,7 +82,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
                 category="user_registration",
                 message=f"New user registration: {new_user.user_name} ({new_user.user_position}) is requesting access to the system.",
                 recommended_action=f"Review and approve/reject {new_user.user_name}'s registration request in User Management.",
-                user_id=None
+                user_id=admin.user_id
             )
             
             if result:
