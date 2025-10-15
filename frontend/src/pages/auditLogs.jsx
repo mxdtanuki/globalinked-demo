@@ -215,7 +215,9 @@ const AuditLogsPage = () => {
                         </td>
                         <td>{log.audit_description}</td>
                         <td>{log.user_name}</td>
-                        <td>{new Date(log.audit_timestamp).toLocaleString()}</td>
+                        <td>
+                          {new Date(new Date(log.audit_timestamp).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
+                        </td>
                         <td>
                           <button
                             className="delete-btn"

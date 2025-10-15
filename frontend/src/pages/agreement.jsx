@@ -438,18 +438,42 @@ const exportToExcel = async () => {
                     />
                   </div>
                   <div className="table-actions">
-                    <div className="button-group">
-                      <button
-                        className="btn"
-                        onClick={() => setShowFilterPanel(!showFilterPanel)}
-                      >
-                        Filter
-                      </button>
-                      <button className="btn btn-generate" onClick={exportToExcel}>
-                        Generate
-                      </button>
-                    </div>
-                  </div>
+  <div className="button-group">
+    <button
+      className="btn"
+      onClick={() => setShowFilterPanel(!showFilterPanel)}
+    >
+      Filter
+    </button>
+    <button className="btn btn-generate" onClick={exportToExcel}>
+      Generate
+    </button>
+    <button
+      className="btn btn-scroll-nav"
+      title="Scroll to first column"
+      onClick={() => {
+        const tableScrollDiv = document.querySelector('.table-scroll');
+        if (tableScrollDiv) {
+          tableScrollDiv.scrollLeft = 0;
+        }
+      }}
+    >
+      ◄ First
+    </button>
+    <button
+      className="btn btn-scroll-nav"
+      title="Scroll to last column"
+      onClick={() => {
+        const tableScrollDiv = document.querySelector('.table-scroll');
+        if (tableScrollDiv) {
+          tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
+        }
+      }}
+    >
+      Last ►
+    </button>
+  </div>
+</div>
                 </div>
 
                 {showFilterPanel && (
@@ -749,6 +773,35 @@ const exportToExcel = async () => {
                     </tbody>
                   </table>
                 </div>
+
+{currentRows.length > 5 && (
+  <div className="table-bottom-actions">
+    <button
+      className="btn btn-scroll-nav"
+      title="Scroll to first column"
+      onClick={() => {
+        const tableScrollDiv = document.querySelector('.table-scroll');
+        if (tableScrollDiv) {
+          tableScrollDiv.scrollLeft = 0;
+        }
+      }}
+    >
+      ◄ First
+    </button>
+    <button
+      className="btn btn-scroll-nav"
+      title="Scroll to last column"
+      onClick={() => {
+        const tableScrollDiv = document.querySelector('.table-scroll');
+        if (tableScrollDiv) {
+          tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
+        }
+      }}
+    >
+      Last ►
+    </button>
+  </div>
+)}
 
                 <div
                   className="pagination"
