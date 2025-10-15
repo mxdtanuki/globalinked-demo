@@ -203,7 +203,7 @@ export default function MainBanner() {
               <img src={wuriLogo} alt="WURI Logo" className="wuri-logo" />
             </div>
           </div>
-          <h3 className="partner-universities-title">OUR PARTNERS</h3>
+          <h3 className="partner-universities-title">OUR PARTNER UNIVERSITIES</h3>
           <div className="partner-logos-grid">
             {partnerLogos.length > 0 ? (
               partnerLogos.map((logo, index) => (
