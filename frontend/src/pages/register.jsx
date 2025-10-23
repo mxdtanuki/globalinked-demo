@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; 
 import React, { useState } from "react";
-import { FaUser, FaEnvelope, FaLock } from "react-icons/fa"; 
+import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa"; 
 import "./login.css"; 
 import { registerUser } from '../services/registrationService'; 
 
@@ -16,6 +16,9 @@ const Register = () => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const getPositionRole = (role) => {
     const adminRoles = [
@@ -45,7 +48,6 @@ const Register = () => {
       setLoading(true);
       setError("");
 
-      // Prepare data for backend
       const userData = {
         user_name: `${formData.firstName} ${formData.lastName}`.trim(),
         user_email: formData.email,  
@@ -71,6 +73,18 @@ const Register = () => {
       <div className="auth-container">
         {/* LEFT PANEL */}
         <div className="auth-left">
+          {/* animation/gradient added */}
+          <div className="floating-element floating-1"></div>
+          <div className="floating-element floating-2"></div>
+          <div className="floating-element floating-3"></div>
+          <div className="floating-element floating-4"></div>
+          <div className="floating-element floating-5"></div>
+          <div className="floating-element floating-6"></div>
+          <div className="floating-element floating-7"></div>
+          <div className="floating-element floating-8"></div>
+          <div className="floating-element floating-9"></div>
+          <div className="floating-element floating-10"></div>
+
           <div className="brand-row">
             <img src="/globalMap.png" alt="Globe" className="logo-globe" />
             <span className="brand-text">GLOBALINKED</span>
@@ -134,27 +148,37 @@ const Register = () => {
             <div className="input-group">
               <FaLock className="input-icon" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
                 required
-                disabled={loading}
               />
+              <span
+                className="input-eye"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
             </div>
 
             <div className="input-group">
               <FaLock className="input-icon" />
               <input
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                disabled={loading}
               />
+              <span
+                className="input-eye"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
             </div>
 
             <select
@@ -186,7 +210,6 @@ const Register = () => {
               </option>
             </select>
 
-            {/* Show selected role preview */}
             {formData.position && (
               <div style={{ 
                 padding: '10px', 
@@ -199,9 +222,41 @@ const Register = () => {
               </div>
             )}
 
+            <div className="terms-checkbox">
+              <input
+                type="checkbox"
+                id="terms-agreement"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                disabled={loading}
+                required
+              />
+              <label htmlFor="terms-agreement">
+                I have read and agree to the PUP Online Services{' '}
+                <a 
+                  href="https://www.pup.edu.ph/terms/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="terms-link"
+                >
+                  Terms of Use
+                </a>
+                {' '}and{' '}
+                <a 
+                  href="https://www.pup.edu.ph/privacy/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="terms-link"
+                >
+                  Privacy Statement
+                </a>.
+              </label>
+            </div>
+
             <button type="submit" disabled={loading}>
               {loading ? "Registering..." : "Register"}
             </button>
+
           </form>
 
           <p className="switch-text">

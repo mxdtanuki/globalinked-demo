@@ -27,6 +27,8 @@ import FacultyLoginPage from './pages/public-page/components/FacultyLoginPage';
 // for audit logs
 import AuditLogsPage from './pages/auditLogs';
 
+// new overview
+import Overview1 from './pages/overview1';
 //sidebar pages
 import Overview from './pages/overview';
 import Analytics from './pages/analytics';
@@ -77,6 +79,9 @@ function AppRoutes() {
 
         {/* admin login */}
         <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
+       
+        {/* new overview route */}
+        <Route path="/overview1" element={<Overview1 />} />
 
         {/* admin routes */}
         <Route path="/overview" element={<Overview />} />

@@ -55,48 +55,76 @@ export default function MainBanner() {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const agreements = await agreementService.getAgreements();
+        try {
+            const agreements = await agreementService.getAgreements();
 
-        const activeAgreements = agreements.filter(
-          (ag) => ag.agreement_status === "Active"
-        );
+            console.log("📦 All Agreements:", agreements);
 
-        const countriesSet = new Set();
-        const logosSet = new Set();
+            const activeAgreements = agreements.filter(
+                (ag) => ag.agreement_status === "Active"
+            );
 
-        activeAgreements.forEach((ag) => {
-          if (ag.country) countriesSet.add(ag.country);
-          if (ag.logo_path) logosSet.add(ag.logo_path);
-        });
+            console.log("✅ Active Agreements:", activeAgreements);
 
-        // Partner countries (flags)
-        const countries = Array.from(countriesSet);
-        const partnerFlags = countries
-          .filter((country) => countryToCode[country])
-          .map((country) => ({
-            country,
-            flag: `https://flagcdn.com/${countryToCode[country]}.svg`,
-          }));
+            const countriesSet = new Set();
+            const partnersMap = new Map();
 
-        setFlags(
-          partnerFlags.length > 0
-            ? partnerFlags
-            : [{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]
-        );
+            activeAgreements.forEach((ag, index) => {
+                if (ag.country) countriesSet.add(ag.country);
 
-        // Partner universities (univ logos) 
-        const logos = Array.from(logosSet).filter((logo) => logo);
-        setPartnerLogos(logos);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setFlags([{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]);
-        setPartnerLogos([]);
-      }
+                console.log(`Agreement ${index}:`, {
+                    logo_path: ag.logo_path,
+                    institution_name: ag.institution_name,
+                    university_name: ag.university_name,
+                    partner_name: ag.partner_name,
+                    name: ag.name,
+                    country: ag.country,
+                    allFields: Object.keys(ag)
+                });
+
+                const logoField = ag.logo_path || ag.logo || ag.university_logo;
+                const nameField = ag.institution_name || ag.university_name || ag.partner_name || ag.name;
+
+                if (logoField && nameField) {
+                    partnersMap.set(logoField, {
+                        logo: logoField,
+                        name: nameField,
+                        country: ag.country || "Unknown"
+                    });
+                }
+            });
+
+            console.log("🏳️ Countries Set:", Array.from(countriesSet));
+            console.log("🏛️ Partners Map:", Array.from(partnersMap.values()));
+
+            const countries = Array.from(countriesSet);
+            const partnerFlags = countries
+                .filter((country) => countryToCode[country])
+                .map((country) => ({
+                    country,
+                    flag: `https://flagcdn.com/${countryToCode[country]}.svg`,
+                }));
+
+            setFlags(
+                partnerFlags.length > 0
+                    ? partnerFlags
+                    : [{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]
+            );
+
+            const logos = Array.from(partnersMap.values());
+            console.log("🎯 Final Logos to Display:", logos);
+            setPartnerLogos(logos);
+
+        } catch (error) {
+            console.error("❌ Error fetching data:", error);
+            setFlags([{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]);
+            setPartnerLogos([]);
+        }
     };
 
     fetchData();
-  }, []);
+}, []);
+
 
   useEffect(() => {
     if (flags.length > 0) {
@@ -203,20 +231,27 @@ export default function MainBanner() {
               <img src={wuriLogo} alt="WURI Logo" className="wuri-logo" />
             </div>
           </div>
-          <h3 className="partner-universities-title">OUR PARTNER UNIVERSITIES</h3>
+          <h3 className="partner-universities-title">OUR PARTNER INSTITUTIONS</h3>
           <div className="partner-logos-grid">
             {partnerLogos.length > 0 ? (
-              partnerLogos.map((logo, index) => (
-                <img
-                  key={index}
-                  src={`data:image/png;base64,${logo}`}
-                  alt={`Partner University ${index + 1}`}
-                  className="partner-logo-image"
-                />
+              partnerLogos.map((partner, index) => (
+                <div key={index} className="partner-logo-wrapper">
+                  <img
+                    src={`data:image/png;base64,${partner.logo}`}
+                    alt={partner.name}
+                    className="partner-logo-image"
+                  />
+                  <div className="partner-logo-tooltip">
+                    <span className="partner-name">{partner.name}</span>
+                    {partner.country && (
+                      <span className="partner-country">{partner.country}</span>
+                    )}
+                  </div>
+                </div>
               ))
             ) : (
               <p className="no-partners-text">
-                partner university logos will appear here
+                Partner university logos will appear here
               </p>
             )}
           </div>
