@@ -271,69 +271,8 @@ async def reject_user(user_id: int, db: Session = Depends(get_db), current_user:
             print(f"✅ Rejection email sent to {user.user_email}")
     except Exception as e:
         print(f"Failed to send rejection email: {e}")
-         # checking only
+        
     
     return user
 
-    # Sample fe implementation:
-    '''
-    import React, { useState, useEffect } from "react";
-    import { approveUser, getPendingUsers } from "../services/registrationService";
-
-    export default function UserApprovalList() {
-    const [pendingUsers, setPendingUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-
-    useEffect(() => {
-        const fetchPendingUsers = async () => {
-        try {
-            setLoading(true);
-            const users = await getPendingUsers();
-            setPendingUsers(users);
-        } catch (err) {
-            console.error("Error fetching pending users:", err);
-            setError("Failed to load pending users.");
-        } finally {
-            setLoading(false);
-        }
-        };
-
-        fetchPendingUsers();
-    }, []);
-
-    const handleApprove = async (userId) => {
-        try {
-        await approveUser(userId);
-        setPendingUsers(pendingUsers.filter((user) => user.user_id !== userId));
-        } catch (err) {
-        console.error("Error approving user:", err);
-        setError("Failed to approve user.");
-        }
-    };
-
-    if (loading) return <p>Loading pending users...</p>;
-    if (error) return <p>{error}</p>;
-
-    return (
-        <div>
-        <h2>Pending User Approvals</h2>
-        {pendingUsers.length === 0 ? (
-            <p>No pending users</p>
-        ) : (
-            <ul>
-            {pendingUsers.map((user) => (
-                <li key={user.user_id}>
-                {user.user_name} ({user.user_position})
-                <button onClick={() => handleApprove(user.user_id)}>
-                    Approve
-                </button>
-                </li>
-            ))}
-            </ul>
-        )}
-        </div>
-    );
-    }
-    '''
     

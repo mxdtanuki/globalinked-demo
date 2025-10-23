@@ -85,8 +85,8 @@ def get_db():
             "connection was closed",
             "timeout"
         ]):
-            print(f"⚠️ Connection issue detected: {e}")
-            print("🔄 Attempting connection recovery...")
+            print(f"Connection issue detected: {e}")
+            print("Attempting connection recovery...")
             
             # Close the problematic session
             try:

@@ -528,7 +528,7 @@ const exportToExcel = async () => {
         }
       }}
     >
-      ◄ First
+      ◄ First Column
     </button>
     <button
       className="btn btn-scroll-nav"
@@ -540,7 +540,7 @@ const exportToExcel = async () => {
         }
       }}
     >
-      Last ►
+      Last Column ►
     </button>
   </div>
 </div>
@@ -856,7 +856,7 @@ const exportToExcel = async () => {
         }
       }}
     >
-      ◄ First
+      ◄ First Column
     </button>
     <button
       className="btn btn-scroll-nav"
@@ -868,7 +868,7 @@ const exportToExcel = async () => {
         }
       }}
     >
-      Last ►
+      Last Column ►
     </button>
   </div>
 )}
