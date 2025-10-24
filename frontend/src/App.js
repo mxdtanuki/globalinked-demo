@@ -29,6 +29,10 @@ import AuditLogsPage from './pages/auditLogs';
 
 // new overview
 import Overview1 from './pages/overview1';
+
+// new active agreements
+import ActiveAgreements from './pages/activeAgreement';
+
 //sidebar pages
 import Overview from './pages/overview';
 import Analytics from './pages/analytics';
@@ -82,6 +86,9 @@ function AppRoutes() {
        
         {/* new overview route */}
         <Route path="/overview1" element={<Overview1 />} />
+
+        {/* new active agreements route */}
+        <Route path="/active-agreements" element={<ActiveAgreements />} />
 
         {/* admin routes */}
         <Route path="/overview" element={<Overview />} />
