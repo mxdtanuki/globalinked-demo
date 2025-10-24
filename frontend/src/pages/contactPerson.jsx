@@ -54,12 +54,20 @@ const ContactPerson = () => {
   // Filter logic
   const filteredData = rows.filter((person) => {
     const term = searchText.toLowerCase();
+    if (!term) return true;
+    const dts = (person.dts_number || "").toLowerCase();
+    const partnerName = (person.partnerName || "").toLowerCase();
+    const entityType = (person.entityType || "").toLowerCase();
+    const position = (person.position || "").toLowerCase();
+    const name = (person.name || "").toLowerCase();
+    const email = (person.email || "").toLowerCase();
     return (
-      person.partnerName.toLowerCase().includes(term) ||
-      person.entityType.toLowerCase().includes(term) ||
-      person.position.toLowerCase().includes(term) ||
-      person.name.toLowerCase().includes(term) ||
-      person.email.toLowerCase().includes(term)
+      dts.includes(term) ||
+      partnerName.includes(term) ||
+      entityType.includes(term) ||
+      position.includes(term) ||
+      name.includes(term) ||
+      email.includes(term)
     );
   });
 

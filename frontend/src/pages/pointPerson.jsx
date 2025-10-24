@@ -52,11 +52,21 @@ const PointPerson = () => {
 
   // FILTER
   const filteredData = rows.filter((person) => {
-    const term = searchText.toLowerCase();
+    const term = (searchText || "").trim().toLowerCase();
+    if (!term) return true;
+    const name = (person.name || "").toLowerCase();
+    const email = (person.email || "").toLowerCase();
+    const position = (person.position || "").toLowerCase();
+    const dts = (person.dts_number || "").toLowerCase();
+    const source = (person.source_unit || "").toLowerCase();
+    const docType = (person.documentType || "").toLowerCase();
     return (
-      person.name.toLowerCase().includes(term) ||
-      person.email.toLowerCase().includes(term) ||
-      person.position.toLowerCase().includes(term)
+      name.includes(term) ||
+      email.includes(term) ||
+      position.includes(term) ||
+      dts.includes(term) ||
+      source.includes(term) ||
+      docType.includes(term)
     );
   });
 

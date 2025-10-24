@@ -69,7 +69,7 @@ const TopBar = ({ toggleSidebar }) => {
                       <p className="auditlog-title">{log.audit_description}</p>
                       <div className="auditlog-footer">
                         <span className="auditlog-timestamp">
-                          {new Date(log.audit_timestamp).toLocaleString()}
+                          {new Date(new Date(log.audit_timestamp).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
                         </span>
                       </div>
                     </div>
@@ -113,7 +113,9 @@ const TopBar = ({ toggleSidebar }) => {
                     <p className="notif-title">{notif.title}</p>
                     <p className="notif-recommend">{notif.recommendation}</p>
                     <div className="notif-footer">
-                      <span className="notif-time">{notif.time}</span>
+                      <span className="notif-time">
+                        {new Date(new Date(notif.time).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
+                      </span>
                       <button onClick={() => markAsRead(notif.id)} className="notif-action">
                         Mark as read
                       </button>
