@@ -1,180 +1,481 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './layout.css';
+import './overview1.css';
 import { agreementService } from '../services/agreementService';
 import { documentService } from '../services/documentService';
-import './overviewDash.css';
-import ExcelJS from "exceljs";
-import { saveAs } from "file-saver";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
-const OverviewDash = () => {
-  const navigate = useNavigate();
-  const [openMenuIndex, setOpenMenuIndex] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [agreements, setAgreements] = useState([]);
-  const [filteredAgreements, setFilteredAgreements] = useState([]);
-  const [statFilter, setStatFilter] = useState('OPEN');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [filters, setFilters] = useState({
-    documentType: '',
-    partnershipType: '',
-    validityPeriod: '',
-    country: ''
+
+/* ---------- Constants & helpers (copied/adapted from uploaded files) ---------- */
+
+const LIFECYCLE_OPTIONS = [
+  { value: '', label: 'Select Status' },
+  { value: 'InitialReview', label: 'Initial Review' },
+  { value: 'Endorse', label: 'Endorse to ULCO for Review and Approval' },
+  { value: 'Revert', label: 'Revert To Initiator with Comments' },
+  { value: 'Consultation', label: 'For Consultation' },
+  { value: 'Replication', label: 'Replication of Copies (8 sets)' },
+  { value: 'SignituresPUP', label: 'For Signatures of PUP Officials' },
+  { value: 'SignedPUP', label: 'Signed by PUP Officials' },
+  { value: 'SignituresPartner', label: 'For Signatures of Partner' },
+  { value: 'SignedPartner', label: 'Signed by Partner Institution' },
+  { value: 'Complete', label: 'Completely Signed' },
+  { value: 'Notary', label: 'For Notary' },
+  { value: 'FFUPCopy', label: 'FFUP Copy From College/Campus' },
+];
+
+const DEFAULT_THRESHOLD_DAYS = 3;
+const CRITICAL_THRESHOLD_DAYS = 7;
+const STATUS_THRESHOLDS = {
+  "InitialReview": 3, "Endorse": 3, "Revert": 3, "Consultation": 3,
+  "Replication": 3, "SignituresPUP": 3, "SignedPUP": 3, "SignituresPartner": 3,
+  "SignedPartner": 3, "Complete": 3, "Notary": 3, "FFUPCopy": 3,
+};
+
+const toDateOrNull = (d) => {
+  if (!d) return null;
+  const t = Date.parse(d);
+  return Number.isFinite(t) ? new Date(t) : null;
+};
+const daysBetweenUTC = (from, to = new Date()) => {
+  if (!from) return 0;
+  const a = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+  const b = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.max(0, Math.floor((b - a) / (1000 * 60 * 60 * 24)));
+};
+
+const slugifyStatus = (s) => {
+  if (!s) return 'unknown';
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+};
+
+const mapAgreement = (a) => {
+  const firstPoint = Array.isArray(a.point_persons) && a.point_persons.length > 0 ? a.point_persons[0] : null;
+  const firstContact = Array.isArray(a.contact_persons) && a.contact_persons.length > 0 ? a.contact_persons[0] : null;
+  const stageStartRaw =
+    a.last_status_change || a.status_changed_at || a.status_updated_at || a.updated_at ||
+    a.date_updated || a.date_received || a.entry_date || a.date_of_signing;
+
+  return {
+    _pk: a.agreement_id ?? a.id ?? a.dts_number,
+    id: a.dts_number || a.id || a.agreement_id || '',
+    dts_no: a.dts_number || '',
+    partner_name: a.name || a.partner_name || '',
+    entity_type: a.entity_type || '',
+    country: a.country || '',
+    region: a.region || '',
+    address: a.address || '',
+    point_position: firstPoint?.position || a.point_position || '',
+    point_name: firstPoint?.name || a.point_name || a.point_person || '',
+    point_email: firstPoint?.email || a.point_email || '',
+    contact_person: firstContact?.name || a.contact_person || '',
+    contact_email: firstContact?.email || a.contact_email || '',
+    point_people: Array.isArray(a.point_persons) ? a.point_persons : undefined,
+    contact_people: Array.isArray(a.contact_persons) ? a.contact_persons : undefined,
+    document_type: a.document_type || '',
+    partnership_classification: a.partnership_type || a.partnership_classification || '',
+    validity_period: a.validity_period ? String(a.validity_period) : '',
+    date_of_signing: a.date_signed || a.date_of_signing || '',
+    expiry: a.date_expiry || a.expiry || '',
+    date_received: a.entry_date || a.date_received || '',
+    status: a.agreement_status || a.status || '',
+    days_in_stage: typeof a.days_in_stage === 'number' ? a.days_in_stage : 0,
+    delayed: typeof a.days_in_stage === 'number' ? a.days_in_stage >= DEFAULT_THRESHOLD_DAYS : false,
+    related_mou: a.related_mou || a.MOU_to_MOA_id || a.mou_number || null,
+    signatories: Array.isArray(a.signatories) ? a.signatories.map(s => s.name || s).join('; ') : (a.signatories || ''),
+    website_link: a.website_link || a.website_url || '',
+    event_title: a.event_title || a.event_info || '',
+    brief_profile: a.brief_profile || a.description || '',
+    hardcopy_locator: a.hardcopy_locator || a.hardcopy_location || '',
+    logo: a.logo || a.logo_path || '',
+    remarks_list: Array.isArray(a.remarks_list) ? a.remarks_list : undefined,
+    remarks: a.remarks || '',
+    _stage_start_at: stageStartRaw || null,
+  };
+};
+
+const computeStageInfo = (row) => {
+  const start = toDateOrNull(row._stage_start_at) || toDateOrNull(row.date_received) || toDateOrNull(row.date_of_signing);
+  const days = daysBetweenUTC(start);
+  const thresh = STATUS_THRESHOLDS[row.status] ?? DEFAULT_THRESHOLD_DAYS;
+  const delayed = days >= thresh;
+  const delay_level = days > CRITICAL_THRESHOLD_DAYS ? 'critical' : (delayed ? 'high' : 'none');
+  return { ...row, days_in_stage: days, delayed, delay_level };
+};
+
+
+/* ---------- Small UI helpers reused from overview1 ---------- */
+
+const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Select...', allowClear = true }) => {
+  const normalized = options.map(o => (typeof o === 'string' ? { value: o, label: o } : o));
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef();
+
+  useEffect(() => {
+    function onDoc(e) {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        setQuery('');
+      }
+    }
+    document.addEventListener('click', onDoc);
+    return () => document.removeEventListener('click', onDoc);
+  }, []);
+
+  const filtered = normalized.filter(o => o.label.toLowerCase().includes(query.toLowerCase()));
+  const selectedLabel = normalized.find(o => String(o.value) === String(value))?.label || '';
+
+  return (
+    <div className="searchable-select" ref={ref} style={{ position: 'relative' }}>
+      <button type="button" className="ss-toggle" onClick={() => setOpen(v => !v)}>
+        <span className={`ss-value ${selectedLabel ? '' : 'placeholder'}`}>{selectedLabel || placeholder}</span>
+        <span className="ss-caret">▾</span>
+      </button>
+      {allowClear && selectedLabel && (
+        <button className="ss-clear" onClick={(e) => { e.stopPropagation(); onChange(''); setQuery(''); }}>×</button>
+      )}
+      {open && (
+        <div className="ss-panel" role="dialog" style={{ position: 'absolute', zIndex: 40, background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginTop: 6, width: 320, maxHeight: 260, overflow: 'auto' }}>
+          <div style={{ padding: 8 }}>
+            <input autoFocus className="ss-search" placeholder="Type to search..." value={query} onChange={(e) => setQuery(e.target.value)} style={{ width: '100%' }} />
+          </div>
+          <ul className="ss-list" role="listbox" aria-label="options" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {filtered.length === 0 && <li style={{ padding: 8, color: '#666' }}>No results</li>}
+            {filtered.map(o => (
+              <li key={o.value} className="ss-item" style={{ padding: 8, cursor: 'pointer' }} onClick={() => { onChange(o.value); setOpen(false); setQuery(''); }}>
+                {o.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* Minimal MultiPersonField and MultiRemarkField compatible with overview1 modal */
+
+const MultiPersonField = ({ listKey, legacyKeys, selected, setSelected }) => {
+  const list = Array.isArray(selected?.[listKey]) ? selected[listKey] : [];
+  const legacyItem = {
+    position: selected?.[legacyKeys?.positionKey] || '',
+    name: selected?.[legacyKeys?.nameKey] || '',
+    email: selected?.[legacyKeys?.emailKey] || '',
+  };
+  const value = list.length ? list : (legacyItem.name || legacyItem.position || legacyItem.email ? [legacyItem] : []);
+
+  const updateAt = (idx, key, val) => {
+    setSelected(s => {
+      const arr = Array.isArray(s?.[listKey]) && s[listKey].length ? [...s[listKey]] : [...value];
+      arr[idx] = { ...(arr[idx] || {}), [key]: val };
+      return { ...s, [listKey]: arr };
+    });
+  };
+  const add = () => setSelected(s => ({ ...s, [listKey]: [...value, { position: '', name: '', email: '' }] }));
+  const remove = (idx) => setSelected(s => ({ ...s, [listKey]: value.filter((_, i) => i !== idx) }));
+
+  return (
+    <div className="multi-list">
+      {value.map((p, idx) => (
+        <div key={idx} className="multi-row">
+          <input placeholder="Position" value={p.position || ''} onChange={(e) => updateAt(idx, 'position', e.target.value)} />
+          <input placeholder="Name" value={p.name || ''} onChange={(e) => updateAt(idx, 'name', e.target.value)} />
+          <input placeholder="Email" value={p.email || ''} onChange={(e) => updateAt(idx, 'email', e.target.value)} />
+          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(idx)}>🗑️</button>
+        </div>
+      ))}
+      <button type="button" className="btn" onClick={add}>Add</button>
+    </div>
+  );
+};
+
+const MultiRemarkField = ({ listKey, selected, setSelected }) => {
+  const list = Array.isArray(selected?.[listKey]) ? selected[listKey] : (selected?.remarks ? [selected.remarks] : []);
+  const updateAt = (idx, val) => setSelected(s => {
+    const arr = [...list];
+    arr[idx] = typeof arr[idx] === 'object' ? { ...arr[idx], text: val } : val;
+    return { ...s, [listKey]: arr };
   });
+  const add = () => setSelected(s => ({ ...s, [listKey]: [...list, ''] }));
+  const remove = (idx) => setSelected(s => ({ ...s, [listKey]: list.filter((_, i) => i !== idx) }));
+  return (
+    <div className="multi-list">
+      {list.map((r, i) => (
+        <div key={i} className="multi-row">
+          <input value={typeof r === 'object' ? (r.remark_text || r.text || '') : (r || '')} onChange={(e) => updateAt(i, e.target.value)} />
+          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(i)}>🗑️</button>
+        </div>
+      ))}
+      <button type="button" className="btn" onClick={add}>Add</button>
+    </div>
+  );
+};
 
-  // New states for editing functionality
+/* ---------- Main component ---------- */
+
+const OverviewMerged = () => {
+  const navigate = useNavigate();
+  
+  const [agreements, setAgreements] = useState([]);
+  const [filterStage, setFilterStage] = useState('');
+  const [filterClassification, setFilterClassification] = useState('');
+  const [filterValidity, setFilterValidity] = useState('');
+  const [filterCountry, setFilterCountry] = useState('');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [filterDelayed, setFilterDelayed] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [activeTab, setActiveTab] = useState('All');
+
+  // tmp filters for panel (Overview1 pattern)
+  const [tmpClassification, setTmpClassification] = useState('');
+  const [tmpValidity, setTmpValidity] = useState('');
+  const [tmpCountry, setTmpCountry] = useState('');
+
+  // modal / detail
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const originalRef = useRef(null);
+
+  // editing from legacy OverviewDash
   const [editingRow, setEditingRow] = useState(null);
   const [editedData, setEditedData] = useState({});
   const [savingRows, setSavingRows] = useState(new Set());
   const [deletingRows, setDeletingRows] = useState(new Set());
 
-  const rowsPerPage = 10;
+  // upload & docs
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [selectedAgreement, setSelectedAgreement] = useState(null);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadComment, setUploadComment] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const containerRef = useRef();
+  const filterPanelRef = useRef();
+  const modalFirstFieldRef = useRef(null);
+
+  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    fetchAgreements();
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+    } catch (e) { /* ignore */ }
   }, []);
 
-const fetchAgreements = async () => {
-  try {
-    const data = await agreementService.getAgreements();
-    console.log("Fetched agreements:", data);
-    setAgreements(data);
-    setFilteredAgreements(data);
-  } catch (err) {
-    console.error(err);
-    setError("Failed to fetch agreements: " + err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchAgreements = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await agreementService.getAgreements();
+      const raw = Array.isArray(data) ? data : (data?.items || []);
+      const filtered = raw.filter(a => a.agreement_status !== 'Active' && a.agreement_status !== 'Withdrawn');
+      const mapped = filtered.map(mapAgreement).map(computeStageInfo);
+      setAgreements(mapped);
+    } catch (err) {
+      console.error('Failed to fetch agreements:', err);
+      setError(err.detail || err.message || 'Failed to fetch agreements');
+      setAgreements([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const [dateSortOrder, setDateSortOrder] = useState(null);
+  useEffect(() => { fetchAgreements(); }, []);
 
-const handleDateSort = () => {
-  const newOrder = dateSortOrder === 'asc' ? 'desc' : 'asc';
-  setDateSortOrder(newOrder);
+  useEffect(() => { setCurrentPage(1); }, [filterStage, filterClassification, filterValidity, filterCountry, searchText, activeTab, agreements]);
 
-  const sorted = [...filteredAgreements].sort((a, b) => {
-    const dateA = new Date(a.entry_date);
-    const dateB = new Date(b.entry_date);
-    return newOrder === 'asc' ? dateA - dateB : dateB - dateA;
+  const STAGE_LIST = useMemo(() => LIFECYCLE_OPTIONS.filter(o => o.value), []);
+  const classificationOptions = useMemo(
+    () => Array.from(new Set(agreements.map(a => a.partnership_classification).filter(Boolean))),
+    [agreements]
+  );
+  const validityOptions = useMemo(
+    () => Array.from(new Set(agreements.map(a => a.validity_period).filter(Boolean))),
+    [agreements]
+  );
+  const countryOptions = useMemo(
+    () => Array.from(new Set(agreements.map(a => a.country).filter(Boolean))),
+    [agreements]
+  );
+
+  const baseList = useMemo(() => agreements.filter(a => {
+    if (activeTab === 'MOA' && a.document_type !== 'MOA') return false;
+    if (activeTab === 'MOU' && a.document_type !== 'MOU') return false;
+    if (filterDelayed && !a.delayed) return false;
+    if (filterClassification && a.partnership_classification !== filterClassification) return false;
+    if (filterCountry && a.country !== filterCountry) return false;
+    if (filterValidity && a.validity_period !== filterValidity) return false;
+    if (searchText) {
+      const s = searchText.toLowerCase();
+      const fields = [a.id, a.dts_no, a.partner_name, a.contact_person, a.point_name, a.country].filter(Boolean).map(v=>String(v).toLowerCase());
+      if (!fields.some(f=>f.includes(s))) return false;
+    }
+    return true;
+  }), [agreements, activeTab, filterClassification, filterCountry, filterValidity, searchText, filterDelayed]);
+
+  const filtered = baseList.filter(a => {
+    if (filterStage && a.status !== filterStage) return false;
+    return true;
   });
-  setFilteredAgreements(sorted);
-};
-  
 
-  // Start editing a specific row
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [totalPages, currentPage]);
+  const paged = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const getPk = (row) => row?._pk ?? row?.agreement_id ?? row?.id ?? row?.dts_no;
+
+  // counts for summary and stage cards (Overview1-style)
+  const pendingCount = baseList.length;
+  const needsAttention = baseList.filter(a => a.delayed).length;
+  const stageCounts = useMemo(() => {
+    const map = {};
+    for (const s of STAGE_LIST) map[s.value] = 0;
+    for (const a of baseList) { if (a.status && map[a.status] !== undefined) map[a.status] += 1; }
+    return map;
+  }, [baseList, STAGE_LIST]);
+  const stageHasDelayed = useMemo(() => {
+    const map = {};
+    for (const s of STAGE_LIST) map[s.value] = false;
+    for (const a of baseList) { if (a.status && a.delayed) map[a.status] = true; }
+    return map;
+  }, [baseList, STAGE_LIST]);
+
+  /* ---------- Detail modal helpers (open/hydrate/save) ---------- */
+
+  const loadAgreementDetails = async (pk) => {
+    if (!pk) return;
+    setModalLoading(true);
+    setModalError('');
+    try {
+      const full = await agreementService.getAgreementById(pk);
+      const mapped = computeStageInfo(mapAgreement(full));
+      setSelected(prev => ({ ...(prev || {}), ...mapped }));
+      setAgreements(prev => prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r)));
+      if (!isEditing) originalRef.current = mapped;
+    } catch (e) {
+      console.error('Failed to load details:', e);
+      setModalError(e.detail || e.message || 'Failed to load details');
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const openDetails = (row) => {
+    setSelected({ ...row });
+    originalRef.current = { ...row };
+    setIsEditing(false);
+    setDetailOpen(true);
+    loadAgreementDetails(row._pk ?? row.id);
+  };
+
+  const closeDetails = () => {
+    setDetailOpen(false);
+    setSelected(null);
+    setModalLoading(false);
+    setModalError('');
+  };
+
+  const buildPayloadFromSelected = (s) => {
+    const toNullIfEmpty = (v) => (v === '' || v === undefined ? null : v);
+    const normalizePersons = (list, legacy) => {
+      if (Array.isArray(list) && list.length) return list.map(p => ({ position: p.position||'', name: p.name||'', email: p.email||'' }));
+      const hasLegacy = s?.[legacy.position] || s?.[legacy.name] || s?.[legacy.email];
+      return hasLegacy ? [{ position: s?.[legacy.position]||'', name: s?.[legacy.name]||'', email: s?.[legacy.email]||'' }] : [];
+    };
+    const payload = {
+      dts_number: s.dts_no || s.id || undefined,
+      agreement_status: s.status || undefined,
+      document_type: s.document_type || undefined,
+      partnership_classification: s.partnership_classification || undefined,
+      validity_period: s.validity_period ? Number(s.validity_period) : undefined,
+      date_signed: toNullIfEmpty(s.date_of_signing),
+      date_expiry: toNullIfEmpty(s.expiry),
+      entry_date: toNullIfEmpty(s.date_received),
+      partner_name: s.partner_name || undefined,
+      address: s.address || undefined,
+      country: s.country || undefined,
+      region: s.region || undefined,
+      related_mou: s.related_mou || undefined,
+      point_persons: normalizePersons(s.point_people, { position: 'point_position', name: 'point_name', email: 'point_email' }),
+      contact_persons: normalizePersons(s.contact_people, { position: 'contact_position', name: 'contact_name', email: 'contact_email' }),
+      signatories: s.signatories || undefined,
+      website_link: s.website_link || undefined,
+      event_title: s.event_title || undefined,
+      brief_profile: s.brief_profile || undefined,
+      hardcopy_locator: s.hardcopy_locator || undefined,
+      remarks_list: Array.isArray(s.remarks_list) ? s.remarks_list : (s.remarks ? [s.remarks] : []),
+    };
+    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+    return payload;
+  };
+
+  const saveDetails = async () => {
+    if (!selected) return;
+    try {
+      const payload = buildPayloadFromSelected(selected);
+      const updated = await agreementService.updateAgreement(getPk(selected), payload);
+      const mapped = computeStageInfo(mapAgreement(updated));
+      setAgreements(prev => prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r)));
+      setSelected(mapped);
+      originalRef.current = mapped;
+      setIsEditing(false);
+    } catch (e) {
+      console.error(e);
+      alert(e.detail || e.message || 'Failed to save');
+    }
+  };
+
+  /* ---------- Legacy editing functions (from overviewDash) ---------- */
   const startEditing = (agreement) => {
-    setEditingRow(agreement.agreement_id);
+    setEditingRow(agreement._pk ?? agreement.agreement_id ?? agreement.id);
     setEditedData({ ...agreement });
   };
+  const cancelEditing = () => { setEditingRow(null); setEditedData({}); };
+  const handleInputChange = (field, value) => setEditedData(prev => ({ ...prev, [field]: value }));
 
-  // Cancel editing
-  const cancelEditing = () => {
-    setEditingRow(null);
-    setEditedData({});
-  };
-
-  // Handle input changes in edit mode
-  const handleInputChange = (field, value) => {
-    setEditedData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const deleteRow = async (agreementId) => {
-      const proceed = window.confirm('Are you sure you want to delete this agreement? This action cannot be undone.');
-      if (!proceed) return;
-
-      try {
-        setDeletingRows(prev => new Set(prev).add(agreementId));
-
-        await agreementService.deleteAgreement(agreementId);
-
-        // Remove from local state
-        setAgreements(prev => prev.filter(a => a.agreement_id !== agreementId));
-        setFilteredAgreements(prev => prev.filter(a => a.agreement_id !== agreementId));
-
-        // Clear edit state if the deleted row was being 
-        if (editingRow === agreementId) {
-          setEditingRow(null);
-          setEditedData({});
-        }
-
-        alert('Agreement deleted successfully.');
-      } catch (err) {
-        console.error('Error deleting agreement:', err);
-        alert('Failed to delete agreement: ' + err.message);
-      } finally {
-        setDeletingRows(prev => {
-          const s = new Set(prev);
-          s.delete(agreementId);
-          return s;
-        });
-      }
-    };
-
-  // Save changes to a specific row
   const saveRow = async (agreementId) => {
     try {
       setSavingRows(prev => new Set(prev).add(agreementId));
-
-      // Update the agreement
       await agreementService.updateAgreement(agreementId, editedData);
-
-      // Update local state
-      setAgreements(prev => prev.map(agreement =>
-        agreement.agreement_id === agreementId ? editedData : agreement
-      ));
-      setFilteredAgreements(prev => prev.map(agreement =>
-        agreement.agreement_id === agreementId ? editedData : agreement
-      ));
-
-      setEditingRow(null);
-      setEditedData({});
-
-      // Show success message (put css here frontend!!)
+      setAgreements(prev => prev.map(a => (String(a._pk ?? a.agreement_id ?? a.id) === String(agreementId) ? editedData : a)));
+      setEditingRow(null); setEditedData({});
       alert('Agreement updated successfully!');
-
-    } catch (error) {
-      console.error('Error saving agreement:', error);
-      alert('Failed to save changes: ' + error.message);
-    } finally {
-      setSavingRows(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(agreementId);
-        return newSet;
-      });
-    }
-  };
-
-  const handleViewLatestFile = async (dtsNumber) => {
-    try {
-      const latest = await documentService.getLatestVersion(dtsNumber);
-      if (!latest) {
-        alert("No document versions found for this DTS number.");
-        return;
-      }
-
-      // fetch the signed url, get blob, then open
-      const resp = await fetch(latest.download_url, { headers: { Accept: "application/pdf" } });
-      if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
-      const blob = await resp.blob();
-      const pdfBlob = new Blob([blob], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(pdfBlob);
-      window.open(url, "_blank");
-      // optional: revoke after a short delay
-      setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
     } catch (err) {
-      console.error("View failed:", err);
-      alert("Failed to open file: " + (err.message || err));
+      console.error('Error saving agreement:', err);
+      alert('Failed to save changes: ' + (err.message || err));
+    } finally {
+      setSavingRows(prev => { const s = new Set(prev); s.delete(agreementId); return s; });
     }
   };
-    // Helper functions for list editing -WIPPP
+
+  const deleteRow = async (agreementId) => {
+    const proceed = window.confirm('Are you sure you want to delete this agreement? This action cannot be undone.');
+    if (!proceed) return;
+    try {
+      setDeletingRows(prev => new Set(prev).add(agreementId));
+      await agreementService.deleteAgreement(agreementId);
+      setAgreements(prev => prev.filter(a => String(a._pk ?? a.agreement_id ?? a.id) !== String(agreementId)));
+      setEditingRow(prev => prev === agreementId ? null : prev);
+      alert('Agreement deleted successfully.');
+    } catch (err) {
+      console.error('Error deleting agreement:', err);
+      alert('Failed to delete agreement: ' + (err.message || err));
+    } finally {
+      setDeletingRows(prev => { const s = new Set(prev); s.delete(agreementId); return s; });
+    }
+  };
+
   const upsertListItem = (field, idx, key, val) => {
     setEditedData(prev => {
       const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
@@ -184,1203 +485,738 @@ const handleDateSort = () => {
       return { ...prev, [field]: list };
     });
   };
+  const addListItem = (field, template) => setEditedData(prev => ({ ...prev, [field]: Array.isArray(prev[field]) ? [...prev[field], template] : [template] }));
+  const removeListItem = (field, idx) => setEditedData(prev => { const list = Array.isArray(prev[field]) ? [...prev[field]] : []; list.splice(idx,1); return { ...prev, [field]: list }; });
 
-  const addListItem = (field, template) => {
-    setEditedData(prev => {
-      const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
-      return { ...prev, [field]: [...list, template] };
-    });
-  };
-
-  const removeListItem = (field, idx) => {
-    setEditedData(prev => {
-      const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
-      list.splice(idx, 1);
-      return { ...prev, [field]: list };
-    });
-  };
-
-  // Render editable cell
-  const renderEditableCell = (agreement, field, value) => {
-    const isEditing = editingRow === agreement.agreement_id;
-
-    const editableFields = [
-      'entry_date', 'source_unit', 'dts_number', 'dts_status', 'agreement_status',
-      'name', 'entity_type', 'country', 'region', 'address', 'signatories_list','partnership_type',
-      'contact_persons', 'document_type', 'partnership_type', 'event_info',
-      'validity_period', 'date_signed', 'date_expiry', 'date_received',
-      'date_endorsed_to_ulco', 'date_ulco_approved', 'date_signed_by_pup',
-      'agreement_status', 'website_url', 'description', 'hardcopy_location', 'remarks'
-    ];
-
-    const isEditable = editableFields.includes(field);
-
-      if (field === 'document_type' && !isEditing) {
-    const getDocumentTypeClass = (docType) => {
-      switch (docType?.toUpperCase()) {
-        case 'MOA':
-          return 'document-type-badge document-type-moa';
-        case 'MOU':
-          return 'document-type-badge document-type-mou';
-        default:
-          return 'document-type-badge document-type-default';
-      }
-    };
-
-    return (
-      <span className={getDocumentTypeClass(value)}>
-        {value || '-'}
-      </span>
-    );
-  }
-  
-    if (field === 'logo_path') {
-      if (!isEditing) {
-        return value ? (
-          <img
-            src={`data:image/png;base64,${value}`}
-            alt="Partner Logo"
-            style={{ width: "80px", height: "80px", objectFit: "contain" }}
-          />
-        ) : (
-          "-"
-        );
-      }
-
-      return (
-        <div>
-          {editedData.logo_path ? (
-            <img
-              src={`data:image/png;base64,${editedData.logo_path}`}
-              alt="Partner Logo"
-              style={{ width: "80px", height: "80px", objectFit: "contain" }}
-            />
-          ) : (
-            <span>No logo uploaded</span>
-          )}
-
-          <input
-            type="file"
-            accept="image/*"
-            style={{
-              marginTop: "8px",
-              width: "120px",
-              padding: "2px 4px",
-              fontSize: "12px",
-            }}
-            onChange={(e) => {
-              const file = e.target.files[0];
-              if (!file) return;
-
-              // Check size
-              if (file.size > 2 * 1024 * 1024) {
-                alert("Logo file is too large. Maximum size is 2MB.");
-                return;
-              }
-
-              // Read as base64
-              const reader = new FileReader();
-              reader.onload = () => {
-                const base64String = reader.result.split(",")[1]; // remove "data:image/png;base64,"
-
-                // Just update your local state
-                handleInputChange("logo_path", base64String);
-              };
-              reader.readAsDataURL(file);
-            }}
-          />
-
-        </div>
-      );
-    }
-    // Display/edit for POINT PERSONS
-    if (field === 'point_persons') {
-      if (!isEditing) {
-        if (Array.isArray(value) && value.length > 0) {
-          return (
-            <div>
-              {value.map((pp, idx) => (
-                <div key={idx}>
-                  {pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})
-                </div>
-              ))}
-            </div>
-          );
-        }
-        return '-';
-      }
-
-      const list = Array.isArray(editedData.point_persons) && editedData.point_persons.length > 0
-        ? editedData.point_persons
-        : [{ point_person_position: '', point_person_name: '', point_person_email: '' }];
-
-      return (
-        <div className="list-editor">
-          {list.map((pp, idx) => (
-            <div key={idx} className="list-row" style={{ marginBottom: '8px', display: 'flex', gap: '4px' }}>
-              <input
-                type="text"
-                className="edit-input"
-                placeholder="Position"
-                style={{ flex: 1, minWidth: '80px' }}
-                value={pp.point_person_position || ''}
-                onChange={(e) => upsertListItem('point_persons', idx, 'point_person_position', e.target.value)}
-              />
-              <input
-                type="text"
-                className="edit-input"
-                placeholder="Name"
-                style={{ flex: 1, minWidth: '100px' }}
-                value={pp.point_person_name || ''}
-                onChange={(e) => upsertListItem('point_persons', idx, 'point_person_name', e.target.value)}
-              />
-              <input
-                type="email"
-                className="edit-input"
-                placeholder="Email"
-                style={{ flex: 1, minWidth: '120px' }}
-                value={pp.point_person_email || ''}
-                onChange={(e) => upsertListItem('point_persons', idx, 'point_person_email', e.target.value)}
-              />
-              <button 
-                type="button" 
-                onClick={() => removeListItem('point_persons', idx)}
-                style={{ padding: '4px 8px', fontSize: '12px' }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => addListItem('point_persons', { point_person_position: '', point_person_name: '', point_person_email: '' })}
-            style={{ padding: '4px 8px', fontSize: '12px', marginTop: '4px' }}
-          >
-            + Add
-          </button>
-        </div>
-      );
-    }
-
-    // Display/edit for CONTACT PERSONS
-    if (field === 'contact_persons') {
-      if (!isEditing) {
-        if (Array.isArray(value) && value.length > 0) {
-          return (
-            <div>
-              {value.map((cp, idx) => (
-                <div key={idx}>
-                  {cp.contact_person_position}: {cp.contact_person_name} ({cp.contact_person_email})
-                </div>
-              ))}
-            </div>
-          );
-        }
-        return '-';
-      }
-
-      const list = Array.isArray(editedData.contact_persons) && editedData.contact_persons.length > 0
-        ? editedData.contact_persons
-        : [{ contact_person_position: '', contact_person_name: '', contact_person_email: '' }];
-
-      return (
-        <div className="list-editor">
-          {list.map((cp, idx) => (
-            <div key={idx} className="list-row" style={{ marginBottom: '8px', display: 'flex', gap: '4px' }}>
-              <input
-                type="text"
-                className="edit-input"
-                placeholder="Position"
-                style={{ flex: 1, minWidth: '80px' }}
-                value={cp.contact_person_position || ''}
-                onChange={(e) => upsertListItem('contact_persons', idx, 'contact_person_position', e.target.value)}
-              />
-              <input
-                type="text"
-                className="edit-input"
-                placeholder="Name"
-                style={{ flex: 1, minWidth: '100px' }}
-                value={cp.contact_person_name || ''}
-                onChange={(e) => upsertListItem('contact_persons', idx, 'contact_person_name', e.target.value)}
-              />
-              <input
-                type="email"
-                className="edit-input"
-                placeholder="Email"
-                style={{ flex: 1, minWidth: '120px' }}
-                value={cp.contact_person_email || ''}
-                onChange={(e) => upsertListItem('contact_persons', idx, 'contact_person_email', e.target.value)}
-              />
-              <button 
-                type="button" 
-                onClick={() => removeListItem('contact_persons', idx)}
-                style={{ padding: '4px 8px', fontSize: '12px' }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => addListItem('contact_persons', { contact_person_position: '', contact_person_name: '', contact_person_email: '' })}
-            style={{ padding: '4px 8px', fontSize: '12px', marginTop: '4px' }}
-          >
-            + Add
-          </button>
-        </div>
-      );
-    }
-
-    // Display/edit for REMARKS
-    if (field === 'remarks') {
-      if (!isEditing) {
-        if (Array.isArray(value) && value.length > 0) {
-          return (
-            <div>
-              {value.map((r, idx) => (
-                <div key={idx}>{r.remark_text}</div>
-              ))}
-            </div>
-          );
-        }
-        return '-';
-      }
-
-      const list = Array.isArray(editedData.remarks) && editedData.remarks.length > 0
-        ? editedData.remarks
-        : [{ remark_text: '' }];
-
-      return (
-        <div className="list-editor">
-          {list.map((r, idx) => (
-            <div key={idx} className="list-row" style={{ marginBottom: '8px', display: 'flex', gap: '4px' }}>
-              <input
-                type="text"
-                className="edit-input"
-                placeholder="Remark"
-                style={{ flex: 1 }}
-                value={r.remark_text || ''}
-                onChange={(e) => upsertListItem('remarks', idx, 'remark_text', e.target.value)}
-              />
-              <button 
-                type="button" 
-                onClick={() => removeListItem('remarks', idx)}
-                style={{ padding: '4px 8px', fontSize: '12px' }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => addListItem('remarks', { remark_text: '' })}
-            style={{ padding: '4px 8px', fontSize: '12px', marginTop: '4px' }}
-          >
-            + Add
-          </button>
-        </div>
-      );
-    }
-
-    // Generic display (not editing or not editable)
-    if (!isEditable || !isEditing) {
-      return value || '-';
-    }
-
-    // Special handling for different field types
-  if (field === 'agreement_status') {
-    return (
-      <select
-        value={editedData[field] || ''}
-        onChange={(e) => handleInputChange(field, e.target.value)}
-        className="edit-input"
-      >
-        <option value="">Select Status</option>
-        <option value="InitialReview">Initial Review</option>
-        <option value="Endorse">Endorse to ULCO for Review and Approval</option>
-        <option value="Revert">Revert To Initiator with Comments</option>
-        <option value="Consultation">For Consultation</option>
-        <option value="Replication">Replication of Copies (8 sets)</option>
-        <option value="SignituresPUP">For Signatures of PUP Officials</option>
-        <option value="SignedPUP">Signed by PUP Officials</option>
-        <option value="SignituresPartner">For Signatures of Partner</option>
-        <option value="SignedPartner">Signed by Partner Institution</option>
-        <option value="Complete">Completely Signed</option>
-        <option value="Notary">For Notary</option>
-        <option value="FFUPCopy">FFUP Copy From College/Campus</option>
-        <option value="Active">Active</option>
-        <option value="Withdrawn">Withdrawn</option>
-      </select>
-    );
-    } else if (field === 'dts_status') {
-      return (
-        <select
-          value={editedData[field] || ''}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          className="edit-input"
-        >
-          <option value="">Select Status</option>
-          <option value="Open - OIA">Open</option>
-          <option value="Open - Other Office">Close</option>
-        </select>
-      );
-    } else if (field === 'document_type') {
-      return (
-        <select
-          value={editedData[field] || ''}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          className="edit-input"
-        >
-          <option value="">Select Type</option>
-          <option value="MOA">MOA</option>
-          <option value="MOU">MOU</option>
-        </select>
-      );
-    } else if (field.includes('date')) {
-      return (
-        <input
-          type="date"
-          value={editedData[field] || ''}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          className="edit-input"
-        />
-      );
-    } else {
-      return (
-        <input
-          type="text"
-          value={editedData[field] || ''}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          className="edit-input"
-          placeholder={`Enter ${field.replace('_', ' ')}`}
-        />
-      );
-    }
-  };
-
-  const toggleMenu = (index) => {
-    setOpenMenuIndex(openMenuIndex === index ? null : index);
-  };
-
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    setOpenMenuIndex(null);
-  };
-
-const handleSearch = useCallback(() => {
-  let data = agreements;
-
-  // Exclude Active and Withdrawn
-  data = data.filter(a =>
-    a.agreement_status !== "Active" &&
-    a.agreement_status !== "Withdrawn"
-  );
-
-  // Filter by statFilter
-  if (statFilter) {
-    switch (statFilter) {
-      case 'OPEN':
-        data = data.filter(a => a.dts_status === 'Open - OIA');
-        break;
-      case 'CLOSE':
-        data = data.filter(a => a.dts_status === 'Open - Other Office');
-        break;
-      default:
-        break;
-    }
-  }
-
-  if (selectedStatus) {
-    data = data.filter(a => a.agreement_status === selectedStatus);
-  }
-
-  if (searchTerm.trim() !== '') {
-    const lowerTerm = searchTerm.toLowerCase();
-    data = data.filter(a =>
-      Object.values(a).some(val =>
-        val && val.toString().toLowerCase().includes(lowerTerm)
-      )
-    );
-  }
-
-  setFilteredAgreements(data);
-  setCurrentPage(1);
-}, [agreements, searchTerm, selectedStatus, statFilter]);
-
-useEffect(() => {
-  handleSearch();
-}, [handleSearch, statFilter]);
-
-  const filterByStatus = (status) => {
-    if (selectedStatus === status) {
-      setSelectedStatus(null);
-    } else {
-      setSelectedStatus(status);
-    }
-  };
-
-const applyIndependentFilter = () => {
-  let data = agreements;
-
-  // Exclude Active and Withdrawn
-  data = data.filter(a =>
-    a.agreement_status !== "Active" &&
-    a.agreement_status !== "Withdrawn"
-  );
-
-  // Always filter by statFilter first
-  if (statFilter) {
-    switch (statFilter) {
-      case 'OPEN':
-        data = data.filter(a => a.dts_status === 'Open - OIA');
-        break;
-      case 'CLOSE':
-        data = data.filter(a => a.dts_status === 'Open - Other Office');
-        break;
-      default:
-        break;
-    }
-  }
-
-  if (filters.documentType) {
-    data = data.filter(a => a.document_type === filters.documentType);
-  }
-  if (filters.partnershipType) {
-    data = data.filter(a => a.partnership_type === filters.partnershipType);
-  }
-  if (filters.validityPeriod) {
-    data = data.filter(a => a.validity_period === filters.validityPeriod);
-  }
-  if (filters.country) {
-    data = data.filter(a => a.country === filters.country);
-  }
-  setFilteredAgreements(data);
-  setCurrentPage(1);
-};
-
-const clearIndependentFilter = () => {
-  setFilters({ documentType: '', partnershipType: '', validityPeriod: '', country: '' });
-};
-
-const stats = [
-  { 
-    label: 'OPEN', 
-    count: agreements.filter(a => 
-      a.dts_status === 'Open - OIA' &&
-      a.agreement_status !== 'Active' &&
-      a.agreement_status !== 'Withdrawn'
-    ).length 
-  },
-  { 
-    label: 'CLOSE', 
-    count: agreements.filter(a => 
-      a.dts_status === 'Open - Other Office' &&
-      a.agreement_status !== 'Active' &&
-      a.agreement_status !== 'Withdrawn'
-    ).length 
-  },
-];
-  
-const filteredForLifecycle = agreements.filter(a => {
-  // Exclude Active and Withdrawn
-  if (a.agreement_status === "Active" || a.agreement_status === "Withdrawn") return false;
-  switch (statFilter) {
-    case 'OPEN':
-      return a.dts_status === 'Open - OIA';
-    case 'CLOSE':
-      return a.dts_status === 'Open - Other Office';
-    default:
-      return true;
-  }
-});
-
-const lifecycleStages = [
-  { label: 'Initial Review', status: 'InitialReview' },
-  { label: 'Endorse to ULCO', status: 'Endorse' },
-  { label: 'Revert to Initiator', status: 'Revert' },
-  { label: 'For Consultation', status: 'Consultation' },
-  { label: 'For Replication', status: 'Replication' },
-  { label: 'For Signature of PUP Official', status: 'SignituresPUP' },
-  { label: 'Signed by PUP Official', status: 'SignedPUP' },
-  { label: 'For Signature of Partners', status: 'SignituresPartner' },
-  { label: 'Signed by Partners', status: 'SignedPartner' },
-  { label: 'Completely Signed', status: 'Complete' },
-  { label: 'For Notary', status: 'Notary' },
-  { label: 'To FFUP Copy', status: 'FFUPCopy' },
-].map(stage => ({
-  ...stage,
-  count: filteredForLifecycle.filter(a => a.agreement_status === stage.status).length
-}));
-
-  const tableColumns = [
-    'Date',  'STATUS','DTS NO.', 'DTS LOCATION','SOURCE', 'POINT PERSON / POSITION',
-    "PARTNER'S NAME", 'ENTITY TYPE', 'COUNTRY', 'REGION', 'ADDRESS',
-    'SIGNATORIES / POSITION', 'CONTACT PERSON / DETAILS', 'DOCUMENT TYPE',
-    'PARTNERSHIP CLASSIFICATION', 'EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT',
-    'VALIDITY PERIOD', 'DATE / YEAR OF SIGNING', 'EXPIRY DATE / YEAR',
-    'DATE RECEIVED', 'DATE ENDORSED TO ULCO', "ULCO'S APPROVAL",
-    "PUP OFFICIALS' SIGNATURE", 'WEBSITE LINK',
-    'Brief Profile', 'LOGO', 'HARDCOPY LOCATOR', 'REMARKS', 'ACTIONS'
-  ];
-
-  const totalPages = Math.ceil(filteredAgreements.length / rowsPerPage);
-  
-  // added update: sort by entry_date descending by default (newest first) 
-  const sortedFilteredAgreements = [...filteredAgreements].sort((a, b) => new Date(b.entry_date) - new Date(a.entry_date));
-  // added update: paginate after sorting 
-  const paginatedData = sortedFilteredAgreements.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage); 
-
-  const [showUploadForm, setShowUploadForm] = useState(false);
-
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
-
-  const [selectedAgreement, setSelectedAgreement] = useState(null);
-  const [uploadFile, setUploadFile] = useState(null);
-  const [uploadComment, setUploadComment] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-
-    useEffect(() => {
+  /* ---------- File viewing/upload and export ---------- */
+  const handleViewLatestFile = async (dtsNumber) => {
     try {
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        const parsedUser = JSON.parse(userStr);
-        setCurrentUser(parsedUser);
-      }
+      const latest = await documentService.getLatestVersion(dtsNumber);
+      if (!latest) { alert("No document versions found for this DTS number."); return; }
+      const resp = await fetch(latest.download_url, { headers: { Accept: "application/pdf" } });
+      if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
+      const blob = await resp.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
     } catch (err) {
-      console.error("Error parsing user from localStorage:", err);
+      console.error("View failed:", err);
+      alert("Failed to open file: " + (err.message || err));
     }
-  }, []);
-
-  if (loading)
-  return (
-    <div className="overview-container">
-      <div className="lloading-container">
-        <div className="spinner"></div>
-        <p>Loading Overview...</p>
-      </div>
-    </div>
-  );
-  if (error) return <div className="overview-container">Error: {error}</div>;
-
-const filterByStat = (statLabel) => {
-  setStatFilter(statLabel);      // Set the stat filter (e.g., "OPEN - OIA")
-  setSelectedStatus(null);       // Reset any lifecycle/status filter
-  setCurrentPage(1);             // Reset to first page
-};
- 
-
-const exportToExcel = async () => {
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("Agreements");
-
-  const rawCols = tableColumns.filter((col) => col && col.toString().toUpperCase() !== "ACTIONS");
-  const desiredStart = ['Date', 'DOCUMENT TYPE'];
-  const remaining = rawCols.filter(c => !desiredStart.includes(c));
-  const excelColumns = [...desiredStart.filter(c => rawCols.includes(c)), ...remaining];
-  worksheet.columns = excelColumns.map((col) => ({ header: col, key: col, width: 30 }));
-
-  const formatPointPersons = (pps) => {
-    if (!Array.isArray(pps) || pps.length === 0) return "-";
-    return pps.map(pp => {
-      const pos = pp.point_person_position || pp.position || '';
-      const name = pp.point_person_name || pp.name || '';
-      const email = pp.point_person_email || pp.email || '';
-      return [pos && pos.trim(), name && name.trim(), email && `(${email.trim()})`].filter(Boolean).join(' ');
-    }).join('; ');
   };
 
-  const formatContactPersons = (cps) => {
-    if (!Array.isArray(cps) || cps.length === 0) return "-";
-    return cps.map(cp => {
-      const pos = cp.contact_person_position || cp.position || '';
-      const name = cp.contact_person_name || cp.name || '';
-      const email = cp.contact_person_email || cp.email || '';
-      return [pos && pos.trim(), name && name.trim(), email && `(${email.trim()})`].filter(Boolean).join(' ');
-    }).join('; ');
-  };
+  const exportToExcel = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Agreements");
+      const cols = ['Date','DOCUMENT TYPE','STATUS','DTS NO.','DTS LOCATION','SOURCE','POINT PERSON / POSITION','PARTNER\'S NAME','ENTITY TYPE','COUNTRY','REGION','ADDRESS','SIGNATORIES / POSITION','CONTACT PERSON / DETAILS','PARTNERSHIP CLASSIFICATION','EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT','VALIDITY PERIOD','DATE / YEAR OF SIGNING','EXPIRY DATE / YEAR','DATE RECEIVED','DATE ENDORSED TO ULCO',"ULCO'S APPROVAL","PUP OFFICIALS' SIGNATURE",'WEBSITE LINK','Brief Profile','LOGO','HARDCOPY LOCATOR','REMARKS'];
+      worksheet.columns = cols.map(c => ({ header: c, key: c, width: 30 }));
+      const overviewData = agreements.filter(a => a.status !== 'Active' && a.status !== 'Withdrawn');
+      const formatPointPersons = (pps) => {
+        if (!Array.isArray(pps) || pps.length === 0) return "-";
+        return pps.map(pp => `${pp.position||pp.point_person_position||''} ${pp.name||pp.point_person_name||''} ${pp.email?`(${pp.email})`:''}`.trim()).join('; ');
+      };
+      const formatContactPersons = (cps) => {
+        if (!Array.isArray(cps) || cps.length === 0) return "-";
+        return cps.map(cp => `${cp.position||cp.contact_person_position||''} ${cp.name||cp.contact_person_name||''} ${cp.email?`(${cp.email})`:''}`.trim()).join('; ');
+      };
+      const formatSignatories = (list) => {
+        if (!Array.isArray(list) || list.length === 0) return "-";
+        return list.map(s => `${s.name||s.signatory_name||''} ${s.position?`(${s.position})`:''}`.trim()).join('; ');
+      };
+      const formatRemarks = (rms) => {
+        if (!Array.isArray(rms) || rms.length === 0) return "-";
+        return rms.map(r => (r.remark_text || r.text || r)).join('; ');
+      };
 
-  const formatSignatories = (list) => {
-    if (!Array.isArray(list) || list.length === 0) return "-";
-    return list.map(s => {
-      const name = s.signatory_name || s.name || s.person || '';
-      const pos = s.signatory_position || s.position || '';
-      return [name && name.trim(), pos && `(${pos.trim()})`].filter(Boolean).join(' ');
-    }).join('; ');
-  };
-
-  const formatRemarks = (rms) => {
-    if (!Array.isArray(rms) || rms.length === 0) return "-";
-    return rms.map(r => {
-      const text = r.remark_text || r.text || '';
-      const ts = r.remark_timestamp || r.timestamp || '';
-      return ts ? `${text} [${ts}]` : text;
-    }).join('; ');
-  };
-
-  const headerIndex = excelColumns.reduce((m, h, i) => {
-    m[h] = i;
-    return m;
-  }, {});
-
-  const overviewData = agreements.filter(a =>
-    a.agreement_status !== "Active" &&
-    a.agreement_status !== "Withdrawn" &&
-    (a.dts_status === 'Open - OIA' || a.dts_status === 'Open - Other Office')
-  );
-
-  for (const a of overviewData) {
-    const rowArray = new Array(excelColumns.length).fill('');
-
-    if (headerIndex['Date'] !== undefined) rowArray[headerIndex['Date']] = a.entry_date || '';
-    if (headerIndex['DOCUMENT TYPE'] !== undefined) rowArray[headerIndex['DOCUMENT TYPE']] = a.document_type || '';
-
-    if (headerIndex['STATUS'] !== undefined) rowArray[headerIndex['STATUS']] = a.agreement_status || '';
-    if (headerIndex['DTS NO.'] !== undefined) rowArray[headerIndex['DTS NO.']] = a.dts_number || '';
-    if (headerIndex['DTS LOCATION'] !== undefined) rowArray[headerIndex['DTS LOCATION']] = a.dts_status || '';
-    if (headerIndex['SOURCE'] !== undefined) rowArray[headerIndex['SOURCE']] = a.source_unit || '';
-    if (headerIndex['POINT PERSON / POSITION'] !== undefined) rowArray[headerIndex['POINT PERSON / POSITION']] = formatPointPersons(a.point_persons);
-    if (headerIndex["PARTNER'S NAME"] !== undefined) rowArray[headerIndex["PARTNER'S NAME"]] = a.name || '';
-    if (headerIndex['ENTITY TYPE'] !== undefined) rowArray[headerIndex['ENTITY TYPE']] = a.entity_type || '';
-    if (headerIndex['COUNTRY'] !== undefined) rowArray[headerIndex['COUNTRY']] = a.country || '';
-    if (headerIndex['REGION'] !== undefined) rowArray[headerIndex['REGION']] = a.region || '';
-    if (headerIndex['ADDRESS'] !== undefined) rowArray[headerIndex['ADDRESS']] = a.address || '';
-    if (headerIndex['SIGNATORIES / POSITION'] !== undefined) rowArray[headerIndex['SIGNATORIES / POSITION']] = formatSignatories(a.signatories_list);
-    if (headerIndex['CONTACT PERSON / DETAILS'] !== undefined) rowArray[headerIndex['CONTACT PERSON / DETAILS']] = formatContactPersons(a.contact_persons);
-    if (headerIndex['PARTNERSHIP CLASSIFICATION'] !== undefined) rowArray[headerIndex['PARTNERSHIP CLASSIFICATION']] = a.partnership_type || '';
-    if (headerIndex['EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT'] !== undefined) rowArray[headerIndex['EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT']] = a.event_info || '';
-    if (headerIndex['VALIDITY PERIOD'] !== undefined) rowArray[headerIndex['VALIDITY PERIOD']] = a.validity_period || '';
-    if (headerIndex['DATE / YEAR OF SIGNING'] !== undefined) rowArray[headerIndex['DATE / YEAR OF SIGNING']] = a.date_signed || '';
-    if (headerIndex['EXPIRY DATE / YEAR'] !== undefined) rowArray[headerIndex['EXPIRY DATE / YEAR']] = a.date_expiry || '';
-    if (headerIndex['DATE RECEIVED'] !== undefined) rowArray[headerIndex['DATE RECEIVED']] = a.date_received || '';
-    if (headerIndex['DATE ENDORSED TO ULCO'] !== undefined) rowArray[headerIndex['DATE ENDORSED TO ULCO']] = a.date_endorsed_to_ulco || '';
-    if (headerIndex["ULCO'S APPROVAL"] !== undefined) rowArray[headerIndex["ULCO'S APPROVAL"]] = a.date_ulco_approved || '';
-    if (headerIndex["PUP OFFICIALS' SIGNATURE"] !== undefined) rowArray[headerIndex["PUP OFFICIALS' SIGNATURE"]] = a.date_signed_by_pup || '';
-    if (headerIndex['WEBSITE LINK'] !== undefined) rowArray[headerIndex['WEBSITE LINK']] = a.website_url || '';
-    if (headerIndex['Brief Profile'] !== undefined) rowArray[headerIndex['Brief Profile']] = a.description || '';
-    if (headerIndex['LOGO'] !== undefined) rowArray[headerIndex['LOGO']] = a.logo_path ? '' : '';
-    if (headerIndex['HARDCOPY LOCATOR'] !== undefined) rowArray[headerIndex['HARDCOPY LOCATOR']] = a.hardcopy_location || '';
-    if (headerIndex['REMARKS'] !== undefined) rowArray[headerIndex['REMARKS']] = formatRemarks(a.remarks);
-
-    const row = worksheet.addRow(rowArray);
-
-    if (a.logo_path && headerIndex['LOGO'] !== undefined) {
-      try {
-        const imgId = workbook.addImage({ base64: a.logo_path, extension: 'png' });
-        const colNum = headerIndex['LOGO'] + 1;
-        worksheet.getColumn(colNum).width = Math.max(worksheet.getColumn(colNum).width || 8, 18);
-        worksheet.getRow(row.number).height = Math.max(worksheet.getRow(row.number).height || 15, 60);
-        const colLetter = worksheet.getColumn(colNum).letter;
-        const range = `${colLetter}${row.number}:${colLetter}${row.number}`;
-        worksheet.addImage(imgId, range);
-      } catch (err) {
-        if (headerIndex['LOGO'] !== undefined) {
-          row.getCell(headerIndex['LOGO'] + 1).value = 'Has Logo';
-        }
-        console.warn('Failed to embed logo for DTS', a.dts_number, err);
+      for (const a of overviewData) {
+        const row = {
+          'Date': a.date_received || a.entry_date || '',
+          'DOCUMENT TYPE': a.document_type || '',
+          'STATUS': a.status || '',
+          'DTS NO.': a.dts_no || a.id || '',
+          'DTS LOCATION': a.dts_status || '',
+          'SOURCE': a.source_unit || '',
+          'POINT PERSON / POSITION': formatPointPersons(a.point_people||a.point_persons),
+          "PARTNER'S NAME": a.partner_name || a.name || '',
+          'ENTITY TYPE': a.entity_type || '',
+          'COUNTRY': a.country || '',
+          'REGION': a.region || '',
+          'ADDRESS': a.address || '',
+          'SIGNATORIES / POSITION': formatSignatories(a.signatories || a.signatories_list),
+          'CONTACT PERSON / DETAILS': formatContactPersons(a.contact_people||a.contact_persons),
+          'PARTNERSHIP CLASSIFICATION': a.partnership_classification || a.partnership_type || '',
+          'EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT': a.event_title || a.event_info || '',
+          'VALIDITY PERIOD': a.validity_period || '',
+          'DATE / YEAR OF SIGNING': a.date_of_signing || a.date_signed || '',
+          'EXPIRY DATE / YEAR': a.expiry || a.date_expiry || '',
+          'DATE RECEIVED': a.date_received || a.entry_date || '',
+          'DATE ENDORSED TO ULCO': a.date_endorsed_ulco || '',
+          "ULCO'S APPROVAL": a.ulco_approval || '',
+          "PUP OFFICIALS' SIGNATURE": a.pup_official_sign || a.date_signed_by_pup || '',
+          'WEBSITE LINK': a.website_link || a.website_url || '',
+          'Brief Profile': a.brief_profile || a.description || '',
+          'LOGO': a.logo ? 'Has Logo' : '',
+          'HARDCOPY LOCATOR': a.hardcopy_locator || a.hardcopy_location || '',
+          'REMARKS': formatRemarks(a.remarks_list || a.remarks || a.remarks)
+        };
+        worksheet.addRow(row);
       }
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer]), 'agreements_overview.xlsx');
+    } catch (err) {
+      console.error('Export failed', err);
+      alert('Export failed: ' + (err.message || err));
     }
-  }
+  };
 
-  worksheet.getRow(1).eachCell((cell) => {
-    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFB22222" } };
-    cell.alignment = { vertical: "middle", horizontal: "center" };
-  });
+  /* ---------- UI handlers ---------- */
 
-  worksheet.eachRow((row) => {
-    row.eachCell((cell) => {
-      cell.alignment = { wrapText: true, vertical: "top" };
-    });
-  });
+  const toggleMobileSidebar = () => {};
 
-  const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), "agreements_overview.xlsx");
-};
+  const navigateDetail = (dir) => {
+    if (!selected) return;
+    const idx = filtered.findIndex(f => f.id === selected.id);
+    if (idx === -1) return;
+    const next = filtered[idx + dir];
+    if (next) {
+      setSelected({ ...next });
+      loadAgreementDetails(next._pk ?? next.id);
+    }
+  };
 
+  const activateAgreement = (agreement) => {
+    if (!window.confirm(`Activate ${agreement.id} as active agreement?`)) return;
+    setAgreements(prev => prev.filter(r => r.id !== agreement.id));
+    navigate('/active-agreements', { state: { activated: agreement } });
+  };
 
+  const toggleMenu = (id) => setMenuOpenId(prev => (prev === id ? null : id));
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setMenuOpenId(null);
+      if (showFilterPanel && filterPanelRef.current && !filterPanelRef.current.contains(e.target)) setShowFilterPanel(false);
+    }
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showFilterPanel]);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setSelected(s => ({ ...(s||{}), logoFile: file, logo: url }));
+  };
+
+  /* ---------- Upload modal actions ---------- */
+  const openUploadFor = (agreement) => { setSelectedAgreement(agreement); setShowUploadForm(true); };
+  const submitUpload = async () => {
+    if (!uploadFile || !selectedAgreement) { alert('Please select file'); return; }
+    try {
+      setUploading(true);
+      await documentService.uploadVersion(selectedAgreement.dts_no || selectedAgreement.dts_number || selectedAgreement.id, uploadFile, uploadComment, selectedAgreement.status);
+      alert('Upload successful!');
+      setShowUploadForm(false); setSelectedAgreement(null); setUploadFile(null); setUploadComment('');
+    } catch (err) { console.error(err); alert('Upload failed: ' + (err.message || err)); }
+    finally { setUploading(false); }
+  };
+
+  if (loading) return (<div className="overview-container"><div className="lloading-container"><div className="spinner"></div><p>Loading Overview...</p></div></div>);
+  if (error) return (<div className="overview-container">Error: {error}</div>);
 
   return (
-    <div className="overview-container">
-      <div className="stats-row">
-  {stats.map((s, i) => (
-    <button
-      key={i}
-      className={`stat-card ${statFilter === s.label ? 'active' : ''}`}
-      onClick={() => filterByStat(s.label)}
-    >
-      <div className="stat-number">{s.count}</div>
-      <div className="stat-label">{s.label}</div>
-    </button>
-  ))}
-</div>
+    <div className="dashboard-container overview1-page">
+      <div className="overview1-inner">
 
-
-      <div className="lifecycle-section">
-        <h3>Lifecycle Agreement</h3>
-        <div className="lifecycle-bar">
-          {lifecycleStages.map((stage, i) => (
-            <div
-              key={i}
-              className={`lifecycle-box ${selectedStatus === stage.status ? 'active' : ''}`}
-              onClick={() => filterByStatus(stage.status)}
+        {/* Tabs */}
+        <div className="overview1-tabs-row">
+          {['All', 'MOA', 'MOU'].map(tab => (
+            <button
+              key={tab}
+              className={`overview1-tab ${activeTab === tab ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab)}
             >
-              <div className="count">{stage.count}</div>
-              <div className="label">{stage.label}</div>
-            </div>
+              {tab === 'All' ? 'All Agreements' : tab}
+            </button>
           ))}
         </div>
-      </div>
 
-      <div className="table-section">
-        <div className="table-header">
-          <div className="search-audit-wrapper">
-            <input
-              type="text"
-              placeholder="Search here"
-              className="search-box"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        <div className="table-actions">
-          <div className="button-group">
-            <button className="btn" onClick={() => setShowFilterPanel(!showFilterPanel)}>Filter</button>
-              <button className="btn btn-generate" onClick={exportToExcel}>
-                Generate
-              </button>
-                    <button
-        className="btn btn-scroll-nav"
-        title="Scroll to first column"
-        onClick={() => {
-          const tableScrollDiv = document.querySelector('.table-scroll');
-          if (tableScrollDiv) {
-            tableScrollDiv.scrollLeft = 0;
-          }
-        }}
-      >
-        ◄ First Column
-      </button>
-      <button
-        className="btn btn-scroll-nav"
-        title="Scroll to last column"
-        onClick={() => {
-          const tableScrollDiv = document.querySelector('.table-scroll');
-          if (tableScrollDiv) {
-            tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
-          }
-        }}
-      >
-        Last Column ►
-      </button>
-
-          </div>
-        </div>
+        {/* Summary */}
+        <div className="overview1-summary-row">
+          <button type="button" className="overview1-summary-card unified" disabled aria-disabled="true">
+            <div className="summary-title">Pending Tasks</div>
+            <div className="summary-number">{pendingCount}</div>
+            <div className="summary-sub">Agreements in progress</div>
+          </button>
+          <button
+            type="button"
+            className={`overview1-summary-card unified ${filterDelayed ? 'active' : ''}`}
+            onClick={() => { setFilterDelayed(v => !v); setCurrentPage(1); }}
+            aria-pressed={filterDelayed}
+            title="Show agreements that need attention"
+          >
+            <div className="summary-title">Needs Attention</div>
+            <div className="summary-number">{needsAttention}</div>
+            <div className="summary-sub">Overdue Agreements</div>
+          </button>
         </div>
 
+        {/* Stage cards */}
+        <div className="overview1-stage-cards" role="tablist" aria-label="Lifecycle stages">
+          {STAGE_LIST.map(s => (
+            <button
+              key={s.value}
+              className={`stage-card ${filterStage === s.value ? 'active' : ''} ${stageHasDelayed[s.value] ? 'delayed' : ''}`}
+              onClick={() => setFilterStage(prev => (prev === s.value ? '' : s.value))}
+              title={s.label}
+            >
+              <div className="stage-label">{s.label}</div>
+              <div className="stage-count">{stageCounts[s.value] || 0}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Controls */}
+        <div className="overview1-controls-row">
+          <input
+            className="overview1-search-input"
+            placeholder="Search by title, partner, or agreement ID..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+          <button
+            className={`overview1-filter-btn ${showFilterPanel ? 'open' : ''}`}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              setShowFilterPanel(v => {
+                if (!v) {
+                  setTmpClassification(filterClassification);
+                  setTmpValidity(filterValidity);
+                  setTmpCountry(filterCountry);
+                }
+                return !v;
+              });
+            }}
+            aria-expanded={showFilterPanel}
+            aria-controls="overview1-filter-panel"
+            title="Filters"
+          >
+            Filters
+          </button>
+          <button className="btn generate" onClick={exportToExcel}>Generate Report</button>
+        </div>
+
+        {/* Filter panel */}
         {showFilterPanel && (
-          <div className="filter-panel">
-            <label>
-              Document Type:
-              <select
-                value={filters.documentType}
-                onChange={(e) => setFilters({ ...filters, documentType: e.target.value })}
-              >
-                <option value="">All</option>
-                {[...new Set(agreements.map(a => a.document_type).filter(Boolean))].map((type, i) => (
-                  <option key={i} value={type}>{type}</option>
-                ))}
-              </select>
-            </label>
+          <div id="overview1-filter-panel" className="overview1-filter-panel" ref={filterPanelRef} role="region" aria-label="Table filters">
+            <div className="overview1-panel-row">
+              <label className="overview1-panel-field">
+                Partnership Classification
+                <select value={tmpClassification} onChange={(e) => setTmpClassification(e.target.value)}>
+                  <option value="">Select Classification</option>
+                  {classificationOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
 
-            <label>
-              Partnership Classification:
-              <select
-                value={filters.partnershipType}
-                onChange={(e) => setFilters({ ...filters, partnershipType: e.target.value })}
-              >
-                <option value="">All</option>
-                {[...new Set(agreements.map(a => a.partnership_type).filter(Boolean))].map((type, i) => (
-                  <option key={i} value={type}>{type}</option>
-                ))}
-              </select>
-            </label>
+              <label className="overview1-panel-field">
+                Validity Period
+                <select value={tmpValidity} onChange={(e) => setTmpValidity(e.target.value)}>
+                  <option value="">Select Validity</option>
+                  {validityOptions.map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
 
-            <label>
-              Validity Period:
-              <select
-                value={filters.validityPeriod}
-                onChange={(e) => setFilters({ ...filters, validityPeriod: e.target.value })}
-              >
-                <option value="">All</option>
-                {[...new Set(agreements.map(a => a.validity_period).filter(Boolean))].map((vp, i) => (
-                  <option key={i} value={vp}>{vp}</option>
-                ))}
-              </select>
-            </label>
+              <label className="overview1-panel-field">
+                Country
+                <select value={tmpCountry} onChange={(e) => setTmpCountry(e.target.value)}>
+                  <option value="">Select Country</option>
+                  {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
+            </div>
 
-            <label>
-              Country:
-              <select
-                value={filters.country}
-                onChange={(e) => setFilters({ ...filters, country: e.target.value })}
-              >
-                <option value="">All</option>
-                {[...new Set(agreements.map(a => a.country).filter(Boolean))].map((country, i) => (
-                  <option key={i} value={country}>{country}</option>
-                ))}
-              </select>
-            </label>
-
-            <div className="filter-actions">
-              <button onClick={applyIndependentFilter}>Apply</button>
-              <button onClick={clearIndependentFilter}>Clear</button>
+            <div className="overview1-filter-actions">
+              <button className="btn clear" onClick={() => {
+                setTmpClassification(''); setTmpValidity(''); setTmpCountry('');
+                setFilterClassification(''); setFilterValidity(''); setFilterCountry('');
+                setShowFilterPanel(false);
+              }}>Clear</button>
+              <button className="btn apply" onClick={() => {
+                setFilterClassification(tmpClassification);
+                setFilterValidity(tmpValidity);
+                setFilterCountry(tmpCountry);
+                setShowFilterPanel(false);
+              }}>Apply</button>
             </div>
           </div>
         )}
 
-        <div className="table-scroll">
-          <table className="document-table">
-          <thead>
-            <tr>
-              <th style={{ cursor: 'pointer' }} onClick={handleDateSort}>
-                  Date {dateSortOrder === 'asc' ? '▲' : dateSortOrder === 'desc' ? '▼' : '⇅'}
-                </th>
-              <th>DOCUMENT TYPE</th>  
-              <th>STATUS</th>
-              <th>DTS NO.</th>
-              <th>DTS STATUS</th>
-              <th>SOURCE</th>
-              <th>POINT PERSON / POSITION</th>
-              <th>PARTNER'S NAME</th>
-              <th>ENTITY TYPE</th>
-              <th>COUNTRY</th>
-              <th>REGION</th>
-              <th>ADDRESS</th>
-              <th>SIGNATORIES / POSITION</th>
-              <th>CONTACT PERSON / DETAILS</th>
-              <th>PARTNERSHIP CLASSIFICATION</th>
-              <th>EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT</th>
-              <th>VALIDITY PERIOD</th>
-              <th>DATE / YEAR OF SIGNING</th>
-              <th>EXPIRY DATE / YEAR</th>
-              <th>DATE RECEIVED</th>
-              <th>DATE ENDORSED TO ULCO</th>
-              <th>ULCO'S APPROVAL</th>
-              <th>PUP OFFICIALS' SIGNATURE</th>
-              <th>WEBSITE LINK</th>
-              <th>Brief Profile</th>
-              <th>LOGO</th>
-              <th>HARDCOPY LOCATOR</th>
-              <th>REMARKS</th>
-              <th>ACTIONS</th>
-            </tr>
-          </thead>
+        {/* Table */}
+        <div className="overview1-table-wrapper" ref={containerRef}>
+          <table className="overview1-agreements-table">
+            <thead>
+              <tr>
+                <th>Dts Number</th>
+                <th>Partner Name</th>
+                <th>Country</th>
+                <th>Classification</th>
+                <th>Validity Period</th>
+                <th>Document Type</th>
+                <th>Related MOU</th>
+                <th>Current Status</th>
+                <th>Days in Lifecycle</th>
+                <th>Point Person</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
             <tbody>
-              {paginatedData.length === 0 ? (
+              {paged.length === 0 && (
                 <tr>
-                  <td colSpan={tableColumns.length} style={{ textAlign: 'center' }}>
-                    No records found.
+                  <td colSpan={11} style={{ textAlign: 'center', padding: 24 }}>
+                    No agreements found
                   </td>
                 </tr>
-              ) : (
-                paginatedData.map((agreement, rowIndex) => (
-                  <tr key={agreement.agreement_id}
-                    className={editingRow === agreement.agreement_id ? 'editing-row' : ''}>
-                    <td>{renderEditableCell(agreement, 'entry_date', agreement.entry_date)}</td>
-                    <td>{renderEditableCell(agreement, 'document_type', agreement.document_type)}</td>
-                    <td>{renderEditableCell(agreement, 'agreement_status', agreement.agreement_status)}</td>
-                    <td>{renderEditableCell(agreement, 'dts_number', agreement.dts_number)}</td>
-                    <td>{renderEditableCell(agreement, 'dts_status', agreement.dts_status)}</td>
-                    <td>{renderEditableCell(agreement, 'source_unit', agreement.source_unit)}</td>
-                    <td>{renderEditableCell(agreement, 'point_persons', agreement.point_persons)}</td>
-                    <td>{renderEditableCell(agreement, 'name', agreement.name)}</td>
-                    <td>{renderEditableCell(agreement, 'entity_type', agreement.entity_type)}</td>
-                    <td>{renderEditableCell(agreement, 'country', agreement.country)}</td>
-                    <td>{renderEditableCell(agreement, 'region', agreement.region)}</td>
-                    <td>{renderEditableCell(agreement, 'address', agreement.address)}</td>
-                    <td>{renderEditableCell(agreement, 'signatories_list', agreement.signatories_list)}</td>
-                    <td>{renderEditableCell(agreement, 'contact_persons', agreement.contact_persons)}</td>
-                    <td>{renderEditableCell(agreement, 'partnership_type', agreement.partnership_type)}</td>
-                    <td>{renderEditableCell(agreement, 'event_info', agreement.event_info)}</td>
-                    <td>{renderEditableCell(agreement, 'validity_period', agreement.validity_period)}</td>
-                    <td>{renderEditableCell(agreement, 'date_signed', agreement.date_signed)}</td>
-                    <td>{renderEditableCell(agreement, 'date_expiry', agreement.date_expiry)}</td>
-                    <td>{renderEditableCell(agreement, 'date_received', agreement.date_received)}</td>
-                    <td>{renderEditableCell(agreement, 'date_endorsed_to_ulco', agreement.date_endorsed_to_ulco)}</td>
-                    <td>{renderEditableCell(agreement, 'date_ulco_approved', agreement.date_ulco_approved)}</td>
-                    <td>{renderEditableCell(agreement, 'date_signed_by_pup', agreement.date_signed_by_pup)}</td>
-                    <td>
-                      {editingRow === agreement.agreement_id ?
-                        renderEditableCell(agreement, 'website_url', agreement.website_url) :
-                        (agreement.website_url ? (
-                          <a href={agreement.website_url} target="_blank" rel="noopener noreferrer">
-                            {agreement.website_url.length > 30 ? agreement.website_url.slice(0, 30) + '...' : agreement.website_url}
-                          </a>
-                        ) : '-')
-                      }
-                    </td>
-                    <td>{renderEditableCell(agreement, 'description', agreement.description)}</td>
-                    <td>{renderEditableCell(agreement, 'logo_path', agreement.logo_path)}</td>
-                    <td>{renderEditableCell(agreement, 'hardcopy_location', agreement.hardcopy_location)}</td>
-                    <td>{renderEditableCell(agreement, 'remarks', agreement.remarks)}</td>
-                    <td>
-                      <div className="action-buttons">
-                        {editingRow === agreement.agreement_id ? (
-                          <>
-                            {currentUser?.user_role?.toLowerCase() === "admin" && (
-                              <>
-                                <button
-                                  className="btn-action save"
-                                  onClick={() => saveRow(agreement.agreement_id)}
-                                  disabled={savingRows.has(agreement.agreement_id)}
-                                >
-                                  {savingRows.has(agreement.agreement_id) ? 'Saving...' : 'Save'}
-                                </button>
-                                <button
-                                  className="btn-action cancel"
-                                  onClick={cancelEditing}
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {currentUser?.user_role?.toLowerCase() === "admin" && (
-                              <>
-                                <button
-                                  className="btn-action"
-                                  onClick={() => startEditing(agreement)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="btn-action delete"
-                                  onClick={() => deleteRow(agreement.agreement_id)}
-                                  disabled={deletingRows.has(agreement.agreement_id)}
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
-                          </>
-                        )}
-                                                <div className="menu-wrapper">
-                          <button
-                            className="dots-btn"
-                            onClick={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setDropdownPosition({
-                                top: rect.bottom,
-                                left: rect.left,
-                              });
-                              toggleMenu(rowIndex);
-                            }}
-                            title="More actions"
-                          >
-                            &#8942;
-                          </button>
-                          {openMenuIndex === rowIndex && (
-                            <div
-                              className="dropdown-menu"
-                              style={{
-                                position: "fixed",
-                                zIndex: 1000,
-                                top: dropdownPosition.top,
-                                left: dropdownPosition.left,
-                              }}
-                            >
-                              <div
-                                className="dropdown-item"
-                                onClick={() => handleViewLatestFile(agreement.dts_number)}
-                              >
-                                View File
-                              </div>
-                              <div
-                                className="dropdown-item"
-                                onClick={() => navigate(`/docVer?dts_number=${agreement.dts_number}`)}
-                              >
-                                View Older File
-                              </div>
-                              {currentUser?.user_role?.toLowerCase() === "admin" && (
-                                <div
-                                  className="dropdown-item"
-                                  onClick={() => {
-                                    setSelectedAgreement(agreement);
-                                    setShowUploadForm(true);
-                                  }}
-                                >
-                                  Upload New File
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                      </div>
-                    </td>
-                  </tr>
-                ))
               )}
+              {paged.map((row, rowIndex) => (
+                <tr key={row._pk || row.id || rowIndex} className={`${row.delayed ? 'delayed-row' : ''} ${row.delay_level ? `delay-${row.delay_level}` : ''}`}>
+                {/* Dts Number with warning */}
+                  <td className="id-cell">
+                    {row.delayed && (
+                      <span className={`warning-icon ${row.delay_level}`} title="Delayed">!</span>
+                    )}
+                    <span className="id-text">{row.id}</span>
+                  </td>
+                  {/* Partner Name */}
+                  <td className="partner-cell">
+                    <div className="partner-name">{row.partner_name || '—'}</div>
+                    <div className="partner-sub">{row.position || row.entity_type || ''}</div>
+                  </td>
+                  {/* Country */}
+                  <td>{row.country || '—'}</td>
+                  {/* Classification */}
+                  <td>{row.partnership_classification || '—'}</td>
+                  {/* Validity Period */}
+                  <td>{row.validity_period || '—'}</td>
+                  {/* Document Type */}
+                  <td>
+                    <span className={`badge doc ${row.document_type === 'MOA' ? 'moa' : 'mou'}`}>
+                      {row.document_type || '—'}
+                    </span>
+                  </td>
+                  {/* Related MOU */}
+                  <td>
+                    {row.related_mou ? (
+                      <span className="related-mou">
+                        {row.related_mou}
+                        <div className="req">Required</div>
+                      </span>
+                    ) : '—'}
+                  </td>
+                  {/* Current Status */}
+                  <td>
+                    <span className={`status-badge status-${slugifyStatus(row.status)}`}>
+                      {LIFECYCLE_OPTIONS.find(o => o.value === row.status)?.label || row.status || '—'}
+                    </span>
+                  </td>
+                  {/* Days in Lifecycle */}
+                  <td>
+                    <div className="days">
+                      {row.days_in_stage ?? 0} days {row.delayed && <span className="delay-note">Delayed</span>}
+                    </div>
+                  </td>
+                  {/* Point Person */}
+                  <td>
+                    <div className="pp-person">
+                      {((row.point_position || row.position) ? `${row.point_position || row.position}: ` : '') +
+                        (row.point_name || row.point_person || '—') +
+                        (row.point_email ? ` (${row.point_email})` : (row.contact_email ? ` (${row.contact_email})` : ''))}
+                    </div>
+                  </td>
+                {/* Actions */}
+                  <td className="actions-cell">
+                    <button className="icon-btn" title="View" onClick={() => openDetails(row)}>
+                      👁️
+                    </button>
+                    {(row.status && String(row.status).toLowerCase().includes('ffup')) && (
+                      <button className="icon-btn activate" title="Activate" onClick={() => activateAgreement(row)}>
+                        Activate
+                      </button>
+                    )}
+                    <button className="icon-btn" title="Delete" onClick={() => deleteRow(row._pk ?? row.id)}>
+                      🗑️
+                    </button>
+                    <div className="dots-menu" style={{ display: 'inline-block', position: 'relative' }}>
+                      <button className="icon-btn dots" onClick={(e) => { e.stopPropagation(); toggleMenu(row._pk ?? row.id); }}>
+                        ⋯
+                      </button>
+                      {menuOpenId === (row._pk ?? row.id) && (
+                        <div className="menu-popup" onClick={(e) => e.stopPropagation()}>
+                          <button className="menu-item" onClick={() => handleViewLatestFile(row.dts_no || row.id)}>View File</button>
+                          <button className="menu-item" onClick={() => navigate(`/docVer?dts_number=${row.dts_no || row.id}`)}>View Older Files</button>
+                          <button className="menu-item" onClick={() => openUploadFor(row)}>Upload New Version</button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
 
-        {paginatedData.length > 5 && (
-  <div className="table-bottom-actions">
-    <button
-      className="btn btn-scroll-nav"
-      title="Scroll to first column"
-      onClick={() => {
-        const tableScrollDiv = document.querySelector('.table-scroll');
-        if (tableScrollDiv) {
-          tableScrollDiv.scrollLeft = 0;
-        }
-      }}
-    >
-      ◄ First Column
-    </button>
-    <button
-      className="btn btn-scroll-nav"
-      title="Scroll to last column"
-      onClick={() => {
-        const tableScrollDiv = document.querySelector('.table-scroll');
-        if (tableScrollDiv) {
-          tableScrollDiv.scrollLeft = tableScrollDiv.scrollWidth;
-        }
-      }}
-    >
-      Last Column ►
-    </button>
-  </div>
-)}
-
-
-        <div className="pagination">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => handlePageChange(currentPage - 1)}
-          >
-            &laquo; Prev
-          </button>
-          {Array.from({ length: totalPages }, (_, i) => (
-            <button
-              key={i}
-              className={currentPage === i + 1 ? 'active' : ''}
-              onClick={() => handlePageChange(i + 1)}
-            >
-              {i + 1}
-            </button>
-          ))}
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => handlePageChange(currentPage + 1)}
-          >
-            Next &raquo;
-          </button>
-
+        {/* Pagination */}
+        <div className="overview1-pagination-row">
+          <div className="pagination">
+            <button className="page-btn" onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1}>Prev</button>
+            {Array.from({length: totalPages}).map((_,i)=>(
+              <button key={i} className={`page-btn ${currentPage===i+1?'active':''}`} onClick={()=>setCurrentPage(i+1)}>{i+1}</button>
+            ))}
+            <button className="page-btn" onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))} disabled={currentPage===totalPages}>Next</button>
+          </div>
+          <div className="page-info">Showing {filtered.length ? Math.min(filtered.length, (currentPage-1)*itemsPerPage+1) : 0} - {Math.min(filtered.length, currentPage*itemsPerPage)} of {filtered.length}</div>
         </div>
 
-      <div className="table-footer">
-        {currentUser?.user_role?.toLowerCase() === "admin" && (
-          <button className="btn-add" onClick={() => navigate('/docUpload')}> + Add Document</button>
+        {/* Detail modal */}
+        {detailOpen && selected && (
+          <div className="overview1-modal-backdrop" onClick={closeDetails}>
+            <div className="overview1-modal" onClick={(e)=>e.stopPropagation()}>
+              <div className="overview1-modal-header" role="dialog" aria-labelledby="modal-title">
+                <div className="modal-nav">
+                  <button className="nav-btn" onClick={() => navigateDetail(-1)} title="Previous">‹</button>
+                  <h3 id="modal-title">Agreement Details — {selected.id}</h3>
+                  <button className="nav-btn" onClick={() => navigateDetail(1)} title="Next">›</button>
+                </div>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <button className="close" onClick={closeDetails} aria-label="Close">×</button>
+                </div>
+              </div>
+
+              <div className="overview1-modal-body">
+                {modalError && <div style={{ color: '#b00020', margin: '8px 0' }}>{modalError}</div>}
+                {modalLoading ? (
+                  <div>Loading details...</div>
+                ) : (
+                  <div className="overview1-details-grid overview1-form-grid">
+                    {/* Date */}
+                    <label className="field">
+                      Date
+                      <input
+                        ref={modalFirstFieldRef}
+                        type="date"
+                        value={selected.date || selected.date_received || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, date_received: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* Source */}
+                    <label className="field">
+                      Source
+                      <input
+                        value={selected.source_unit || selected.source || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, source_unit: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* Point person / position */}
+                    <div className="full-col">
+                      <label className="field full">Point person / position
+                        <MultiPersonField
+                          listKey="point_people"
+                          legacyKeys={{ positionKey: 'point_position', nameKey: 'point_name', emailKey: 'point_email' }}
+                          selected={selected}
+                          setSelected={setSelected}
+                        />
+                      </label>
+                    </div>
+
+                    {/* DTS NO. */}
+                    <label className="field">
+                      DTS NO.
+                      <input
+                        value={selected.dts_no || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, dts_no: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* Status */}
+                    <label className="field">
+                      STATUS
+                      <select
+                        value={selected.status || ''}
+                        onChange={(e) =>
+                          setSelected(s => {
+                            const nextStatus = e.target.value;
+                            if (nextStatus !== s.status) {
+                              const now = new Date().toISOString();
+                              return {
+                                ...s,
+                                status: nextStatus,
+                                _stage_start_at: now,
+                                last_status_change: now,
+                                days_in_stage: 0,
+                                delayed: false,
+                                delay_level: 'none',
+                              };
+                            }
+                            return s;
+                          })
+                        }
+                      >
+                        <option value="">Select Status</option>
+                        {LIFECYCLE_OPTIONS.filter(o=>o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </label>
+
+                    {/* Partner's name */}
+                    <label className="field">
+                      Partner's name
+                      <input
+                        value={selected.partner_name || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, partner_name: e.target.value }))}
+                      />
+                    </label>
+                    
+                    {/* Address */}
+                    <label className="field">
+                      Address
+                      <input
+                        value={selected.address || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, address: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* Country */}
+                    <label className="field">
+                      Country
+                      <SearchableSelect
+                        options={countryOptions.map(c => ({ value: c, label: c }))}
+                        value={selected.country || ''}
+                        onChange={(val) => setSelected(s => ({ ...s, country: val }))}
+                        placeholder="Select Country"
+                      />
+                    </label>
+
+                    {/* Region */}
+                    <label className="field">
+                      Region
+                      <input
+                        value={selected.region || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, region: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* Signatories */}
+                    <div className="full-col">
+                      <label className="field">
+                        Signatories
+                        <input
+                          value={selected.signatories || ''}
+                          onChange={(e) => setSelected(s => ({ ...s, signatories: e.target.value }))}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Contact person / details */}
+                    <div className="full-col">
+                      <label className="field full">Contact person / details
+                        <MultiPersonField
+                          listKey="contact_people"
+                          legacyKeys={{ positionKey: 'contact_position', nameKey: 'contact_name', emailKey: 'contact_email' }}
+                          selected={selected}
+                          setSelected={setSelected}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Document type */}
+                    <label className="field">
+                      Document type
+                      <select
+                        value={selected.document_type || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, document_type: e.target.value }))}
+                      >
+                        <option value="">Select</option>
+                        <option value="MOA">MOA</option>
+                        <option value="MOU">MOU</option>
+                      </select>
+                    </label>
+
+                    {/* Partnership classification */}
+                    <label className="field">
+                      Partnership classification
+                      <SearchableSelect
+                        options={classificationOptions.map(c => ({ value: c, label: c }))}
+                        value={selected.partnership_classification || ''}
+                        onChange={(val) => setSelected(s => ({ ...s, partnership_classification: val }))}
+                        placeholder="Select Classification"
+                      />
+                    </label>
+
+                    {/* Validity Period */}
+                    <label className="field">
+                      Validity Period
+                      <select value={selected.validity_period || ''} onChange={(e)=>setSelected(s=>({...s, validity_period: e.target.value}))}>
+                        <option value="">Select Validity</option>
+                        {validityOptions.map(v => <option key={v} value={v}>{v}</option>)}
+                      </select>
+                    </label>
+
+                    {/* Date / Year of Signing */}
+                    <label className="field">
+                      DATE / YEAR OF SIGNING
+                      <input type="date" value={selected.date_of_signing || ''} onChange={(e)=>setSelected(s=>({...s, date_of_signing: e.target.value}))} />
+                    </label>
+
+                    {/* Expiry */}
+                    <label className="field">
+                      EXPIRY DATE / YEAR
+                      <input type="date" value={selected.expiry || ''} onChange={(e)=>setSelected(s=>({...s, expiry: e.target.value}))} />
+                    </label>
+
+                    {/* Date Received */}
+                    <label className="field">
+                      DATE RECEIVED
+                      <input
+                        type="date"
+                        value={selected.date_received || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, date_received: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* Date Endorsed to ULCO */}
+                    <label className="field">
+                      DATE ENDORSED TO ULCO
+                      <input
+                        type="date"
+                        value={selected.date_endorsed_ulco || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, date_endorsed_ulco: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* ULCO's Approval */}
+                    <label className="field">
+                      ULCO'S APPROVAL
+                      <input
+                        type="date"
+                        value={selected.ulco_approval || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, ulco_approval: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* PUP Official's Signature */}
+                    <label className="field">
+                      PUP OFFICIALS' SIGNATURE
+                      <input
+                        type="date"
+                        value={selected.pup_official_sign || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, pup_official_sign: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* Website Link */}
+                    <label className="field">
+                      WEBSITE LINK
+                      <input
+                        value={selected.website_link || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, website_link: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* Event title full width */}
+                    <div className="full-col">
+                      <label className="field full">EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT
+                        <input
+                          value={selected.event_title || ''}
+                          onChange={(e) => setSelected(s => ({ ...s, event_title: e.target.value }))}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Brief Profile - full width */}
+                    <div className="full-col">
+                      <label className="field full">BRIEF PROFILE
+                        <input
+                          value={selected.brief_profile || ''}
+                          onChange={(e) => setSelected(s => ({ ...s, brief_profile: e.target.value }))}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Logo */}
+                    <label className="field">
+                      LOGO - upload
+                      <div className="logo-upload">
+                        {selected.logo ? <img src={selected.logo} className="logo-preview" alt="logo"/> : null}
+                        <input type="file" accept="image/*" onChange={handleLogoUpload} />
+                      </div>
+                    </label>
+
+                    {/* Hardcopy locator */}
+                    <label className="field">
+                      HARDCOPY LOCATOR
+                      <input
+                        value={selected.hardcopy_locator || ''}
+                        onChange={(e) => setSelected(s => ({ ...s, hardcopy_locator: e.target.value }))}
+                      />
+                    </label>
+
+                    {/* Remarks full width */}
+                    <div className="full-col">
+                      <label className="field full">REMARKS
+                        <MultiRemarkField
+                          listKey="remarks_list"
+                          selected={selected}
+                          setSelected={setSelected}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="overview1-modal-footer">
+                <button className="btn cancel" onClick={closeDetails}>Cancel</button>
+                {!isEditing ? (
+                  <button className="btn save" onClick={()=>setIsEditing(true)}>Edit</button>
+                ) : (
+                  <>
+                    <button className="btn save" onClick={saveDetails}>Save</button>
+                    <button className="btn cancel" onClick={() => { setSelected(originalRef.current); setIsEditing(false); }}>Revert</button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         )}
-      </div>
-      </div>
 
-    {/* Upload New File Modal */}
-    {showUploadForm && (
-      <div className="overview-upload-form-overlay">
-        <div className="overview-upload-form-modal">
-          <h3>Upload New File</h3>
-
-          {selectedAgreement && (
-            <p className="overview-upload-form-info">
-              For: <strong>{selectedAgreement.name}</strong>
-            </p>
-          )}
-
-          {selectedAgreement && (
-            <p className="overview-upload-form-info">
-              Status: <strong>{selectedAgreement.agreement_status}</strong>
-            </p>
-          )}
-
-          <form>
-            <div className="overview-upload-form-group">
-              <label>Upload File:</label>
-              <input
-                type="file"
-                onChange={(e) => setUploadFile(e.target.files[0])}
-              />
+        {/* Upload Modal */}
+        {showUploadForm && (
+          <div className="overview-upload-form-overlay">
+            <div className="overview-upload-form-modal">
+              <h3>Upload New File</h3>
+              {selectedAgreement && <p>For: <strong>{selectedAgreement.partner_name || selectedAgreement.name}</strong></p>}
+              <div className="overview-upload-form-group">
+                <label>Upload File:</label>
+                <input type="file" onChange={(e)=>setUploadFile(e.target.files[0])} />
+              </div>
+              <div className="overview-upload-form-group">
+                <label>Comments:</label>
+                <textarea placeholder="Enter comments here" value={uploadComment} onChange={(e)=>setUploadComment(e.target.value)}></textarea>
+              </div>
+              <div className="modal-actions">
+                <button className="cancel-button" onClick={()=>{ setShowUploadForm(false); setSelectedAgreement(null); setUploadFile(null); setUploadComment(""); }}>Cancel</button>
+                <button className="submit-button" disabled={uploading} onClick={submitUpload}>{uploading ? 'Uploading...' : 'Submit'}</button>
+              </div>
             </div>
+          </div>
+        )}
 
-            <div className="overview-upload-form-group">
-              <label>Comments:</label>
-              <textarea
-                placeholder="Enter comments here"
-                value={uploadComment}
-                onChange={(e) => setUploadComment(e.target.value)}
-              ></textarea>
-            </div>
-
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="cancel-button"
-                onClick={() => {
-                  setShowUploadForm(false);
-                  setSelectedAgreement(null);
-                  setUploadFile(null);
-                  setUploadComment("");
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="submit-button"
-                disabled={uploading}
-                onClick={async () => {
-                  if (!uploadFile) {
-                    alert("Please select a file.");
-                    return;
-                  }
-                  try {
-                    setUploading(true);
-                    const res = await documentService.uploadVersion(
-                      selectedAgreement.dts_number,
-                      uploadFile,
-                      uploadComment,
-                      selectedAgreement.agreement_status // status_at_upload
-                    );
-                    alert("Upload successful!");
-                    console.log("Uploaded:", res);
-                    setShowUploadForm(false);
-                    setSelectedAgreement(null);
-                    setUploadFile(null);
-                    setUploadComment("");
-                  } catch (err) {
-                    console.error("Upload failed:", err);
-                    alert("Upload failed: " + err.message);
-                  } finally {
-                    setUploading(false);
-                  }
-                }}
-              >
-                {uploading ? "Uploading..." : "Submit"}
-              </button>
-            </div>
-          </form>
-        </div>
       </div>
-
-
-    )}
-  </div>
-);
+    </div>
+  );
 };
 
-export default OverviewDash;
+export default OverviewMerged;
