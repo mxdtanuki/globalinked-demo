@@ -184,7 +184,9 @@ const Notification = () => {
                     <div className="notification-top">
                       <span className="notification-text">{n.title}</span>
                       <div className="notification-actions">
-                        <span className="notification-time">{n.time}</span>
+                        <span className="notification-time">
+  {new Date(new Date(n.time).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
+</span>
                         {!n.read && (
                           <button
                             className="mark-btn"
@@ -239,7 +241,11 @@ const Notification = () => {
             <h3>{activeNotif.title}</h3>
             <p>{activeNotif.message}</p>
             <p><b>Recommended Action:</b> {activeNotif.action}</p>
-            <p><i>{activeNotif.time}</i></p>
+            <p>
+              <i>
+                {new Date(new Date(activeNotif.time).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
+              </i>
+            </p>
             <button onClick={() => setShowModal(false)}>Close</button>
           </div>
         </div>

@@ -8,7 +8,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { agreementService } from '../services/agreementService';
 import { documentService } from '../services/documentService';
-
+ 
 const Mobility = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
@@ -20,8 +20,22 @@ const Mobility = () => {
     country: "",
     validity: "",
   });
+
+   const [pendingFilters, setPendingFilters] = useState({
+    partnersClassification: "",
+    entityType: "",
+    country: "",
+    validity: "",
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+    useEffect(() => {
+    if (showFilters) {
+      setPendingFilters(filters);
+    }
+  }, [showFilters, filters]);
 
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,14 +61,28 @@ const fetchAgreements = async () => {
   }
 };
   
-  const dynamicOptions = {
-    partnersClassification: [
-      ...new Set(agreements.map((d) => d.partnership_type).filter(Boolean)),
-    ],
-    entityType: [...new Set(agreements.map((d) => d.entity_type).filter(Boolean))],
-    country: [...new Set(agreements.map((d) => d.country).filter(Boolean))],
-    validity: [...new Set(agreements.map((d) => d.validity_period).filter(Boolean))],
+  const normalizeLabel = (v) => {
+    if (!v && v !== 0) return "";
+    const s = String(v).trim().replace(/\s+/g, " ");
+    return s
+      .toLowerCase()
+      .split(" ")
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+      .join(" ");
   };
+
+  const uniqueSorted = (arr) =>
+    [...new Set((arr || []).map(normalizeLabel).filter(Boolean))].sort();
+
+  const dynamicOptions = {
+    partnersClassification: uniqueSorted(
+      agreements.map((d) => d.partnership_type)
+    ),
+    entityType: uniqueSorted(agreements.map((d) => d.entity_type)),
+    country: uniqueSorted(agreements.map((d) => d.country)),
+    validity: uniqueSorted(agreements.map((d) => d.validity_period)),
+  };
+
 
   // Apply search and filters
   const filteredData = agreements.filter((item) => {
@@ -275,74 +303,105 @@ const handleGenerateExcel = async () => {
 
             {/* Filters row */}
             {showFilters && (
-              <div className="filters-container">
-                <select
-                  value={filters.partnersClassification}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      partnersClassification: e.target.value,
-                    }))
-                  }
-                >
-                  <option value="">All Classifications</option>
-                  {dynamicOptions.partnersClassification.map((opt, idx) => (
-                    <option key={idx} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
+              <div className="filters-panel">
+                <div className="filters-row">
+                  <select
+                    value={pendingFilters.partnersClassification}
+                    onChange={(e) =>
+                      setPendingFilters((prev) => ({
+                        ...prev,
+                        partnersClassification: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">All Classifications</option>
+                    {dynamicOptions.partnersClassification.map((opt, idx) => (
+                      <option key={idx} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
 
-                <select
-                  value={filters.entityType}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      entityType: e.target.value,
-                    }))
-                  }
-                >
-                  <option value="">All Entity Types</option>
-                  {dynamicOptions.entityType.map((opt, idx) => (
-                    <option key={idx} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
+                  <select
+                    value={pendingFilters.entityType}
+                    onChange={(e) =>
+                      setPendingFilters((prev) => ({
+                        ...prev,
+                        entityType: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">All Entity Types</option>
+                    {dynamicOptions.entityType.map((opt, idx) => (
+                      <option key={idx} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
 
-                <select
-                  value={filters.country}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      country: e.target.value,
-                    }))
-                  }
-                >
-                  <option value="">All Countries</option>
-                  {dynamicOptions.country.map((opt, idx) => (
-                    <option key={idx} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
+                  <select
+                    value={pendingFilters.country}
+                    onChange={(e) =>
+                      setPendingFilters((prev) => ({
+                        ...prev,
+                        country: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">All Countries</option>
+                    {dynamicOptions.country.map((opt, idx) => (
+                      <option key={idx} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
 
-                <select
-                  value={filters.validity}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      validity: e.target.value,
-                    }))
-                  }
-                >
-                  <option value="">All Validity</option>
-                  {dynamicOptions.validity.map((opt, idx) => (
-                    <option key={idx} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
+                  <select
+                    value={pendingFilters.validity}
+                    onChange={(e) =>
+                      setPendingFilters((prev) => ({
+                        ...prev,
+                        validity: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">All Validity</option>
+                    {dynamicOptions.validity.map((opt, idx) => (
+                      <option key={idx} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="filter-actions">
+                  <button
+                    className="apply-btn"
+                    onClick={() => {
+                      setFilters(pendingFilters);
+                      setCurrentPage(1);
+                      setShowFilters(false);
+                    }}
+                  >
+                    Apply
+                  </button>
+                  <button
+                    className="clear-btn"
+                    onClick={() => {
+                      const empty = {
+                        partnersClassification: "",
+                        entityType: "",
+                        country: "",
+                        validity: "",
+                      };
+                      setPendingFilters(empty);
+                      setFilters(empty);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
             )}
 

@@ -27,6 +27,11 @@ const DocumentVersion = () => {
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
   const itemsPerPage = 10;
+  const [tempDocType, setTempDocType] = useState("");
+  const [tempPartnershipType, setTempPartnershipType] = useState("");
+  const [tempVersion, setTempVersion] = useState("");
+  const [tempStatus, setTempStatus] = useState("");
+
 
   useEffect(() => {
     if (prefilledDts) {
@@ -207,12 +212,10 @@ const DocumentVersion = () => {
       {/* Filters */}
       {showFilters && (
         <div className="filter-section">
+          {/* Temporary state selectors */}
           <select
-            value={filterDocType}
-            onChange={(e) => {
-              setFilterDocType(e.target.value);
-              setCurrentPage(1);
-            }}
+            value={tempDocType}
+            onChange={(e) => setTempDocType(e.target.value)}
           >
             <option value="">All Document Types</option>
             <option value="MOA">MOA</option>
@@ -220,11 +223,8 @@ const DocumentVersion = () => {
           </select>
 
           <select
-            value={filterPartnershipType}
-            onChange={(e) => {
-              setFilterPartnershipType(e.target.value);
-              setCurrentPage(1);
-            }}
+            value={tempPartnershipType}
+            onChange={(e) => setTempPartnershipType(e.target.value)}
           >
             <option value="">All Partnership Types</option>
             {partnershipTypes.map((type, i) => (
@@ -235,11 +235,8 @@ const DocumentVersion = () => {
           </select>
 
           <select
-            value={filterVersion}
-            onChange={(e) => {
-              setFilterVersion(e.target.value);
-              setCurrentPage(1);
-            }}
+            value={tempVersion}
+            onChange={(e) => setTempVersion(e.target.value)}
           >
             <option value="">All Versions</option>
             {versions.map((v, i) => (
@@ -250,11 +247,8 @@ const DocumentVersion = () => {
           </select>
 
           <select
-            value={filterStatus}
-            onChange={(e) => {
-              setFilterStatus(e.target.value);
-              setCurrentPage(1);
-            }}
+            value={tempStatus}
+            onChange={(e) => setTempStatus(e.target.value)}
           >
             <option value="">All Status</option>
             {statuses.map((s, i) => (
@@ -263,6 +257,37 @@ const DocumentVersion = () => {
               </option>
             ))}
           </select>
+
+          <div className="filter-actions">
+            <button
+              className="apply-btn"
+              onClick={() => {
+                setFilterDocType(tempDocType);
+                setFilterPartnershipType(tempPartnershipType);
+                setFilterVersion(tempVersion);
+                setFilterStatus(tempStatus);
+                setCurrentPage(1);
+              }}
+            >
+              Apply
+            </button>
+            <button
+              className="clear-btn"
+              onClick={() => {
+                setTempDocType("");
+                setTempPartnershipType("");
+                setTempVersion("");
+                setTempStatus("");
+                setFilterDocType("");
+                setFilterPartnershipType("");
+                setFilterVersion("");
+                setFilterStatus("");
+                setCurrentPage(1);
+              }}
+            >
+              Clear
+            </button>
+          </div>
         </div>
       )}
 

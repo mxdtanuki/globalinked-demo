@@ -6,7 +6,7 @@ import "./auditLogs.css";
 import axios from "axios";
 import { FiTrash2 } from "react-icons/fi";
 
-const API_BASE_URL = 'http://localhost:8000' || process.env.REACT_APP_API_BASE_URL;
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
 const FILTERS = [
   { label: "All", value: "all" },
@@ -138,10 +138,11 @@ const AuditLogsPage = () => {
           <div className="auditlogs-container">
             {/* Filter Buttons */}
             <div style={{ marginBottom: "18px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <div className="audit-filter-group">
               {FILTERS.map((f) => (
                 <button
                   key={f.value}
-                  className={filter === f.value ? "active-filter-btn" : "filter-btn"}
+                  className={filter === f.value ? "audit-active-filter-btn" : "audit-filter-btn"}
                   onClick={() => {
                     setFilter(f.value);
                     setCurrentPage(1);
@@ -151,6 +152,7 @@ const AuditLogsPage = () => {
                   {f.label}
                 </button>
               ))}
+            </div>
             </div>
 
           {selectedLogs.length > 0 && (
@@ -215,7 +217,9 @@ const AuditLogsPage = () => {
                         </td>
                         <td>{log.audit_description}</td>
                         <td>{log.user_name}</td>
-                        <td>{new Date(log.audit_timestamp).toLocaleString()}</td>
+                        <td>
+                          {new Date(new Date(log.audit_timestamp).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
+                        </td>
                         <td>
                           <button
                             className="delete-btn"
@@ -261,3 +265,4 @@ const AuditLogsPage = () => {
 };
 
 export default AuditLogsPage;
+ 

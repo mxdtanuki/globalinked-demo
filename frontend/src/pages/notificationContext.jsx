@@ -43,14 +43,20 @@ const refresh = async () => {
 
 
   useEffect(() => {
-    refresh();
+  refresh();
 
-    // Poll for new notifications every 20 seconds #change later!!!
-    const interval = setInterval(() => {
-      refresh();
-    }, 20000);
+  const interval = setInterval(async () => {
+    try {
+      const server = await notificationService.fetchNotifications();
+      const ui = mapServerToUi(server);
+      setNotifications(ui);
+      console.log("🔄 Auto-refreshed notifications");
+    } catch (err) {
+      console.error("Auto-refresh failed:", err);
+    }
+  }, 20000);
 
-    return () => clearInterval(interval);
+  return () => clearInterval(interval);
   }, []);
 
   // mark a single notification as read
