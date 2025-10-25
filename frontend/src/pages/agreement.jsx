@@ -9,7 +9,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import axios from "axios";
 import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
-
+ 
 const AgreementDocument = () => {
   const [mobileShow, setMobileShow] = useState(false);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);

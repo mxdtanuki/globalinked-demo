@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import './layout.css';
 import './overview1.css';
+import '../pages/activeAgreement.css';
 import { agreementService } from '../services/agreementService';
 import { documentService } from '../services/documentService';
 import ExcelJS from 'exceljs';
@@ -34,6 +36,34 @@ const STATUS_THRESHOLDS = {
   "SignedPartner": 3, "Complete": 3, "Notary": 3, "FFUPCopy": 3,
 };
 
+const normalizeStatusIn = (s) => {
+  const raw = String(s || '').replace(/\s+/g, '').toLowerCase();
+  const map = {
+    initialreview: 'InitialReview',
+    endorse: 'Endorse',
+    revert: 'Revert',
+    consultation: 'Consultation',
+    replication: 'Replication',
+    signiturespup: 'SignituresPUP',
+    signedpup: 'SignedPUP',
+    signiturespartner: 'SignituresPartner',
+    signedpartner: 'SignedPartner',
+    complete: 'Complete',
+    notary: 'Notary',
+    ffupcopy: 'FFUPCopy',
+  };
+  return map[raw] || raw; 
+};
+
+const normalizeRemarks = (r) => {
+  if (!r) return [];
+  if (Array.isArray(r))
+    return r.map((item) => (typeof item === "object" ? item.remark_text || item.text || item.remark || "" : String(item)));
+  if (typeof r === "string") return r.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  return [];
+};
+
+
 const toDateOrNull = (d) => {
   if (!d) return null;
   const t = Date.parse(d);
@@ -51,47 +81,128 @@ const slugifyStatus = (s) => {
   return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 };
 
-const mapAgreement = (a) => {
-  const firstPoint = Array.isArray(a.point_persons) && a.point_persons.length > 0 ? a.point_persons[0] : null;
-  const firstContact = Array.isArray(a.contact_persons) && a.contact_persons.length > 0 ? a.contact_persons[0] : null;
+const asDataUrl = (val) => {
+  if (!val) return '';
+  if (typeof val !== 'string') return '';
+  if (val.startsWith('http') || val.startsWith('data:')) return val;
+  // assume backend gives raw base64 (PNG)
+  return `data:image/png;base64,${val}`;
+};
+
+const formatSignatories = (list) => {
+  if (!Array.isArray(list) || list.length === 0) return "-";
+  return list.map(s => {
+    const name = s.signatory_name || s.name || s.person || '';
+    const pos = s.signatory_position || s.position || '';
+    return [name && name.trim(), pos && `(${pos.trim()})`].filter(Boolean).join(' ');
+  }).join('; ');
+};
+
+  const toISODate = (val) => {
+    if (!val) return '';
+    if (val instanceof Date && !isNaN(val)) return val.toISOString().slice(0, 10);
+    const s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; // already ISO
+    // MM/DD/YYYY or DD/MM/YYYY
+    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) {
+      let mm = parseInt(m[1], 10), dd = parseInt(m[2], 10), yyyy = parseInt(m[3], 10);
+      // if first part > 12, treat as DD/MM/YYYY
+      if (mm > 12) [dd, mm] = [mm, dd];
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${yyyy}-${pad(mm)}-${pad(dd)}`;
+    }
+    const t = Date.parse(s);
+    if (Number.isFinite(t)) return new Date(t).toISOString().slice(0, 10);
+    return ''; // unknown format
+  };
+
+const mapAgreement = (a = {}) => {
   const stageStartRaw =
     a.last_status_change || a.status_changed_at || a.status_updated_at || a.updated_at ||
-    a.date_updated || a.date_received || a.entry_date || a.date_of_signing;
+    a.date_updated || a.date_received || a.entry_date || a.date_of_signing || a.date_signed;
+
+  // normalize people arrays -> {position,name,email}
+  const normalizePeople = (arr = [], kind) =>
+    Array.isArray(arr)
+      ? arr.map(p => ({
+          position: p.position || p[`${kind}_person_position`] || p.title || '',
+          name: p.name || p[`${kind}_person_name`] || p.full_name || p.person || '',
+          email: p.email || p[`${kind}_person_email`] || p.mail || '',
+        }))
+      : [];
+
+  const point_people = normalizePeople(a.point_persons, 'point');
+  const contact_people = normalizePeople(a.contact_persons, 'contact');
+
+  // signatories to single-line text
+ const sigString =
+    a.signatories || a.signatories_text || a.signatories_str ||
+    a.signatory_names || a.signatories_names || '';
+  const signatories_list = Array.isArray(a.signatories_list)
+    ? a.signatories_list
+    : (Array.isArray(a.signatories)
+        ? a.signatories
+        : (typeof sigString === 'string'
+            ? sigString.split(/[,;\n]+/).map(n => n.trim()).filter(Boolean).map(name => ({ name }))
+            : []));
+  const signatoriesText = formatSignatories(signatories_list);
 
   return {
-    _pk: a.agreement_id ?? a.id ?? a.dts_number,
-    id: a.dts_number || a.id || a.agreement_id || '',
-    dts_no: a.dts_number || '',
+    // identifiers
+    agreement_id: a.agreement_id || a.id || null,
+    _pk: a.agreement_id ?? a.id ?? a.dts_number ?? a.dts_no,
+    id: a.dts_number || a.dts_no || a.id || a.agreement_id || '',
+    dts_no: a.dts_number || a.dts_no || '',
+
+    // core info
     partner_name: a.name || a.partner_name || '',
     entity_type: a.entity_type || '',
     country: a.country || '',
     region: a.region || '',
     address: a.address || '',
-    point_position: firstPoint?.position || a.point_position || '',
-    point_name: firstPoint?.name || a.point_name || a.point_person || '',
-    point_email: firstPoint?.email || a.point_email || '',
-    contact_person: firstContact?.name || a.contact_person || '',
-    contact_email: firstContact?.email || a.contact_email || '',
-    point_people: Array.isArray(a.point_persons) ? a.point_persons : undefined,
-    contact_people: Array.isArray(a.contact_persons) ? a.contact_persons : undefined,
+    source_unit: a.source_unit || a.source || a.initiating_unit || '',
+
+    // people (single + list)
+    point_position: point_people[0]?.position || a.point_position || '',
+    point_name: point_people[0]?.name || a.point_name || a.point_person || '',
+    point_email: point_people[0]?.email || a.point_email || '',
+    contact_position: contact_people[0]?.position || a.contact_position || '',
+    contact_name: contact_people[0]?.name || a.contact_name || a.contact_person || '',
+    contact_person: contact_people[0]?.name || a.contact_person || '',
+    contact_email: contact_people[0]?.email || a.contact_email || '',
+    point_people: point_people.length ? point_people : undefined,
+    contact_people: contact_people.length ? contact_people : undefined,
+
+    // classification
     document_type: a.document_type || '',
     partnership_classification: a.partnership_type || a.partnership_classification || '',
-    validity_period: a.validity_period ? String(a.validity_period) : '',
-    date_of_signing: a.date_signed || a.date_of_signing || '',
-    expiry: a.date_expiry || a.expiry || '',
-    date_received: a.entry_date || a.date_received || '',
-    status: a.agreement_status || a.status || '',
+    validity_period: a.validity_period != null ? String(a.validity_period) : '',
+
+    // dates/status
+    status: normalizeStatusIn(a.agreement_status || a.status || ''),
+    date_of_signing: toISODate(a.date_signed || a.date_of_signing || ''),
+    expiry: toISODate(a.date_expiry || a.expiry || ''),
+    date_received: toISODate(a.entry_date || a.date_received || a.date || ''),
+    date_endorsed_ulco: toISODate(a.date_endorsed_ulco || a.date_endorsed_to_ulco || ''),
+    ulco_approval: toISODate(a.ulco_approval || a.date_ulco_approved || ''),
+    pup_official_sign: toISODate(a.pup_official_sign || a.date_signed_by_pup || ''),
+
+    // computed timing
     days_in_stage: typeof a.days_in_stage === 'number' ? a.days_in_stage : 0,
     delayed: typeof a.days_in_stage === 'number' ? a.days_in_stage >= DEFAULT_THRESHOLD_DAYS : false,
+
+    // related documents
     related_mou: a.related_mou || a.MOU_to_MOA_id || a.mou_number || null,
-    signatories: Array.isArray(a.signatories) ? a.signatories.map(s => s.name || s).join('; ') : (a.signatories || ''),
+    signatories: signatoriesText,
+    signatories_list,
     website_link: a.website_link || a.website_url || '',
     event_title: a.event_title || a.event_info || '',
     brief_profile: a.brief_profile || a.description || '',
     hardcopy_locator: a.hardcopy_locator || a.hardcopy_location || '',
-    logo: a.logo || a.logo_path || '',
-    remarks_list: Array.isArray(a.remarks_list) ? a.remarks_list : undefined,
-    remarks: a.remarks || '',
+    logo: asDataUrl(a.logo_url) || asDataUrl(a.logo_path) || asDataUrl(a.logo),
+    remarks: normalizeRemarks(a.remarks_list || a.remarks),
+
     _stage_start_at: stageStartRaw || null,
   };
 };
@@ -158,7 +269,7 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Select
 
 /* Minimal MultiPersonField and MultiRemarkField compatible with overview1 modal */
 
-const MultiPersonField = ({ listKey, legacyKeys, selected, setSelected }) => {
+const MultiPersonField = ({ listKey, legacyKeys, selected, setSelected, disabled = false }) => {
   const list = Array.isArray(selected?.[listKey]) ? selected[listKey] : [];
   const legacyItem = {
     position: selected?.[legacyKeys?.positionKey] || '',
@@ -168,48 +279,49 @@ const MultiPersonField = ({ listKey, legacyKeys, selected, setSelected }) => {
   const value = list.length ? list : (legacyItem.name || legacyItem.position || legacyItem.email ? [legacyItem] : []);
 
   const updateAt = (idx, key, val) => {
+    if (disabled) return;
     setSelected(s => {
       const arr = Array.isArray(s?.[listKey]) && s[listKey].length ? [...s[listKey]] : [...value];
       arr[idx] = { ...(arr[idx] || {}), [key]: val };
       return { ...s, [listKey]: arr };
     });
   };
-  const add = () => setSelected(s => ({ ...s, [listKey]: [...value, { position: '', name: '', email: '' }] }));
-  const remove = (idx) => setSelected(s => ({ ...s, [listKey]: value.filter((_, i) => i !== idx) }));
+  const add = () => { if (disabled) return; setSelected(s => ({ ...s, [listKey]: [...value, { position: '', name: '', email: '' }] })); };
+  const remove = (idx) => { if (disabled) return; setSelected(s => ({ ...s, [listKey]: value.filter((_, i) => i !== idx) })); };
 
   return (
     <div className="multi-list">
       {value.map((p, idx) => (
         <div key={idx} className="multi-row">
-          <input placeholder="Position" value={p.position || ''} onChange={(e) => updateAt(idx, 'position', e.target.value)} />
-          <input placeholder="Name" value={p.name || ''} onChange={(e) => updateAt(idx, 'name', e.target.value)} />
-          <input placeholder="Email" value={p.email || ''} onChange={(e) => updateAt(idx, 'email', e.target.value)} />
-          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(idx)}>🗑️</button>
+          <input placeholder="Position" value={p.position || ''} onChange={(e) => updateAt(idx, 'position', e.target.value)} disabled={disabled} />
+          <input placeholder="Name" value={p.name || ''} onChange={(e) => updateAt(idx, 'name', e.target.value)} disabled={disabled} />
+          <input placeholder="Email" value={p.email || ''} onChange={(e) => updateAt(idx, 'email', e.target.value)} disabled={disabled} />
+          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(idx)} disabled={disabled}>🗑️</button>
         </div>
       ))}
-      <button type="button" className="btn" onClick={add}>Add</button>
+      <button type="button" className="btn" onClick={add} disabled={disabled}>Add</button>
     </div>
   );
 };
 
-const MultiRemarkField = ({ listKey, selected, setSelected }) => {
+const MultiRemarkField = ({ listKey, selected, setSelected, disabled = false }) => {
   const list = Array.isArray(selected?.[listKey]) ? selected[listKey] : (selected?.remarks ? [selected.remarks] : []);
-  const updateAt = (idx, val) => setSelected(s => {
+  const updateAt = (idx, val) => { if (disabled) return; setSelected(s => {
     const arr = [...list];
     arr[idx] = typeof arr[idx] === 'object' ? { ...arr[idx], text: val } : val;
     return { ...s, [listKey]: arr };
-  });
-  const add = () => setSelected(s => ({ ...s, [listKey]: [...list, ''] }));
-  const remove = (idx) => setSelected(s => ({ ...s, [listKey]: list.filter((_, i) => i !== idx) }));
+  }); };
+  const add = () => { if (disabled) return; setSelected(s => ({ ...s, [listKey]: [...list, ''] })); };
+  const remove = (idx) => { if (disabled) return; setSelected(s => ({ ...s, [listKey]: list.filter((_, i) => i !== idx) })); };
   return (
     <div className="multi-list">
       {list.map((r, i) => (
         <div key={i} className="multi-row">
-          <input value={typeof r === 'object' ? (r.remark_text || r.text || '') : (r || '')} onChange={(e) => updateAt(i, e.target.value)} />
-          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(i)}>🗑️</button>
+          <input value={typeof r === 'object' ? (r.remark_text || r.text || '') : (r || '')} onChange={(e) => updateAt(i, e.target.value)} disabled={disabled} />
+          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(i)} disabled={disabled}>🗑️</button>
         </div>
       ))}
-      <button type="button" className="btn" onClick={add}>Add</button>
+      <button type="button" className="btn" onClick={add} disabled={disabled}>Add</button>
     </div>
   );
 };
@@ -257,6 +369,8 @@ const OverviewMerged = () => {
   const [currentUser, setCurrentUser] = useState(null);
 
   const [menuOpenId, setMenuOpenId] = useState(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const menuRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const containerRef = useRef();
@@ -279,8 +393,11 @@ const OverviewMerged = () => {
     try {
       const data = await agreementService.getAgreements();
       const raw = Array.isArray(data) ? data : (data?.items || []);
-      const filtered = raw.filter(a => a.agreement_status !== 'Active' && a.agreement_status !== 'Withdrawn');
-      const mapped = filtered.map(mapAgreement).map(computeStageInfo);
+      const filtered = raw.filter(a => 
+        (a.agreement_status !== 'Active' && a.agreement_status !== 'Withdrawn') &&
+        (a.status !== 'Active' && a.status !== 'Withdrawn')
+      );
+    const mapped = filtered.map(mapAgreement).map(computeStageInfo);
       setAgreements(mapped);
     } catch (err) {
       console.error('Failed to fetch agreements:', err);
@@ -333,7 +450,7 @@ const OverviewMerged = () => {
   useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [totalPages, currentPage]);
   const paged = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const getPk = (row) => row?._pk ?? row?.agreement_id ?? row?.id ?? row?.dts_no;
+  const getPk = (row) => row?.agreement_id ?? row?._pk ?? row?.id ?? row?.dts_no;
 
   // counts for summary and stage cards (Overview1-style)
   const pendingCount = baseList.length;
@@ -353,12 +470,25 @@ const OverviewMerged = () => {
 
   /* ---------- Detail modal helpers (open/hydrate/save) ---------- */
 
-  const loadAgreementDetails = async (pk) => {
-    if (!pk) return;
+  const loadAgreementDetails = async (rowOrId) => {
+    const row = typeof rowOrId === 'object' ? rowOrId : null;
+    const byId = row ? (row.agreement_id ?? null) : rowOrId;
+    const byDts = row ? (row.dts_no || row.id || null) : null;
     setModalLoading(true);
     setModalError('');
     try {
-      const full = await agreementService.getAgreementById(pk);
+      let full = null;
+    if (byId) {
+      full = await agreementService.getAgreementById(byId);
+    } else {
+      // Fallback by DTS if your service supports it
+      if (typeof agreementService.getAgreementByDts === 'function') {
+        full = await agreementService.getAgreementByDts(byDts);
+      } else {
+       // last resort: try the same endpoint with DTS (may 404)
+        full = await agreementService.getAgreementById(byDts);
+      }
+    }
       const mapped = computeStageInfo(mapAgreement(full));
       setSelected(prev => ({ ...(prev || {}), ...mapped }));
       setAgreements(prev => prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r)));
@@ -372,11 +502,12 @@ const OverviewMerged = () => {
   };
 
   const openDetails = (row) => {
+    // seed the modal with the same mapped data used by the table
     setSelected({ ...row });
     originalRef.current = { ...row };
     setIsEditing(false);
     setDetailOpen(true);
-    loadAgreementDetails(row._pk ?? row.id);
+    loadAgreementDetails(row);
   };
 
   const closeDetails = () => {
@@ -414,7 +545,7 @@ const OverviewMerged = () => {
       event_title: s.event_title || undefined,
       brief_profile: s.brief_profile || undefined,
       hardcopy_locator: s.hardcopy_locator || undefined,
-      remarks_list: Array.isArray(s.remarks_list) ? s.remarks_list : (s.remarks ? [s.remarks] : []),
+      remarks_list: Array.isArray(s.remarks) ? s.remarks : [],
     };
     Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
     return payload;
@@ -425,7 +556,15 @@ const OverviewMerged = () => {
     try {
       const payload = buildPayloadFromSelected(selected);
       const updated = await agreementService.updateAgreement(getPk(selected), payload);
-      const mapped = computeStageInfo(mapAgreement(updated));
+      let mapped = computeStageInfo(mapAgreement(updated));
+      // if the status changed compared to the original loaded row, reset stage start so days show from now
+      try {
+        const origStatus = originalRef.current?.status;
+        if (origStatus && mapped.status && origStatus !== mapped.status) {
+          mapped._stage_start_at = new Date().toISOString();
+          mapped = computeStageInfo(mapped);
+        }
+      } catch (e) {/* ignore */}
       setAgreements(prev => prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r)));
       setSelected(mapped);
       originalRef.current = mapped;
@@ -476,16 +615,21 @@ const OverviewMerged = () => {
     }
   };
 
-  const upsertListItem = (field, idx, key, val) => {
+  const upsertListItem = (field, idx, val) => {
+  setEditedData(prev => {
+    const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
+    list[idx] = val; // Directly set the string value
+    return { ...prev, [field]: list };
+  });
+};
+
+  // add an empty string
+  const addListItem = (field, template) => {
     setEditedData(prev => {
       const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
-      const item = { ...(list[idx] || {}) };
-      item[key] = val;
-      list[idx] = item;
-      return { ...prev, [field]: list };
+      return { ...prev, [field]: [...list, ''] }; // Add empty string
     });
   };
-  const addListItem = (field, template) => setEditedData(prev => ({ ...prev, [field]: Array.isArray(prev[field]) ? [...prev[field], template] : [template] }));
   const removeListItem = (field, idx) => setEditedData(prev => { const list = Array.isArray(prev[field]) ? [...prev[field]] : []; list.splice(idx,1); return { ...prev, [field]: list }; });
 
   /* ---------- File viewing/upload and export ---------- */
@@ -510,7 +654,7 @@ const OverviewMerged = () => {
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Agreements");
-      const cols = ['Date','DOCUMENT TYPE','STATUS','DTS NO.','DTS LOCATION','SOURCE','POINT PERSON / POSITION','PARTNER\'S NAME','ENTITY TYPE','COUNTRY','REGION','ADDRESS','SIGNATORIES / POSITION','CONTACT PERSON / DETAILS','PARTNERSHIP CLASSIFICATION','EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT','VALIDITY PERIOD','DATE / YEAR OF SIGNING','EXPIRY DATE / YEAR','DATE RECEIVED','DATE ENDORSED TO ULCO',"ULCO'S APPROVAL","PUP OFFICIALS' SIGNATURE",'WEBSITE LINK','Brief Profile','LOGO','HARDCOPY LOCATOR','REMARKS'];
+      const cols = ['Date','DOCUMENT TYPE','STATUS','DTS NO.','DTS LOCATION','SOURCE','POINT PERSON / POSITION','PARTNER\'S NAME','ENTITY TYPE','COUNTRY','REGION','ADDRESS','SIGNATORIES', 'CONTACT PERSON / DETAILS','PARTNERSHIP CLASSIFICATION','EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT','VALIDITY PERIOD','DATE / YEAR OF SIGNING','EXPIRY DATE / YEAR','DATE RECEIVED','DATE ENDORSED TO ULCO',"ULCO'S APPROVAL","PUP OFFICIALS' SIGNATURE",'WEBSITE LINK','Brief Profile','LOGO','HARDCOPY LOCATOR','REMARKS'];
       worksheet.columns = cols.map(c => ({ header: c, key: c, width: 30 }));
       const overviewData = agreements.filter(a => a.status !== 'Active' && a.status !== 'Withdrawn');
       const formatPointPersons = (pps) => {
@@ -520,10 +664,6 @@ const OverviewMerged = () => {
       const formatContactPersons = (cps) => {
         if (!Array.isArray(cps) || cps.length === 0) return "-";
         return cps.map(cp => `${cp.position||cp.contact_person_position||''} ${cp.name||cp.contact_person_name||''} ${cp.email?`(${cp.email})`:''}`.trim()).join('; ');
-      };
-      const formatSignatories = (list) => {
-        if (!Array.isArray(list) || list.length === 0) return "-";
-        return list.map(s => `${s.name||s.signatory_name||''} ${s.position?`(${s.position})`:''}`.trim()).join('; ');
       };
       const formatRemarks = (rms) => {
         if (!Array.isArray(rms) || rms.length === 0) return "-";
@@ -544,7 +684,7 @@ const OverviewMerged = () => {
           'COUNTRY': a.country || '',
           'REGION': a.region || '',
           'ADDRESS': a.address || '',
-          'SIGNATORIES / POSITION': formatSignatories(a.signatories || a.signatories_list),
+          'SIGNATORIES': formatSignatories(a.signatories_list),
           'CONTACT PERSON / DETAILS': formatContactPersons(a.contact_people||a.contact_persons),
           'PARTNERSHIP CLASSIFICATION': a.partnership_classification || a.partnership_type || '',
           'EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT': a.event_title || a.event_info || '',
@@ -559,7 +699,7 @@ const OverviewMerged = () => {
           'Brief Profile': a.brief_profile || a.description || '',
           'LOGO': a.logo ? 'Has Logo' : '',
           'HARDCOPY LOCATOR': a.hardcopy_locator || a.hardcopy_location || '',
-          'REMARKS': formatRemarks(a.remarks_list || a.remarks || a.remarks)
+          'REMARKS': formatRemarks(a.remarks),
         };
         worksheet.addRow(row);
       }
@@ -581,23 +721,63 @@ const OverviewMerged = () => {
     const idx = filtered.findIndex(f => f.id === selected.id);
     if (idx === -1) return;
     const next = filtered[idx + dir];
-    if (next) {
-      setSelected({ ...next });
-      loadAgreementDetails(next._pk ?? next.id);
-    }
+    if (next) openDetails(next);
   };
 
   const activateAgreement = (agreement) => {
     if (!window.confirm(`Activate ${agreement.id} as active agreement?`)) return;
-    setAgreements(prev => prev.filter(r => r.id !== agreement.id));
-    navigate('/active-agreements', { state: { activated: agreement } });
+    // Update backend and UI status to 'Active'
+    (async () => {
+      try {
+        // Use the same update method used elsewhere in this component
+        const payload = { agreement_status: 'Active' };
+        const updated = await agreementService.updateAgreement(getPk(agreement), payload);
+        let mapped = computeStageInfo(mapAgreement(updated));
+        // Ensure stage start/time is reset when switching to Active so days show from now
+        try {
+          mapped._stage_start_at = new Date().toISOString();
+          mapped = computeStageInfo(mapped);
+        } catch (e) {/* ignore */}
+        // Remove the activated agreement from the current overview list so it no longer appears here
+        setAgreements(prev => prev.filter(r => String(getPk(r)) !== String(getPk(mapped))));
+        // Notify other parts of the app (ActiveAgreement page) that an agreement was activated
+        try {
+          window.dispatchEvent(new CustomEvent('agreementActivated', { detail: mapped }));
+        } catch (e) {
+          // ignore if dispatch fails in some environments
+        }
+      } catch (err) {
+        console.error('Failed to activate agreement:', err);
+        alert('Failed to activate agreement: ' + (err?.message || err));
+      }
+    })();
   };
 
-  const toggleMenu = (id) => setMenuOpenId(prev => (prev === id ? null : id));
+  const toggleMenu = (id, evt) => {
+    // if closing same menu
+    if (menuOpenId === id) {
+      setMenuOpenId(null);
+      return;
+    }
+    // compute a fixed position for the popup based on the button
+    try {
+      const rect = evt.currentTarget.getBoundingClientRect();
+      const top = rect.bottom + 8; // small offset
+      const left = rect.left;
+      setMenuPos({ top, left });
+    } catch (e) {
+      // fallback: center of viewport
+      setMenuPos({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
+    }
+    setMenuOpenId(id);
+  };
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) setMenuOpenId(null);
+      // if click is inside the floating menu, ignore
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      // close menu when clicking anywhere outside the menu
+      if (menuOpenId) setMenuOpenId(null);
       if (showFilterPanel && filterPanelRef.current && !filterPanelRef.current.contains(e.target)) setShowFilterPanel(false);
     }
     document.addEventListener('click', handleClickOutside);
@@ -607,8 +787,13 @@ const OverviewMerged = () => {
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setSelected(s => ({ ...(s||{}), logoFile: file, logo: url }));
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : '';
+      setSelected(s => ({ ...(s||{}), logo: dataUrl, logo_path: base64 }));
+    };
+    reader.readAsDataURL(file);
   };
 
   /* ---------- Upload modal actions ---------- */
@@ -837,29 +1022,50 @@ const OverviewMerged = () => {
                   </td>
                 {/* Actions */}
                   <td className="actions-cell">
-                    <button className="icon-btn" title="View" onClick={() => openDetails(row)}>
-                      👁️
-                    </button>
-                    {(row.status && String(row.status).toLowerCase().includes('ffup')) && (
-                      <button className="icon-btn activate" title="Activate" onClick={() => activateAgreement(row)}>
-                        Activate
+                    <div className="action-buttons" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button className="icon-btn" title="View" onClick={() => openDetails(row)} aria-label="View details">
+                        👁️
                       </button>
-                    )}
-                    <button className="icon-btn" title="Delete" onClick={() => deleteRow(row._pk ?? row.id)}>
-                      🗑️
-                    </button>
-                    <div className="dots-menu" style={{ display: 'inline-block', position: 'relative' }}>
-                      <button className="icon-btn dots" onClick={(e) => { e.stopPropagation(); toggleMenu(row._pk ?? row.id); }}>
-                        ⋯
+                      <button className="icon-btn" title="Delete" onClick={() => deleteRow(row._pk ?? row.id)} aria-label="Delete">
+                        🗑️
                       </button>
-                      {menuOpenId === (row._pk ?? row.id) && (
-                        <div className="menu-popup" onClick={(e) => e.stopPropagation()}>
-                          <button className="menu-item" onClick={() => handleViewLatestFile(row.dts_no || row.id)}>View File</button>
-                          <button className="menu-item" onClick={() => navigate(`/docVer?dts_number=${row.dts_no || row.id}`)}>View Older Files</button>
-                          <button className="menu-item" onClick={() => openUploadFor(row)}>Upload New Version</button>
-                        </div>
+
+                      <div className="dots-menu" style={{ display: 'inline-block' }}>
+                        <button className="icon-btn dots" onClick={(e) => { e.stopPropagation(); toggleMenu(row._pk ?? row.id, e); }} aria-label="More actions">
+                          ⋯
+                        </button>
+                      </div>
+                      {menuOpenId === (row._pk ?? row.id) && createPortal(
+                        <div
+                          ref={menuRef}
+                          className="menu-popup"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            position: 'fixed',
+                            top: menuPos.top,
+                            left: menuPos.left,
+                            zIndex: 2000,
+                            background: '#fff',
+                            border: '1px solid #eee',
+                            borderRadius: 6,
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            padding: 6,
+                            minWidth: 160,
+                          }}
+                        >
+                          <button className="menu-item" onClick={() => { handleViewLatestFile(row.dts_no || row.id); setMenuOpenId(null); }}>View File</button>
+                          <button className="menu-item" onClick={() => { navigate(`/docVer?dts_number=${row.dts_no || row.id}`); setMenuOpenId(null); }}>View Older Files</button>
+                          <button className="menu-item" onClick={() => { openUploadFor(row); setMenuOpenId(null); }}>Upload New Version</button>
+                        </div>,
+                        document.body
                       )}
                     </div>
+                    {/* Activate button rendered below the inline icons */}
+                    {(row.status && String(row.status).toLowerCase().includes('ffup')) && (
+                      <div style={{ marginTop: 6 }}>
+                        <button className="btn-action" onClick={() => { activateAgreement(row); setMenuOpenId(null); }} aria-label="Activate">Activate</button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -895,20 +1101,19 @@ const OverviewMerged = () => {
               </div>
 
               <div className="overview1-modal-body">
-                {modalError && <div style={{ color: '#b00020', margin: '8px 0' }}>{modalError}</div>}
-                {modalLoading ? (
-                  <div>Loading details...</div>
-                ) : (
-                  <div className="overview1-details-grid overview1-form-grid">
-                    {/* Date */}
+                 {modalError && <div style={{ color: '#b00020', margin: '8px 0' }}>{modalError}</div>}
+                 {modalLoading && <div style={{ color: '#666', margin: '4px 0 10px' }}>Syncing latest details…</div>}
+                 <div className="overview1-details-grid overview1-form-grid">
+                   {/* Date */}
                     <label className="field">
                       Date
                       <input
-                        ref={modalFirstFieldRef}
-                        type="date"
-                        value={selected.date || selected.date_received || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, date_received: e.target.value }))}
-                      />
+                          ref={modalFirstFieldRef}
+                          type="date"
+                          value={selected.date || selected.date_received || ''}
+                          onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, date_received: e.target.value })); }}
+                          disabled={!isEditing}
+                        />
                     </label>
 
                     {/* Source */}
@@ -916,19 +1121,21 @@ const OverviewMerged = () => {
                       Source
                       <input
                         value={selected.source_unit || selected.source || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, source_unit: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, source_unit: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
                     {/* Point person / position */}
                     <div className="full-col">
                       <label className="field full">Point person / position
-                        <MultiPersonField
-                          listKey="point_people"
-                          legacyKeys={{ positionKey: 'point_position', nameKey: 'point_name', emailKey: 'point_email' }}
-                          selected={selected}
-                          setSelected={setSelected}
-                        />
+                          <MultiPersonField
+                            listKey="point_people"
+                            legacyKeys={{ positionKey: 'point_position', nameKey: 'point_name', emailKey: 'point_email' }}
+                            selected={selected}
+                            setSelected={setSelected}
+                            disabled={!isEditing}
+                          />
                       </label>
                     </div>
 
@@ -937,7 +1144,8 @@ const OverviewMerged = () => {
                       DTS NO.
                       <input
                         value={selected.dts_no || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, dts_no: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, dts_no: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
@@ -946,8 +1154,7 @@ const OverviewMerged = () => {
                       STATUS
                       <select
                         value={selected.status || ''}
-                        onChange={(e) =>
-                          setSelected(s => {
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => {
                             const nextStatus = e.target.value;
                             if (nextStatus !== s.status) {
                               const now = new Date().toISOString();
@@ -962,11 +1169,15 @@ const OverviewMerged = () => {
                               };
                             }
                             return s;
-                          })
-                        }
+                          }) }}
+                        disabled={!isEditing}
                       >
                         <option value="">Select Status</option>
-                        {LIFECYCLE_OPTIONS.filter(o=>o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {LIFECYCLE_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {/* Fallback for unmapped statuses */}
+                        {selected.status && !LIFECYCLE_OPTIONS.some(o => o.value === selected.status) && (
+                          <option value={selected.status}>{selected.status}</option>
+                        )}
                       </select>
                     </label>
 
@@ -975,7 +1186,8 @@ const OverviewMerged = () => {
                       Partner's name
                       <input
                         value={selected.partner_name || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, partner_name: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, partner_name: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
                     
@@ -984,7 +1196,8 @@ const OverviewMerged = () => {
                       Address
                       <input
                         value={selected.address || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, address: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, address: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
@@ -994,8 +1207,9 @@ const OverviewMerged = () => {
                       <SearchableSelect
                         options={countryOptions.map(c => ({ value: c, label: c }))}
                         value={selected.country || ''}
-                        onChange={(val) => setSelected(s => ({ ...s, country: val }))}
+                        onChange={(val) => { if (!isEditing) return; setSelected(s => ({ ...s, country: val })); }}
                         placeholder="Select Country"
+                        allowClear={!isEditing}
                       />
                     </label>
 
@@ -1004,7 +1218,8 @@ const OverviewMerged = () => {
                       Region
                       <input
                         value={selected.region || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, region: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, region: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
@@ -1014,7 +1229,8 @@ const OverviewMerged = () => {
                         Signatories
                         <input
                           value={selected.signatories || ''}
-                          onChange={(e) => setSelected(s => ({ ...s, signatories: e.target.value }))}
+                          onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, signatories: e.target.value })); }}
+                          disabled={!isEditing}
                         />
                       </label>
                     </div>
@@ -1027,6 +1243,7 @@ const OverviewMerged = () => {
                           legacyKeys={{ positionKey: 'contact_position', nameKey: 'contact_name', emailKey: 'contact_email' }}
                           selected={selected}
                           setSelected={setSelected}
+                          disabled={!isEditing}
                         />
                       </label>
                     </div>
@@ -1036,7 +1253,8 @@ const OverviewMerged = () => {
                       Document type
                       <select
                         value={selected.document_type || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, document_type: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, document_type: e.target.value })); }}
+                        disabled={!isEditing}
                       >
                         <option value="">Select</option>
                         <option value="MOA">MOA</option>
@@ -1050,15 +1268,16 @@ const OverviewMerged = () => {
                       <SearchableSelect
                         options={classificationOptions.map(c => ({ value: c, label: c }))}
                         value={selected.partnership_classification || ''}
-                        onChange={(val) => setSelected(s => ({ ...s, partnership_classification: val }))}
+                        onChange={(val) => { if (!isEditing) return; setSelected(s => ({ ...s, partnership_classification: val })); }}
                         placeholder="Select Classification"
+                        allowClear={!isEditing}
                       />
                     </label>
 
                     {/* Validity Period */}
                     <label className="field">
                       Validity Period
-                      <select value={selected.validity_period || ''} onChange={(e)=>setSelected(s=>({...s, validity_period: e.target.value}))}>
+                      <select value={selected.validity_period || ''} onChange={(e)=>{ if (!isEditing) return; setSelected(s=>({...s, validity_period: e.target.value})); }} disabled={!isEditing}>
                         <option value="">Select Validity</option>
                         {validityOptions.map(v => <option key={v} value={v}>{v}</option>)}
                       </select>
@@ -1067,13 +1286,13 @@ const OverviewMerged = () => {
                     {/* Date / Year of Signing */}
                     <label className="field">
                       DATE / YEAR OF SIGNING
-                      <input type="date" value={selected.date_of_signing || ''} onChange={(e)=>setSelected(s=>({...s, date_of_signing: e.target.value}))} />
+                      <input type="date" value={selected.date_of_signing || ''} onChange={(e)=>{ if (!isEditing) return; setSelected(s=>({...s, date_of_signing: e.target.value})); }} disabled={!isEditing} />
                     </label>
 
                     {/* Expiry */}
                     <label className="field">
                       EXPIRY DATE / YEAR
-                      <input type="date" value={selected.expiry || ''} onChange={(e)=>setSelected(s=>({...s, expiry: e.target.value}))} />
+                      <input type="date" value={selected.expiry || ''} onChange={(e)=>{ if (!isEditing) return; setSelected(s=>({...s, expiry: e.target.value})); }} disabled={!isEditing} />
                     </label>
 
                     {/* Date Received */}
@@ -1082,7 +1301,8 @@ const OverviewMerged = () => {
                       <input
                         type="date"
                         value={selected.date_received || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, date_received: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, date_received: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
@@ -1092,7 +1312,8 @@ const OverviewMerged = () => {
                       <input
                         type="date"
                         value={selected.date_endorsed_ulco || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, date_endorsed_ulco: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, date_endorsed_ulco: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
@@ -1102,7 +1323,8 @@ const OverviewMerged = () => {
                       <input
                         type="date"
                         value={selected.ulco_approval || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, ulco_approval: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, ulco_approval: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
@@ -1112,7 +1334,8 @@ const OverviewMerged = () => {
                       <input
                         type="date"
                         value={selected.pup_official_sign || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, pup_official_sign: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, pup_official_sign: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
@@ -1121,7 +1344,8 @@ const OverviewMerged = () => {
                       WEBSITE LINK
                       <input
                         value={selected.website_link || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, website_link: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, website_link: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
@@ -1130,7 +1354,8 @@ const OverviewMerged = () => {
                       <label className="field full">EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT
                         <input
                           value={selected.event_title || ''}
-                          onChange={(e) => setSelected(s => ({ ...s, event_title: e.target.value }))}
+                          onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, event_title: e.target.value })); }}
+                          disabled={!isEditing}
                         />
                       </label>
                     </div>
@@ -1140,7 +1365,8 @@ const OverviewMerged = () => {
                       <label className="field full">BRIEF PROFILE
                         <input
                           value={selected.brief_profile || ''}
-                          onChange={(e) => setSelected(s => ({ ...s, brief_profile: e.target.value }))}
+                          onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, brief_profile: e.target.value })); }}
+                          disabled={!isEditing}
                         />
                       </label>
                     </div>
@@ -1150,7 +1376,7 @@ const OverviewMerged = () => {
                       LOGO - upload
                       <div className="logo-upload">
                         {selected.logo ? <img src={selected.logo} className="logo-preview" alt="logo"/> : null}
-                        <input type="file" accept="image/*" onChange={handleLogoUpload} />
+                        <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={!isEditing} />
                       </div>
                     </label>
 
@@ -1159,7 +1385,8 @@ const OverviewMerged = () => {
                       HARDCOPY LOCATOR
                       <input
                         value={selected.hardcopy_locator || ''}
-                        onChange={(e) => setSelected(s => ({ ...s, hardcopy_locator: e.target.value }))}
+                        onChange={(e) => { if (!isEditing) return; setSelected(s => ({ ...s, hardcopy_locator: e.target.value })); }}
+                        disabled={!isEditing}
                       />
                     </label>
 
@@ -1167,14 +1394,14 @@ const OverviewMerged = () => {
                     <div className="full-col">
                       <label className="field full">REMARKS
                         <MultiRemarkField
-                          listKey="remarks_list"
+                          listKey="remarks"
                           selected={selected}
                           setSelected={setSelected}
+                          disabled={!isEditing}
                         />
                       </label>
                     </div>
-                  </div>
-                )}
+                </div>
               </div>
 
               <div className="overview1-modal-footer">

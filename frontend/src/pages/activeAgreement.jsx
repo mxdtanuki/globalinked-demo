@@ -4,264 +4,9 @@ import TopBar from "../components/topbar";
 import "../components/layout.css";
 import "./activeAgreement.css";
 import { FiEye, FiLink, FiArrowRight } from "react-icons/fi";
-
-const mockAgreements = [
-  {
-    id: 'moa-1',
-    date: '2025-10-12',
-    source: 'College of Science',
-    pointPerson: 'Research Coordinator: Dr. Ana Bautista',
-    pointPersonEmail: 'abautista@pup.edu.ph',
-    dtsNumber: 'DT2025897659304',
-    partnerName: 'Seoul National University',
-    country: 'South Korea',
-    region: 'Eastern Asia',
-    address: 'Gwanak-ro, Seoul',
-    contactPerson: 'Research Officer: Mr. Joon Park',
-    contactPersonEmail: 'jpark@snu.ac.kr',
-    documentType: 'MOA',
-    partnershipClassification: 'MOA on Research',
-    eventTitle: 'Joint publication launch',
-    validityPeriod: 3,
-    dateOfSigning: '2025-06-15',
-    expiryDate: '2028-06-15',
-    websiteLink: 'https://www.snu.ac.kr',
-    briefProfile: 'Joint research and publications',
-    hardcopyLocator: 'Filing Cabinet B-2',
-    remarks: 'Awaiting next stage',
-    status: 'active',
-  },
-  {
-    id: 'mou-1',
-    date: '2024-08-20',
-    source: 'College of Engineering',
-    pointPerson: 'Dean: Dr. Maria Santos',
-    pointPersonEmail: 'msantos@pup.edu.ph',
-    dtsNumber: 'DT2024756234891',
-    partnerName: 'Tokyo Institute of Technology',
-    country: 'Japan',
-    region: 'Eastern Asia',
-    address: 'Ookayama, Meguro-ku, Tokyo',
-    contactPerson: 'International Affairs: Dr. Yuki Tanaka',
-    contactPersonEmail: 'ytanaka@titech.ac.jp',
-    documentType: 'MOU',
-    partnershipClassification: 'MOU on Academic Collaboration',
-    eventTitle: 'Technology exchange framework',
-    validityPeriod: 5,
-    dateOfSigning: '2024-03-10',
-    expiryDate: '2029-03-10',
-    websiteLink: 'https://www.titech.ac.jp',
-    briefProfile: 'Framework for technology transfer and student exchange programs',
-    hardcopyLocator: 'Filing Cabinet A-5',
-    remarks: 'Active collaboration ongoing',
-    status: 'active',
-  },
-  {
-    id: 'moa-2',
-    date: '2024-09-15',
-    source: 'College of Engineering',
-    pointPerson: 'Project Lead: Prof. Roberto Cruz',
-    pointPersonEmail: 'rcruz@pup.edu.ph',
-    dtsNumber: 'DT2024823456789',
-    partnerName: 'Tokyo Institute of Technology',
-    country: 'Japan',
-    region: 'Eastern Asia',
-    address: 'Ookayama, Meguro-ku, Tokyo',
-    contactPerson: 'Project Manager: Dr. Kenji Yamamoto',
-    contactPersonEmail: 'kyamamoto@titech.ac.jp',
-    documentType: 'MOA',
-    partnershipClassification: 'MOA on Student Exchange',
-    eventTitle: 'Semester exchange program implementation',
-    validityPeriod: 3,
-    dateOfSigning: '2024-04-20',
-    expiryDate: '2027-04-20',
-    websiteLink: 'https://www.titech.ac.jp',
-    briefProfile: 'Bilateral student exchange for engineering programs',
-    hardcopyLocator: 'Filing Cabinet A-5',
-    remarks: 'First batch of students deployed',
-    status: 'active',
-    linkedMouId: 'mou-1',
-  },
-  {
-    id: 'mou-2',
-    date: '2023-05-10',
-    source: 'College of Business Administration',
-    pointPerson: 'Business Development Head: Dr. Linda Reyes',
-    pointPersonEmail: 'lreyes@pup.edu.ph',
-    dtsNumber: 'DT2023445667889',
-    partnerName: 'National University of Singapore',
-    country: 'Singapore',
-    region: 'Southeast Asia',
-    address: '21 Lower Kent Ridge Rd, Singapore',
-    contactPerson: 'Partnership Director: Dr. Wei Chen',
-    contactPersonEmail: 'wchen@nus.edu.sg',
-    documentType: 'MOU',
-    partnershipClassification: 'MOU on Business Education',
-    eventTitle: 'Business education partnership framework',
-    validityPeriod: 5,
-    dateOfSigning: '2023-01-15',
-    expiryDate: '2028-01-15',
-    websiteLink: 'https://www.nus.edu.sg',
-    briefProfile: 'Collaboration on business research and faculty development',
-    hardcopyLocator: 'Filing Cabinet C-1',
-    remarks: 'Regular faculty exchange conducted',
-    status: 'active',
-  },
-  {
-    id: 'moa-3',
-    date: '2024-11-05',
-    source: 'College of Business Administration',
-    pointPerson: 'Research Chair: Prof. Eduardo Garcia',
-    pointPersonEmail: 'egarcia@pup.edu.ph',
-    dtsNumber: 'DT2024934567812',
-    partnerName: 'National University of Singapore',
-    country: 'Singapore',
-    region: 'Southeast Asia',
-    address: '21 Lower Kent Ridge Rd, Singapore',
-    contactPerson: 'Research Coordinator: Dr. Sarah Lim',
-    contactPersonEmail: 'slim@nus.edu.sg',
-    documentType: 'MOA',
-    partnershipClassification: 'MOA on Joint Research',
-    eventTitle: 'ASEAN business sustainability study',
-    validityPeriod: 2,
-    dateOfSigning: '2024-08-20',
-    expiryDate: '2026-01-15',
-    websiteLink: 'https://www.nus.edu.sg',
-    briefProfile: 'Joint research on sustainable business practices in ASEAN region',
-    hardcopyLocator: 'Filing Cabinet C-1',
-    remarks: 'Research phase 1 completed',
-    status: 'expiring-soon',
-    linkedMouId: 'mou-2',
-  },
-  {
-    id: 'moa-4',
-    date: '2024-07-18',
-    source: 'Institute of Technology',
-    pointPerson: 'Industry Liaison: Engr. Patricia Mendoza',
-    pointPersonEmail: 'pmendoza@pup.edu.ph',
-    dtsNumber: 'DT2024678912345',
-    partnerName: 'Siemens Philippines',
-    country: 'Philippines',
-    region: 'Southeast Asia',
-    address: '26th Floor, The Finance Centre, Taguig City',
-    contactPerson: 'HR Manager: Ms. Jennifer Tan',
-    contactPersonEmail: 'jennifer.tan@siemens.com',
-    documentType: 'MOA',
-    partnershipClassification: 'MOA on Industry Partnership',
-    eventTitle: 'Internship and training program',
-    validityPeriod: 5,
-    dateOfSigning: '2024-02-10',
-    expiryDate: '2029-02-10',
-    websiteLink: 'https://www.siemens.com.ph',
-    briefProfile: 'Industry immersion and skills training for technology students',
-    hardcopyLocator: 'Filing Cabinet D-3',
-    remarks: '50 students placed annually',
-    status: 'active',
-  },
-  {
-    id: 'mou-3',
-    date: '2024-12-01',
-    source: 'Graduate School',
-    pointPerson: 'Dean: Dr. Alfonso Mercado',
-    pointPersonEmail: 'amercado@pup.edu.ph',
-    dtsNumber: 'DT2024998877665',
-    partnerName: 'University of Melbourne',
-    country: 'Australia',
-    region: 'Oceania',
-    address: 'Grattan Street, Parkville VIC',
-    contactPerson: 'International Office: Ms. Emma Wilson',
-    contactPersonEmail: 'ewilson@unimelb.edu.au',
-    documentType: 'MOU',
-    partnershipClassification: 'MOU on Graduate Studies',
-    eventTitle: 'PhD collaboration framework',
-    validityPeriod: 4,
-    dateOfSigning: '2024-09-05',
-    expiryDate: '2028-12-31',
-    websiteLink: 'https://www.unimelb.edu.au',
-    briefProfile: 'Joint PhD supervision and research collaboration',
-    hardcopyLocator: 'Filing Cabinet E-1',
-    remarks: 'First cohort enrollment in progress',
-    status: 'active',
-  },
-  {
-    id: 'moa-5',
-    date: '2024-12-10',
-    source: 'Graduate School',
-    pointPerson: 'Program Director: Dr. Carmen Lopez',
-    pointPersonEmail: 'clopez@pup.edu.ph',
-    dtsNumber: 'DT2024112233445',
-    partnerName: 'University of Melbourne',
-    country: 'Australia',
-    region: 'Oceania',
-    address: 'Grattan Street, Parkville VIC',
-    contactPerson: 'PhD Coordinator: Dr. James Mitchell',
-    contactPersonEmail: 'jmitchell@unimelb.edu.au',
-    documentType: 'MOA',
-    partnershipClassification: 'MOA on Research Collaboration',
-    eventTitle: 'Joint PhD program in Educational Leadership',
-    validityPeriod: 3,
-    dateOfSigning: '2024-10-15',
-    expiryDate: '2027-10-15',
-    websiteLink: 'https://www.unimelb.edu.au',
-    briefProfile: 'Dual supervision PhD program with scholarship opportunities',
-    hardcopyLocator: 'Filing Cabinet E-1',
-    remarks: '5 scholarship slots available',
-    status: 'active',
-    linkedMouId: 'mou-3',
-  },
-  {
-    id: 'mou-4',
-    date: '2023-03-20',
-    source: 'College of Communication',
-    pointPerson: 'Department Head: Prof. Teresa Aquino',
-    pointPersonEmail: 'taquino@pup.edu.ph',
-    dtsNumber: 'DT2023334455667',
-    partnerName: 'Chulalongkorn University',
-    country: 'Thailand',
-    region: 'Southeast Asia',
-    address: 'Phaya Thai Rd, Bangkok',
-    contactPerson: 'Faculty Dean: Dr. Somchai Prasert',
-    contactPersonEmail: 'sprasert@chula.ac.th',
-    documentType: 'MOU',
-    partnershipClassification: 'MOU on Media Studies',
-    eventTitle: 'ASEAN media education network',
-    validityPeriod: 5,
-    dateOfSigning: '2023-02-10',
-    expiryDate: '2026-02-28',
-    websiteLink: 'https://www.chula.ac.th',
-    briefProfile: 'Regional collaboration on media education and digital journalism',
-    hardcopyLocator: 'Filing Cabinet F-2',
-    remarks: 'Annual conference scheduled',
-    status: 'expiring-soon',
-  },
-  {
-    id: 'moa-6',
-    date: '2024-10-25',
-    source: 'College of Engineering',
-    pointPerson: 'Research Director: Prof. Benjamin Ramos',
-    pointPersonEmail: 'bramos@pup.edu.ph',
-    dtsNumber: 'DT2024887766554',
-    partnerName: 'Tokyo Institute of Technology',
-    country: 'Japan',
-    region: 'Eastern Asia',
-    address: 'Ookayama, Meguro-ku, Tokyo',
-    contactPerson: 'Research Lab Head: Dr. Hiroshi Nakamura',
-    contactPersonEmail: 'hnakamura@titech.ac.jp',
-    documentType: 'MOA',
-    partnershipClassification: 'MOA on Joint Research',
-    eventTitle: 'AI and Robotics collaborative research',
-    validityPeriod: 4,
-    dateOfSigning: '2024-05-18',
-    expiryDate: '2028-05-18',
-    websiteLink: 'https://www.titech.ac.jp',
-    briefProfile: 'Joint research laboratory for AI, robotics, and automation systems',
-    hardcopyLocator: 'Filing Cabinet A-5',
-    remarks: 'Lab equipment procurement in progress',
-    status: 'active',
-    linkedMouId: 'mou-1', 
-  },
-];
-
+import { agreementService } from '../services/agreementService';
+import axios from 'axios';
+ 
 const ActiveAgreement = () => {
   const [mobileShow, setMobileShow] = useState(false);
   const [filter, setFilter] = useState("all");
@@ -270,17 +15,74 @@ const ActiveAgreement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [selectedAgreement, setSelectedAgreement] = useState(null);
-  const [agreements, setAgreements] = useState(mockAgreements);
+  const [agreements, setAgreements] = useState([]);
+
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const createAuditLog = async (description) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      await axios.post(
+        `${API_BASE_URL}/audit/logs`,
+        { audit_description: description },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (err) {
+      console.error("Failed to create audit log:", err);
+    }
+  };
+
+  const fetchAgreements = async () => {
+  try {
+    const data = await agreementService.getActiveAgreements();
+    console.log("ActiveAgreement fetched agreements:", data);
+    const arr = Array.isArray(data) ? data.slice() : [];
+    const timeOf = (item) => {
+      const cand = item?.updated_at || item?.date_signed || item?.date || item?.created_at || item?.dateOfSigning || item?.date_expiry;
+      const t = new Date(cand).getTime();
+      return isNaN(t) ? 0 : t;
+    };
+    arr.sort((a, b) => timeOf(b) - timeOf(a));
+    setAgreements(arr);
+  } catch (err) {
+    console.error("Failed to fetch active agreements:", err);
+    setError("Failed to fetch agreements: " + (err.message || err));
+    setAgreements([]); 
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     setCurrentPage(1);
   }, [filter, searchQuery, agreements]);
+
+  useEffect(() => {
+    fetchAgreements();
+    const onActivated = (e) => {
+      const mapped = e?.detail;
+      if (mapped && (mapped.agreement_id || mapped.id)) {
+        setAgreements((prev) => {
+          const key = String(mapped.agreement_id ?? mapped.id);
+          const filtered = Array.isArray(prev) ? prev.filter((a) => String(a.agreement_id ?? a.id) !== key) : [];
+          return [mapped, ...filtered];
+        });
+        fetchAgreements();
+        return;
+      }
+      fetchAgreements();
+    };
+    window.addEventListener('agreementActivated', onActivated);
+    return () => window.removeEventListener('agreementActivated', onActivated);
+  }, []);
   
   const [editingField, setEditingField] = useState(null); 
   const [editValue, setEditValue] = useState("");
 
   const [isModalEdit, setIsModalEdit] = useState(false);
-  const [editForm, setEditForm] = useState({ hardcopyLocator: "", remarks: "" });
+  const [editForm, setEditForm] = useState({ hardcopy_location: "", remarks: [] });
 
   useEffect(() => {
     if (selectedAgreement) {
@@ -299,12 +101,12 @@ const ActiveAgreement = () => {
     if (selectedAgreement) {
       setIsModalEdit(false);
       setEditForm({
-        hardcopyLocator: selectedAgreement.hardcopyLocator || "",
-        remarks: selectedAgreement.remarks || "",
+        hardcopy_location: selectedAgreement.hardcopy_location || selectedAgreement.hardcopyLocator || "",
+        remarks: normalizeRemarks(selectedAgreement.remarks),
       });
     } else {
       setIsModalEdit(false);
-      setEditForm({ hardcopyLocator: "", remarks: "" });
+      setEditForm({ hardcopy_location: "", remarks: [] });
     }
   }, [selectedAgreement]);
 
@@ -314,64 +116,68 @@ const ActiveAgreement = () => {
   const startModalEdit = () => {
     setIsModalEdit(true);
     setEditForm({
-      hardcopyLocator: selectedAgreement?.hardcopyLocator || "",
-      remarks: selectedAgreement?.remarks || "",
+      hardcopy_location: selectedAgreement?.hardcopy_location || selectedAgreement?.hardcopyLocator || "",
+      remarks: normalizeRemarks(selectedAgreement?.remarks),
     });
   };
 
   const cancelModalEdit = () => {
     setIsModalEdit(false);
     setEditForm({
-      hardcopyLocator: selectedAgreement?.hardcopyLocator || "",
-      remarks: selectedAgreement?.remarks || "",
+      hardcopy_location: selectedAgreement?.hardcopy_location || selectedAgreement?.hardcopyLocator || "",
+      remarks: normalizeRemarks(selectedAgreement?.remarks),
     });
   };
 
   const saveModalEdits = () => {
     if (!selectedAgreement) return;
     const updated = agreements.map((a) =>
-      a.id === selectedAgreement.id
-        ? { ...a, hardcopyLocator: editForm.hardcopyLocator, remarks: editForm.remarks }
+      (a.agreement_id === selectedAgreement.agreement_id || a.id === selectedAgreement.id)
+        ? { ...a, hardcopy_location: editForm.hardcopy_location, remarks: editForm.remarks }
         : a
     );
     setAgreements(updated);
     setSelectedAgreement({
       ...selectedAgreement,
-      hardcopyLocator: editForm.hardcopyLocator,
+      hardcopy_location: editForm.hardcopy_location,
       remarks: editForm.remarks,
     });
     setIsModalEdit(false);
   };
 
   const activeAgreements = agreements.filter(
-    (a) => a.status === "active" || a.status === "expiring-soon"
+    (a) => a.agreement_status === "Active" || a.status === "active" || a.status === "expiring-soon" || (!a.date_expiry || new Date(a.date_expiry) > new Date())
   );
-  const activeMOAs = activeAgreements.filter((a) => a.documentType === "MOA");
-  const activeMOUs = activeAgreements.filter((a) => a.documentType === "MOU");
-  const expiringSoon = activeAgreements.filter(
-    (a) => a.status === "expiring-soon"
-  );
+  const activeMOAs = activeAgreements.filter((a) => String(a.document_type).toUpperCase() === "MOA");
+  const activeMOUs = activeAgreements.filter((a) => String(a.document_type).toUpperCase() === "MOU");
+  const expiringSoon = activeAgreements.filter((a) => {
+    if (!a.date_expiry) return false;
+    const daysDiff = (new Date(a.date_expiry) - new Date()) / (1000 * 60 * 60 * 24);
+    return daysDiff > 0 && daysDiff <= 90;
+  });
 
   const filteredAgreements = activeAgreements
     .filter((a) => {
-      if (filter === "moa") return a.documentType === "MOA";
-      if (filter === "mou") return a.documentType === "MOU";
-      if (filter === "linked") return !!a.linkedMouId;
+      if (filter === "moa") return String(a.document_type).toUpperCase() === "MOA";
+      if (filter === "mou") return String(a.document_type).toUpperCase() === "MOU";
+      if (filter === "linked") {
+        return Boolean(a.related_mou || a.MOU_to_MOA_id || a.mou_number || a.linked_mou || a.linkedMouId);
+      }
       return true;
     })
     .filter((a) => {
       const q = searchQuery.trim().toLowerCase();
       if (!q) return true;
       const fields = [
-        a.dtsNumber,
-        a.eventTitle,
-        a.partnerName,
-        a.source,
+        a.dts_number,
+        a.event_title,
+        a.name,
+        a.source_unit || a.source || a.initiating_unit,
         a.country,
-        a.documentType,
-        a.partnershipClassification,
-        a.briefProfile,
-        a.remarks,
+        a.document_type,
+        a.partnership_type,
+        a.brief_profile,
+        Array.isArray(a.remarks) ? a.remarks.join(' ') : a.remarks,
       ];
       return fields.some((f) => f && f.toString().toLowerCase().includes(q));
     });
@@ -406,10 +212,52 @@ const ActiveAgreement = () => {
       .toUpperCase();
   };
 
-  const linkedAgreement =
-    selectedAgreement && selectedAgreement.linkedMouId
-      ? agreements.find((a) => a.id === selectedAgreement.linkedMouId)
-      : null;
+  const LogoSrc = (lp) => {
+    if (!lp) return null;
+    try {
+      if (typeof lp === "string") {
+        if (lp.startsWith("data:image")) return lp;
+        if (lp.startsWith("iVBORw0")) return `data:image/png;base64,${lp}`;
+        if (lp.startsWith("/9j/")) return `data:image/jpeg;base64,${lp}`;
+        if (lp.startsWith("http://") || lp.startsWith("https://")) return lp;
+        // otherwise treat as a server-relative path
+        return `${API_BASE_URL.replace(/\/$/, "")}/${lp.replace(/^\/+/, "")}`;
+      }
+    } catch (err) {
+      console.warn("LogoSrc error:", err, lp);
+    }
+    return null;
+  };
+
+  // normalize remarks into an array of plain strings
+  const normalizeRemarks = (r) => {
+    if (!r) return [];
+    if (Array.isArray(r))
+      return r.map((item) => (typeof item === "object" ? item.remark_text || item.text || item.remark || "" : String(item)));
+    if (typeof r === "string") return r.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    return [];
+  };
+
+  const addEditRemark = () => setEditForm((prev) => ({ ...prev, remarks: [...(prev.remarks || []), ""] }));
+  const updateEditRemark = (idx, val) =>
+    setEditForm((prev) => {
+      const arr = Array.isArray(prev.remarks) ? [...prev.remarks] : [];
+      arr[idx] = val;
+      return { ...prev, remarks: arr };
+    });
+  const removeEditRemark = (idx) =>
+    setEditForm((prev) => {
+      const arr = Array.isArray(prev.remarks) ? [...prev.remarks] : [];
+      arr.splice(idx, 1);
+      return { ...prev, remarks: arr };
+    });
+
+  const linkedAgreement = (() => {
+    if (!selectedAgreement) return null;
+    const lid = getLinkedId(selectedAgreement) || selectedAgreement.linkedMouId;
+    if (!lid) return null;
+    return agreements.find((a) => a.id === lid || a.agreement_id === lid || a.linkedMouId === lid) || null;
+  })();
 
   const reportLabelMap = {
     all: "Complete Agreements Report",
@@ -418,10 +266,23 @@ const ActiveAgreement = () => {
     linked: "Linked MOU → MOA Report",
   };
 
+  // helper: find the linked MOU id/key on an agreement object
+  function getLinkedId(a) {
+    if (!a) return undefined;
+    return (
+      a.related_mou ||
+      a.MOU_to_MOA_id ||
+      a.mou_number ||
+      a.linked_mou ||
+      a.linked_mou_id ||
+      a.linkedMouId
+    );
+  }
+
   const reportItems = (() => {
-    if (reportType === "mou") return agreements.filter((a) => a.documentType === "MOU");
-    if (reportType === "moa") return agreements.filter((a) => a.documentType === "MOA");
-    if (reportType === "linked") return agreements.filter((a) => !!a.linkedMouId);
+    if (reportType === "mou") return agreements.filter((a) => String(a.document_type).toUpperCase() === "MOU");
+    if (reportType === "moa") return agreements.filter((a) => String(a.document_type).toUpperCase() === "MOA");
+    if (reportType === "linked") return agreements.filter((a) => Boolean(getLinkedId(a)));
     return agreements.slice();
   })();
 
@@ -436,16 +297,17 @@ const ActiveAgreement = () => {
   const generatePrintableReport = () => {
     const rows = reportItems
       .map((r) => {
-        const parent = r.linkedMouId ? agreements.find((x) => x.id === r.linkedMouId) : null;
+        const parentId = getLinkedId(r);
+        const parent = parentId ? agreements.find((x) => x.id === parentId || x.agreement_id === parentId) : null;
         return `<tr>
-            <td>${escapeHtml(r.documentType)}</td>
-            <td>${escapeHtml(r.dtsNumber)}</td>
-            <td>${escapeHtml(r.eventTitle)}</td>
-            <td>${escapeHtml(r.partnerName)}</td>
-            <td>${escapeHtml(r.source)}</td>
-            <td>${escapeHtml(new Date(r.dateOfSigning).toLocaleDateString())}</td>
-            <td>${escapeHtml(new Date(r.expiryDate).toLocaleDateString())}</td>
-            <td>${parent ? escapeHtml(parent.eventTitle) : ""}</td>
+            <td>${escapeHtml(r.document_type)}</td>
+            <td>${escapeHtml(r.dts_number)}</td>
+            <td>${escapeHtml(r.event_title || r.event || r.title || "")}</td>
+            <td>${escapeHtml(r.name || r.partnerName || "")}</td>
+            <td>${escapeHtml(r.source_unit || r.source || r.initiating_unit || "")}</td>
+            <td>${escapeHtml(r.date_signed ? new Date(r.date_signed).toLocaleDateString() : "")}</td>
+            <td>${escapeHtml(r.date_expiry ? new Date(r.date_expiry).toLocaleDateString() : "")}</td>
+            <td>${parent ? escapeHtml(parent.event_title || parent.eventTitle || "") : ""}</td>
           </tr>`;
       })
       .join("");
@@ -488,16 +350,16 @@ const ActiveAgreement = () => {
 
     reportItems.forEach((r) => {
       const row = [
-        safeCsv(r.documentType),
-        safeCsv(r.dtsNumber),
-        safeCsv(r.eventTitle),
-        safeCsv(r.partnerName),
+        safeCsv(r.document_type),
+        safeCsv(r.dts_number),
+        safeCsv(r.event_title || r.event || r.title || ""),
+        safeCsv(r.name || r.partnerName || ""),
         safeCsv(r.country),
-        safeCsv(r.source),
-        safeCsv(r.dateOfSigning),
-        safeCsv(r.expiryDate),
-        safeCsv(r.linkedMouId || ""),
-        safeCsv(r.remarks || ""),
+        safeCsv(r.source_unit || r.source || r.initiating_unit),
+        safeCsv(r.date_signed || ""),
+        safeCsv(r.date_expiry || ""),
+        safeCsv(getLinkedId(r) || ""),
+        safeCsv(Array.isArray(r.remarks) ? r.remarks.join(" | ") : r.remarks || ""),
       ];
       csvRows.push(row.join(","));
     });
@@ -599,11 +461,12 @@ const ActiveAgreement = () => {
               <h3 className="section-title">Agreements ({filteredAgreements.length})</h3>
               {filter === "linked" ? (
                 (() => {
-                  const mouList = activeAgreements.filter((a) => a.documentType === "MOU");
+                  const mouList = activeAgreements.filter((a) => String(a.document_type || a.documentType).toUpperCase() === "MOU");
 
                   const mouWithChildren = mouList
                     .map((mou) => {
-                      const children = activeAgreements.filter((c) => c.linkedMouId === mou.id);
+                      const mid = mou.id || mou.agreement_id;
+                      const children = activeAgreements.filter((c) => getLinkedId(c) === mid || c.linkedMouId === mid);
                       return { mou, children };
                     })
                     .filter((item) => item.children.length > 0);
@@ -620,15 +483,15 @@ const ActiveAgreement = () => {
                             <span className="mou-dot" />
                             <span className={`badge mou`}>MOU</span>
                             <div className="mou-meta">
-                              <strong className="mou-title">{mou.eventTitle}</strong>
+                              <strong className="mou-title">{mou.event_title || mou.eventTitle}</strong>
                               <div className="mou-sub">
-                                Partner: {mou.partnerName} ({mou.country})
+                                Partner: {mou.name || mou.partnerName} ({mou.country})
                               </div>
                               <div className="mou-sub small">
-                                Valid: {new Date(mou.dateOfSigning).toLocaleDateString()} →{" "}
-                                {new Date(mou.expiryDate).toLocaleDateString()}
+                                Valid: {new Date(mou.date_signed || mou.dateOfSigning).toLocaleDateString()} →{" "}
+                                {new Date(mou.date_expiry || mou.expiryDate).toLocaleDateString()}
                               </div>
-                              <div className="mou-dts small">{mou.dtsNumber}</div>
+                              <div className="mou-dts small">{mou.dts_number || mou.dtsNumber}</div>
                             </div>
                           </div>
 
@@ -645,18 +508,18 @@ const ActiveAgreement = () => {
                                     <span className="badge moa">MOA</span>
                                   </div>
                                   <div className="moa-body">
-                                    <strong className="moa-title">{c.eventTitle}</strong>
+                                    <strong className="moa-title">{c.event_title || c.eventTitle}</strong>
                                     <div className="moa-sub small">
-                                      Partner: {c.partnerName} ({c.country})
+                                      Partner: {c.name || c.partnerName} ({c.country})
                                     </div>
                                     <div className="moa-sub small">
-                                      Source: {c.source}
+                                      Source: {c.source_unit || c.source || c.initiating_unit}
                                     </div>
                                     <div className="moa-valid small">
-                                      Valid: {new Date(c.dateOfSigning).toLocaleDateString()} →{" "}
-                                      {new Date(c.expiryDate).toLocaleDateString()}
+                                      Valid: {new Date(c.date_signed || c.dateOfSigning).toLocaleDateString()} →{" "}
+                                      {new Date(c.date_expiry || c.expiryDate).toLocaleDateString()}
                                     </div>
-                                    <div className="moa-dts small">{c.dtsNumber}</div>
+                                    <div className="moa-dts small">{c.dts_number || c.dtsNumber}</div>
                                   </div>
                                 </div>
                               ))}
@@ -686,44 +549,44 @@ const ActiveAgreement = () => {
                     <tbody>
                       {paginatedAgreements.map((a, i) => (
                         <tr key={a.id || i}>
-                          <td>
-                            <span className={`badge ${a.documentType.toLowerCase()}`}>
-                              {a.documentType}
-                            </span>
-                          </td>
+                              <td>
+                                <span className={`badge ${String(a.document_type || a.documentType || "").toLowerCase()}`}>
+                                  {a.document_type || a.documentType}
+                                </span>
+                              </td>
 
-                          <td className="dts-number">{a.dtsNumber}</td>
+                              <td className="dts-number">{a.dts_number || a.dtsNumber}</td>
 
-                          <td>
-                            <div>
-                              <b>{a.eventTitle}</b>
-                              <div className="small">{a.partnershipClassification}</div>
-                            </div>
-                          </td>
+                              <td>
+                                <div>
+                                  <b>{a.event_title || a.eventTitle}</b>
+                                  <div className="small">{a.partnership_type || a.partnershipClassification}</div>
+                                </div>
+                              </td>
 
-                          <td>
-                            <div>
-                              <b>{a.partnerName}</b>
-                              <div className="small">{a.country}</div>
-                            </div>
-                          </td>
+                              <td>
+                                <div>
+                                  <b>{a.name || a.partnerName}</b>
+                                  <div className="small">{a.country}</div>
+                                </div>
+                              </td>
 
-                          <td>{a.source}</td>
+                              <td>{a.source_unit || a.source || a.initiating_unit}</td>
 
-                          <td>{new Date(a.expiryDate).toDateString()}</td>
+                              <td>{new Date(a.date_expiry || a.expiryDate).toDateString()}</td>
 
-                          <td>
-                            <span className="days-pill">{calculateDaysLeft(a.expiryDate)} days</span>
-                          </td>
+                              <td>
+                                <span className="days-pill">{calculateDaysLeft(a.date_expiry || a.expiryDate)} days</span>
+                              </td>
 
                           {/* Connection column */}
                           <td className="connection">
-                            {a.linkedMouId ? (
-                              <a href={`#${a.linkedMouId}`} className="linked">
+                            {getLinkedId(a) ? (
+                              <a href={`#${getLinkedId(a)}`} className="linked">
                                 <FiLink className="link-icon" />
                                 Linked to MOU
                               </a>
-                            ) : a.documentType === "MOA" ? (
+                            ) : String(a.document_type || a.documentType).toUpperCase() === "MOA" ? (
                               <span className="independent">Independent</span>
                             ) : (
                               <span className="dash">—</span>
@@ -787,10 +650,10 @@ const ActiveAgreement = () => {
               {expiringSoon.map((a, i) => (
                 <div key={i} className="activeAgreement-expiring-card">
                   <div className="activeAgreement-expiring-header">
-                    <span className={`badge ${a.documentType.toLowerCase()}`}>
-                      {a.documentType}
+                    <span className={`badge ${String(a.document_type || a.documentType || "").toLowerCase()}`}>
+                      {a.document_type || a.documentType}
                     </span>
-                    <h4>{a.eventTitle}</h4>
+                    <h4>{a.event_title || a.eventTitle}</h4>
                     <div className="days-left">
                       <button
                         className="eye-btn"
@@ -799,18 +662,18 @@ const ActiveAgreement = () => {
                       >
                         <FiEye className="icon" />
                       </button>
-                      <span>{calculateDaysLeft(a.expiryDate)} days left</span>
+                      <span>{calculateDaysLeft(a.date_expiry || a.expiryDate)} days left</span>
                     </div>
                   </div>
                   <p>
-                    <b>Partner:</b> {a.partnerName}
+                    <b>Partner:</b> {a.name || a.partnerName}
                     <br />
-                    <b>Expires:</b> {new Date(a.expiryDate).toDateString()}
+                    <b>Expires:</b> {new Date(a.date_expiry || a.expiryDate).toDateString()}
                     <br />
-                    <b>Source:</b> {a.source} • <span>{a.dtsNumber}</span>
+                    <b>Source:</b> {a.source_unit || a.source || a.initiating_unit} • <span>{a.dts_number || a.dtsNumber}</span>
                   </p>
 
-                  {a.linkedMouId && (
+                  {getLinkedId(a) && (
                     <p className="linked">
                       🔗 Requires MOU:{" "}
                       <span>Business education partnership framework</span>
@@ -886,10 +749,10 @@ const ActiveAgreement = () => {
           <div className="agreement-modal" onClick={(e) => e.stopPropagation()}>
             <header className="agreement-modal-header">
               <div className="modal-badge-row">
-                <span className={`badge ${selectedAgreement.documentType.toLowerCase()}`}>
-                  {selectedAgreement.documentType}
+                <span className={`badge ${String(selectedAgreement.document_type || selectedAgreement.documentType || "").toLowerCase()}`}>
+                  {selectedAgreement.document_type || selectedAgreement.documentType}
                 </span>
-                <h2 className="modal-title">{selectedAgreement.eventTitle}</h2>
+                <h2 className="modal-title">{selectedAgreement.event_title || selectedAgreement.eventTitle}</h2>
               </div>
               <button className="modal-close" onClick={closeModal} aria-label="Close">✕</button>
             </header>
@@ -902,33 +765,41 @@ const ActiveAgreement = () => {
                 <div className="row two-col">
                   <div>
                     <div className="label">DTS Number</div>
-                    <div className="value mono">{selectedAgreement.dtsNumber}</div>
+                    <div className="value mono">{selectedAgreement.dts_number || selectedAgreement.dtsNumber}</div>
                   </div>
 
                   <div>
                     <div className="label">Hardcopy Locator</div>
-                    <div className="value">{selectedAgreement.hardcopyLocator || "—"}</div>
+                    <div className="value">{selectedAgreement.hardcopy_location || selectedAgreement.hardcopyLocator || "—"}</div>
                   </div>
 
                   <div>
                     <div className="label">Entry Date</div>
-                    <div className="value">{new Date(selectedAgreement.date).toLocaleDateString()}</div>
+                    <div className="value">{new Date(selectedAgreement.date || selectedAgreement.date_signed || selectedAgreement.dateOfSigning).toLocaleDateString()}</div>
                   </div>
                 </div>
 
                 <div className="label">Brief Profile</div>
-                <div className="brief">{selectedAgreement.briefProfile}</div>
+                <div className="brief">{selectedAgreement.brief_profile || selectedAgreement.briefProfile}</div>
               </section>
 
               <section className="modal-section partner">
                 <h4>Partner Information</h4>
 
-                <div className="partner-top">
+                  <div className="partner-top">
                   <div className="partner-logo">
-                    {selectedAgreement.logo ? (
-                      <img src={selectedAgreement.logo} alt={`${selectedAgreement.partnerName} logo`} />
+                    {LogoSrc(selectedAgreement.logo_path || selectedAgreement.logo) ? (
+                      <img
+                        src={LogoSrc(selectedAgreement.logo_path || selectedAgreement.logo)}
+                        alt={`${selectedAgreement.name || selectedAgreement.partnerName} logo`}
+                        onError={(e) => {
+                          console.warn("Logo failed to load:", e.target.src);
+                          e.target.onerror = null;
+                          e.target.style.display = "none";
+                        }}
+                      />
                     ) : (
-                      <div className="partner-fallback">{getInitials(selectedAgreement.partnerName)}</div>
+                      <div className="partner-fallback">{getInitials(selectedAgreement.name || selectedAgreement.partnerName)}</div>
                     )}
                   </div>
 
@@ -936,7 +807,7 @@ const ActiveAgreement = () => {
                     <div className="row two-col">
                       <div>
                         <div className="label">Organization</div>
-                        <div className="value">{selectedAgreement.partnerName}</div>
+                        <div className="value">{selectedAgreement.name || selectedAgreement.partnerName}</div>
                       </div>
                       <div>
                         <div className="label">Country</div>
@@ -952,7 +823,7 @@ const ActiveAgreement = () => {
                       </div>
                       <div>
                         <div className="label">Website</div>
-                        <div className="value"><a href={selectedAgreement.websiteLink} target="_blank" rel="noreferrer">{selectedAgreement.websiteLink}</a></div>
+                        <div className="value"><a href={selectedAgreement.website_link || selectedAgreement.websiteLink} target="_blank" rel="noreferrer">{selectedAgreement.website_link || selectedAgreement.websiteLink}</a></div>
                       </div>
                     </div>
                   </div>
@@ -964,16 +835,20 @@ const ActiveAgreement = () => {
                 <div className="contacts-grid">
                   <div className="contact-card">
                     <div className="contact-role">PUP Point Person</div>
-                    <div className="contact-name">{selectedAgreement.pointPerson}</div>
-                    <div className="contact-org">{selectedAgreement.source}</div>
-                    <a className="contact-email" href={`mailto:${selectedAgreement.pointPersonEmail}`}>{selectedAgreement.pointPersonEmail}</a>
+                    <div className="contact-name">{selectedAgreement.point_persons_display || selectedAgreement.pointPerson || selectedAgreement.point_persons || "N/A"}</div>
+                    <div className="contact-org">{selectedAgreement.source_unit || selectedAgreement.source || selectedAgreement.initiating_unit}</div>
+                    {(selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail) ? (
+                      <a className="contact-email" href={`mailto:${selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail}`}>{selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail}</a>
+                    ) : null}
                   </div>
 
                   <div className="contact-card alt">
                     <div className="contact-role">Partner Contact Person</div>
-                    <div className="contact-name">{selectedAgreement.contactPerson}</div>
-                    <div className="contact-org">{selectedAgreement.partnerName}</div>
-                    <a className="contact-email" href={`mailto:${selectedAgreement.contactPersonEmail}`}>{selectedAgreement.contactPersonEmail}</a>
+                    <div className="contact-name">{selectedAgreement.contact_persons_display || selectedAgreement.contactPerson || selectedAgreement.contact_persons || "N/A"}</div>
+                    <div className="contact-org">{selectedAgreement.name || selectedAgreement.partnerName}</div>
+                    {(selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail) ? (
+                      <a className="contact-email" href={`mailto:${selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail}`}>{selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail}</a>
+                    ) : null}
                   </div>
                 </div>
               </section>
@@ -991,12 +866,12 @@ const ActiveAgreement = () => {
                     </div>
 
                     <div className="linked-mou-body">
-                      <strong className="linked-mou-title">{linkedAgreement.eventTitle}</strong>
-                      <div className="small linked-mou-sub">{linkedAgreement.partnershipClassification}</div>
+                      <strong className="linked-mou-title">{linkedAgreement.event_title || linkedAgreement.eventTitle}</strong>
+                      <div className="small linked-mou-sub">{linkedAgreement.partnership_type || linkedAgreement.partnershipClassification}</div>
                       <div className="small linked-mou-valid">
-                        Valid until: {new Date(linkedAgreement.expiryDate).toLocaleDateString()}
+                        Valid until: {new Date(linkedAgreement.date_expiry || linkedAgreement.expiryDate).toLocaleDateString()}
                       </div>
-                      <div className="linked-mou-dts small">{linkedAgreement.dtsNumber}</div>
+                      <div className="linked-mou-dts small">{linkedAgreement.dts_number || linkedAgreement.dtsNumber}</div>
                     </div>
                   </div>
                 </section>
@@ -1008,26 +883,36 @@ const ActiveAgreement = () => {
                 <div className="row two-col">
                   <div>
                     <div className="label">Date of Signing</div>
-                    <div className="value">{new Date(selectedAgreement.dateOfSigning).toLocaleDateString()}</div>
+                    <div className="value">{new Date(selectedAgreement.date_signed || selectedAgreement.dateOfSigning).toLocaleDateString()}</div>
                   </div>
                   <div>
                     <div className="label">Expiry Date</div>
-                    <div className="value">{new Date(selectedAgreement.expiryDate).toLocaleDateString()}</div>
+                    <div className="value">{new Date(selectedAgreement.date_expiry || selectedAgreement.expiryDate).toLocaleDateString()}</div>
                   </div>
                   <div>
                     <div className="label">Validity Period</div>
-                    <div className="value">{selectedAgreement.validityPeriod} years</div>
+                    <div className="value">{selectedAgreement.validity_period || selectedAgreement.validityPeriod} years</div>
                   </div>
                   <div>
                     <div className="label">Status</div>
-                    <div className="value status-pill">{selectedAgreement.status === "expiring-soon" ? "Expiring soon" : "Active"}</div>
+                    <div className="value status-pill">{(selectedAgreement.agreement_status || selectedAgreement.status) === "expiring-soon" ? "Expiring soon" : "Active"}</div>
                   </div>
                 </div>
               </section>
 
               <section className="modal-section remarks">
                 <div className="label">Remarks</div>
-                <div className="brief">{selectedAgreement.remarks || "—"}</div>
+                <div className="brief">
+                  {Array.isArray(selectedAgreement.remarks) ? (
+                    selectedAgreement.remarks.map((r, idx) => (
+                      <div key={idx}>{typeof r === "object" ? r.remark_text || r.text || r.remark || "" : r}</div>
+                    ))
+                  ) : selectedAgreement.remarks ? (
+                    <div>{selectedAgreement.remarks}</div>
+                  ) : (
+                    "—"
+                  )}
+                </div>
               </section>
             </div>
 
@@ -1038,28 +923,41 @@ const ActiveAgreement = () => {
                 </>
               ) : (
                 <div style={{ width: "100%" }} className="modal-edit-panel">
-                  <div className="row two-col" style={{ gap: 12, alignItems: "flex-start" }}>
-                    <div>
-                      <div className="label">Hardcopy Locator</div>
-                      <input
-                        className="edit-input"
-                        value={editForm.hardcopyLocator}
-                        onChange={(e) => setEditForm({ ...editForm, hardcopyLocator: e.target.value })}
-                        placeholder="Enter hardcopy locator"
-                      />
-                    </div>
+                    <div className="row two-col" style={{ gap: 12, alignItems: "flex-start" }}>
+                      <div>
+                        <div className="label">Hardcopy Locator</div>
+                        <input
+                          className="edit-input"
+                          value={editForm.hardcopy_location}
+                          onChange={(e) => setEditForm({ ...editForm, hardcopy_location: e.target.value })}
+                          placeholder="Enter hardcopy locator"
+                        />
+                      </div>
 
-                    <div>
-                      <div className="label">Remarks</div>
-                      <textarea
-                        className="edit-textarea"
-                        rows={3}
-                        value={editForm.remarks}
-                        onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })}
-                        placeholder="Enter remarks"
-                      />
+                      <div>
+                        <div className="label">Remarks</div>
+                        <div style={{ background: "#fff8dc", padding: "5px" }}>
+                          {Array.isArray(editForm.remarks) && editForm.remarks.length > 0 ? (
+                            editForm.remarks.map((rm, idx) => (
+                              <div key={idx} style={{ display: "flex", alignItems: "center", marginBottom: "5px" }}>
+                                <input
+                                  type="text"
+                                  value={rm}
+                                  onChange={(e) => updateEditRemark(idx, e.target.value)}
+                                  style={{ flex: 1 }}
+                                />
+                                <button onClick={() => removeEditRemark(idx)} style={{ marginLeft: 8 }}>x</button>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ color: "#666", fontStyle: "italic" }}>No remarks</div>
+                          )}
+                          <div>
+                            <button onClick={addEditRemark}>+ Add</button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12, gap: 8 }}>
                     <button className="btn save" onClick={saveModalEdits}>Save</button>
