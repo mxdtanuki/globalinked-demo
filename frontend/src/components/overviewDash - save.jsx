@@ -6,7 +6,7 @@ import './overviewDash.css';
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
-const OverviewDash = () => {
+const OverviewDashlogo = () => {
   const navigate = useNavigate();
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -175,22 +175,21 @@ const handleDateSort = () => {
     }
   };
     // Helper functions for list editing -WIPPP
-  const upsertListItem = (field, idx, key, val) => {
-    setEditedData(prev => {
-      const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
-      const item = { ...(list[idx] || {}) };
-      item[key] = val;
-      list[idx] = item;
-      return { ...prev, [field]: list };
-    });
-  };
+ const upsertListItem = (field, idx, val) => {
+  setEditedData(prev => {
+    const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
+    list[idx] = val; // Directly set the string value
+    return { ...prev, [field]: list };
+  });
+};
 
-  const addListItem = (field, template) => {
-    setEditedData(prev => {
-      const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
-      return { ...prev, [field]: [...list, template] };
-    });
-  };
+// Add an empty string
+const addListItem = (field, template) => {
+  setEditedData(prev => {
+    const list = Array.isArray(prev[field]) ? [...prev[field]] : [];
+    return { ...prev, [field]: [...list, ''] }; // Add empty string
+  });
+};
 
   const removeListItem = (field, idx) => {
     setEditedData(prev => {
@@ -433,54 +432,54 @@ const handleDateSort = () => {
 
     // Display/edit for REMARKS
     if (field === 'remarks') {
-      if (!isEditing) {
-        if (Array.isArray(value) && value.length > 0) {
-          return (
-            <div>
-              {value.map((r, idx) => (
-                <div key={idx}>{r.remark_text}</div>
-              ))}
-            </div>
-          );
-        }
-        return '-';
+    if (!isEditing) {
+      if (Array.isArray(value) && value.length > 0) {
+        return (
+          <div>
+            {value.map((r, idx) => (
+              <div key={idx}>{r}</div> // Display each string directly
+            ))}
+          </div>
+        );
       }
+      return '-';
+    }
 
       const list = Array.isArray(editedData.remarks) && editedData.remarks.length > 0
         ? editedData.remarks
-        : [{ remark_text: '' }];
+        : [''];
 
       return (
-        <div className="list-editor">
-          {list.map((r, idx) => (
-            <div key={idx} className="list-row" style={{ marginBottom: '8px', display: 'flex', gap: '4px' }}>
-              <input
-                type="text"
-                className="edit-input"
-                placeholder="Remark"
-                style={{ flex: 1 }}
-                value={r.remark_text || ''}
-                onChange={(e) => upsertListItem('remarks', idx, 'remark_text', e.target.value)}
-              />
-              <button 
-                type="button" 
-                onClick={() => removeListItem('remarks', idx)}
-                style={{ padding: '4px 8px', fontSize: '12px' }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => addListItem('remarks', { remark_text: '' })}
-            style={{ padding: '4px 8px', fontSize: '12px', marginTop: '4px' }}
-          >
-            + Add
-          </button>
-        </div>
-      );
-    }
+      <div className="list-editor">
+        {list.map((r, idx) => (
+          <div key={idx} className="list-row" style={{ marginBottom: '8px', display: 'flex', gap: '4px' }}>
+            <input
+              type="text"
+              className="edit-input"
+              placeholder="Remark"
+              style={{ flex: 1 }}
+              value={r || ''} 
+              onChange={(e) => upsertListItem('remarks', idx, e.target.value)} // Set the string
+            />
+            <button 
+              type="button" 
+              onClick={() => removeListItem('remarks', idx)}
+              style={{ padding: '4px 8px', fontSize: '12px' }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => addListItem('remarks', '')} // Add empty string
+          style={{ padding: '4px 8px', fontSize: '12px', marginTop: '4px' }}
+        >
+          + Add
+        </button>
+      </div>
+    );
+  }
 
     // Generic display (not editing or not editable)
     if (!isEditable || !isEditing) {
@@ -812,7 +811,8 @@ const exportToExcel = async () => {
   const formatRemarks = (rms) => {
     if (!Array.isArray(rms) || rms.length === 0) return "-";
     return rms.map(r => {
-      const text = r.remark_text || r.text || '';
+      if (typeof r === 'string') return r; 
+      const text = r.remark_text || r.text || ''; 
       const ts = r.remark_timestamp || r.timestamp || '';
       return ts ? `${text} [${ts}]` : text;
     }).join('; ');

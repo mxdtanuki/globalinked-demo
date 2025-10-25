@@ -229,7 +229,7 @@
   box-shadow: 0 6px 18px rgba(11,15,20,0.03);
   transform: none;
 }
-
+ 
 .activeAgreement-table::-webkit-scrollbar {
   height: 10px;
 }

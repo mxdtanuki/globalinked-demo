@@ -33,7 +33,7 @@ const Sidebar = ({ mobileShow }) => {
 
   const menuItems = [
     { label: 'Overview', path: '/overview', icon: <FiHome /> },
-    { label: 'Agreements', path: '/agreement', icon: <FiFileText/> },
+    { label: 'Agreements', path: '/active-agreements', icon: <FiFileText/> },
     { label: 'Analytics', path: '/analytics', icon: <FiBarChart2 /> },
     { label: 'Document Entry', path: '/docUpload', icon: <FiUpload />, roles: ['admin'] },
     { label: 'Point Person', path: '/pointPerson', icon: <FiUser /> },
