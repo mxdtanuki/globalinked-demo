@@ -118,24 +118,76 @@ async createAgreement(formData) {
   },
 
   async getAgreementById(id) {
-    const token = localStorage.getItem('access_token');
-    
-    if (!token) {
-      throw new Error('Please login first');
+  const token = localStorage.getItem('access_token');
+  if (!token) throw new Error('Please login first');
+
+  const headers = { 'Authorization': `Bearer ${token}` };
+
+  // Try multiple detail routes (with/without trailing slash, api prefix, singular)
+  const detailPaths = [
+    `/agreements/${id}/`,
+    `/agreements/${id}`,
+    `/api/agreements/${id}/`,
+    `/agreement/${id}`,
+  ];
+
+  const tried = [];
+  for (const path of detailPaths) {
+    const url = `${API_BASE_URL}${path}`;
+    try {
+      const res = await fetch(url, { headers });
+      tried.push({ url, status: res.status });
+      if (res.ok) return res.json();
+      if (res.status === 404 || res.status === 405) continue;
+    } catch (e) {
+      tried.push({ url, error: e.message });
+      continue;
     }
+  }
 
-    const response = await fetch(`${API_BASE_URL}/agreements/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch agreement');
+  // Fallback: list endpoint with filters (agreement_id, id, or dts_number)
+  const queryPaths = [
+    `/agreements/?agreement_id=${encodeURIComponent(id)}`,
+    `/agreements/?id=${encodeURIComponent(id)}`,
+    `/agreements/?dts_number=${encodeURIComponent(id)}`,
+  ];
+  for (const path of queryPaths) {
+    const url = `${API_BASE_URL}${path}`;
+    try {
+      const res = await fetch(url, { headers });
+      tried.push({ url, status: res.status });
+      if (!res.ok) continue;
+      const data = await res.json();
+      return Array.isArray(data) ? data[0] : data;
+    } catch (e) {
+      tried.push({ url, error: e.message });
+      continue;
     }
+  }
 
-    return response.json();
-  },
+  console.warn('getAgreementById failed. Tried:', tried);
+  throw new Error('Failed to fetch agreement');
+},
+
+async getAgreementByDts(dts) {
+  const token = localStorage.getItem('access_token');
+  if (!token) throw new Error('Please login first');
+  const headers = { 'Authorization': `Bearer ${token}` };
+
+  const paths = [
+    `/agreements/by-dts/${encodeURIComponent(dts)}`,
+    `/agreements/?dts_number=${encodeURIComponent(dts)}`,
+  ];
+  for (const path of paths) {
+    const url = `${API_BASE_URL}${path}`;
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      return Array.isArray(data) ? data[0] : data;
+    }
+  }
+  throw new Error('Failed to fetch by DTS');
+},
 
   async updateAgreement(id, formData) {
     const token = localStorage.getItem('access_token');

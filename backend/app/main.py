@@ -22,7 +22,7 @@ from app.services.nlp_extraction_service import NlpExtractionService
 from app.services.document_processing_service import DocumentProcessingService
 
 # Create database tables
-Base.metadata.create_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Globalinked API",
@@ -116,13 +116,12 @@ async def performance_test(db: Session = Depends(get_db)):
 
 @app.on_event("startup")
 def on_startup():
-    # Start scheduler
-    from app.scheduler import start_scheduler
-
-    start_scheduler()
-
-    # Preload QA once on startup (sync load; will use cache on subsequent runs)
     try:
+        # Comment out scheduler start to avoid pool issues
+        from app.scheduler import start_scheduler
+        start_scheduler()
+
+        # Preload QA once on startup (sync load; will use cache on subsequent runs)
         if getattr(app.state, "nlp_service", None) is None:
             app.state.nlp_service = NlpExtractionService(
                 document_processing_service=app.state.doc_processing_service
@@ -144,8 +143,8 @@ def on_startup():
             info.get("overlap", "?"),
         )
     except Exception as e:
-        logger.exception("Failed to preload QA model: %s", e)
-
+        logger.exception("Failed to preload QA model or start scheduler: %s", e)
+        # Do not raise - let app start anyway
 
 @app.on_event("shutdown")
 def on_shutdown():

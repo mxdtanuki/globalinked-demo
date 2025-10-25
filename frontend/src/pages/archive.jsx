@@ -6,17 +6,79 @@ import "./archive.css";
 import { documentService } from "../services/documentService";
 import { useNavigate } from "react-router-dom";
 import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
+import { FiEye, FiLink, FiDownload, FiArchive, FiAlertCircle, FiFilter, FiX, FiRefreshCw } from "react-icons/fi";
+import { TbFileText, TbLink, TbClockHour4 } from "react-icons/tb";
 
 const Archive = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState("all");
   const [filterDocType, setFilterDocType] = useState("");
   const [filterClassification, setFilterClassification] = useState("");
   const [allArchiveData, setAllArchiveData] = useState([]);
   const [withdrawnData, setWithdrawnData] = useState([]);
+  const [selectedTab, setSelectedTab] = useState("expired");
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [isDownloading, setIsDownloading] = useState(false);
+  
+  const getFilteredData = () => {
+    const currentData = selectedTab === "expired" ? allArchiveData : withdrawnData;
+    let filtered = currentData;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(item => 
+        item.agreement_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.partner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.dts_no?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply agreement type filter
+    switch (selectedFilter) {
+      case "moa":
+        filtered = filtered.filter(item => item.document_type?.toUpperCase() === "MOA");
+        break;
+      case "mou":
+        filtered = filtered.filter(item => item.document_type?.toUpperCase() === "MOU");
+        break;
+      case "linked":
+        filtered = filtered.filter(item => item.linked_mou_id || item.parent_agreement_id);
+        break;
+      default:
+        break;
+    }
+
+    return filtered;
+  };
+
+  const handleMassDownload = async () => {
+    if (selectedIds.size === 0) {
+      alert("Please select agreements to download.");
+      return;
+    }
+    
+    setIsDownloading(true);
+    try {
+      for (const id of selectedIds) {
+        const item = filteredData.find(a => a.agreement_id === id);
+        if (item) {
+          await handleViewLatestFile(item.dts_no, true);
+          // Add small delay between downloads to prevent browser blocking
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+    } catch (error) {
+      console.error("Error downloading documents:", error);
+      alert("Error downloading some documents. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Remove this duplicate function as we have another handleReactivate below
   const [displayData, setDisplayData] = useState([]);
   const [activeTab, setActiveTab] = useState("Expired");
   const [stats, setStats] = useState([]);
@@ -26,20 +88,20 @@ const Archive = () => {
   const [savingRows, setSavingRows] = useState(new Set());
   const [deletingRows, setDeletingRows] = useState(new Set());
   const [currentUser, setCurrentUser] = useState(null);
+  const [selectedAgreement, setSelectedAgreement] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [reportType, setReportType] = useState("all");
   const navigate = useNavigate();
   const itemsPerPage = 10;
 
-  // OPTIMIZED: Fetch data with server-side filtering
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // OPTIMIZATION 1: Use optimized archive endpoint (already uses batch queries)
         const expiredData = await agreementService.getArchivedAgreements();
         
-        //  Get withdrawn agreements with server-side filtering
         const withdrawnAgreements = await agreementService.getAgreements({ 
-          status_filter: 'WITHDRAWN' // Server filters instead of client
+          status_filter: 'WITHDRAWN'
         });
 
         console.log("Expired agreements:", expiredData);
@@ -47,9 +109,8 @@ const Archive = () => {
 
         setAllArchiveData(expiredData);
         setWithdrawnData(withdrawnAgreements);
-        setDisplayData(expiredData); // Default to expired view
+        setDisplayData(expiredData);
 
-        // Compute stats
         setStats([
           { label: "Expired", count: expiredData.length },
           { label: "Withdrawn", count: withdrawnAgreements.length },
@@ -63,13 +124,13 @@ const Archive = () => {
     fetchData();
   }, []);
 
-  // Switch view (Expired / Withdrawn) - No API calls needed!
   const filterByStat = (label) => {
     setActiveTab(label);
     setCurrentPage(1);
     setSearchTerm("");
     setFilterDocType("");
     setFilterClassification("");
+    setSelectedIds(new Set());
 
     if (label === "Expired") {
       setDisplayData(allArchiveData);
@@ -78,21 +139,31 @@ const Archive = () => {
     }
   };
 
-  // Filtering + Search logic (client-side for better UX)
   const filteredData = displayData.filter((item) => {
-    const searchMatch = Object.values(item)
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-
-    const docTypeMatch = filterDocType
-      ? item.document_type === filterDocType
-      : true;
-    const classificationMatch = filterClassification
-      ? item.partnership_type === filterClassification
+    // Search filter
+    const searchMatch = searchTerm ? 
+      [item.agreement_title, item.partner_name, item.name, item.dts_number]
+        .filter(Boolean)
+        .some(field => field.toLowerCase().includes(searchTerm.toLowerCase()))
       : true;
 
-    return searchMatch && docTypeMatch && classificationMatch;
+    // Agreement type filter
+    let typeMatch = true;
+    switch (selectedFilter) {
+      case 'moa':
+        typeMatch = String(item.document_type).toUpperCase() === 'MOA';
+        break;
+      case 'mou':
+        typeMatch = String(item.document_type).toUpperCase() === 'MOU';
+        break;
+      case 'linked':
+        typeMatch = Boolean(item.linked_mou_id || item.parent_agreement_id);
+        break;
+      default:
+        typeMatch = true;
+    }
+
+    return searchMatch && typeMatch;
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -105,25 +176,39 @@ const Archive = () => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  const handleViewLatestFile = async (dtsNumber) => {
+  const handleViewLatestFile = async (dtsNumber, isDownload = false) => {
     try {
       const latest = await documentService.getLatestVersion(dtsNumber);
       if (!latest) {
         alert("No document versions found for this DTS number.");
         return;
       }
-      const resp = await fetch(latest.download_url, {
-        headers: { Accept: "application/pdf" },
-      });
+
+      const resp = await fetch(latest.download_url);
       if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
+      
       const blob = await resp.blob();
-      const pdfBlob = new Blob([blob], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(pdfBlob);
-      window.open(url, "_blank");
-      setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+      const url = window.URL.createObjectURL(blob);
+      
+      if (isDownload) {
+        // Force download the file
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = latest.filename || `${dtsNumber}.pdf`; // Use original filename if available
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // View file in new tab
+        const newWindow = window.open(url, '_blank');
+        window.open(url, "_blank");
+        setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+      }
     } catch (err) {
-      console.error("View failed:", err);
-      alert("Failed to open file: " + (err.message || err));
+      console.error("Action failed:", err);
+      alert("Failed to " + (isDownload ? "download" : "open") + " file: " + (err.message || err));
     }
   };
 
@@ -136,7 +221,6 @@ const Archive = () => {
     }
   }, []);
 
-  // Edit handlers (unchanged)
   const startEditing = (row) => {
     setEditingRow(row.agreement_id);
     setEditedData({ ...row });
@@ -156,7 +240,6 @@ const Archive = () => {
       setSavingRows((prev) => new Set(prev).add(agreementId));
       await agreementService.updateAgreement(agreementId, editedData);
 
-      // Update local data efficiently
       const updateData = (data) =>
         data.map((a) => (a.agreement_id === agreementId ? editedData : a));
 
@@ -188,7 +271,6 @@ const Archive = () => {
       setDeletingRows((prev) => new Set(prev).add(agreementId));
       await agreementService.deleteAgreement(agreementId);
       
-      // Remove from local data efficiently
       const removeData = (data) => data.filter((a) => a.agreement_id !== agreementId);
       
       if (activeTab === "Withdrawn") {
@@ -212,6 +294,199 @@ const Archive = () => {
     }
   };
 
+  const handleMassDelete = async () => {
+    if (selectedIds.size === 0) {
+      alert("Please select agreements to delete.");
+      return;
+    }
+    if (!window.confirm(`WARNING: This action cannot be undone!\n\nAre you sure you want to permanently delete ${selectedIds.size} selected agreement(s)?`)) return;
+
+    try {
+      const deletePromises = Array.from(selectedIds).map(id => 
+        agreementService.deleteAgreement(id)
+      );
+      await Promise.all(deletePromises);
+
+      const removeData = (data) => data.filter((a) => !selectedIds.has(a.agreement_id));
+      
+      if (activeTab === "Withdrawn") {
+        setWithdrawnData(removeData);
+        setDisplayData(removeData);
+      } else {
+        setAllArchiveData(removeData);
+        setDisplayData(removeData);
+      }
+
+      setSelectedIds(new Set());
+      alert(`${selectedIds.size} agreement(s) deleted successfully.`);
+    } catch (err) {
+      alert("Mass delete failed: " + err.message);
+    }
+  };
+
+  const handleReactivate = async (agreementId) => {
+    if (activeTab !== "Withdrawn") {
+      alert("Only withdrawn agreements can be reactivated.");
+      return;
+    }
+
+    if (!window.confirm("Reactivate this agreement?")) return;
+    try {
+      await agreementService.updateAgreement(agreementId, { 
+        agreement_status: "Initial Review"  // Change status to Initial Review instead of Active
+      });
+      
+      const removeData = (data) => data.filter((a) => a.agreement_id !== agreementId);
+      setWithdrawnData(removeData(withdrawnData));
+      setDisplayData(removeData(displayData));
+      
+      alert("Agreement reactivated successfully!");
+    } catch (err) {
+      alert("Reactivate failed: " + err.message);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === currentData.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(currentData.map(item => item.agreement_id)));
+    }
+  };
+
+  const toggleSelect = (id) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const closeModal = () => setSelectedAgreement(null);
+
+  const getInitials = (name = "") => {
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+
+  const LogoSrc = (lp) => {
+    if (!lp) return null;
+    try {
+      if (typeof lp === "string") {
+        if (lp.startsWith("data:image")) return lp;
+        if (lp.startsWith("iVBORw0")) return `data:image/png;base64,${lp}`;
+        if (lp.startsWith("/9j/")) return `data:image/jpeg;base64,${lp}`;
+        if (lp.startsWith("http://") || lp.startsWith("https://")) return lp;
+        return `${API_BASE_URL.replace(/\/$/, "")}/${lp.replace(/^\/+/, "")}`;
+      }
+    } catch (err) {
+      console.warn("LogoSrc error:", err, lp);
+    }
+    return null;
+  };
+
+  const reportLabelMap = {
+    all: "Complete Archives Report",
+    expired: "Expired Agreements Report",
+    withdrawn: "Withdrawn Agreements Report",
+  };
+
+  const reportItems = (() => {
+    if (reportType === "expired") return allArchiveData;
+    if (reportType === "withdrawn") return withdrawnData;
+    return [...allArchiveData, ...withdrawnData];
+  })();
+
+  const escapeHtml = (str = "") =>
+    String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const safeCsv = (v = "") => {
+    const s = String(v ?? "").replace(/"/g, '""');
+    return `"${s}"`;
+  };
+
+  const generatePrintableReport = () => {
+    const rows = reportItems
+      .map((r) => {
+        return `<tr>
+            <td>${escapeHtml(r.document_type)}</td>
+            <td>${escapeHtml(r.dts_number)}</td>
+            <td>${escapeHtml(r.partner_name || r.name || "")}</td>
+            <td>${escapeHtml(r.partnership_type)}</td>
+            <td>${escapeHtml(r.date_expiry ? new Date(r.date_expiry).toLocaleDateString() : "")}</td>
+            <td>${escapeHtml(r.agreement_status)}</td>
+          </tr>`;
+      })
+      .join("");
+
+    const html = `
+      <html>
+        <head>
+          <title>${reportLabelMap[reportType]}</title>
+          <style>
+            body{font-family: Arial, Helvetica, sans-serif; padding:20px; color:#111}
+            h1{font-size:20px; margin-bottom:6px}
+            table{width:100%;border-collapse:collapse;margin-top:12px}
+            th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:13px}
+            th{background:#f7f7f7}
+          </style>
+        </head>
+        <body>
+          <h1>${reportLabelMap[reportType]}</h1>
+          <div>Total records: ${reportItems.length}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th><th>DTS</th><th>Partner</th><th>Classification</th><th>Expiry</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <script>window.onload = function(){ window.print(); }</script>
+        </body>
+      </html>`;
+
+    const w = window.open("", "_blank");
+    w.document.write(html);
+    w.document.close();
+  };
+
+  const downloadCSV = () => {
+    const headers = ['Type','DTS Number','Partner','Country','Classification','ExpiryDate','Status'];
+    const csvRows = [headers.join(",")];
+
+    reportItems.forEach((r) => {
+      const row = [
+        safeCsv(r.document_type),
+        safeCsv(r.dts_number),
+        safeCsv(r.partner_name || r.name || ""),
+        safeCsv(r.country),
+        safeCsv(r.partnership_type),
+        safeCsv(r.date_expiry || ""),
+        safeCsv(r.agreement_status),
+      ];
+      csvRows.push(row.join(","));
+    });
+
+    const csvString = csvRows.join("\r\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${reportType}-archive-report.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
 const renderEditableCell = (item, field, value) => {
   const isEditing = editingRow === item.agreement_id;
   const editableFields = [
@@ -227,7 +502,6 @@ const renderEditableCell = (item, field, value) => {
 
   if (!isEditing || !editableFields.includes(field)) return value || "—";
 
-  // Dropdowns for specific fields
   if (field === "agreement_status") {
     return (
       <select
@@ -318,334 +592,452 @@ const renderEditableCell = (item, field, value) => {
             </div>
           ) : (
             <>
-          <h2 className="archive-title">Archives</h2>
+          <div className="archive-main">
+            <h2 className="archive-title">Archives</h2>
         
-          {/* Stats Row */}
           <div className="stats-row">
             {stats.map((s, i) => (
               <button
                 key={i}
-                className={`stat-card ${
-                  activeTab === s.label ? "active-tab" : ""
+                className={`stat-card-row ${
+                  activeTab === s.label ? "active" : ""
                 }`}
                 onClick={() => filterByStat(s.label)}
               >
-                <div className="stat-number">{s.count}</div>
-                <div className="stat-label">{s.label}</div>
+                <div className="stat-icon-row">
+                  {s.label === "Expired" ? <FiArchive size={24} /> : <FiAlertCircle size={24} />}
+                </div>
+                <div className="stat-content">
+                  <span className="stat-number-row">{s.count}</span>
+                  <span className="stat-label-row">
+                    Total {s.label} Agreements
+                  </span>
+                </div>
               </button>
             ))}
           </div>
 
-          <div className="contact-person-wrapper">
-            {/* Search & Filter Bar */}
-            <div className="search-filter-bar">
-              <input
-                type="text"
-                placeholder="Search here"
-                className="search-input"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-              <button
-                className="filter-btn"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                Filter
-              </button>
+          <div className="archive-table-section">
+            <div className="table-controls">
+              <div className="table-search-wrapper">
+                <div className="table-search">
+                  <input
+                    type="search"
+                    placeholder="Search DTS, partner, type..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                  {searchTerm && (
+                    <button
+                      className="clear-search"
+                      onClick={() => setSearchTerm("")}
+                    >
+                      <FiX />
+                    </button>
+                  )}
+                </div>
+
+                <div className="filter-tabs">
+                  <button 
+                    className={selectedFilter === "all" ? "active" : ""}
+                    onClick={() => setSelectedFilter("all")}
+                  >
+                    All {activeTab} Agreements
+                  </button>
+                  <button 
+                    className={selectedFilter === "moa" ? "active" : ""}
+                    onClick={() => setSelectedFilter("moa")}
+                  >
+                    MOA
+                  </button>
+                  <button 
+                    className={selectedFilter === "mou" ? "active" : ""}
+                    onClick={() => setSelectedFilter("mou")}
+                  >
+                    MOU
+                  </button>
+                  <button 
+                    className={selectedFilter === "linked" ? "active" : ""}
+                    onClick={() => setSelectedFilter("linked")}
+                  >
+                    Linked Agreements
+                  </button>
+                </div>
+              </div>
+
+              <div className="table-actions">
+                {selectedIds.size > 0 && (
+                  <>
+                    <button 
+                      className="mass-download-btn"
+                      onClick={handleMassDownload}
+                      disabled={isDownloading}
+                    >
+                      <FiDownload />
+                      Download Selected ({selectedIds.size})
+                    </button>
+
+                    {currentUser?.user_role?.toLowerCase() === "admin" && (
+                      <button className="mass-delete-btn" onClick={handleMassDelete}>
+                        <FiX />
+                        Delete Selected ({selectedIds.size})
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Filter Options */}
-            {showFilters && (
-              <div className="filter-options">
-                <select
-                  value={filterDocType}
-                  onChange={(e) => {
-                    setFilterDocType(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Document Types</option>
-                  {[...new Set(displayData.map((d) => d.document_type))].map(
-                    (doc, i) => (
-                      <option key={i} value={doc}>
-                        {doc}
-                      </option>
-                    )
-                  )}
-                </select>
 
-                <select
-                  value={filterClassification}
-                  onChange={(e) => {
-                    setFilterClassification(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Classifications</option>
-                  {[...new Set(displayData.map((d) => d.partnership_type))].map(
-                    (cls, i) => (
-                      <option key={i} value={cls}>
-                        {cls}
-                      </option>
-                    )
-                  )}
-                </select>
-              </div>
-            )}
 
-            {/* TABLES */}
-            <div className="table-container">
-              {activeTab === "Expired" ? (
-                <table className="contact-person-table">
-                  <thead>
-                    <tr>
-                      <th>PARTNER NAME</th>
-                      <th>DOCUMENT TYPE</th>
-                      <th>PARTNERSHIP CLASSIFICATION</th>
-                      <th>EXPIRE DATE</th>
-                      <th>POINT PERSON</th>
-                      <th>ACTIONS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentData.length > 0 ? (
-                      currentData.map((item, index) => (
-                        <tr key={index}>
-                          <td>{item.partner_name}</td>
-                          <td>{renderDocumentTypeBadge(item.document_type)}</td>
-                          <td>{item.partnership_type}</td>
-                          <td>{item.date_expiry}</td>
-                          <td>{item.point_persons_display}</td>
+            <div className="archive-table">
+              <table>
+                <thead>
+                  <tr>
+                    {currentUser?.user_role?.toLowerCase() === "admin" && (
+                      <th>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.size === currentData.length && currentData.length > 0}
+                          onChange={toggleSelectAll}
+                        />
+                      </th>
+                    )}
+                    <th>TYPE</th>
+                    <th>DTS NUMBER</th>
+                    <th>PARTNER NAME</th>
+                    <th>CLASSIFICATION</th>
+                    <th>EXPIRE DATE</th>
+                    <th>POINT PERSON</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentData.length > 0 ? (
+                    currentData.map((item, index) => (
+                      <tr key={index}>
+                        {currentUser?.user_role?.toLowerCase() === "admin" && (
                           <td>
-                            <div style={{ display: "flex", gap: "4px" }}>
-                              <button
-                                className="view-btn"
-                                onClick={() =>
-                                  handleViewLatestFile(item.dts_number)
-                                }
-                              >
-                                View File
-                              </button>
-                              {currentUser?.user_role?.toLowerCase() === "admin" && (
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(item.agreement_id)}
+                              onChange={() => toggleSelect(item.agreement_id)}
+                            />
+                          </td>
+                        )}
+                        <td>
+                          <span className={`badge ${String(item.document_type || "").toLowerCase()}`}>
+                            {item.document_type}
+                          </span>
+                        </td>
+                        <td className="dts-number">{item.dts_number}</td>
+                        <td><b>{item.partner_name || item.name}</b></td>
+                        <td>{item.partnership_type}</td>
+                        <td>{item.date_expiry}</td>
+                        <td>{item.point_persons_display}</td>
+                        <td>
+                          <div style={{ display: "flex", gap: "4px" }}>
+                            <button
+                              className="icon-btn view"
+                              onClick={() => setSelectedAgreement(item)}
+                              title="View details"
+                            >
+                              <FiEye className="icon" />
+                            </button>
+                            <button
+                              className="icon-btn download"
+                              onClick={() => handleViewLatestFile(item.dts_number, true)}
+                              title="Download file"
+                            >
+                              <FiDownload className="icon" />
+                            </button>
+                            {currentUser?.user_role?.toLowerCase() === "admin" && (
+                              <>
+                                {activeTab === "Withdrawn" && (
+                                  <button
+                                    className="icon-btn reactivate"
+                                    onClick={() => handleReactivate(item.agreement_id)}
+                                    title="Reactivate to Initial Review"
+                                  >
+                                    <FiRefreshCw className="icon" />
+                                  </button>
+                                )}
                                 <button
-                                  className="delete-btn"
+                                  className="icon-btn delete"
                                   onClick={() => deleteRow(item.agreement_id)}
                                   disabled={deletingRows.has(item.agreement_id)}
-                                  title="Delete"
+                                  title="Delete permanently"
                                 >
-                                  🗑️
+                                  <FiX className="icon" />
                                 </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="6" style={{ textAlign: "center" }}>
-                          No results found
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              ) : (
-                <table className="contact-person-table">
-                  <thead>
+                    ))
+                  ) : (
                     <tr>
-                      <th>SOURCE</th>
-                      <th>DOCUMENT TYPE</th>
-                      <th>POINT PERSON / POSITION</th>
-                      <th>DTS NO.</th>
-                      <th>DTS LOCATION</th>
-                      <th>PARTNER'S NAME</th>
-                      <th>ENTITY TYPE</th>
-                      <th>COUNTRY</th>
-                      <th>REGION</th>
-                      <th>ADDRESS</th>
-                      <th>SIGNATORIES / POSITION</th>
-                      <th>CONTACT PERSON / DETAILS</th>
-                      <th>PARTNERSHIP CLASSIFICATION</th>
-                      <th>EVENT TITLE / OTHER IMPT INFO</th>
-                      <th>VALIDITY PERIOD</th>
-                      <th>DATE OF SIGNING</th>
-                      <th>EXPIRY DATE</th>
-                      <th>DATE RECEIVED</th>
-                      <th>DATE ENDORSED TO ULCO</th>
-                      <th>ULCO APPROVAL</th>
-                      <th>PUP OFFICIAL SIGNATURES</th>
-                      <th>STATUS</th>
-                      <th>WEBSITE LINK</th>
-                      <th>BRIEF PROFILE</th>
-                      <th>LOGO</th>
-                      <th>HARDCOPY LOCATOR</th>
-                      <th>REMARKS</th>
-                      <th>ACTIONS</th>
+                      <td colSpan={currentUser?.user_role?.toLowerCase() === "admin" ? "8" : "7"} style={{ textAlign: "center" }}>
+                        No results found
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {currentData.length > 0 ? (
-                      currentData.map((item, index) => (
-                        <tr key={index}>
-                          <td>{renderEditableCell(item, "source_unit", item.source_unit)}</td>
-                          <td>{renderDocumentTypeBadge(item.document_type)}</td>
-                          <td>
-                            {Array.isArray(item.point_persons)
-                              ? item.point_persons.map((pp, i) => (
-                                  <div key={i}>
-                                    {pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})
-                                  </div>
-                                ))
-                              : "—"}
-                          </td>
-                          <td>{renderEditableCell(item, 'dts_number', item.dts_number)}</td>
-                          <td>{renderEditableCell(item, 'dts_status', item.dts_status)}</td>
-                          <td>{renderEditableCell(item, "name", item.name)}</td>
-                          <td>{renderEditableCell(item, "entity_type", item.entity_type)}</td>
-                          <td>{renderEditableCell(item, "country", item.country)}</td>
-                          <td>{renderEditableCell(item, "region", item.region)}</td>
-                          <td>{renderEditableCell(item, "address", item.address)}</td>
-                          <td>
-                            {Array.isArray(item.signatories_list) && item.signatories_list.length > 0
-                              ? item.signatories_list.map((s, i) => (
-                                  <div key={i}>
-                                    {(s.signatory_position || s.position || "—")}: {(s.signatory_name || s.name || "—")}
-                                  </div>
-                                ))
-                              : Array.isArray(item.signatories) && item.signatories.length > 0
-                                ? item.signatories.map((s, i) => (
-                                    <div key={i}>
-                                      {(s.signatory_position || s.position || "—")}: {(s.signatory_name || s.name || "—")}
-                                    </div>
-                                  ))
-                                : "—"}
-                          </td>
-                          <td>
-                            {Array.isArray(item.contact_persons)
-                              ? item.contact_persons.map((cp, i) => (
-                                  <div key={i}>
-                                    {cp.contact_person_position}: {cp.contact_person_name} ({cp.contact_person_email})
-                                  </div>
-                                ))
-                              : "—"}
-                          </td>
-                          <td>{renderEditableCell(item, "partnership_type", item.partnership_type)}</td>
-                          <td>{renderEditableCell(item, "event_info", item.event_info)}</td>
-                          <td>{renderEditableCell(item, "validity_period", item.validity_period)}</td>
-                          <td>{renderEditableCell(item, "date_signed", item.date_signed)}</td>
-                          <td>{renderEditableCell(item, "date_expiry", item.date_expiry)}</td>
-                          <td>{renderEditableCell(item, "date_received", item.date_received)}</td>
-                          <td>{renderEditableCell(item, "date_endorsed_to_ulco", item.date_endorsed_to_ulco)}</td>
-                          <td>{renderEditableCell(item, "date_ulco_approved", item.date_ulco_approved)}</td>
-                          <td>{renderEditableCell(item, "date_signed_by_pup", item.date_signed_by_pup)}</td>
-                          <td>{renderEditableCell(item, 'agreement_status', item.agreement_status)}</td>
-                          <td>
-                            {editingRow === item.agreement_id
-                              ? renderEditableCell(item, "website_url", item.website_url)
-                              : item.website_url ? (
-                                <a href={item.website_url} target="_blank" rel="noopener noreferrer">{item.website_url.length > 30 ? item.website_url.slice(0, 30) + '...' : item.website_url}
-                          </a>
-                              ) : "—"}
-                          </td>
-                          <td>{renderEditableCell(item, "description", item.description)}</td>
-                          <td>
-                            {item.logo_url ? (
-                              <img src={`data:image/png;base64,${item.logo_url}`} alt="Logo" width="50" />
-                            ) : "—"}
-                          </td>
-                          <td>{renderEditableCell(item, "hardcopy_location", item.hardcopy_location)}</td>
-                          <td>
-                            {Array.isArray(item.remarks)
-                              ? item.remarks.map((r, i) => <div key={i}>{r.remark_text}</div>)
-                              : "—"}
-                          </td>
-                              <td>
-                            <div style={{ display: "flex", gap: "4px" }}>
-                              {editingRow === item.agreement_id ? (
-                                <>
-                                  {currentUser?.user_role?.toLowerCase() === "admin" && (
-                                    <>
-                                      <button
-                                        className="view-btn"
-                                        onClick={() => saveRow(item.agreement_id)}
-                                        disabled={savingRows.has(item.agreement_id)}
-                                      >
-                                        {savingRows.has(item.agreement_id) ? "Saving..." : "Save"}
-                                      </button>
-                                      <button className="view-btn" onClick={cancelEditing}>Cancel</button>
-                                    </>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  {currentUser?.user_role?.toLowerCase() === "admin" && (
-                                    <>
-                                      <button className="view-btn" onClick={() => startEditing(item)}>Edit</button>
-                                      <button
-                                        className="view-btn"
-                                        onClick={() => deleteRow(item.agreement_id)}
-                                        disabled={deletingRows.has(item.agreement_id)}
-                                      >
-                                        Delete
-                                      </button>
-                                    </>
-                                  )}
-                                  <button
-                                    className="view-btn"
-                                    onClick={() => handleViewLatestFile(item.dts_number)}
-                                  >
-                                    View File
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="27" style={{ textAlign: "center" }}>
-                          No withdrawn agreements found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            {/* Pagination */}
-            <div className="pagination">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                ← Previous
-              </button>
-              {[...Array(totalPages)].map((_, index) => (
+            {totalPages > 1 && (
+              <div className="pagination">
                 <button
-                  key={index}
-                  className={currentPage === index + 1 ? "active" : ""}
-                  onClick={() => handlePageChange(index + 1)}
+                  className="page-btn"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
                 >
-                  {index + 1}
+                  Prev
                 </button>
-              ))}
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next →
-              </button>
+                {[...Array(totalPages)].map((_, index) => (
+                  <button
+                    key={index}
+                    className={`page-btn ${currentPage === index + 1 ? "active" : ""}`}
+                    onClick={() => handlePageChange(index + 1)}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+                <button
+                  className="page-btn"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="report-generator-card">
+            <div className="report-header">
+              <div className="report-icon">📄</div>
+              <div>
+                <h4>Report Generator</h4>
+                <div className="report-sub">Generate comprehensive reports for archived agreements</div>
+              </div>
             </div>
+
+            <div className="report-controls">
+              <div className="report-select">
+                <select
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                >
+                  <option value="all">All Archive</option>
+                  <option value="expired">Expired Only</option>
+                  <option value="withdrawn">Withdrawn Only</option>
+                </select>
+              </div>
+
+              <div className="report-actions">
+                <button
+                  className="btn btn-primary btn-print"
+                  onClick={generatePrintableReport}
+                >
+                  <span className="btn-icon">🖨️</span>
+                  <span>Generate Report</span>
+                </button>
+
+                <button
+                  className="btn btn-outline btn-csv"
+                  onClick={downloadCSV}
+                >
+                  <span className="btn-icon">⬇️</span>
+                  <span>Download CSV</span>
+                </button>
+              </div>
             </div>
+
+            <div className="report-meta">
+              <div>
+                <strong>Selected:</strong> <span className="muted">{reportLabelMap[reportType]}</span>
+              </div>
+              <div>
+                <strong>Total records:</strong> <span className="muted">{reportItems.length}</span>
+              </div>
+            </div>
+          </div>
+        </div>
           </>
         )}
       </div>
     </div>
+
+      {selectedAgreement && (
+        <div className="agreement-modal-backdrop" onClick={closeModal}>
+          <div className="agreement-modal" onClick={(e) => e.stopPropagation()}>
+            <header className="agreement-modal-header">
+              <div className="modal-badge-row">
+                <span className={`badge ${String(selectedAgreement.document_type || "").toLowerCase()}`}>
+                  {selectedAgreement.document_type}
+                </span>
+                <h2 className="modal-title">{selectedAgreement.event_title || selectedAgreement.partner_name || selectedAgreement.name}</h2>
+              </div>
+              <button className="modal-close" onClick={closeModal}>✕</button>
+            </header>
+
+            <div className="agreement-modal-body">
+              <section className="modal-section docinfo">
+                <h4>Document Information</h4>
+                <div className="row two-col">
+                  <div>
+                    <div className="label">DTS Number</div>
+                    <div className="value mono">{selectedAgreement.dts_number}</div>
+                  </div>
+
+                  <div>
+                    <div className="label">Hardcopy Locator</div>
+                    <div className="value">{selectedAgreement.hardcopy_location || "—"}</div>
+                  </div>
+
+                  <div>
+                    <div className="label">Date Signed</div>
+                    <div className="value">{selectedAgreement.date_signed ? new Date(selectedAgreement.date_signed).toLocaleDateString() : "—"}</div>
+                  </div>
+
+                  <div>
+                    <div className="label">Expiry Date</div>
+                    <div className="value">{selectedAgreement.date_expiry ? new Date(selectedAgreement.date_expiry).toLocaleDateString() : "—"}</div>
+                  </div>
+                </div>
+
+                <div className="label">Brief Profile</div>
+                <div className="brief">{selectedAgreement.brief_profile || selectedAgreement.description || "—"}</div>
+              </section>
+
+              <section className="modal-section partner">
+                <h4>Partner Information</h4>
+
+                <div className="partner-top">
+                  <div className="partner-logo">
+                    {LogoSrc(selectedAgreement.logo_path || selectedAgreement.logo_url) ? (
+                      <img
+                        src={LogoSrc(selectedAgreement.logo_path || selectedAgreement.logo_url)}
+                        alt={`${selectedAgreement.partner_name || selectedAgreement.name} logo`}
+                        onError={(e) => {
+                          console.warn("Logo failed to load:", e.target.src);
+                          e.target.onerror = null;
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="partner-fallback">{getInitials(selectedAgreement.partner_name || selectedAgreement.name)}</div>
+                    )}
+                  </div>
+
+                  <div className="partner-details">
+                    <div className="row two-col">
+                      <div>
+                        <div className="label">Organization</div>
+                        <div className="value">{selectedAgreement.partner_name || selectedAgreement.name}</div>
+                      </div>
+                      <div>
+                        <div className="label">Country</div>
+                        <div className="value">{selectedAgreement.country}</div>
+                      </div>
+                      <div>
+                        <div className="label">Region</div>
+                        <div className="value">{selectedAgreement.region || "—"}</div>
+                      </div>
+                      <div>
+                        <div className="label">Address</div>
+                        <div className="value">{selectedAgreement.address || "—"}</div>
+                      </div>
+                      <div>
+                        <div className="label">Website</div>
+                        <div className="value">
+                          {selectedAgreement.website_url ? (
+                            <a href={selectedAgreement.website_url} target="_blank" rel="noreferrer">{selectedAgreement.website_url}</a>
+                          ) : "—"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="modal-section contacts">
+                <h4>Contact Persons</h4>
+                <div className="contacts-grid">
+                  <div className="contact-card">
+                    <div className="contact-role">PUP Point Person</div>
+                    <div className="contact-name">{selectedAgreement.point_persons_display || "N/A"}</div>
+                    <div className="contact-org">{selectedAgreement.source_unit || selectedAgreement.source}</div>
+                  </div>
+
+                  <div className="contact-card alt">
+                    <div className="contact-role">Partner Contact Person</div>
+                    <div className="contact-name">{selectedAgreement.contact_persons_display || "N/A"}</div>
+                    <div className="contact-org">{selectedAgreement.partner_name || selectedAgreement.name}</div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="modal-section timeline">
+                <h4>Agreement Timeline</h4>
+                <div className="row two-col">
+                  <div>
+                    <div className="label">Date of Signing</div>
+                    <div className="value">{selectedAgreement.date_signed ? new Date(selectedAgreement.date_signed).toLocaleDateString() : "—"}</div>
+                  </div>
+                  <div>
+                    <div className="label">Expiry Date</div>
+                    <div className="value">{selectedAgreement.date_expiry ? new Date(selectedAgreement.date_expiry).toLocaleDateString() : "—"}</div>
+                  </div>
+                  <div>
+                    <div className="label">Validity Period</div>
+                    <div className="value">{selectedAgreement.validity_period || "—"} {selectedAgreement.validity_period ? "years" : ""}</div>
+                  </div>
+                  <div>
+                    <div className="label">Status</div>
+                    <div className="value status-pill archived">{selectedAgreement.agreement_status || activeTab}</div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="modal-section remarks">
+                <div className="label">Remarks</div>
+                <div className="brief">
+                  {Array.isArray(selectedAgreement.remarks) ? (
+                    selectedAgreement.remarks.map((r, idx) => (
+                      <div key={idx}>{typeof r === "object" ? r.remark_text || r.text || r.remark || "" : r}</div>
+                    ))
+                  ) : selectedAgreement.remarks ? (
+                    <div>{selectedAgreement.remarks}</div>
+                  ) : (
+                    "—"
+                  )}
+                </div>
+              </section>
+            </div>
+
+            <footer className="agreement-modal-footer">
+              <button className="btn view" onClick={() => handleViewLatestFile(selectedAgreement.dts_number)}>
+                <FiDownload className="icon" /> Download File
+              </button>
+              {currentUser?.user_role?.toLowerCase() === "admin" && activeTab === "Withdrawn" && (
+                <button className="btn reactivate" onClick={() => {
+                  handleReactivate(selectedAgreement.agreement_id);
+                  closeModal();
+                }}>
+                  <FiRefreshCw /> Reactivate Agreement
+                </button>
+              )}
+            </footer>
+          </div>
+        </div>
+      )}
   </div>
 );
 };

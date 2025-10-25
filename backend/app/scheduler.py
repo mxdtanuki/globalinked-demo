@@ -19,7 +19,7 @@ from zoneinfo import ZoneInfo
 PH_TZ = ZoneInfo("Asia/Manila")
 scheduler = BackgroundScheduler(timezone=PH_TZ)
 
-# FIXED: Mapping for per-status thresholds - corrected status names
+
 STATUS_THRESHOLD_DAYS = {
     # status -> days before the alert
     "InitialReview": 3,    
@@ -32,7 +32,7 @@ STATUS_THRESHOLD_DAYS = {
     "SignituresPartner": 3,
     "SignedPartner": 3,
     "Complete": 3,
-    "Notary": 5,
+    "Notary": 3,
     "FFUPCopy": 3,
 }
 
@@ -110,7 +110,7 @@ def _recommended_actions_for_category(category, status=None):
         ]
     if category == "pending_long":
         status_actions = {
-            "InitialReview": [  # Fixed: was "Initial Review"
+            "InitialReview": [  # was "Initial Review"
                 "Conduct initial document review.",
                 "Verify all required documents and information are complete.",
                 "Schedule review meeting if necessary and proceed to next status."
@@ -125,7 +125,7 @@ def _recommended_actions_for_category(category, status=None):
                 "Review comments and prepare revised documentation.",
                 "Set deadline for resubmission to avoid further delays."
             ],
-            "Consultation": [  # Fixed: was "For Consultation"
+            "Consultation": [  # was "For Consultation"
                 "Reach out to relevant stakeholders for consultation.",
                 "Prepare consultation materials and agenda items.",
                 "Follow up with consulted parties for feedback and recommendations."
@@ -241,7 +241,7 @@ def agreement_notification_job():
                 # Check if Timer record exists
                 timer_record = db.query(Timer).filter(Timer.agreement_id == a.agreement_id).first()
                 
-                # FIXED: Handle both datetime and date objects properly
+                # Handle both datetime and date objects properly
                 if timer_record and timer_record.last_status_change:
                     last_status_change = timer_record.last_status_change
                     

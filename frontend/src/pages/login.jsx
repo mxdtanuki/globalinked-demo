@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
-import { FaUser, FaLock } from 'react-icons/fa';
+import { FaUser, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import './login.css'; 
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
@@ -10,6 +10,7 @@ const Login = () => {
   const [form, setForm] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -86,12 +87,13 @@ const Login = () => {
 
           {error && <p className="error">{error}</p>}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} autoComplete="on">
             <div className="input-group">
               <FaUser className="input-icon" />
               <input
                 type="text"
                 name="username"
+                id="username"
                 placeholder="Username"
                 value={form.username}
                 onChange={handleChange}
@@ -103,14 +105,21 @@ const Login = () => {
             <div className="input-group">
               <FaLock className="input-icon" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 name="password"
+                id="password"
                 placeholder="Password"
                 value={form.password}
                 onChange={handleChange}
                 autoComplete="current-password"
                 required
               />
+              <span
+                className="input-eye"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
             </div>
 
             <div className="form-footer">
@@ -127,8 +136,30 @@ const Login = () => {
             </button>
           </form>
 
+          <p className="terms-notice">
+            By using this service, you understand and agree to the<br />
+            PUP Online Services{' '}
+            <a 
+              href="https://www.pup.edu.ph/terms/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="terms-link"
+            >
+              Terms of Use
+            </a>
+            {' '}and{' '}
+            <a 
+              href="https://www.pup.edu.ph/privacy/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="terms-link"
+            >
+              Privacy Statement
+            </a>.
+          </p>
+
           <p className="switch-text">
-            Don’t have an account?{' '}
+            Don't have an account?{' '}
             <span className="link" onClick={() => navigate('/register')}>
               Register here
             </span>
