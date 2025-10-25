@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 from sqlalchemy.exc import OperationalError
+from fastapi import HTTPException
 import os
 from dotenv import load_dotenv
 
@@ -11,183 +12,155 @@ env_path = os.path.join(os.path.dirname(__file__), ".env")
 print("Looking for .env at:", env_path)
 load_dotenv(dotenv_path=env_path)
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
+# Resolve base URL
+raw_url = (os.getenv("DATABASE_URL") or "").strip()
+if not raw_url:
     # Fallback for local dev if .env missing
-    DATABASE_URL = "postgresql://postgres:197364@localhost/globalinked_db"
+    raw_url = "postgresql://postgres:197364@localhost/globalinked_db"
 
-# If using Supabase, force SSL when not already present
-if "supabase.co" in DATABASE_URL and "sslmode" not in DATABASE_URL:
-    delimiter = "&" if "?" in DATABASE_URL else "?"
-    DATABASE_URL = f"{DATABASE_URL}{delimiter}sslmode=require"
+# Force psycopg3 driver and sslmode for Supabase
+db_url = raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
+if "supabase.co" in db_url and "sslmode" not in db_url:
+    delimiter = "&" if "?" in db_url else "?"
+    db_url = f"{db_url}{delimiter}sslmode=require"
 
-print("LOADED DB URL:", DATABASE_URL)
+# Log effective URL without driver suffix for clarity
+print("LOADED DB URL:", raw_url)
 
-# Supabase Pro Connection Pool Settings
-POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 25))           # Base connections
-MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 50))     # Extra connections when needed
-POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", 300))    # 5 minutes - recycle connections
-POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 120))    # 2 minutes - wait for connection
-CONNECT_TIMEOUT = int(os.getenv("DB_CONNECT_TIMEOUT", 30)) # 30 seconds - connection timeout
+# Pool settings (keep modest for PgBouncer transaction pooling)
+POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 5))          # connections kept open by SQLAlchemy
+MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 5))    # temporary extra connections
+POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", 300))  # seconds
+POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 10))   # seconds to wait for a free conn
+CONNECT_TIMEOUT = int(os.getenv("DB_CONNECT_TIMEOUT", 10))  # seconds for initial TCP connect
 
 def _make_engine(application_name: str):
-    """Create a SQLAlchemy engine with proper pooling for Supabase Pro."""
     return create_engine(
-        DATABASE_URL,
-        # Connection Pool Configuration
+        db_url,
+        # Pool configuration
         pool_size=POOL_SIZE,
         max_overflow=MAX_OVERFLOW,
-        pool_pre_ping=True,           # Test connections before use
-        pool_recycle=POOL_RECYCLE,    # Prevent stale connections
-        pool_timeout=POOL_TIMEOUT,    # Wait time for connection from pool
-        pool_use_lifo=True,           # Use most recent connections first
-        
-        # Connection Arguments
+        pool_pre_ping=True,         # detect dead connections lazily
+        pool_recycle=POOL_RECYCLE,  # prevent stale sockets
+        pool_timeout=POOL_TIMEOUT,
+        pool_use_lifo=True,
+        poolclass=QueuePool,
+        # Connection args
         connect_args={
             "connect_timeout": CONNECT_TIMEOUT,
             "options": f"-c application_name={application_name}",
         },
-        
-        # Engine Configuration
-        echo=False,                   # Set to True for SQL debugging
-        poolclass=QueuePool,
+        # Engine config
+        echo=False,
+        future=True,
     )
 
-# Primary engine and session factory
+# Single global Engine and Session factory
 engine = _make_engine("globalinked_app")
 
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
-    expire_on_commit=False,  # Keep objects usable after commit
+    expire_on_commit=False,
+    future=True,
 )
 
 Base = declarative_base()
 
-# Enhanced dependency to get database session
 def get_db():
     """
-    Provide a database session with connection recovery.
-    Handles SSL disconnections and pool exhaustion gracefully.
+    FastAPI dependency providing a short-lived session.
+    - No eager 'SELECT 1' here to avoid connection bursts.
+    - pool_pre_ping handles dead connections at first actual use.
     """
     db = SessionLocal()
     try:
-        # Test the connection immediately
-        db.execute(text("SELECT 1"))
         yield db
     except OperationalError as e:
-        error_msg = str(e).lower()
-        if any(keyword in error_msg for keyword in [
+        # Optional: limited recovery for common transient issues
+        msg = str(e).lower()
+        if any(k in msg for k in [
             "ssl connection has been closed",
             "server closed the connection",
             "connection was closed",
-            "timeout"
+            "timeout",
         ]):
-            print(f"⚠️ Connection issue detected: {e}")
-            print("🔄 Attempting connection recovery...")
-            
-            # Close the problematic session
             try:
                 db.close()
             except Exception:
                 pass
-            
-            # Reset the connection pool
+            # Attempt a lightweight pool reset
             reset_connection_pool()
-            
-            # Try with a fresh session
-            db = SessionLocal()
+            # Yield a fresh session
+            db2 = SessionLocal()
             try:
-                db.execute(text("SELECT 1"))
-                yield db
-            except Exception as retry_error:
-                print(f"❌ Connection recovery failed: {retry_error}")
-                raise HTTPException(
-                    status_code=503,
-                    detail="Database connection unavailable. Please try again."
-                )
+                yield db2
+            finally:
+                try:
+                    db2.close()
+                except Exception:
+                    pass
         else:
-            print(f"💥 Database error: {e}")
             raise
-    except Exception as e:
-        print(f"💥 Unexpected database error: {e}")
+    except Exception:
         try:
             db.rollback()
         except Exception:
             pass
         raise
     finally:
+        # Ensure the original session is closed
         try:
             db.close()
         except Exception:
             pass
 
-# Connection pool management utilities
 def reset_connection_pool():
-    """Emergency reset of the connection pool."""
+    """
+    Emergency reset of the connection pool.
+    Disposes current connections and rebinds SessionLocal to a fresh Engine.
+    """
     global engine, SessionLocal
-    print("🚨 RESETTING CONNECTION POOL...")
-
+    print("RESETTING CONNECTION POOL...")
     try:
-        # Dispose all existing connections
         engine.dispose()
-        print("✅ Old connections disposed")
+        print("Old connections disposed")
     except Exception as e:
-        print(f"⚠️ Dispose warning (ignored): {e}")
+        print(f"Dispose warning: {e}")
 
-    # Create new engine
     engine = _make_engine("globalinked_reset")
-
-    # Create new session factory
-    SessionLocal = sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        bind=engine,
-        expire_on_commit=False,
-    )
-
-    print("✅ CONNECTION POOL RESET COMPLETE!")
+    # Rebind existing sessionmaker instead of recreating it
+    SessionLocal.configure(bind=engine)
+    print("POOL RESET COMPLETE")
     return {"status": "success", "message": "Connection pool reset"}
 
 def check_pool_status():
-    """Return current connection pool status."""
+    """Return current pool status (best-effort; values are instantaneous)."""
     pool = engine.pool
     try:
         status = {
             "pool_size": pool.size(),
+            "checked_in": pool.checkedin(),
             "checked_out": pool.checkedout(),
             "overflow": pool.overflow(),
-            "invalid": getattr(pool, "invalid", lambda: None)(),
-            "total_capacity": POOL_SIZE + MAX_OVERFLOW,
-            "settings": {
+            "configured": {
                 "pool_size": POOL_SIZE,
                 "max_overflow": MAX_OVERFLOW,
                 "pool_timeout": POOL_TIMEOUT,
                 "pool_recycle": POOL_RECYCLE,
-            }
+            },
         }
     except Exception as e:
-        print(f"Pool status error: {e}")
-        status = {
-            "error": str(e),
-            "pool_size": None,
-            "checked_out": None,
-            "overflow": None,
-            "invalid": None,
-        }
-
-    print(f"🔧 Pool Status: {status}")
+        status = {"error": str(e)}
+    print(f"Pool Status: {status}")
     return status
 
-# Health check function
 def test_connection():
-    """Test database connectivity."""
+    """Short health check that opens and closes a connection quickly."""
     try:
-        db = SessionLocal()
-        result = db.execute(text("SELECT 1 as test")).fetchone()
-        db.close()
-        return {"status": "healthy", "test_result": result[0] if result else None}
+        with engine.connect() as conn:
+            conn.exec_driver_sql("select 1")
+        return {"status": "healthy"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}

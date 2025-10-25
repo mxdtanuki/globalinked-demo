@@ -731,11 +731,11 @@ const MOUMOAPublicPage = () => {
             <div className="moumoa-modal-stats">
               <div className="moumoa-modal-stat">
                 <h4>{selectedCountry.mou}</h4>
-                <p>Memorandums of Understanding</p>
+                <p>Memorandum of Understanding</p>
               </div>
               <div className="moumoa-modal-stat">
                 <h4>{selectedCountry.moa}</h4>
-                <p>Memorandums of Agreement</p>
+                <p>Memorandum of Agreement</p>
               </div>
             </div>
             <div className="moumoa-modal-footer">
