@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa"; 
 import "./login.css"; 
-import { registerUser } from '../services/registrationService'; 
+import { registerUser } from '../services/registrationService';
+import TermsModal from '../components/TermsModal'; 
 
 const Register = () => {
   const navigate = useNavigate();
@@ -17,7 +18,13 @@ const Register = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [fullname, setFullname] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const getPositionRole = (role) => {
@@ -233,23 +240,30 @@ const Register = () => {
               />
               <label htmlFor="terms-agreement">
                 I have read and agree to the PUP Online Services{' '}
-                <a 
-                  href="https://www.pup.edu.ph/terms/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="terms-link"
+                <span
+                  className="terms-link modal-link"
+                  onClick={() => setShowTermsModal(true)}
                 >
                   Terms of Use
-                </a>
+                </span>
                 {' '}and{' '}
-                <a 
-                  href="https://www.pup.edu.ph/privacy/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="terms-link"
+                <span
+                  className="terms-link modal-link"
+                  onClick={() => setShowPrivacyModal(true)}
                 >
                   Privacy Statement
-                </a>.
+                </span>
+
+                <TermsModal
+                  show={showTermsModal}
+                  onClose={() => setShowTermsModal(false)}
+                  url="https://www.pup.edu.ph/terms/"
+                />
+                <TermsModal
+                  show={showPrivacyModal}
+                  onClose={() => setShowPrivacyModal(false)}
+                  url="https://www.pup.edu.ph/privacy/"
+                />.
               </label>
             </div>
 

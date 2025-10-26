@@ -36,8 +36,15 @@ STATUS_THRESHOLD_DAYS = {
     "FFUPCopy": 3,
 }
 
+from contextlib import contextmanager
+
+@contextmanager
 def _open_session():
-    return SessionLocal()
+    session = SessionLocal()
+    try:
+        yield session  # Provide the session to the caller
+    finally:
+        session.close() 
 
 def _parse_point_persons(raw):
     """
@@ -180,145 +187,117 @@ def _recommended_actions_for_category(category, status=None):
     return ["Review and act accordingly."]
 
 def agreement_notification_job():
-    # Service imports
     from app.services.notif_service import create_notification_if_new
 
-    """
-    Scanning for:
-      - create 'expiring_soon' notifications for agreements expiring within EXPIRY_WINDOW_DAYS
-      - create 'pending_long' notifications for agreements in pending statuses longer than threshold
-      - create 'renewal_needed' notifications for agreements expired > RENEWAL_DAYS
-    The function avoids creating duplicate notifications.
-    """
-    db = _open_session()
-    try:
-        today = datetime.now(PH_TZ).date()
-        print(f"[Scheduler] Starting notification job for {today}")
+    today = datetime.now(PH_TZ).date()
+    print(f"[Scheduler] Starting notification job for {today}")
 
-        # 1) Expiring soon - check all non-expired agreements
-        horizon = today + timedelta(days=EXPIRY_WINDOW_DAYS)
-        expiring = (
-            db.query(Agreements, Partners)
-              .join(Partners, Agreements.partner_id == Partners.partner_id)
-              .filter(Agreements.date_expiry != None)
-              .filter(Agreements.date_expiry >= today)
-              .filter(Agreements.date_expiry <= horizon)
-              .filter(Agreements.agreement_status != "Withdrawn")  # Added: exclude withdrawn
-              .all()
-        )
-        
-        print(f"[Scheduler] Found {len(expiring)} expiring agreements")
-        
-        for a, p in expiring:
-            category = "expiring_soon"
-            days_until = (a.date_expiry - today).days if a.date_expiry else None
-            time_until = _format_days_until(days_until)
-            msg = f"{a.document_type} '{a.dts_number}' with partner '{p.name}' expires in {time_until}."
-            actions = _recommended_actions_for_category(category, None)
-            notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
-            if notif:
-                print(f"[Scheduler] Created expiring notification for {a.dts_number}")
-                
-        pending_count = 0
-
-        # Get all agreements in pending statuses (excluding Active and Withdrawn)
-        for status, days_threshold in STATUS_THRESHOLD_DAYS.items():
-            print(f"[Scheduler] Checking status '{status}' (threshold: {days_threshold} days)")
-            
-            # Get agreements in this specific status
-            pending_agreements = (
+    # Use a context manager to ensure the session is closed
+    with _open_session() as db:
+        try:
+            # 1) Expiring soon - check all non-expired agreements
+            horizon = today + timedelta(days=EXPIRY_WINDOW_DAYS)
+            expiring = (
                 db.query(Agreements, Partners)
                   .join(Partners, Agreements.partner_id == Partners.partner_id)
-                  .filter(Agreements.agreement_status == status)
-                  .filter(Agreements.agreement_status != "Withdrawn")
-                  .filter(Agreements.agreement_status != "Active")
+                  .filter(Agreements.date_expiry != None)
+                  .filter(Agreements.date_expiry >= today)
+                  .filter(Agreements.date_expiry <= horizon)
+                  .filter(Agreements.agreement_status != "Withdrawn")  # Exclude withdrawn
                   .all()
             )
+            print(f"[Scheduler] Found {len(expiring)} expiring agreements")
             
-            print(f"[Scheduler] Found {len(pending_agreements)} agreements in status '{status}'")
-            
-            for a, p in pending_agreements:
-                # Check if Timer record exists
-                timer_record = db.query(Timer).filter(Timer.agreement_id == a.agreement_id).first()
+            for a, p in expiring:
+                category = "expiring_soon"
+                days_until = (a.date_expiry - today).days if a.date_expiry else None
+                time_until = _format_days_until(days_until)
+                msg = f"{a.document_type} '{a.dts_number}' with partner '{p.name}' expires in {time_until}."
+                actions = _recommended_actions_for_category(category, None)
+                notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
+                if notif:
+                    print(f"[Scheduler] Created expiring notification for {a.dts_number}")
+
+            # 2) Pending long - check agreements in pending statuses
+            pending_count = 0
+            for status, days_threshold in STATUS_THRESHOLD_DAYS.items():
+                print(f"[Scheduler] Checking status '{status}' (threshold: {days_threshold} days)")
+                pending_agreements = (
+                    db.query(Agreements, Partners)
+                      .join(Partners, Agreements.partner_id == Partners.partner_id)
+                      .filter(Agreements.agreement_status == status)
+                      .filter(Agreements.agreement_status != "Withdrawn")
+                      .filter(Agreements.agreement_status != "Active")
+                      .all()
+                )
+                print(f"[Scheduler] Found {len(pending_agreements)} agreements in status '{status}'")
                 
-                # Handle both datetime and date objects properly
-                if timer_record and timer_record.last_status_change:
-                    last_status_change = timer_record.last_status_change
-                    
-                    # Convert to date if it's a datetime object
-                    if hasattr(last_status_change, 'date'):
-                        last_change_date = last_status_change.date()
+                for a, p in pending_agreements:
+                    timer_record = db.query(Timer).filter(Timer.agreement_id == a.agreement_id).first()
+                    if timer_record and timer_record.last_status_change:
+                        last_status_change = timer_record.last_status_change
+                        last_change_date = last_status_change.date() if hasattr(last_status_change, 'date') else last_status_change
+                        days_pending = (today - last_change_date).days
+                        last_change_info = f"since {last_change_date}"
                     else:
-                        # It's already a date object
-                        last_change_date = last_status_change
-                        
-                    days_pending = (today - last_change_date).days
-                    last_change_info = f"since {last_change_date}"
-                else:
-                    # Fallback: use entry_date or assume it's been pending for a while
-                    if a.entry_date:
-                        entry_date = datetime.strptime(a.entry_date, '%Y-%m-%d').date() if isinstance(a.entry_date, str) else a.entry_date
-                        days_pending = (today - entry_date).days
-                        last_change_info = f"since entry {entry_date}"
+                        if a.entry_date:
+                            entry_date = datetime.strptime(a.entry_date, '%Y-%m-%d').date() if isinstance(a.entry_date, str) else a.entry_date
+                            days_pending = (today - entry_date).days
+                            last_change_info = f"since entry {entry_date}"
+                        else:
+                            days_pending = days_threshold + 1  # Force notification
+                            last_change_info = "no timestamp available"
+
+                    print(f"[Scheduler] Agreement {a.agreement_id} ({a.dts_number}) in '{status}' for {days_pending} days (threshold: {days_threshold})")
+
+                    if days_pending >= days_threshold:
+                        category = "pending_long"
+                        time_pending = _format_days_ago(days_pending)
+                        msg = (
+                            f"{a.document_type} for {p.name} - '{a.dts_number}' has been in "
+                            f"status '{a.agreement_status}' for {time_pending} ({last_change_info})."
+                        )
+                        actions = _recommended_actions_for_category(category, a.agreement_status)
+                        notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
+                        if notif:
+                            print(f"[Scheduler] ✅ Created pending notification for {a.dts_number}")
+                            pending_count += 1
+                        else:
+                            print(f"[Scheduler] ⚠️ Notification already exists for {a.dts_number}")
                     else:
-                        days_pending = days_threshold + 1  # Force notification
-                        last_change_info = "no timestamp available"
+                        print(f"[Scheduler] ⏳ Agreement {a.dts_number} not yet at threshold ({days_pending}/{days_threshold} days)")
 
-                print(f"[Scheduler] Agreement {a.agreement_id} ({a.dts_number}) in '{status}' for {days_pending} days (threshold: {days_threshold})")
+            print(f"[Scheduler] Created {pending_count} pending notifications")
 
-                # Create notification if it's been pending too long
-                if days_pending >= days_threshold:
-                    category = "pending_long"
-                    time_pending = _format_days_ago(days_pending)
-                    
-                    msg = (
-                        f"{a.document_type} for {p.name} - '{a.dts_number}' has been in "
-                        f"status '{a.agreement_status}' for {time_pending} ({last_change_info})."
-                    )
-                    actions = _recommended_actions_for_category(category, a.agreement_status)
-                    notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
-                    if notif:
-                        print(f"[Scheduler] ✅ Created pending notification for {a.dts_number}")
-                        pending_count += 1
-                    else:
-                        print(f"[Scheduler] ⚠️ Notification already exists for {a.dts_number}")
-                else:
-                    print(f"[Scheduler] ⏳ Agreement {a.dts_number} not yet at threshold ({days_pending}/{days_threshold} days)")
+            # 3) Renewal needed: expired more than RENEWAL_DAYS ago
+            cutoff_expired = today - timedelta(days=RENEWAL_DAYS)
+            renewal = (
+                db.query(Agreements, Partners)
+                  .join(Partners, Agreements.partner_id == Partners.partner_id)
+                  .filter(Agreements.date_expiry != None)
+                  .filter(Agreements.date_expiry <= cutoff_expired)
+                  .filter(Agreements.agreement_status != "Withdrawn")  # Exclude withdrawn
+                  .all()
+            )
+            print(f"[Scheduler] Found {len(renewal)} agreements needing renewal")
+            
+            for a, p in renewal:
+                category = "renewal_needed"
+                days_expired = (today - a.date_expiry).days if a.date_expiry else None
+                time_ago = _format_days_ago(days_expired)
+                msg = f"{a.document_type} of {p.name} - '{a.dts_number}' expired on {a.date_expiry} ({time_ago})."
+                actions = _recommended_actions_for_category(category, None)
+                notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
+                if notif:
+                    print(f"[Scheduler] Created renewal notification for {a.dts_number}")
 
-        print(f"[Scheduler] Created {pending_count} pending notifications")
+            print(f"[Scheduler] Notification job completed successfully")
 
-        # 3) Renewal needed: expired more than RENEWAL_DAYS ago
-        cutoff_expired = today - timedelta(days=RENEWAL_DAYS)
-        renewal = (
-            db.query(Agreements, Partners)
-              .join(Partners, Agreements.partner_id == Partners.partner_id)
-              .filter(Agreements.date_expiry != None)
-              .filter(Agreements.date_expiry <= cutoff_expired)
-              .filter(Agreements.agreement_status != "Withdrawn")  # Added: exclude withdrawn
-              .all()
-        )
-        
-        print(f"[Scheduler] Found {len(renewal)} agreements needing renewal")
-        
-        for a, p in renewal:
-            category = "renewal_needed"
-            days_expired = (today - a.date_expiry).days if a.date_expiry else None
-            time_ago = _format_days_ago(days_expired)
-            msg = f"{a.document_type} of {p.name} - '{a.dts_number}' expired on {a.date_expiry} ({time_ago})."
-            actions = _recommended_actions_for_category(category, None)
-            notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
-            if notif:
-                print(f"[Scheduler] Created renewal notification for {a.dts_number}")
-
-        print(f"[Scheduler] Notification job completed successfully")
-
-    except Exception as exc:
-        print(f"[Scheduler] ERROR in agreement_notification_job: {exc}")
-        import traceback
-        traceback.print_exc()
-        raise  # Re-raise to see the full traceback in logs
-    finally:
-        db.close()
+        except Exception as exc:
+            print(f"[Scheduler] ERROR in agreement_notification_job: {exc}")
+            import traceback
+            traceback.print_exc()
+            raise  # Re-raise to see the full traceback in logs
 
 def start_scheduler():
     # Schedule the scan once at startup and daily
