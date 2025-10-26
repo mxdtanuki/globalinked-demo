@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
 import { FaUser, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
-import './login.css'; 
+import './login.css';
+import TermsModal from '../components/TermsModal'; 
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
@@ -11,6 +12,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState('');
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -139,24 +142,32 @@ const Login = () => {
           <p className="terms-notice">
             By using this service, you understand and agree to the<br />
             PUP Online Services{' '}
-            <a 
-              href="https://www.pup.edu.ph/terms/" 
-              target="_blank" 
-              rel="noopener noreferrer"
+            <span
               className="terms-link"
+              onClick={() => {
+                setModalType('terms');
+                setShowModal(true);
+              }}
             >
               Terms of Use
-            </a>
+            </span>
             {' '}and{' '}
-            <a 
-              href="https://www.pup.edu.ph/privacy/" 
-              target="_blank" 
-              rel="noopener noreferrer"
+            <span
               className="terms-link"
+              onClick={() => {
+                setModalType('privacy');
+                setShowModal(true);
+              }}
             >
               Privacy Statement
-            </a>.
+            </span>.
           </p>
+
+          <TermsModal
+            show={showModal}
+            type={modalType}
+            onClose={() => setShowModal(false)}
+          />
 
           <p className="switch-text">
             Don't have an account?{' '}

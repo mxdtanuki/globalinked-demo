@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { FiEye, FiTrash2, FiMoreVertical, FiFileText, FiArchive, FiUpload } from "react-icons/fi";
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import './layout.css';
@@ -216,6 +217,16 @@ const computeStageInfo = (row) => {
   return { ...row, days_in_stage: days, delayed, delay_level };
 };
 
+// Helper to remove agreements that should not appear in the overview
+// NOTE: exclude only 'Active' status from the overview; keep 'Withdrawn' visible
+const excludeActive= (list = []) => {
+  if (!Array.isArray(list)) return [];
+  return list.filter(a => {
+    const s = String(a?.status || a?.agreement_status || '').toLowerCase();
+    return s !== 'active';
+  });
+};
+
 
 /* ---------- Small UI helpers reused from overview1 ---------- */
 
@@ -394,8 +405,7 @@ const OverviewMerged = () => {
       const data = await agreementService.getAgreements();
       const raw = Array.isArray(data) ? data : (data?.items || []);
       const filtered = raw.filter(a => 
-        (a.agreement_status !== 'Active' && a.agreement_status !== 'Withdrawn') &&
-        (a.status !== 'Active' && a.status !== 'Withdrawn')
+        (a.agreement_status !== 'Active') && (a.status !== 'Active')
       );
     const mapped = filtered.map(mapAgreement).map(computeStageInfo);
       setAgreements(mapped);
@@ -491,7 +501,10 @@ const OverviewMerged = () => {
     }
       const mapped = computeStageInfo(mapAgreement(full));
       setSelected(prev => ({ ...(prev || {}), ...mapped }));
-      setAgreements(prev => prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r)));
+      setAgreements(prev => {
+        const next = prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r));
+        return excludeActive(next);
+      });
       if (!isEditing) originalRef.current = mapped;
     } catch (e) {
       console.error('Failed to load details:', e);
@@ -518,34 +531,85 @@ const OverviewMerged = () => {
   };
 
   const buildPayloadFromSelected = (s) => {
+
     const toNullIfEmpty = (v) => (v === '' || v === undefined ? null : v);
-    const normalizePersons = (list, legacy) => {
-      if (Array.isArray(list) && list.length) return list.map(p => ({ position: p.position||'', name: p.name||'', email: p.email||'' }));
-      const hasLegacy = s?.[legacy.position] || s?.[legacy.name] || s?.[legacy.email];
-      return hasLegacy ? [{ position: s?.[legacy.position]||'', name: s?.[legacy.name]||'', email: s?.[legacy.email]||'' }] : [];
+
+    const transformPointPersons = (list = [], legacyKeys = {}) => {
+      const arr = Array.isArray(list) ? list : [];
+      if (arr.length) return arr.map(p => ({
+        point_person_position: p.position || p.point_person_position || '',
+        point_person_name: p.name || p.point_person_name || '',
+        point_person_email: p.email || p.point_person_email || ''
+      }));
+      const hasLegacy = s?.[legacyKeys.positionKey] || s?.[legacyKeys.nameKey] || s?.[legacyKeys.emailKey];
+      if (hasLegacy) return [{
+        point_person_position: s?.[legacyKeys.positionKey] || '',
+        point_person_name: s?.[legacyKeys.nameKey] || '',
+        point_person_email: s?.[legacyKeys.emailKey] || ''
+      }];
+      return [];
     };
+
+    const transformContactPersons = (list = [], legacyKeys = {}) => {
+      const arr = Array.isArray(list) ? list : [];
+      if (arr.length) return arr.map(p => ({
+        contact_person_position: p.position || p.contact_person_position || '',
+        contact_person_name: p.name || p.contact_person_name || '',
+        contact_person_email: p.email || p.contact_person_email || ''
+      }));
+      const hasLegacy = s?.[legacyKeys.positionKey] || s?.[legacyKeys.nameKey] || s?.[legacyKeys.emailKey];
+      if (hasLegacy) return [{
+        contact_person_position: s?.[legacyKeys.positionKey] || '',
+        contact_person_name: s?.[legacyKeys.nameKey] || '',
+        contact_person_email: s?.[legacyKeys.emailKey] || ''
+      }];
+      return [];
+    };
+
+    // Remarks should be an array of objects with remark_text per backend expectations
+    const transformRemarks = (r = []) => {
+      const arr = Array.isArray(r) ? r : (r ? [r] : []);
+      return arr.map(item => (typeof item === 'object' ? { remark_text: item.remark_text || item.text || item } : { remark_text: item }));
+    };
+
+    // signatories_list: backend stores this as a list; convert simple string into array when needed
+    const normalizeSignatoriesList = (sigs, list) => {
+      if (Array.isArray(list) && list.length) return list;
+      if (Array.isArray(sigs)) return sigs;
+      if (typeof sigs === 'string' && sigs.trim()) return sigs.split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
+      return undefined;
+    };
+
     const payload = {
       dts_number: s.dts_no || s.id || undefined,
       agreement_status: s.status || undefined,
       document_type: s.document_type || undefined,
-      partnership_classification: s.partnership_classification || undefined,
+      // frontend uses "partnership_classification" but backend expects "partnership_type"
+      partnership_type: s.partnership_classification || s.partnership_type || undefined,
       validity_period: s.validity_period ? Number(s.validity_period) : undefined,
       date_signed: toNullIfEmpty(s.date_of_signing),
       date_expiry: toNullIfEmpty(s.expiry),
+      // backend accepts either entry_date or date_received; we'll set entry_date
       entry_date: toNullIfEmpty(s.date_received),
-      partner_name: s.partner_name || undefined,
+      // partner fields (backend expects 'name' not 'partner_name')
+      name: s.partner_name || s.name || undefined,
       address: s.address || undefined,
       country: s.country || undefined,
       region: s.region || undefined,
-      related_mou: s.related_mou || undefined,
-      point_persons: normalizePersons(s.point_people, { position: 'point_position', name: 'point_name', email: 'point_email' }),
-      contact_persons: normalizePersons(s.contact_people, { position: 'contact_position', name: 'contact_name', email: 'contact_email' }),
-      signatories: s.signatories || undefined,
-      website_link: s.website_link || undefined,
-      event_title: s.event_title || undefined,
-      brief_profile: s.brief_profile || undefined,
-      hardcopy_locator: s.hardcopy_locator || undefined,
-      remarks_list: Array.isArray(s.remarks) ? s.remarks : [],
+      // related agreement id
+      MOU_to_MOA_id: s.related_mou || undefined,
+      // persons transformed to backend keys
+      point_persons: transformPointPersons(s.point_people, { positionKey: 'point_position', nameKey: 'point_name', emailKey: 'point_email' }),
+      contact_persons: transformContactPersons(s.contact_people, { positionKey: 'contact_position', nameKey: 'contact_name', emailKey: 'contact_email' }),
+      // signatories as list
+      signatories_list: normalizeSignatoriesList(s.signatories, s.signatories_list),
+      // partner metadata
+      website_url: s.website_link || s.website_url || undefined,
+      event_info: s.event_title || s.event_info || undefined,
+      description: s.brief_profile || s.description || undefined,
+      hardcopy_location: s.hardcopy_locator || s.hardcopy_location || undefined,
+      // remarks array of objects
+      remarks: transformRemarks(s.remarks || s.remarks_list || []),
     };
     Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
     return payload;
@@ -565,10 +629,11 @@ const OverviewMerged = () => {
           mapped = computeStageInfo(mapped);
         }
       } catch (e) {/* ignore */}
-      setAgreements(prev => prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r)));
-      setSelected(mapped);
+  setSelected(mapped);
       originalRef.current = mapped;
       setIsEditing(false);
+  // ensure overview list excludes Active after save (but keep Withdrawn)
+  setAgreements(prev => excludeActive(prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r))));
     } catch (e) {
       console.error(e);
       alert(e.detail || e.message || 'Failed to save');
@@ -587,7 +652,10 @@ const OverviewMerged = () => {
     try {
       setSavingRows(prev => new Set(prev).add(agreementId));
       await agreementService.updateAgreement(agreementId, editedData);
-      setAgreements(prev => prev.map(a => (String(a._pk ?? a.agreement_id ?? a.id) === String(agreementId) ? editedData : a)));
+      setAgreements(prev => {
+        const next = prev.map(a => (String(a._pk ?? a.agreement_id ?? a.id) === String(agreementId) ? editedData : a));
+        return excludeActive(next);
+      });
       setEditingRow(null); setEditedData({});
       alert('Agreement updated successfully!');
     } catch (err) {
@@ -656,7 +724,7 @@ const OverviewMerged = () => {
       const worksheet = workbook.addWorksheet("Agreements");
       const cols = ['Date','DOCUMENT TYPE','STATUS','DTS NO.','DTS LOCATION','SOURCE','POINT PERSON / POSITION','PARTNER\'S NAME','ENTITY TYPE','COUNTRY','REGION','ADDRESS','SIGNATORIES', 'CONTACT PERSON / DETAILS','PARTNERSHIP CLASSIFICATION','EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT','VALIDITY PERIOD','DATE / YEAR OF SIGNING','EXPIRY DATE / YEAR','DATE RECEIVED','DATE ENDORSED TO ULCO',"ULCO'S APPROVAL","PUP OFFICIALS' SIGNATURE",'WEBSITE LINK','Brief Profile','LOGO','HARDCOPY LOCATOR','REMARKS'];
       worksheet.columns = cols.map(c => ({ header: c, key: c, width: 30 }));
-      const overviewData = agreements.filter(a => a.status !== 'Active' && a.status !== 'Withdrawn');
+  const overviewData = agreements.filter(a => a.status !== 'Active');
       const formatPointPersons = (pps) => {
         if (!Array.isArray(pps) || pps.length === 0) return "-";
         return pps.map(pp => `${pp.position||pp.point_person_position||''} ${pp.name||pp.point_person_name||''} ${pp.email?`(${pp.email})`:''}`.trim()).join('; ');
@@ -1024,15 +1092,15 @@ const OverviewMerged = () => {
                   <td className="actions-cell">
                     <div className="action-buttons" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <button className="icon-btn" title="View" onClick={() => openDetails(row)} aria-label="View details">
-                        👁️
+                        <FiEye className="icon" />
                       </button>
                       <button className="icon-btn" title="Delete" onClick={() => deleteRow(row._pk ?? row.id)} aria-label="Delete">
-                        🗑️
+                        <FiTrash2 className="icon" />
                       </button>
 
                       <div className="dots-menu" style={{ display: 'inline-block' }}>
                         <button className="icon-btn dots" onClick={(e) => { e.stopPropagation(); toggleMenu(row._pk ?? row.id, e); }} aria-label="More actions">
-                          ⋯
+                          <FiMoreVertical className="icon" />
                         </button>
                       </div>
                       {menuOpenId === (row._pk ?? row.id) && createPortal(
@@ -1053,9 +1121,15 @@ const OverviewMerged = () => {
                             minWidth: 160,
                           }}
                         >
-                          <button className="menu-item" onClick={() => { handleViewLatestFile(row.dts_no || row.id); setMenuOpenId(null); }}>View File</button>
-                          <button className="menu-item" onClick={() => { navigate(`/docVer?dts_number=${row.dts_no || row.id}`); setMenuOpenId(null); }}>View Older Files</button>
-                          <button className="menu-item" onClick={() => { openUploadFor(row); setMenuOpenId(null); }}>Upload New Version</button>
+                          <button className="menu-item" onClick={() => { handleViewLatestFile(row.dts_no || row.id); setMenuOpenId(null); }}>
+                            <FiFileText style={{marginRight:4}} /> View File
+                          </button>
+                          <button className="menu-item" onClick={() => { navigate(`/docVer?dts_number=${row.dts_no || row.id}`); setMenuOpenId(null); }}>
+                            <FiArchive style={{marginRight:4}} /> View Older Files
+                          </button>
+                          <button className="menu-item" onClick={() => { openUploadFor(row); setMenuOpenId(null); }}>
+                            <FiUpload style={{marginRight:4}} /> Upload New Version
+                          </button>
                         </div>,
                         document.body
                       )}

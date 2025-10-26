@@ -2,11 +2,12 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from app.database import Base, engine, get_db, reset_connection_pool, check_pool_status, test_connection
 import logging
+import time
 
-logger = logging.getLogger("uvicorn.error")
+from app.database import Base, engine, get_db, reset_connection_pool, check_pool_status, test_connection
 
+# Controllers
 from app.controllers import (
     auth_controller,
     notification_controller,
@@ -14,37 +15,30 @@ from app.controllers import (
     registration_controller,
     agreement_controller,
     audit_controller,
+    partners_controller,
+    document_controller,
 )
-from app.controllers import partners_controller
-from app.controllers import document_controller
+
+# Models and Services
 from app.models.notification import Notification  
 from app.services.nlp_extraction_service import NlpExtractionService
 from app.services.document_processing_service import DocumentProcessingService
 
-# Create database tables
-#Base.metadata.create_all(bind=engine)
+# Logger
+logger = logging.getLogger("uvicorn.error")
 
+# ---------------------------
+# FastAPI Initialization
+# ---------------------------
 app = FastAPI(
     title="Globalinked API",
-    description="Monitoring System for OIA",
+    description="Monitoring System for the OIA",
     version="1.0.0",
 )
-'''
-origins = [
-    "https://globalinked.systems",          # Frontend domain
-    "https://www.globalinked.systems",      # Frontend domain with www
-    "https://api.globalinked.systems",      # Backend domain, if self-requests occur
-    "http://localhost:3000",                # For dev
-]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-'''
+# ---------------------------
+# CORS Middleware
+# ---------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -59,7 +53,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register all routers
+# ---------------------------
+# Include Routers
+# ---------------------------
 app.include_router(auth_controller.router)
 app.include_router(agreement_controller.router)
 app.include_router(notification_controller.router)
@@ -69,19 +65,25 @@ app.include_router(partners_controller.router)
 app.include_router(audit_controller.router)
 app.include_router(document_controller.router)
 
-# Initialize services
+# ---------------------------
+# Initialize NLP & Document Services
+# ---------------------------
 if not hasattr(app.state, "doc_processing_service"):
     app.state.doc_processing_service = DocumentProcessingService()
+
 if not hasattr(app.state, "nlp_service"):
     app.state.nlp_service = NlpExtractionService(
         document_processing_service=app.state.doc_processing_service
     )
 
-# Admin endpoints for pool management
+# ---------------------------
+# Admin & Diagnostics Endpoints
+# ---------------------------
 @app.get("/admin/pool-status")
 async def admin_pool_status():
     """Check database connection pool status."""
     return check_pool_status()
+
 
 @app.post("/admin/reset-pool")
 async def admin_reset_pool():
@@ -90,81 +92,108 @@ async def admin_reset_pool():
         result = reset_connection_pool()
         return result
     except Exception as e:
+        logger.error(f"Pool reset failed: {e}")
         raise HTTPException(status_code=500, detail=f"Pool reset failed: {str(e)}")
+
 
 @app.get("/admin/db-health")
 async def admin_db_health():
-    """Test database connectivity."""
-    return test_connection()
+    """Test database connectivity (with retries)."""
+    for attempt in range(3):
+        try:
+            return test_connection()
+        except Exception as e:
+            logger.warning(f"DB health check attempt {attempt + 1} failed: {e}")
+            time.sleep(2)
+    raise HTTPException(status_code=503, detail="Database unreachable after 3 retries")
+
 
 @app.get("/admin/performance-test")
 async def performance_test(db: Session = Depends(get_db)):
-    """Quick performance test."""
-    import time
-    
+    """Quick database performance test."""
     results = {}
-    
+
     # Test 1: Simple query
     start = time.time()
-    result = db.execute(text("SELECT COUNT(*) FROM agreements")).scalar()
-    results["count_query"] = {"time": round(time.time() - start, 3), "count": result}
-    
+    try:
+        result = db.execute(text("SELECT COUNT(*) FROM agreements")).scalar()
+        results["count_query"] = {"time": round(time.time() - start, 3), "count": result}
+    except Exception as e:
+        results["count_query"] = {"error": str(e)}
+
     # Test 2: Pool status
     results["pool_status"] = check_pool_status()
-    
+
     return results
 
+# ---------------------------
+# Startup / Shutdown Events
+# ---------------------------
 @app.on_event("startup")
 def on_startup():
+    """Initialize scheduler, preload NLP model, and verify DB connectivity."""
     try:
-        # Comment out scheduler start to avoid pool issues
         from app.scheduler import start_scheduler
         start_scheduler()
+        logger.info("Scheduler started successfully.")
+    except Exception as e:
+        logger.warning(f"Scheduler failed to start: {e}")
 
-        # Preload QA once on startup (sync load; will use cache on subsequent runs)
-        if getattr(app.state, "nlp_service", None) is None:
+    # Preload QA model
+    try:
+        svc = getattr(app.state, "nlp_service", None)
+        if svc is None:
             app.state.nlp_service = NlpExtractionService(
                 document_processing_service=app.state.doc_processing_service
             )
-        # Ensure the QA pipeline is loaded
-        if hasattr(app.state.nlp_service, "_ensure_qa"):
-            app.state.nlp_service._ensure_qa()
-        # Optional: log readiness/info if available
-        info = {}
-        try:
-            info = getattr(app.state.nlp_service, "qa_info", lambda: {})()
-        except Exception:
-            info = {}
+            svc = app.state.nlp_service
+
+        if hasattr(svc, "_ensure_qa"):
+            svc._ensure_qa()
+        info = getattr(svc, "qa_info", lambda: {})()
         logger.info(
-            "QA ready: model=%s device=%s chunk=%s/%s",
+            "QA ready: model=%s device=%s chunk=%s overlap=%s",
             info.get("model", "?"),
             info.get("device", "?"),
             info.get("chunk_chars", "?"),
             info.get("overlap", "?"),
         )
     except Exception as e:
-        logger.exception("Failed to preload QA model or start scheduler: %s", e)
-        # Do not raise - let app start anyway
+        logger.exception(f"Failed to preload QA model: {e}")
+
+    # DB health check at startup
+    try:
+        db_status = test_connection()
+        logger.info(f"Database startup check: {db_status}")
+    except Exception as e:
+        logger.error(f"Database connection failed at startup: {e}")
+
 
 @app.on_event("shutdown")
 def on_shutdown():
-    from app.scheduler import shutdown_scheduler
+    """Cleanly shut down scheduler."""
+    try:
+        from app.scheduler import shutdown_scheduler
+        shutdown_scheduler()
+        logger.info("Scheduler stopped successfully.")
+    except Exception as e:
+        logger.warning(f"Scheduler shutdown issue: {e}")
 
-    shutdown_scheduler() 
-
-
+# ---------------------------
+# NLP Health Endpoint
+# ---------------------------
 @app.get("/health/qa")
 def qa_health():
+    """Check QA model readiness."""
     svc = getattr(app.state, "nlp_service", None)
     ready = False
     info = {}
     try:
-        if svc is not None and hasattr(svc, "is_qa_ready"):
+        if svc and hasattr(svc, "is_qa_ready"):
             ready = bool(svc.is_qa_ready())
-        elif svc is not None:
-            # Fallback: if no explicit method, assume ready after preload attempt
-            ready = True
-        if ready and svc is not None and hasattr(svc, "qa_info"):
+        elif svc:
+            ready = True  # fallback assumption
+        if ready and hasattr(svc, "qa_info"):
             info = svc.qa_info()
     except Exception:
         ready = False

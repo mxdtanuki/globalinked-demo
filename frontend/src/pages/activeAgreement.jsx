@@ -46,10 +46,12 @@ const ActiveAgreement = () => {
     };
     arr.sort((a, b) => timeOf(b) - timeOf(a));
     setAgreements(arr);
+    return arr;
   } catch (err) {
     console.error("Failed to fetch active agreements:", err);
     setError("Failed to fetch agreements: " + (err.message || err));
     setAgreements([]); 
+    return [];
   } finally {
     setLoading(false);
   }
@@ -83,6 +85,7 @@ const ActiveAgreement = () => {
 
   const [isModalEdit, setIsModalEdit] = useState(false);
   const [editForm, setEditForm] = useState({ hardcopy_location: "", remarks: [] });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (selectedAgreement) {
@@ -129,20 +132,116 @@ const ActiveAgreement = () => {
     });
   };
 
-  const saveModalEdits = () => {
+  const saveModalEdits = async () => {
     if (!selectedAgreement) return;
-    const updated = agreements.map((a) =>
-      (a.agreement_id === selectedAgreement.agreement_id || a.id === selectedAgreement.id)
-        ? { ...a, hardcopy_location: editForm.hardcopy_location, remarks: editForm.remarks }
-        : a
-    );
-    setAgreements(updated);
-    setSelectedAgreement({
-      ...selectedAgreement,
+    const id = selectedAgreement.agreement_id ?? selectedAgreement.id;
+    // Build remarks payload to match existing server shape when possible
+    const existingRemarks = selectedAgreement?.remarks;
+    let remarksPayload = editForm.remarks;
+    try {
+      if (Array.isArray(existingRemarks) && existingRemarks.length > 0 && typeof existingRemarks[0] === 'object') {
+        // detect likely key name used by server for remark text
+        const sampleKeys = Object.keys(existingRemarks[0] || {});
+        const key = sampleKeys.find((k) => ['remark_text', 'text', 'remark'].includes(k)) || 'remark_text';
+        remarksPayload = editForm.remarks.map((s) => ({ [key]: s }));
+      } else if (typeof existingRemarks === 'string') {
+        // server stores remarks as a single string
+        remarksPayload = editForm.remarks.join('\n');
+      } else {
+        // default: array of strings
+        remarksPayload = editForm.remarks;
+      }
+    } catch (e) {
+      console.warn('Failed to detect existing remarks shape, sending as array of strings', e);
+      remarksPayload = editForm.remarks;
+    }
+
+    const payload = {
       hardcopy_location: editForm.hardcopy_location,
-      remarks: editForm.remarks,
-    });
-    setIsModalEdit(false);
+      remarks: remarksPayload,
+    };
+
+    // update server-side then update local UI state
+    setSaving(true);
+    try {
+      // try to persist to backend (agreementService will throw on error)
+      console.debug('Saving agreement payload:', id, payload);
+      const updatedFromServer = await agreementService.updateAgreement(id, payload);
+      console.debug('Server response for updateAgreement:', updatedFromServer);
+
+      // decide what to display for remarks:
+      // - prefer server-returned remarks when present
+      // - but if server returns fewer/empty remarks than we expect, merge local edits so user sees their additions
+      const serverRemarksNorm = updatedFromServer?.remarks ? normalizeRemarks(updatedFromServer.remarks) : null;
+      const localRemarksNorm = normalizeRemarks(remarksPayload);
+      let displayRemarks;
+      if (serverRemarksNorm === null) {
+        displayRemarks = localRemarksNorm;
+      } else {
+        // merge: start with server remarks then append any local remarks not present
+        const seen = new Set(serverRemarksNorm);
+        displayRemarks = [...serverRemarksNorm];
+        localRemarksNorm.forEach((r) => {
+          if (r && !seen.has(r)) {
+            seen.add(r);
+            displayRemarks.push(r);
+          }
+        });
+      }
+
+      // merge returned object into local list, but ensure we keep normalized remarks for display
+      const merged = agreements.map((a) =>
+        (String(a.agreement_id ?? a.id) === String(id))
+          ? { ...a, ...updatedFromServer, hardcopy_location: updatedFromServer?.hardcopy_location ?? payload.hardcopy_location, remarks: displayRemarks }
+          : a
+      );
+      setAgreements(merged);
+
+
+      setSelectedAgreement((prev) => ({ ...(prev || {}), ...updatedFromServer, hardcopy_location: updatedFromServer?.hardcopy_location ?? payload.hardcopy_location, remarks: displayRemarks }));
+
+      // refresh from server to verify persistence (helps detect backend shape/validation issues)
+      try {
+        const refreshed = await fetchAgreements();
+        const refreshedAgreement = (refreshed || []).find((x) => String(x.agreement_id ?? x.id) === String(id));
+  const persistedRemarks = normalizeRemarks(refreshedAgreement?.remarks);
+  const localNorm = normalizeRemarks(remarksPayload);
+        const missing = localNorm.some((r) => r && !persistedRemarks.includes(r));
+
+        // if server did not persist our remarks, try one retry using object-shaped remarks (common API shape)
+        if (missing) {
+          console.warn('Remarks not persisted, retrying with object-shaped remarks payload');
+          const retryPayload = { ...payload, remarks: localNorm.map((s) => ({ remark_text: s })) };
+          try {
+            await agreementService.updateAgreement(id, retryPayload);
+            const refreshed2 = await fetchAgreements();
+            // update selectedAgreement from latest refreshed data
+            const latest = (refreshed2 || []).find((x) => String(x.agreement_id ?? x.id) === String(id));
+            if (latest) setSelectedAgreement((prev) => ({ ...(prev || {}), ...latest }));
+          } catch (e) {
+            console.warn('Retry to persist remarks failed', e);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to refresh agreements after save', e);
+      }
+
+      // optionally create an audit log entry
+      try {
+        await createAuditLog(`Updated agreement ${id}: hardcopy_location and remarks updated`);
+      } catch (e) {
+        // non-fatal
+        console.warn('Audit log failed', e);
+      }
+
+      setIsModalEdit(false);
+    } catch (err) {
+      console.error('Failed to save agreement edits:', err);
+      // surface error to the user (simple fallback)
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const activeAgreements = agreements.filter(
@@ -236,6 +335,39 @@ const ActiveAgreement = () => {
       return r.map((item) => (typeof item === "object" ? item.remark_text || item.text || item.remark || "" : String(item)));
     if (typeof r === "string") return r.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
     return [];
+  };
+
+  // Helpers to safely format contact person fields for rendering
+  const formatContactPersons = (v) => {
+    if (!v) return "N/A";
+    if (Array.isArray(v)) {
+      return v
+        .map((item) => {
+          if (!item) return "";
+          if (typeof item === "string") return item;
+          return (
+            item.point_person_name || item.contact_person_name || item.name || item.full_name || item.displayName || item.person_name || ""
+          );
+        })
+        .filter(Boolean)
+        .join(", ");
+    }
+    if (typeof v === "object") {
+      return v.point_person_name || v.contact_person_name || v.name || v.full_name || v.displayName || JSON.stringify(v);
+    }
+    return String(v);
+  };
+
+  const formatContactEmails = (v) => {
+    if (!v) return "";
+    if (Array.isArray(v)) {
+      return v
+        .map((item) => (typeof item === "string" ? item : item.point_person_email || item.email || item.contact_person_email || ""))
+        .filter(Boolean)
+        .join(", ");
+    }
+    if (typeof v === "object") return v.point_person_email || v.email || v.contact_person_email || "";
+    return String(v);
   };
 
   const addEditRemark = () => setEditForm((prev) => ({ ...prev, remarks: [...(prev.remarks || []), ""] }));
@@ -835,19 +967,19 @@ const ActiveAgreement = () => {
                 <div className="contacts-grid">
                   <div className="contact-card">
                     <div className="contact-role">PUP Point Person</div>
-                    <div className="contact-name">{selectedAgreement.point_persons_display || selectedAgreement.pointPerson || selectedAgreement.point_persons || "N/A"}</div>
+                    <div className="contact-name">{formatContactPersons(selectedAgreement.point_persons_display || selectedAgreement.pointPerson || selectedAgreement.point_persons)}</div>
                     <div className="contact-org">{selectedAgreement.source_unit || selectedAgreement.source || selectedAgreement.initiating_unit}</div>
-                    {(selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail) ? (
-                      <a className="contact-email" href={`mailto:${selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail}`}>{selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail}</a>
+                    {formatContactEmails(selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail) ? (
+                      <a className="contact-email" href={`mailto:${formatContactEmails(selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail)}`}>{formatContactEmails(selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail)}</a>
                     ) : null}
                   </div>
 
                   <div className="contact-card alt">
                     <div className="contact-role">Partner Contact Person</div>
-                    <div className="contact-name">{selectedAgreement.contact_persons_display || selectedAgreement.contactPerson || selectedAgreement.contact_persons || "N/A"}</div>
+                    <div className="contact-name">{formatContactPersons(selectedAgreement.contact_persons_display || selectedAgreement.contactPerson || selectedAgreement.contact_persons)}</div>
                     <div className="contact-org">{selectedAgreement.name || selectedAgreement.partnerName}</div>
-                    {(selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail) ? (
-                      <a className="contact-email" href={`mailto:${selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail}`}>{selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail}</a>
+                    {formatContactEmails(selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail) ? (
+                      <a className="contact-email" href={`mailto:${formatContactEmails(selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail)}`}>{formatContactEmails(selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail)}</a>
                     ) : null}
                   </div>
                 </div>
@@ -960,8 +1092,8 @@ const ActiveAgreement = () => {
                     </div>
 
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12, gap: 8 }}>
-                    <button className="btn save" onClick={saveModalEdits}>Save</button>
-                    <button className="btn cancel" onClick={cancelModalEdit}>Cancel</button>
+                    <button className="btn save" onClick={saveModalEdits} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+                    <button className="btn cancel" onClick={cancelModalEdit} disabled={saving}>Cancel</button>
                   </div>
                 </div>
               )}

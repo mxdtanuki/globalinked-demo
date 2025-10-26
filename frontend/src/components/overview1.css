@@ -10,7 +10,7 @@
   min-height: calc(100vh - 120px);
   position: relative;
 }
-
+ 
 /* Scrollbar */
 .overview1-page .overview1-inner::-webkit-scrollbar {
   width: 12px;
@@ -460,6 +460,48 @@
   border-radius:6px;
   cursor:pointer;
   font-weight:600;
+}
+
+/* Styles for the simple MultiPersonField / MultiRemarkField used in the modal
+   Ensure each entry appears on a single horizontal row: Position | Name | Email | Remove */
+.multi-list { display: flex; flex-direction: column; gap: 8px; }
+.multi-list .multi-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+.multi-list .multi-row input {
+  padding: 8px 10px;
+  border: 1px solid #e8e2e2;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.multi-list .multi-row input:nth-child(1) { flex: 0 0 22%; min-width: 120px; }
+.multi-list .multi-row input:nth-child(2) { flex: 1 1 40%; min-width: 140px; }
+.multi-list .multi-row input:nth-child(3) { flex: 1 1 36%; min-width: 160px; }
+.multi-list .multi-row .icon-btn {
+  flex: 0 0 42px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+.multi-list .btn { margin-top: 6px; }
+
+@media (max-width:720px) {
+  .multi-list .multi-row { flex-direction: column; align-items: stretch; }
+  .multi-list .multi-row input:nth-child(1),
+  .multi-list .multi-row input:nth-child(2),
+  .multi-list .multi-row input:nth-child(3) { flex: none; width: 100%; }
+  .multi-list .multi-row .icon-btn { align-self: flex-end; }
 }
 
 @media (max-width:720px) {

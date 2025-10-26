@@ -6,7 +6,7 @@ import "./archive.css";
 import { documentService } from "../services/documentService";
 import { useNavigate } from "react-router-dom";
 import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
-import { FiEye, FiLink, FiDownload, FiArchive, FiAlertCircle, FiFilter, FiX, FiRefreshCw } from "react-icons/fi";
+import { FiEye, FiLink, FiDownload, FiArchive, FiAlertCircle, FiFilter, FiX, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { TbFileText, TbLink, TbClockHour4 } from "react-icons/tb";
 
 const Archive = () => {
@@ -23,36 +23,7 @@ const Archive = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [isDownloading, setIsDownloading] = useState(false);
   
-  const getFilteredData = () => {
-    const currentData = selectedTab === "expired" ? allArchiveData : withdrawnData;
-    let filtered = currentData;
 
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(item => 
-        item.agreement_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.partner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.dts_no?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Apply agreement type filter
-    switch (selectedFilter) {
-      case "moa":
-        filtered = filtered.filter(item => item.document_type?.toUpperCase() === "MOA");
-        break;
-      case "mou":
-        filtered = filtered.filter(item => item.document_type?.toUpperCase() === "MOU");
-        break;
-      case "linked":
-        filtered = filtered.filter(item => item.linked_mou_id || item.parent_agreement_id);
-        break;
-      default:
-        break;
-    }
-
-    return filtered;
-  };
 
   const handleMassDownload = async () => {
     if (selectedIds.size === 0) {
@@ -64,9 +35,9 @@ const Archive = () => {
     try {
       for (const id of selectedIds) {
         const item = filteredData.find(a => a.agreement_id === id);
-        if (item) {
-          await handleViewLatestFile(item.dts_no, true);
-          // Add small delay between downloads to prevent browser blocking
+        if (item && item.dts_number) {
+          await handleViewLatestFile(item.dts_number, true);
+          // small delay between downloads to prevent browser blocking
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
@@ -78,7 +49,6 @@ const Archive = () => {
     }
   };
 
-  // Remove this duplicate function as we have another handleReactivate below
   const [displayData, setDisplayData] = useState([]);
   const [activeTab, setActiveTab] = useState("Expired");
   const [stats, setStats] = useState([]);
@@ -180,7 +150,7 @@ const Archive = () => {
     try {
       const latest = await documentService.getLatestVersion(dtsNumber);
       if (!latest) {
-        alert("No document versions found for this DTS number.");
+        alert(`No document versions found for DTS number: ${dtsNumber}`);
         return;
       }
 
@@ -680,12 +650,12 @@ const renderEditableCell = (item, field, value) => {
                       Download Selected ({selectedIds.size})
                     </button>
 
-                    {currentUser?.user_role?.toLowerCase() === "admin" && (
-                      <button className="mass-delete-btn" onClick={handleMassDelete}>
-                        <FiX />
-                        Delete Selected ({selectedIds.size})
-                      </button>
-                    )}
+                      {currentUser?.user_role?.toLowerCase() === "admin" && (
+                        <button className="mass-delete-btn clean-btn" onClick={handleMassDelete}>
+                          <FiTrash2 style={{marginRight:6, verticalAlign:'middle'}} />
+                          <span style={{verticalAlign:'middle'}}>Delete Selected ({selectedIds.size})</span>
+                        </button>
+                      )}
                   </>
                 )}
               </div>
@@ -771,7 +741,7 @@ const renderEditableCell = (item, field, value) => {
                                   disabled={deletingRows.has(item.agreement_id)}
                                   title="Delete permanently"
                                 >
-                                  <FiX className="icon" />
+                                  <FiTrash2 className="icon" />
                                 </button>
                               </>
                             )}
@@ -893,27 +863,27 @@ const renderEditableCell = (item, field, value) => {
                 <div className="row two-col">
                   <div>
                     <div className="label">DTS Number</div>
-                    <div className="value mono">{selectedAgreement.dts_number}</div>
+                    <div className="value mono">{selectedAgreement?.dts_number || "—"}</div>
                   </div>
 
                   <div>
                     <div className="label">Hardcopy Locator</div>
-                    <div className="value">{selectedAgreement.hardcopy_location || "—"}</div>
+                    <div className="value">{selectedAgreement?.hardcopy_location || "—"}</div>
                   </div>
 
                   <div>
                     <div className="label">Date Signed</div>
-                    <div className="value">{selectedAgreement.date_signed ? new Date(selectedAgreement.date_signed).toLocaleDateString() : "—"}</div>
+                    <div className="value">{selectedAgreement?.date_signed ? new Date(selectedAgreement.date_signed).toLocaleDateString() : "—"}</div>
                   </div>
 
                   <div>
                     <div className="label">Expiry Date</div>
-                    <div className="value">{selectedAgreement.date_expiry ? new Date(selectedAgreement.date_expiry).toLocaleDateString() : "—"}</div>
+                    <div className="value">{selectedAgreement?.date_expiry ? new Date(selectedAgreement.date_expiry).toLocaleDateString() : "—"}</div>
                   </div>
                 </div>
 
                 <div className="label">Brief Profile</div>
-                <div className="brief">{selectedAgreement.brief_profile || selectedAgreement.description || "—"}</div>
+                <div className="brief">{selectedAgreement?.brief_profile || selectedAgreement?.description || "—"}</div>
               </section>
 
               <section className="modal-section partner">
@@ -921,10 +891,10 @@ const renderEditableCell = (item, field, value) => {
 
                 <div className="partner-top">
                   <div className="partner-logo">
-                    {LogoSrc(selectedAgreement.logo_path || selectedAgreement.logo_url) ? (
+                    {LogoSrc(selectedAgreement?.logo_path || selectedAgreement?.logo_url) ? (
                       <img
-                        src={LogoSrc(selectedAgreement.logo_path || selectedAgreement.logo_url)}
-                        alt={`${selectedAgreement.partner_name || selectedAgreement.name} logo`}
+                        src={LogoSrc(selectedAgreement?.logo_path || selectedAgreement?.logo_url)}
+                        alt={`${selectedAgreement?.partner_name || selectedAgreement?.name || 'Partner'} logo`}
                         onError={(e) => {
                           console.warn("Logo failed to load:", e.target.src);
                           e.target.onerror = null;
@@ -932,7 +902,7 @@ const renderEditableCell = (item, field, value) => {
                         }}
                       />
                     ) : (
-                      <div className="partner-fallback">{getInitials(selectedAgreement.partner_name || selectedAgreement.name)}</div>
+                      <div className="partner-fallback">{getInitials(selectedAgreement?.partner_name || selectedAgreement?.name)}</div>
                     )}
                   </div>
 
@@ -940,24 +910,24 @@ const renderEditableCell = (item, field, value) => {
                     <div className="row two-col">
                       <div>
                         <div className="label">Organization</div>
-                        <div className="value">{selectedAgreement.partner_name || selectedAgreement.name}</div>
+                        <div className="value">{selectedAgreement?.partner_name || selectedAgreement?.name || "—"}</div>
                       </div>
                       <div>
                         <div className="label">Country</div>
-                        <div className="value">{selectedAgreement.country}</div>
+                        <div className="value">{selectedAgreement?.country || "—"}</div>
                       </div>
                       <div>
                         <div className="label">Region</div>
-                        <div className="value">{selectedAgreement.region || "—"}</div>
+                        <div className="value">{selectedAgreement?.region || "—"}</div>
                       </div>
                       <div>
                         <div className="label">Address</div>
-                        <div className="value">{selectedAgreement.address || "—"}</div>
+                        <div className="value">{selectedAgreement?.address || "—"}</div>
                       </div>
                       <div>
                         <div className="label">Website</div>
                         <div className="value">
-                          {selectedAgreement.website_url ? (
+                          {selectedAgreement?.website_url ? (
                             <a href={selectedAgreement.website_url} target="_blank" rel="noreferrer">{selectedAgreement.website_url}</a>
                           ) : "—"}
                         </div>
@@ -972,14 +942,14 @@ const renderEditableCell = (item, field, value) => {
                 <div className="contacts-grid">
                   <div className="contact-card">
                     <div className="contact-role">PUP Point Person</div>
-                    <div className="contact-name">{selectedAgreement.point_persons_display || "N/A"}</div>
-                    <div className="contact-org">{selectedAgreement.source_unit || selectedAgreement.source}</div>
+                    <div className="contact-name">{selectedAgreement?.point_persons_display || "N/A"}</div>
+                    <div className="contact-org">{selectedAgreement?.source_unit || selectedAgreement?.source || "—"}</div>
                   </div>
 
                   <div className="contact-card alt">
                     <div className="contact-role">Partner Contact Person</div>
-                    <div className="contact-name">{selectedAgreement.contact_persons_display || "N/A"}</div>
-                    <div className="contact-org">{selectedAgreement.partner_name || selectedAgreement.name}</div>
+                    <div className="contact-name">{selectedAgreement?.contact_persons_display || "N/A"}</div>
+                    <div className="contact-org">{selectedAgreement?.partner_name || selectedAgreement?.name || "—"}</div>
                   </div>
                 </div>
               </section>

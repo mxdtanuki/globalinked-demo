@@ -28,10 +28,10 @@ if "supabase.co" in db_url and "sslmode" not in db_url:
 print("LOADED DB URL:", raw_url)
 
 # Pool settings (keep modest for PgBouncer transaction pooling)
-POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 5))          # connections kept open by SQLAlchemy
-MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 5))    # temporary extra connections
+POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 20))          # connections kept open by SQLAlchemy
+MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 30))    # temporary extra connections
 POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", 300))  # seconds
-POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 10))   # seconds to wait for a free conn
+POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 60))   # seconds to wait for a free conn
 CONNECT_TIMEOUT = int(os.getenv("DB_CONNECT_TIMEOUT", 10))  # seconds for initial TCP connect
 
 def _make_engine(application_name: str):
