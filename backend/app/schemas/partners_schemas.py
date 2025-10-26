@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from datetime import date
+from pydantic import BaseModel, Field
 from typing import Optional
 
 class PartnerResponse(BaseModel):
@@ -11,6 +12,8 @@ class PartnerResponse(BaseModel):
     website_url: Optional[str] = None
     description: Optional[str] = None
     logo_path: Optional[str] = None  
-
+    dts_number: str = Field(..., max_length=50)
+    date_expiry: Optional[date] = None
+    
     class Config:
         orm_mode = True

@@ -432,15 +432,26 @@ async def create_agreement(
 
         # PARTNER handling
         partner_obj = None
-        if agreement.partner_id:
-            partner_obj = db.query(Partners).filter(
-                Partners.partner_id == agreement.partner_id
-            ).first()
+
+        # If MOA with selected parent MOU -> derive partner from that parent
+        if agreement.document_type == "MOA" and getattr(agreement, "MOU_to_MOA_id", None):
+            parent_mou = db.query(Agreements).filter(Agreements.agreement_id == agreement.MOU_to_MOA_id).first()
+            if not parent_mou:
+                raise HTTPException(status_code=400, detail="Selected parent MOU not found.")
+            partner_obj = db.query(Partners).filter(Partners.partner_id == parent_mou.partner_id).first()
+            if not partner_obj:
+                raise HTTPException(status_code=400, detail="Partner for parent MOU not found.")
+
+        # Explicit partner_id provided
+        elif agreement.partner_id:
+            partner_obj = db.query(Partners).filter(Partners.partner_id == agreement.partner_id).first()
             if not partner_obj:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
+                    status_code=400,
                     detail=f"Provided partner_id {agreement.partner_id} not found."
                 )
+
+        # New partner payload
         elif agreement.partner_data:
             partner_payload = agreement.partner_data
             partner_obj = Partners(
@@ -457,11 +468,14 @@ async def create_agreement(
             )
             db.add(partner_obj)
             db.flush()
+
         else:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Either partner_id or partner_data must be provided."
-            )
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Partner information is required.")
+
+        # Validation: Local MOA must have parent MOU (prevent creating a Local MOA with a local partner without linking to parent MOU)
+        if agreement.document_type == "MOA" and not getattr(agreement, "MOU_to_MOA_id", None):
+            if partner_obj and getattr(partner_obj, "country", None) and partner_obj.country.lower() == "philippines":
+                raise HTTPException(status_code=400, detail="Local MOAs must be linked to a parent MOU.")
 
         partner_id = partner_obj.partner_id
 
@@ -507,11 +521,14 @@ async def create_agreement(
         db.add(timer)
 
         
-        # CONTACT PERSONS
+        # CONTACT PERSONS (always processed from payload if present)
         created_contact_persons = []
         contact_list = []
         if agreement.partner_data and getattr(agreement.partner_data, "contact_persons", None):
             contact_list = agreement.partner_data.contact_persons
+        # Ensure contacts submitted with partner_id are processed as well
+        elif getattr(agreement, "partner_id", None) and getattr(agreement, "contact_persons", None):
+            contact_list = agreement.contact_persons
         elif getattr(agreement, "contact_persons", None):
             contact_list = agreement.contact_persons
 
