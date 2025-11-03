@@ -3,7 +3,6 @@ import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './globalUpload.css';
-//import axios from "axios";
    
 const countryOptions = [
   { value: "Afghanistan", label: "Afghanistan", region: "Southern Asia" },
@@ -274,6 +273,7 @@ const partnershipTypeOptions = [
   const ManualEntryMOA = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [partnerOrigin, setPartnerOrigin] = useState(""); // "Local" or "International"
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [dtsNumber, setDtsNumber] = useState("");
@@ -296,6 +296,10 @@ const partnershipTypeOptions = [
     description: "",
     logo: null,
   });
+
+  // Related agreements for MOA selection
+  const [relatedAgreements, setRelatedAgreements] = useState([]);
+  const [selectedRelatedAgreement, setSelectedRelatedAgreement] = useState(null);
 
   // Contacts & point persons
   const [contacts, setContacts] = useState([{ position: "", name: "", email: "" }]);
@@ -347,19 +351,31 @@ useEffect(() => {
   setEntryDate(localDate);
 }, []);
 
-// Effect to calculate Expiration Date
+// Effect to calculate Expiration Date (now respects parent MOU expiry when MOA)
 useEffect(() => {
   if (datePupSigned && validityPeriod) {
     const baseDate = new Date(datePupSigned);
     const yearsToAdd = parseInt(validityPeriod, 10);
     if (!isNaN(yearsToAdd)) {
       baseDate.setFullYear(baseDate.getFullYear() + yearsToAdd);
-      setDateExpiry(baseDate.toISOString().split('T')[0]);
+      const expiryCandidate = baseDate.toISOString().split('T')[0];
+      if (
+        documentType === "MOA" &&
+        selectedRelatedAgreement?.date_expiry
+      ) {
+        const parentExpiry = new Date(selectedRelatedAgreement.date_expiry);
+        if (new Date(expiryCandidate) > parentExpiry) {
+          alert(`MOA validity exceeds parent MOU expiry (${selectedRelatedAgreement.date_expiry}). Expiry will be clamped.`);
+          setDateExpiry(selectedRelatedAgreement.date_expiry);
+          return;
+        }
+      }
+      setDateExpiry(expiryCandidate);
     }
   } else if (!datePupSigned || !validityPeriod) {
     setDateExpiry("");
   }
-}, [datePupSigned, validityPeriod]);
+}, [datePupSigned, validityPeriod, selectedRelatedAgreement, documentType, partnerOrigin]);
 
   // Fetch existing partners
   useEffect(() => {
@@ -378,6 +394,98 @@ useEffect(() => {
     };
     fetchPartners();
   }, []);
+
+  // Related MOU fetch (only for MOA, filters by origin & expiry)
+  useEffect(() => {
+    const fetchRelated = async () => {
+      if (documentType !== "MOA") {
+        setRelatedAgreements([]);
+        setSelectedRelatedAgreement(null);
+        return;
+      }
+      try {
+        const agreements = await agreementService.getAgreements({ document_type: "MOU" });
+        const today = new Date();
+        const filtered = agreements.filter(a => {
+          const isActive = a.agreement_status === "Active";
+          const hasExpiry = !!a.date_expiry;
+          const expiryValid = hasExpiry ? new Date(a.date_expiry) >= today : false;
+          const isOriginMatch = partnerOrigin === "Local"
+            ? (a.country === "Philippines")
+            : (a.country !== "Philippines");
+          // For Local MOA: require active AND expiry still in future
+          if (partnerOrigin === "Local") {
+            return isActive && expiryValid && isOriginMatch;
+          }
+          // For International: require active and non-Philippines
+          return isActive && isOriginMatch;
+        });
+
+        const options = filtered.map(a => ({
+          value: a.agreement_id,
+          label: `${a.dts_number} – ${a.name}`,
+          partner_id: a.partner_id,
+          partner_name: a.name,
+          partner_country: a.country,
+          partner_region: a.region,
+          partner_address: a.address,
+          partner_website: a.website_url,
+          partner_entity_type: a.entity_type,
+          partner_description: a.description,
+          partner_logo: a.logo_path,
+          date_expiry: a.date_expiry,
+        }));
+
+        if (partnerOrigin === "International") {
+          options.unshift({ value: "NA", label: "N/A" });
+        }
+
+        setRelatedAgreements(options);
+        setSelectedRelatedAgreement(partnerOrigin === "International" && options.length > 0 ? options[0] : null);
+      } catch (err) {
+        setRelatedAgreements([{ value: "NA", label: "N/A" }]);
+        setSelectedRelatedAgreement({ value: "NA", label: "N/A" });
+      }
+    };
+    fetchRelated();
+  }, [documentType, partnerOrigin]);
+
+  // When a Related MOU is selected -> autofill partner and lock to Existing
+  const handleRelatedMouSelect = (opt) => {
+    setSelectedRelatedAgreement(opt);
+    if (documentType === "MOA" && opt && opt.value !== "NA") {
+      setPartnerEntryType("Existing");
+      setSelectedPartner({ value: opt.partner_id, label: opt.partner_name });
+      setPartnerData({
+        name: opt.partner_name,
+        entityType: opt.partner_entity_type,
+        address: opt.partner_address,
+        website: opt.partner_website,
+        description: opt.partner_description,
+        logo: opt.partner_logo,
+      });
+      setSelectedCountry({ value: opt.partner_country, label: opt.partner_country });
+      setSelectedRegion({ value: opt.partner_region, label: opt.partner_region });
+    } else if (opt && opt.value === "NA") {
+      // Allow choosing New partner for International MOA when NA selected
+      setPartnerEntryType("New");
+      setSelectedPartner(null);
+    }
+  };
+
+  useEffect(() => {
+  if (partnerOrigin === "International" && documentType === "MOA") {
+    setPartnerEntryType("New");
+  }
+}, [partnerOrigin, documentType]);
+
+
+  // Lock partnerEntryType to Existing for Local MOA
+  useEffect(() => {
+    if (documentType === "MOA" && partnerOrigin === "Local") {
+      setPartnerEntryType("Existing");
+    }
+  }, [documentType, partnerOrigin]);
 
   // Handle selecting an existing partner
   const handleExistingPartnerChange = (opt) => {
@@ -419,13 +527,22 @@ const toBase64 = (file) =>
   });
 
 
-  // Submit handler
+  // Submit handler — attach MOU_to_MOA_id and enforce Local MOA requirement
 const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
   setMessage("");
 
   try {
+     // validate Local MOA requires Related MOU
+    if (documentType === "MOA" && partnerOrigin === "Local") {
+      if (!selectedRelatedAgreement || selectedRelatedAgreement.value === "NA" || selectedRelatedAgreement.value == null) {
+        setMessage("Local MOA requires selecting a Related MOU.");
+        setLoading(false);
+        return;
+      }
+    }
+
     const form = new FormData(e.target);
     const data = Object.fromEntries(form);
 
@@ -477,6 +594,12 @@ const handleSubmit = async (e) => {
         ? [{ remark_text: data.remarks }]
         : [],
     };
+
+    // pass partner MOU id to backend if applicable
+    agreementData.MOU_to_MOA_id =
+      selectedRelatedAgreement?.value && selectedRelatedAgreement?.value !== "NA"
+        ? selectedRelatedAgreement.value
+        : null;
 
     // Handle partner differently for existing vs new
     if (partnerEntryType === "Existing") {
@@ -556,44 +679,6 @@ const handleSubmit = async (e) => {
   }
 };
 
-  const [relatedAgreements, setRelatedAgreements] = useState([]);
-  const [selectedRelatedAgreement, setSelectedRelatedAgreement] = useState(null);
-
-  // Fetch related agreements based on documentType
-  useEffect(() => {
-    const fetchRelated = async () => {
-      if (!documentType) {
-        setRelatedAgreements([]);
-        setSelectedRelatedAgreement(null);
-        return;
-      }
-      try {
-        // Opposite type
-        const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
-        // Fetch all agreements of the opposite type
-        const agreements = await agreementService.getAgreements({
-          document_type: typeToFetch
-        });
-        // Filter out Withdrawn
-        const filtered = agreements.filter(
-          a => a.document_type === typeToFetch && a.agreement_status !== "Withdrawn"
-        );
-        const options = filtered.map(a => ({
-          value: a.agreement_id,
-          label: a.dts_number,
-          dts_number: a.dts_number
-        }));
-        options.unshift({ value: "NA", label: "N/A" });
-        setRelatedAgreements(options);
-        setSelectedRelatedAgreement(options[0]);
-      } catch (err) {
-        setRelatedAgreements([{ value: "NA", label: "N/A" }]);
-        setSelectedRelatedAgreement({ value: "NA", label: "N/A" });
-      }
-    };
-    fetchRelated();
-  }, [documentType]);
-
   const handlePartnerEntryTypeChange = (type) => {
   setPartnerEntryType(type);
   if (type === "New") {
@@ -632,6 +717,22 @@ const handleSubmit = async (e) => {
         )}
         <form className="manual-entry-form" onSubmit={handleSubmit}>
 
+         {/* Partner Origin */}
+         <div className="form-group">
+           <label htmlFor="partnerOrigin">Partner Origin:*</label>
+           <select
+             id="partnerOrigin"
+             name="partnerOrigin"
+             value={partnerOrigin}
+            onChange={(e) => setPartnerOrigin(e.target.value)}
+             required
+           >
+             <option value="">Select Origin</option>
+             <option value="Local">Local</option>
+             <option value="International">International</option>
+           </select>
+         </div>
+
           {/* Document Type */}
           <div className="form-group">
           <label htmlFor="docType">Document Type:*</label>
@@ -650,115 +751,76 @@ const handleSubmit = async (e) => {
           </select>
           </div>
 
-         {/* Related MOU/MOA */}
+         {/* Agreement Entry Type */}
+         <div className="form-group">
+           <label htmlFor="entryType">Agreement Entry Type:*</label>
+           <select id="entryType" name="entryType" required>
+             <option value="">Select Entry Type</option>
+             <option value="Renewal">Renewal</option>
+             <option value="New">New</option>
+             <option value="Other">Other</option>
+           </select>
+         </div>
+
+         {/* Validity Period */}
+         <div className="form-group">
+           <label htmlFor="validity">Validity Period:</label>
+           <select
+             id="validity"
+             name="validity"
+             value={validityPeriod}
+             onChange={(e) => setValidityPeriod(e.target.value)}
+           >
+             <option value="">Select Period</option>
+             <option value="5">5</option>
+             <option value="4">4</option>
+             <option value="3">3</option>
+             <option value="2">2</option>
+             <option value="1">1</option>
+           </select>
+         </div>
+
+        {/* Related MOU (only when MOA) */}
+        {documentType === "MOA" && (
           <div className="form-group">
             <label htmlFor="relatedAgreement">
-              {documentType === "MOA"
-                ? "Related MOU"
-                : documentType === "MOU"
-                ? "Related MOA"
-                : "Related MOU/MOA"}
-              :
+              Related MOU:
             </label>
             <Select
               id="relatedAgreement"
               name="relatedAgreement"
               options={relatedAgreements}
               value={selectedRelatedAgreement}
-              onChange={setSelectedRelatedAgreement}
+              onChange={handleRelatedMouSelect}
               className="react-select-container"
               classNamePrefix="react-select"
-              placeholder="Select Related Agreement"
-              isDisabled={!documentType}
+              placeholder={partnerOrigin === "Local" ? "Select Related Local MOU" : "Select Related MOU (optional)"}
+              isDisabled={relatedAgreements.length === 0}
             />
           </div>
+        )}
 
-          {/* AGREEMENT STATUS */}
-          <div className="form-group">
-          <label htmlFor="status">Agreement Status:*</label>
-          <select id="status" name="status" required>
-            <option value="">Select Status</option>
-            <option value="InitialReview">Initial Review</option>
-            <option value="Endorse">Endorse to ULCO for Review and Approval</option>
-            <option value="Revert">Revert To Initiator with Comments</option>
-            <option value="Consultation">For Consultation</option>
-            <option value="Replication">Replication of Copies (8 sets)</option>
-            <option value="SignituresPUP">For Signatures of PUP Officials</option>
-            <option value="SignedPUP">Signed by PUP Officials</option>
-            <option value="SignituresPartner">For Signatures of Partner</option>
-            <option value="SignedPartner">Signed by Partner Institution</option>
-            <option value="Complete">Completely Signed</option>
-            <option value="Notary">For Notary</option>
-            <option value="FFUPCopy">FFUP Copy From College/Campus</option>
-            <option value="Active">Active</option>
-            <option value="Withdrawn">Withdrawn</option>
-          </select>
-          </div>
-
-          {/* AGREEMENT ENTRY TYPE */}
-          <div className="form-group">
-          <label htmlFor="entryType">Agreement Entry Type:*</label>
-          <select id="entryType" name="entryType" required>
-            <option value="">Select Entry Type</option>
-            <option value="Renewal">Renewal</option>
-            <option value="New">New</option>
-            <option value="Other">Other</option>
-          </select>
-          </div>
-
+          {/* AGREEMENT STATUS (moved/kept later if needed) */}
+ 
           {/* RENEWED AGREEMENT */}
-          <div className="form-group">
-            <label htmlFor="renewedFrom">Renewed Agreement from (DTS Number Format):</label>
-            <input id="renewedFrom" name="renewedFrom" type="text" />
-          </div>
-            
-          {/* VALIDITY PERIOD*/}
-          <div className="form-group">
-          <label htmlFor="validity">Validity Period:</label>
-          <select
-            id="validity"
-            name="validity"
-            value={validityPeriod}
-            onChange={(e) => setValidityPeriod(e.target.value)}
-          >
-            <option value="">Select Period</option>
-            <option value="5">5</option>
-            <option value="4">4</option>
-            <option value="3">3</option>
-            <option value="2">2</option>
-            <option value="1">1</option>
-          </select>
-          </div>
-
+           <div className="form-group">
+             <label htmlFor="renewedFrom">Renewed Agreement from (DTS Number Format):</label>
+             <input id="renewedFrom" name="renewedFrom" type="text" />
+           </div>
+           
           {/* DTS No. */}
-          <div className="form-group">
-          <label htmlFor="dtsNo">DTS No.:*</label>
-          <input
-            id="dtsNo"
-            name="dtsNo"
-            type="text"
-            required
-            value={dtsNumber}
-            onChange={(e) => setDtsNumber(e.target.value) }
-            placeholder="DT2025123456"
-          />
-          </div>
-
-          {/* DTS STATUS */}
-          <div className="form-group">
-            <label htmlFor="dtsStatus">DTS Status:*</label>
-              <select 
-              id="dtsStatus" 
-              name="dtsStatus" 
-              value={dtsStatus}
-              onChange={(e) => setDtsStatus(e.target.value)}
-              required
-            >
-              <option value="">Select Status</option>
-              <option value="Open - OIA">OPEN</option>
-              <option value="Open - Other Office">CLOSE</option>
-            </select>
-          </div>
+           <div className="form-group">
+           <label htmlFor="dtsNo">DTS No.:*</label>
+           <input
+             id="dtsNo"
+             name="dtsNo"
+             type="text"
+             required
+             value={dtsNumber}
+             onChange={(e) => setDtsNumber(e.target.value) }
+             placeholder="DT2025123456"
+           />
+           </div>
 
           {/* SOURCE UNIT */}
           <div className="form-group">
@@ -773,34 +835,19 @@ const handleSubmit = async (e) => {
             />
           </div>
 
-          {/* PARTNERSHIP TYPE */}
-          <div className="form-group">
-            <label htmlFor="partnershipType">Partnership Type:*</label>
-            <Select
-              options={partnershipTypeOptions}
-              name="partnershipType"
-              id="partnershipType"
-              required
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select Partnership Type"
-              value={partnershipTypeOptions.find(o => o.value === partnershipType) || null}
-              onChange={(opt) => setPartnershipType(opt?.value || "")}
-            />
-          </div>
-
-          {/* Partner Entry Type */}
-          <div className="form-group">
-            <label htmlFor="partnerEntryType">Partner Entry Type:*</label>
-            <select
-              id="partnerEntryType"
-              value={partnerEntryType}
-              onChange={(e) => handlePartnerEntryTypeChange(e.target.value)}
-            >
-              <option value="New">New</option>
-              <option value="Existing">Existing</option>
-            </select>
-          </div>
+         {/* Partner Entry Type */}
+         <div className="form-group">
+           <label htmlFor="partnerEntryType">Partner Entry Type:*</label>
+           <select
+             id="partnerEntryType"
+             value={partnerEntryType}
+             onChange={(e) => handlePartnerEntryTypeChange(e.target.value)}
+             disabled={documentType === "MOA" && partnerOrigin === "Local"}
+           >
+             <option value="New">New</option>
+             <option value="Existing">Existing</option>
+           </select>
+         </div>
 
           {/* Partner Fields */}
           <div className="form-group">
@@ -822,6 +869,7 @@ const handleSubmit = async (e) => {
                 className="react-select-container"
                 classNamePrefix="react-select"
                 placeholder="Select Existing Partner"
+                isDisabled={documentType === "MOA" && partnerOrigin === "Local"} // locked when local MOA and should come from Related MOU
               />
             )}
           </div>
