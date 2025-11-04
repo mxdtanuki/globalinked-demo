@@ -2,16 +2,21 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FiEye, FiTrash2, FiMoreVertical, FiFileText, FiArchive, FiUpload } from "react-icons/fi";
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import useDebounce from "../hooks/useDebounce";
 import './layout.css';
 import './overview1.css';
 import '../pages/activeAgreement.css';
 import { agreementService } from '../services/agreementService';
 import { documentService } from '../services/documentService';
+import { QueryClient, QueryClientProvider, useQueryClient, useQuery } from '@tanstack/react-query';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 
 /* ---------- Constants & helpers (copied/adapted from uploaded files) ---------- */
+
+import TopBar from './topbar';
+import Sidebar from './sidebar';
 
 const LIFECYCLE_OPTIONS = [
   { value: '', label: 'Select Status' },
@@ -341,8 +346,9 @@ const MultiRemarkField = ({ listKey, selected, setSelected, disabled = false }) 
 
 const OverviewMerged = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient(); 
+  const [mobileShow, setMobileShow] = useState(false);
   
-  const [agreements, setAgreements] = useState([]);
   const [filterStage, setFilterStage] = useState('');
   const [filterClassification, setFilterClassification] = useState('');
   const [filterValidity, setFilterValidity] = useState('');
@@ -350,6 +356,7 @@ const OverviewMerged = () => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [filterDelayed, setFilterDelayed] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const debouncedSearchText = useDebounce(searchText, 300);
   const [activeTab, setActiveTab] = useState('All');
 
   // tmp filters for panel (Overview1 pattern)
@@ -382,8 +389,6 @@ const OverviewMerged = () => {
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const containerRef = useRef();
   const filterPanelRef = useRef();
   const modalFirstFieldRef = useRef(null);
@@ -398,27 +403,22 @@ const OverviewMerged = () => {
     } catch (e) { /* ignore */ }
   }, []);
 
-  const fetchAgreements = async () => {
-    setLoading(true);
-    setError('');
-    try {
+  const { data: rawAgreements, isLoading, error } = useQuery({
+    queryKey: ['agreements'],  // Unique key for caching/deduplication
+    queryFn: async () => {
       const data = await agreementService.getAgreements();
       const raw = Array.isArray(data) ? data : (data?.items || []);
       const filtered = raw.filter(a => 
         (a.agreement_status !== 'Active') && (a.status !== 'Active')
       );
-    const mapped = filtered.map(mapAgreement).map(computeStageInfo);
-      setAgreements(mapped);
-    } catch (err) {
-      console.error('Failed to fetch agreements:', err);
-      setError(err.detail || err.message || 'Failed to fetch agreements');
-      setAgreements([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const mapped = filtered.map(mapAgreement).map(computeStageInfo);
+      return mapped;
+    },
+    staleTime: 5 * 60 * 1000,  // Cache for 5 minutes to prevent refetches
+    cacheTime: 10 * 60 * 1000,  // Keep in cache for 10 minutes
+  });
 
-  useEffect(() => { fetchAgreements(); }, []);
+  const agreements = rawAgreements || [];
 
   useEffect(() => { setCurrentPage(1); }, [filterStage, filterClassification, filterValidity, filterCountry, searchText, activeTab, agreements]);
 
@@ -443,13 +443,13 @@ const OverviewMerged = () => {
     if (filterClassification && a.partnership_classification !== filterClassification) return false;
     if (filterCountry && a.country !== filterCountry) return false;
     if (filterValidity && a.validity_period !== filterValidity) return false;
-    if (searchText) {
-      const s = searchText.toLowerCase();
+    if (debouncedSearchText) {  // Use debounced value
+      const s = debouncedSearchText.toLowerCase();
       const fields = [a.id, a.dts_no, a.partner_name, a.contact_person, a.point_name, a.country].filter(Boolean).map(v=>String(v).toLowerCase());
       if (!fields.some(f=>f.includes(s))) return false;
     }
     return true;
-  }), [agreements, activeTab, filterClassification, filterCountry, filterValidity, searchText, filterDelayed]);
+  }), [agreements, activeTab, filterClassification, filterCountry, filterValidity, debouncedSearchText, filterDelayed]);
 
   const filtered = baseList.filter(a => {
     if (filterStage && a.status !== filterStage) return false;
@@ -501,10 +501,6 @@ const OverviewMerged = () => {
     }
       const mapped = computeStageInfo(mapAgreement(full));
       setSelected(prev => ({ ...(prev || {}), ...mapped }));
-      setAgreements(prev => {
-        const next = prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r));
-        return excludeActive(next);
-      });
       if (!isEditing) originalRef.current = mapped;
     } catch (e) {
       console.error('Failed to load details:', e);
@@ -629,14 +625,14 @@ const OverviewMerged = () => {
           mapped = computeStageInfo(mapped);
         }
       } catch (e) {/* ignore */}
-  setSelected(mapped);
+      setSelected(mapped);
       originalRef.current = mapped;
       setIsEditing(false);
-  // ensure overview list excludes Active after save (but keep Withdrawn)
-  setAgreements(prev => excludeActive(prev.map(r => (String(getPk(r)) === String(getPk(mapped)) ? mapped : r))));
+      // ensure overview list excludes Active after save (but keep Withdrawn)
+      queryClient.invalidateQueries(['agreements']);
     } catch (e) {
-      console.error(e);
-      alert(e.detail || e.message || 'Failed to save');
+      console.error('Failed to save details:', e);
+      alert('Failed to save changes: ' + (e.detail || e.message || e));
     }
   };
 
@@ -652,10 +648,7 @@ const OverviewMerged = () => {
     try {
       setSavingRows(prev => new Set(prev).add(agreementId));
       await agreementService.updateAgreement(agreementId, editedData);
-      setAgreements(prev => {
-        const next = prev.map(a => (String(a._pk ?? a.agreement_id ?? a.id) === String(agreementId) ? editedData : a));
-        return excludeActive(next);
-      });
+      queryClient.invalidateQueries(['agreements']);
       setEditingRow(null); setEditedData({});
       alert('Agreement updated successfully!');
     } catch (err) {
@@ -672,7 +665,7 @@ const OverviewMerged = () => {
     try {
       setDeletingRows(prev => new Set(prev).add(agreementId));
       await agreementService.deleteAgreement(agreementId);
-      setAgreements(prev => prev.filter(a => String(a._pk ?? a.agreement_id ?? a.id) !== String(agreementId)));
+      queryClient.invalidateQueries(['agreements']);
       setEditingRow(prev => prev === agreementId ? null : prev);
       alert('Agreement deleted successfully.');
     } catch (err) {
@@ -782,7 +775,7 @@ const OverviewMerged = () => {
 
   /* ---------- UI handlers ---------- */
 
-  const toggleMobileSidebar = () => {};
+  const toggleMobileSidebar = () => setMobileShow(v => !v);
 
   const navigateDetail = (dir) => {
     if (!selected) return;
@@ -807,7 +800,7 @@ const OverviewMerged = () => {
           mapped = computeStageInfo(mapped);
         } catch (e) {/* ignore */}
         // Remove the activated agreement from the current overview list so it no longer appears here
-        setAgreements(prev => prev.filter(r => String(getPk(r)) !== String(getPk(mapped))));
+        queryClient.invalidateQueries(['agreements']);
         // Notify other parts of the app (ActiveAgreement page) that an agreement was activated
         try {
           window.dispatchEvent(new CustomEvent('agreementActivated', { detail: mapped }));
@@ -877,12 +870,26 @@ const OverviewMerged = () => {
     finally { setUploading(false); }
   };
 
-  if (loading) return (<div className="overview-container"><div className="lloading-container"><div className="spinner"></div><p>Loading Overview...</p></div></div>);
-  if (error) return (<div className="overview-container">Error: {error}</div>);
+//if (isLoading) return (
+  //<div className="overview-container">
+    //<div className="lloading-container">
+      //<div className="spinner"></div>
+     // <p>Loading Overview...</p>
+    //</div>
+  //</div>
+//);
+if (error) return <div className="overview-container">Error: {error.message}</div>;
 
   return (
     <div className="dashboard-container overview1-page">
-      <div className="overview1-inner">
+      <TopBar toggleSidebar={toggleMobileSidebar} />
+      {mobileShow && <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />}
+
+      <div className="content-body">
+        <Sidebar mobileShow={mobileShow} />
+
+        <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
+          <div className="overview1-inner">
 
         {/* Tabs */}
         <div className="overview1-tabs-row">
@@ -1515,6 +1522,8 @@ const OverviewMerged = () => {
           </div>
         )}
 
+      </div>
+        </div>
       </div>
     </div>
   );

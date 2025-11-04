@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
 import './pointPerson.css'; 
+import useDebounce from "../hooks/useDebounce";
 import { agreementService } from '../services/agreementService';
 
 const PointPerson = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const debouncedSearchText = useDebounce(searchText, 300);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const itemsPerPage = 10;
@@ -51,8 +53,9 @@ const PointPerson = () => {
   }, []);
 
   // FILTER
-  const filteredData = rows.filter((person) => {
-    const term = (searchText || "").trim().toLowerCase();
+  const filteredData = useMemo(() => {  
+  return rows.filter((person) => {
+    const term = (debouncedSearchText || "").trim().toLowerCase();  // Use debounced value
     if (!term) return true;
     const name = (person.name || "").toLowerCase();
     const email = (person.email || "").toLowerCase();
@@ -69,6 +72,7 @@ const PointPerson = () => {
       docType.includes(term)
     );
   });
+}, [rows, debouncedSearchText]);
 
   // PAGINATION
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);

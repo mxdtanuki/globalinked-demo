@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './App.css';
 
 // auth pages
@@ -27,16 +28,12 @@ import FacultyLoginPage from './pages/public-page/components/FacultyLoginPage';
 // for audit logs
 import AuditLogsPage from './pages/auditLogs';
 
-// new overview
-import Overview1 from './pages/overview1';
-
 // new active agreements
 import ActiveAgreements from './pages/activeAgreement';
 
 //sidebar pages
-import Overview from './pages/overview';
+import Overview from './components/overviewDash';
 import Analytics from './pages/analytics';
-import AgreementDocument from './pages/agreement';
 import PointPerson from './pages/pointPerson';
 import ContactPerson from './pages/contactPerson';
 import Mobility from './pages/mobility';
@@ -82,17 +79,12 @@ function AppRoutes() {
         <Route path="/resetPass" element={<ResetPass />} />    
 
         {/* admin login */}
-        <Route path="/faculty-login" element={<FacultyLoginPage />} /> 
-       
-        {/* new overview route */}
-        <Route path="/overview1" element={<Overview1 />} />
+        <Route path="/faculty-login" element={<FacultyLoginPage />} />
 
-        {/* new active agreements route */}
-        <Route path="/active-agreements" element={<ActiveAgreements />} />
 
         {/* admin routes */}
         <Route path="/overview" element={<Overview />} />
-        <Route path="/agreement" element={<AgreementDocument />} />
+        <Route path="/active-agreements" element={<ActiveAgreements />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/docUpload" element={< MOAUpload />} />
         <Route path="/pointPerson" element={<PointPerson />} />
@@ -121,14 +113,18 @@ function AppRoutes() {
 }
 
 function App() {
+  const queryClient = new QueryClient();  // Add this
+
   return (
-    <NotificationsProvider>
-      <AuditProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </AuditProvider>
-    </NotificationsProvider>
+    <QueryClientProvider client={queryClient}>
+      <NotificationsProvider>
+        <AuditProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AuditProvider>
+      </NotificationsProvider>
+    </QueryClientProvider>
   );
 }
 

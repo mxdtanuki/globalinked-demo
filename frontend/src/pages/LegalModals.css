@@ -1,0 +1,213 @@
+/* Modal Container */
+.modal-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+/* Modal Header */
+.modal-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 32px;
+  background-color: #ffffff !important;
+  border-bottom: 2px solid #8b0000;
+  border-radius: 12px 12px 0 0;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.modal-title {
+  margin: 0;
+  color: #8b0000 !important;
+  font-size: 1.75re;
+}
+
+/* Close Button */
+.modal-close-button {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #8b0000;
+  background: white;
+  color: #8b0000;
+  font-size: 28px;
+  line-height: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.modal-close-button:hover {
+  background: #8b0000;
+  color: white;
+}
+
+.legal-link {
+  text-decoration: none !important;
+  color: #8b0000 !important;
+}
+
+.legal-link:hover {
+  text-decoration: underline !important;
+}
+
+/* Scrollable Content Area */
+.modal-scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+  background: white;
+  border-radius: 0 0 12px 12px;
+}
+
+.modal-scroll-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-scroll-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.modal-scroll-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.modal-scroll-content::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* Legal Content Styles */
+.legal-content {
+  color: #333;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.legal-content h3 {
+  color: #000;
+  font-weight: 700;
+  margin: 2em 0 1em 0;
+  font-size: 1.2rem;
+}
+
+.legal-content h4 {
+  color: #000;
+  margin: 1.5em 0 0.5em 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.legal-content p {
+  margin: 0 0 1em 0;
+  text-align: justify;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+/* Ensure links inside legal content use a single consistent color */
+.legal-content a,
+.legal-content a:visited {
+  color: #8b0000;
+  text-decoration: underline;
+}
+
+/* Make buttons that look like links (used to open privacy modal) */
+.legal-link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: #8b0000;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+}
+
+.legal-content ul {
+  margin: 0 0 1em 0;
+  padding-left: 1.5em;
+}
+
+.legal-content li {
+  margin-bottom: 0.5em;
+  text-align: justify;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.last-updated {
+  color: #666;
+  font-style: italic;
+  margin-bottom: 1.5em !important;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modal-header {
+    padding: 20px 24px;
+  }
+
+  .modal-title {
+    font-size: 1.5rem;
+  }
+
+  .modal-close-button {
+    width: 32px;
+    height: 32px;
+    font-size: 24px;
+    right: 16px;
+  }
+
+  .modal-scroll-content {
+    padding: 24px;
+  }
+
+  .legal-content p,
+  .legal-content li {
+    font-size: 0.9rem;
+  }
+
+  .legal-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .legal-content h4 {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-header {
+    padding: 16px 20px;
+  }
+
+  .modal-title {
+    font-size: 1.25rem;
+  }
+
+  .modal-scroll-content {
+    padding: 20px;
+  }
+
+  .legal-content p,
+  .legal-content li {
+    font-size: 0.85rem;
+  }
+}
