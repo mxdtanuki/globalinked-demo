@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import "../components/layout.css";
 import "./activeAgreement.css";
+import useDebounce from "../hooks/useDebounce";
 import { FiEye, FiLink, FiArrowRight } from "react-icons/fi";
 import { agreementService } from '../services/agreementService';
 import axios from 'axios';
@@ -11,6 +12,7 @@ const ActiveAgreement = () => {
   const [mobileShow, setMobileShow] = useState(false);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState(""); 
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [reportType, setReportType] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -255,7 +257,8 @@ const ActiveAgreement = () => {
     return daysDiff > 0 && daysDiff <= 90;
   });
 
-  const filteredAgreements = activeAgreements
+const filteredAgreements = useMemo(() => { 
+  return activeAgreements
     .filter((a) => {
       if (filter === "moa") return String(a.document_type).toUpperCase() === "MOA";
       if (filter === "mou") return String(a.document_type).toUpperCase() === "MOU";
@@ -265,7 +268,7 @@ const ActiveAgreement = () => {
       return true;
     })
     .filter((a) => {
-      const q = searchQuery.trim().toLowerCase();
+      const q = debouncedSearchQuery.trim().toLowerCase();  // Use debounced value
       if (!q) return true;
       const fields = [
         a.dts_number,
@@ -280,6 +283,7 @@ const ActiveAgreement = () => {
       ];
       return fields.some((f) => f && f.toString().toLowerCase().includes(q));
     });
+}, [activeAgreements, filter, debouncedSearchQuery]);  // Depend on debouncedSearchQuery and other relevant states
 
   const totalPages = Math.max(1, Math.ceil(filteredAgreements.length / itemsPerPage));
   const paginatedAgreements = filteredAgreements.slice(

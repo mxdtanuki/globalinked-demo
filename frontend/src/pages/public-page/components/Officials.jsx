@@ -1,13 +1,13 @@
 import React from "react";
 import "./styles/Officials.css";
 
-import trinidad from "./assets/trinidad.jpg";
-import linkageschief from "./assets/logo.png";
-import sasot from "./assets/sasot.jpg";
+import trinidad from "./assets/oia/OIA_Felicitas C. Trinidad (1).jpg";
+import linkageschief from "./assets/Sir Nicky.jpg";
+import sasot from "./assets/oia/OIA_Christoper F. Sasot (1).jpg";
 import chiefseps from "./assets/logo.png";
-import murao from "./assets/murao.jpg";
-import cynthia from "./assets/trinidad2.jpg";
-import enguerra from "./assets/enguerra.jpg";
+import murao from "./assets/oia/OIA_Rochelle S. Murao (2).jpg";
+import cynthia from "./assets/oia/OIA_Cynthia C. Trinidad.jpg";
+import enguerra from "./assets/oia/OIA_Marianne P. Enguerra (2).jpg";
 
 export default function Officials() {
   const officials = [

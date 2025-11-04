@@ -5,6 +5,7 @@ import TopBar from "../components/topbar";
 import "./archive.css";
 import { documentService } from "../services/documentService";
 import { useNavigate } from "react-router-dom";
+import useDebounce from "../hooks/useDebounce";
 import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
 import { FiEye, FiLink, FiDownload, FiArchive, FiAlertCircle, FiFilter, FiX, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { TbFileText, TbLink, TbClockHour4 } from "react-icons/tb";
@@ -14,6 +15,7 @@ const Archive = () => {
   const [mobileShow, setMobileShow] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [filterDocType, setFilterDocType] = useState("");
   const [filterClassification, setFilterClassification] = useState("");

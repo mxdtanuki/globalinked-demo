@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa"; 
 import "./login.css"; 
-import { registerUser } from '../services/registrationService';
-import TermsModal from '../components/TermsModal'; 
+import { registerUser } from '../services/registrationService'; 
+import LegalModals from './LegalModals';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -18,14 +18,10 @@ const Register = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [fullname, setFullname] = useState("");
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState('');
 
   const getPositionRole = (role) => {
     const adminRoles = [
@@ -73,6 +69,16 @@ const Register = () => {
     } finally {
       setLoading(false); 
     }
+  };
+
+  const openModal = (type) => {
+    setModalType(type);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalType('');
   };
 
   return (
@@ -165,6 +171,7 @@ const Register = () => {
               <span
                 className="input-eye"
                 onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? "Hide Password" : "Show Password"}
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </span>
@@ -183,6 +190,7 @@ const Register = () => {
               <span
                 className="input-eye"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                title={showConfirmPassword ? "Hide Password" : "Show Password"}
               >
                 {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
               </span>
@@ -240,30 +248,19 @@ const Register = () => {
               />
               <label htmlFor="terms-agreement">
                 I have read and agree to the PUP Online Services{' '}
-                <span
-                  className="terms-link modal-link"
-                  onClick={() => setShowTermsModal(true)}
+                <span 
+                  className="terms-link"
+                  onClick={() => openModal('terms')}
                 >
                   Terms of Use
                 </span>
                 {' '}and{' '}
-                <span
-                  className="terms-link modal-link"
-                  onClick={() => setShowPrivacyModal(true)}
+                <span 
+                  className="terms-link"
+                  onClick={() => openModal('privacy')}
                 >
                   Privacy Statement
-                </span>
-
-                <TermsModal
-                  show={showTermsModal}
-                  onClose={() => setShowTermsModal(false)}
-                  url="https://www.pup.edu.ph/terms/"
-                />
-                <TermsModal
-                  show={showPrivacyModal}
-                  onClose={() => setShowPrivacyModal(false)}
-                  url="https://www.pup.edu.ph/privacy/"
-                />.
+                </span>.
               </label>
             </div>
 
@@ -281,6 +278,12 @@ const Register = () => {
           </p>
         </div>
       </div>
+
+      <LegalModals 
+        isOpen={modalOpen} 
+        onClose={closeModal} 
+        type={modalType} 
+      />
     </div>
   );
 };

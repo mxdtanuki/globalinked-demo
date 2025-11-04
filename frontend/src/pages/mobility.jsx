@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; 
+import autoTable from "jspdf-autotable";
+import useDebounce from "../hooks/useDebounce";  
 import "./mobility.css";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -13,6 +14,7 @@ const Mobility = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     partnersClassification: "",
@@ -85,21 +87,27 @@ const fetchAgreements = async () => {
 
 
   // Apply search and filters
-  const filteredData = agreements.filter((item) => {
-    const matchesSearch = Object.values(item)
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  const filteredData = useMemo(() => {  
+    return agreements.filter((item) => {
+      const matchesSearch = Object.values(item)
+        .join(" ")
+        .toLowerCase()
+        .includes(debouncedSearchTerm.toLowerCase());  // Use debounced value
 
-    const matchesFilters =
-      (!filters.partnersClassification ||
-        item.partnership_type === filters.partnersClassification) &&
-      (!filters.entityType || item.entity_type === filters.entityType) &&
-      (!filters.country || item.country === filters.country) &&
-      (!filters.validity || item.validity_period === filters.validity);
+      const matchesFilters =
+        (!filters.partnersClassification ||
+          item.partnership_type?.toLowerCase().includes(filters.partnersClassification.toLowerCase())) &&
+        (!filters.entityType ||
+          item.entity_type?.toLowerCase().includes(filters.entityType.toLowerCase())) &&
+        (!filters.country ||
+          item.country?.toLowerCase().includes(filters.country.toLowerCase())) &&
+        (!filters.validity ||
+          item.validity_period?.toLowerCase().includes(filters.validity.toLowerCase()));
 
-    return matchesSearch && matchesFilters;
-  });
+      return matchesSearch && matchesFilters;
+    });
+  }, [agreements, debouncedSearchTerm, filters]);
+
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
@@ -280,8 +288,8 @@ const handleGenerateExcel = async () => {
                 type="text"
                 placeholder="Search here"
                 className="search-input"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchTerm}  
+                onChange={(e) => setSearchTerm(e.target.value)}  
               />
 
               <button

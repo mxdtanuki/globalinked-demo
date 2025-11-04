@@ -1,5 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import and_, or_
 from datetime import datetime, timedelta
 import json
 from zoneinfo import ZoneInfo
@@ -9,23 +10,25 @@ from app.models.partners import Partners
 from app.models.contact_persons import ContactPersons
 from app.models.point_persons import PointPersons
 from app.models.timer import Timer
+from contextlib import contextmanager
+import logging
 
-# Timeframe constants
+logger = logging.getLogger("uvicorn.error")
+
+# Timeframe constants (configurable via environment variables)
 EXPIRY_WINDOW_DAYS = int(__import__("os").environ.get("EXPIRY_WINDOW_DAYS", "30"))
 PENDING_DAYS_DEFAULT = int(__import__("os").environ.get("PENDING_DAYS_DEFAULT", "7"))
 RENEWAL_DAYS = int(__import__("os").environ.get("RENEWAL_DAYS", "30"))
 
-from zoneinfo import ZoneInfo
 PH_TZ = ZoneInfo("Asia/Manila")
 scheduler = BackgroundScheduler(timezone=PH_TZ)
 
-
+# Threshold days for pending status alerts
 STATUS_THRESHOLD_DAYS = {
-    # status -> days before the alert
-    "InitialReview": 3,    
+    "InitialReview": 3,
     "Endorse": 3,
     "Revert": 3,
-    "Consultation": 3,        
+    "Consultation": 3,
     "Replication": 3,
     "SignituresPUP": 3,
     "SignedPUP": 3,
@@ -36,15 +39,25 @@ STATUS_THRESHOLD_DAYS = {
     "FFUPCopy": 3,
 }
 
-from contextlib import contextmanager
-
 @contextmanager
 def _open_session():
+    """
+    Context manager for database sessions.
+    Ensures the session is always closed and returned to the pool, even on exceptions.
+    """
     session = SessionLocal()
     try:
-        yield session  # Provide the session to the caller
+        yield session
+    except Exception as e:
+        logger.error(f"Session error: {e}")
+        session.rollback()
+        raise
     finally:
-        session.close() 
+        try:
+            session.close()
+            logger.debug("Scheduler session closed")
+        except Exception as e:
+            logger.warning(f"Error closing scheduler session: {e}")
 
 def _parse_point_persons(raw):
     """
@@ -61,6 +74,9 @@ def _parse_point_persons(raw):
         return []
 
 def _format_subject(category: str, a: Agreements, partner_name: str):
+    """
+    Formats the email/notification subject based on category.
+    """
     prefix = {
         "expiring_soon": "Expiring Soon",
         "pending_long": "Pending Action",
@@ -69,21 +85,27 @@ def _format_subject(category: str, a: Agreements, partner_name: str):
     return f"[Globalinked] {prefix}: {partner_name} — {a.document_type} {a.dts_number}"
 
 def _format_body(category: str, a: Agreements, partner_name: str, recommended_actions, last_status_change=None):
+    """
+    Formats the email/notification body with agreement details and actions.
+    """
     expiry = a.date_expiry.isoformat() if a.date_expiry else "-"
     actions_str = "\n- ".join(recommended_actions)
     return f"""Partner: {partner_name}
-    DTS: {a.dts_number}
-    Type: {a.document_type}
-    Name: {partner_name}
-    Status: {a.agreement_status or '-'}
-    Last status change: {last_status_change or '-'}
-    Expiry: {expiry}
+DTS: {a.dts_number}
+Type: {a.document_type}
+Name: {partner_name}
+Status: {a.agreement_status or '-'}
+Last status change: {last_status_change or '-'}
+Expiry: {expiry}
 
-    Recommended actions:
-    - {actions_str}
-    """
+Recommended actions:
+- {actions_str}
+"""
 
 def _format_days_ago(days):
+    """
+    Formats days into a human-readable string (e.g., "3 days", "2 months").
+    """
     if days is None:
         return "unknown time"
     if days < 30:
@@ -103,6 +125,9 @@ def _format_days_ago(days):
         return f"{years} years {months} months"
 
 def _format_days_until(days_until):
+    """
+    Formats days until expiry into a human-readable string.
+    """
     if days_until is None:
         return "unknown time"
     if days_until <= 0:
@@ -110,6 +135,9 @@ def _format_days_until(days_until):
     return _format_days_ago(days_until)
 
 def _recommended_actions_for_category(category, status=None):
+    """
+    Returns recommended actions based on notification category and status.
+    """
     if category == "expiring_soon":
         return [
             "Prepare renewal documents and notify partner contacts.",
@@ -117,7 +145,7 @@ def _recommended_actions_for_category(category, status=None):
         ]
     if category == "pending_long":
         status_actions = {
-            "InitialReview": [  # was "Initial Review"
+            "InitialReview": [
                 "Conduct initial document review.",
                 "Verify all required documents and information are complete.",
                 "Schedule review meeting if necessary and proceed to next status."
@@ -132,7 +160,7 @@ def _recommended_actions_for_category(category, status=None):
                 "Review comments and prepare revised documentation.",
                 "Set deadline for resubmission to avoid further delays."
             ],
-            "Consultation": [  # was "For Consultation"
+            "Consultation": [
                 "Reach out to relevant stakeholders for consultation.",
                 "Prepare consultation materials and agenda items.",
                 "Follow up with consulted parties for feedback and recommendations."
@@ -172,7 +200,6 @@ def _recommended_actions_for_category(category, status=None):
         if status and status in status_actions:
             return status_actions[status]
         
-        # Default pending if status not found
         return [
             "Review current status and identify blockers.",
             "Follow up with responsible parties for next steps.",
@@ -187,137 +214,239 @@ def _recommended_actions_for_category(category, status=None):
     return ["Review and act accordingly."]
 
 def agreement_notification_job():
+    """
+    Main scheduler job: Scans for expiring, pending, and renewal-needed agreements,
+    then creates notifications if new ones are found.
+    
+    OPTIMIZED:
+    - Uses batch loading with selectinload() to prevent N+1 queries
+    - Single session lifecycle per job
+    - Efficient filtering at database level
+    - Proper error handling and logging
+    """
     from app.services.notif_service import create_notification_if_new
 
     today = datetime.now(PH_TZ).date()
-    print(f"[Scheduler] Starting notification job for {today}")
+    logger.info(f"[Scheduler] Starting notification job for {today}")
 
-    # Use a context manager to ensure the session is closed
     with _open_session() as db:
         try:
-            # 1) Expiring soon - check all non-expired agreements
+            # ===== 1) EXPIRING SOON =====
+            # Single optimized query with eager loading
             horizon = today + timedelta(days=EXPIRY_WINDOW_DAYS)
-            expiring = (
-                db.query(Agreements, Partners)
-                  .join(Partners, Agreements.partner_id == Partners.partner_id)
-                  .filter(Agreements.date_expiry != None)
-                  .filter(Agreements.date_expiry >= today)
-                  .filter(Agreements.date_expiry <= horizon)
-                  .filter(Agreements.agreement_status != "Withdrawn")  # Exclude withdrawn
+            expiring_query = (
+                db.query(Agreements)
+                  .options(
+                      selectinload(Agreements.partner),
+                      selectinload(Agreements.timer)
+                  )
+                  .join(Partners)
+                  .filter(
+                      and_(
+                          Agreements.date_expiry != None,
+                          Agreements.date_expiry >= today,
+                          Agreements.date_expiry <= horizon,
+                          Agreements.agreement_status != "Withdrawn"
+                      )
+                  )
                   .all()
             )
-            print(f"[Scheduler] Found {len(expiring)} expiring agreements")
             
-            for a, p in expiring:
-                category = "expiring_soon"
-                days_until = (a.date_expiry - today).days if a.date_expiry else None
-                time_until = _format_days_until(days_until)
-                msg = f"{a.document_type} '{a.dts_number}' with partner '{p.name}' expires in {time_until}."
-                actions = _recommended_actions_for_category(category, None)
-                notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
-                if notif:
-                    print(f"[Scheduler] Created expiring notification for {a.dts_number}")
+            logger.info(f"[Scheduler] Found {len(expiring_query)} expiring agreements")
+            
+            for a in expiring_query:
+                try:
+                    partner = a.partner
+                    category = "expiring_soon"
+                    days_until = (a.date_expiry - today).days if a.date_expiry else None
+                    time_until = _format_days_until(days_until)
+                    msg = f"{a.document_type} '{a.dts_number}' with partner '{partner.name}' expires in {time_until}."
+                    actions = _recommended_actions_for_category(category, None)
+                    
+                    notif = create_notification_if_new(
+                        db, 
+                        a.agreement_id, 
+                        category, 
+                        msg, 
+                        "\n".join(actions)
+                    )
+                    
+                    if notif:
+                        logger.info(f"[Scheduler] ✅ Created expiring notification: {a.dts_number}")
+                    else:
+                        logger.debug(f"[Scheduler] ⚠️ Notification already exists: {a.dts_number}")
+                        
+                except Exception as e:
+                    logger.error(f"[Scheduler] Error processing expiring agreement {a.agreement_id}: {e}")
+                    continue
 
-            # 2) Pending long - check agreements in pending statuses
+            # ===== 2) PENDING LONG =====
+            # Get all agreements not in final states (more efficient)
+            pending_statuses = list(STATUS_THRESHOLD_DAYS.keys())
+            pending_query = (
+                db.query(Agreements)
+                  .options(
+                      selectinload(Agreements.partner),
+                      selectinload(Agreements.timer)
+                  )
+                  .filter(
+                      and_(
+                          Agreements.agreement_status.in_(pending_statuses),
+                          Agreements.agreement_status != "Withdrawn",
+                          Agreements.agreement_status != "Active"
+                      )
+                  )
+                  .all()
+            )
+            
+            logger.info(f"[Scheduler] Found {len(pending_query)} agreements in pending status")
             pending_count = 0
-            for status, days_threshold in STATUS_THRESHOLD_DAYS.items():
-                print(f"[Scheduler] Checking status '{status}' (threshold: {days_threshold} days)")
-                pending_agreements = (
-                    db.query(Agreements, Partners)
-                      .join(Partners, Agreements.partner_id == Partners.partner_id)
-                      .filter(Agreements.agreement_status == status)
-                      .filter(Agreements.agreement_status != "Withdrawn")
-                      .filter(Agreements.agreement_status != "Active")
-                      .all()
-                )
-                print(f"[Scheduler] Found {len(pending_agreements)} agreements in status '{status}'")
-                
-                for a, p in pending_agreements:
-                    timer_record = db.query(Timer).filter(Timer.agreement_id == a.agreement_id).first()
-                    if timer_record and timer_record.last_status_change:
-                        last_status_change = timer_record.last_status_change
-                        last_change_date = last_status_change.date() if hasattr(last_status_change, 'date') else last_status_change
+            
+            for a in pending_query:
+                try:
+                    partner = a.partner
+                    status = a.agreement_status
+                    days_threshold = STATUS_THRESHOLD_DAYS.get(status, PENDING_DAYS_DEFAULT)
+                    
+                    # Determine days pending
+                    if a.timer and a.timer.last_status_change:
+                        last_status_change = a.timer.last_status_change
+                        last_change_date = (
+                            last_status_change.date() 
+                            if hasattr(last_status_change, 'date') 
+                            else last_status_change
+                        )
                         days_pending = (today - last_change_date).days
                         last_change_info = f"since {last_change_date}"
+                    elif a.entry_date:
+                        entry_date = (
+                            datetime.strptime(a.entry_date, '%Y-%m-%d').date() 
+                            if isinstance(a.entry_date, str) 
+                            else a.entry_date
+                        )
+                        days_pending = (today - entry_date).days
+                        last_change_info = f"since entry {entry_date}"
                     else:
-                        if a.entry_date:
-                            entry_date = datetime.strptime(a.entry_date, '%Y-%m-%d').date() if isinstance(a.entry_date, str) else a.entry_date
-                            days_pending = (today - entry_date).days
-                            last_change_info = f"since entry {entry_date}"
-                        else:
-                            days_pending = days_threshold + 1  # Force notification
-                            last_change_info = "no timestamp available"
+                        days_pending = days_threshold + 1
+                        last_change_info = "no timestamp available"
 
-                    print(f"[Scheduler] Agreement {a.agreement_id} ({a.dts_number}) in '{status}' for {days_pending} days (threshold: {days_threshold})")
+                    logger.debug(f"[Scheduler] {a.dts_number} in '{status}': {days_pending}/{days_threshold} days")
 
+                    # Check if threshold exceeded
                     if days_pending >= days_threshold:
                         category = "pending_long"
                         time_pending = _format_days_ago(days_pending)
                         msg = (
-                            f"{a.document_type} for {p.name} - '{a.dts_number}' has been in "
-                            f"status '{a.agreement_status}' for {time_pending} ({last_change_info})."
+                            f"{a.document_type} for {partner.name} - '{a.dts_number}' has been in "
+                            f"status '{status}' for {time_pending} ({last_change_info})."
                         )
-                        actions = _recommended_actions_for_category(category, a.agreement_status)
-                        notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
+                        actions = _recommended_actions_for_category(category, status)
+                        
+                        notif = create_notification_if_new(
+                            db, 
+                            a.agreement_id, 
+                            category, 
+                            msg, 
+                            "\n".join(actions)
+                        )
+                        
                         if notif:
-                            print(f"[Scheduler] ✅ Created pending notification for {a.dts_number}")
+                            logger.info(f"[Scheduler] ✅ Created pending notification: {a.dts_number}")
                             pending_count += 1
                         else:
-                            print(f"[Scheduler] ⚠️ Notification already exists for {a.dts_number}")
+                            logger.debug(f"[Scheduler] ⚠️ Notification exists: {a.dts_number}")
                     else:
-                        print(f"[Scheduler] ⏳ Agreement {a.dts_number} not yet at threshold ({days_pending}/{days_threshold} days)")
+                        logger.debug(f"[Scheduler] ⏳ Not at threshold: {a.dts_number}")
+                        
+                except Exception as e:
+                    logger.error(f"[Scheduler] Error processing pending agreement {a.agreement_id}: {e}")
+                    continue
 
-            print(f"[Scheduler] Created {pending_count} pending notifications")
+            logger.info(f"[Scheduler] Created {pending_count} pending notifications")
 
-            # 3) Renewal needed: expired more than RENEWAL_DAYS ago
+            # ===== 3) RENEWAL NEEDED =====
+            # Agreements expired more than RENEWAL_DAYS ago
             cutoff_expired = today - timedelta(days=RENEWAL_DAYS)
-            renewal = (
-                db.query(Agreements, Partners)
-                  .join(Partners, Agreements.partner_id == Partners.partner_id)
-                  .filter(Agreements.date_expiry != None)
-                  .filter(Agreements.date_expiry <= cutoff_expired)
-                  .filter(Agreements.agreement_status != "Withdrawn")  # Exclude withdrawn
+            renewal_query = (
+                db.query(Agreements)
+                  .options(
+                      selectinload(Agreements.partner)
+                  )
+                  .filter(
+                      and_(
+                          Agreements.date_expiry != None,
+                          Agreements.date_expiry <= cutoff_expired,
+                          Agreements.agreement_status != "Withdrawn"
+                      )
+                  )
                   .all()
             )
-            print(f"[Scheduler] Found {len(renewal)} agreements needing renewal")
             
-            for a, p in renewal:
-                category = "renewal_needed"
-                days_expired = (today - a.date_expiry).days if a.date_expiry else None
-                time_ago = _format_days_ago(days_expired)
-                msg = f"{a.document_type} of {p.name} - '{a.dts_number}' expired on {a.date_expiry} ({time_ago})."
-                actions = _recommended_actions_for_category(category, None)
-                notif = create_notification_if_new(db, a.agreement_id, category, msg, "\n".join(actions))
-                if notif:
-                    print(f"[Scheduler] Created renewal notification for {a.dts_number}")
+            logger.info(f"[Scheduler] Found {len(renewal_query)} agreements needing renewal")
+            
+            for a in renewal_query:
+                try:
+                    partner = a.partner
+                    category = "renewal_needed"
+                    days_expired = (today - a.date_expiry).days if a.date_expiry else None
+                    time_ago = _format_days_ago(days_expired)
+                    msg = f"{a.document_type} of {partner.name} - '{a.dts_number}' expired on {a.date_expiry} ({time_ago})."
+                    actions = _recommended_actions_for_category(category, None)
+                    
+                    notif = create_notification_if_new(
+                        db, 
+                        a.agreement_id, 
+                        category, 
+                        msg, 
+                        "\n".join(actions)
+                    )
+                    
+                    if notif:
+                        logger.info(f"[Scheduler] ✅ Created renewal notification: {a.dts_number}")
+                    else:
+                        logger.debug(f"[Scheduler] ⚠️ Notification exists: {a.dts_number}")
+                        
+                except Exception as e:
+                    logger.error(f"[Scheduler] Error processing renewal agreement {a.agreement_id}: {e}")
+                    continue
 
-            print(f"[Scheduler] Notification job completed successfully")
+            logger.info("[Scheduler] ✅ Notification job completed successfully")
 
         except Exception as exc:
-            print(f"[Scheduler] ERROR in agreement_notification_job: {exc}")
-            import traceback
-            traceback.print_exc()
-            raise  # Re-raise to see the full traceback in logs
+            logger.error(f"[Scheduler] ❌ ERROR in agreement_notification_job: {exc}", exc_info=True)
+            # Don't re-raise - let scheduler continue
 
 def start_scheduler():
-    # Schedule the scan once at startup and daily
-    print("[Scheduler] Starting scheduler...")
+    """
+    Starts the scheduler: Runs an initial scan, then schedules daily jobs.
+    """
+    logger.info("[Scheduler] Starting scheduler...")
     try:
-        print("[Scheduler] Running initial scan...")
+        logger.info("[Scheduler] Running initial scan...")
         agreement_notification_job()
-        print("[Scheduler] Initial scan completed")
+        logger.info("[Scheduler] ✅ Initial scan completed")
     except Exception as e:
-        print(f"[Scheduler] Initial scan failed: {e}")
-        # Don't fail the startup, just log the error
+        logger.error(f"[Scheduler] ⚠️ Initial scan failed: {e}", exc_info=True)
     
-    scheduler.add_job(agreement_notification_job, "cron", hour=1, minute=0, id="daily_agreement_scan")
+    scheduler.add_job(
+        agreement_notification_job, 
+        "cron", 
+        hour=1, 
+        minute=0, 
+        id="daily_agreement_scan",
+        name="Daily Agreement Notification Scan"
+    )
     scheduler.start()
-    print(f"[Scheduler] Started successfully - Next run scheduled for 1:00 AM PH time")
-    print(f"[Scheduler] Current jobs: {len(scheduler.get_jobs())}")
+    logger.info("[Scheduler] Started successfully - Next run scheduled for 1:00 AM PH time")
+    logger.info(f"[Scheduler] Current jobs: {len(scheduler.get_jobs())}")
 
 def shutdown_scheduler():
+    """
+    Shuts down the scheduler gracefully.
+    """
     try:
+        logger.info("[Scheduler] Shutting down...")
         scheduler.shutdown(wait=False)
-    except Exception:
-        pass
-    print("[Scheduler] stopped")
+        logger.info("[Scheduler] ✅ Stopped successfully")
+    except Exception as e:
+        logger.warning(f"[Scheduler] Warning during shutdown: {e}")
