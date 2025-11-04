@@ -4,7 +4,8 @@ import TopBar from "../components/topbar";
 import "../components/layout.css";
 import "./activeAgreement.css";
 import useDebounce from "../hooks/useDebounce";
-import { FiEye, FiLink, FiArrowRight } from "react-icons/fi";
+import { FiEye, FiLink, FiArrowRight, FiPrinter, FiDownload } from "react-icons/fi";
+import { TbFileText } from "react-icons/tb";
 import { agreementService } from '../services/agreementService';
 import axios from 'axios';
  
@@ -547,33 +548,6 @@ const filteredAgreements = useMemo(() => {
             {/* === Agreement Table Section === */}
             <div className="activeAgreement-table-section">
               <div className="table-controls">
-                <div className="activeAgreement-tabs">
-                  <button
-                    className={filter === "all" ? "active" : ""}
-                    onClick={() => setFilter("all")}
-                  >
-                    All Active Agreements
-                  </button>
-                  <button
-                    className={filter === "moa" ? "active" : ""}
-                    onClick={() => setFilter("moa")}
-                  >
-                    MOA Only
-                  </button>
-                  <button
-                    className={filter === "mou" ? "active" : ""}
-                    onClick={() => setFilter("mou")}
-                  >
-                    MOU Only
-                  </button>
-                  <button
-                    className={filter === "linked" ? "active" : ""}
-                    onClick={() => setFilter("linked")}
-                  >
-                    Linked Agreements
-                  </button>
-                </div>
-
                 <div className="table-search">
                   <input
                     type="search"
@@ -591,6 +565,33 @@ const filteredAgreements = useMemo(() => {
                       ✕
                     </button>
                   )}
+                </div>
+
+                <div className="activeAgreement-tabs">
+                  <button
+                    className={filter === "all" ? "active" : ""}
+                    onClick={() => setFilter("all")}
+                  >
+                    All Agreements
+                  </button>
+                  <button
+                    className={filter === "moa" ? "active" : ""}
+                    onClick={() => setFilter("moa")}
+                  >
+                    MOA
+                  </button>
+                  <button
+                    className={filter === "mou" ? "active" : ""}
+                    onClick={() => setFilter("mou")}
+                  >
+                    MOU
+                  </button>
+                  <button
+                    className={filter === "linked" ? "active" : ""}
+                    onClick={() => setFilter("linked")}
+                  >
+                    Linked Agreements
+                  </button>
                 </div>
               </div>
 
@@ -824,12 +825,12 @@ const filteredAgreements = useMemo(() => {
             {/* Report Generator */}
             <div className="report-generator-card">
               <div className="report-header">
-                <div className="report-icon">📄</div>
-                <div>
-                  <h4>Report Generator</h4>
-                  <div className="report-sub">Generate comprehensive reports for agreements in various formats</div>
+                  <div className="report-icon"><TbFileText size={24} /></div>
+                  <div>
+                    <h4>Report Generator</h4>
+                    <div className="report-sub">Generate comprehensive reports for agreements in various formats</div>
+                  </div>
                 </div>
-              </div>
 
               <div className="report-controls">
                 <div className="report-select">
@@ -851,7 +852,7 @@ const filteredAgreements = useMemo(() => {
                     onClick={generatePrintableReport}
                     aria-label="Generate printable report"
                   >
-                    <span className="btn-icon">🖨️</span>
+                    <FiPrinter className="btn-icon" />
                     <span>Generate Report</span>
                   </button>
 
@@ -860,7 +861,7 @@ const filteredAgreements = useMemo(() => {
                     onClick={downloadCSV}
                     aria-label="Download CSV"
                   >
-                    <span className="btn-icon">⬇️</span>
+                    <FiDownload className="btn-icon" />
                     <span>Download CSV</span>
                   </button>
                 </div>

@@ -280,7 +280,6 @@ const partnershipTypeOptions = [
   const [documentType, setDocumentType] = useState("");
   const [partnershipType, setPartnershipType] = useState("");
 
-  const [dtsStatus, setDtsStatus] = useState("");
   const [source, setSource] = useState("");
   const [dateUlcoApproved, setDateUlcoApproved] = useState("");
   const [remarks, setRemarks] = useState("");
@@ -549,7 +548,6 @@ const handleSubmit = async (e) => {
     let agreementData = {
       source_unit: data.source,
       dts_number: dtsNumber,
-      dts_status: data.dtsStatus,
       document_type: documentType,
       partnership_type: partnershipType,
       agreement_status: data.status,
@@ -645,7 +643,6 @@ const handleSubmit = async (e) => {
       setSelectedCountry(null);
       setSelectedRegion(null);
       setDtsNumber("");
-      setDtsStatus("");
       setSource("");
       setDateUlcoApproved("");
       setRemarks("");
@@ -801,6 +798,24 @@ const handleSubmit = async (e) => {
         )}
 
           {/* AGREEMENT STATUS (moved/kept later if needed) */}
+          <div className="form-group">
+            <label htmlFor="status">Agreement Status:*</label>
+            <select id="status" name="status" required>
+              <option value="">Select Status</option>
+              <option value="InitialReview">Initial Review</option>
+              <option value="Endorse">Endorse to ULCO for Review and Approval</option>
+              <option value="Revert">Revert To Initiator with Comments</option>
+              <option value="Consultation">For Consultation</option>
+              <option value="Replication">Replication of Copies (8 sets)</option>
+              <option value="SignituresPUP">For Signatures of PUP Officials</option>
+              <option value="SignedPUP">Signed by PUP Officials</option>
+              <option value="SignituresPartner">For Signatures of Partner</option>
+              <option value="SignedPartner">Signed by Partner Institution</option>
+              <option value="Complete">Completely Signed</option>
+              <option value="Notary">For Notary</option>
+              <option value="FFUPCopy">FFUP Copy From College/Campus</option>
+            </select>
+            </div>
  
           {/* RENEWED AGREEMENT */}
            <div className="form-group">

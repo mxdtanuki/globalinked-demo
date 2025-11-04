@@ -445,7 +445,7 @@ useEffect(() => {
 
       // Set DTS info
       setDtsNumber(extractedMetadata.dts_number || dtsNumber);
-      setDtsStatus(extractedMetadata.dts_status || dtsStatus);
+      //setDtsStatus(extractedMetadata.dts_status || dtsStatus);
 
       // Set contacts and point persons
       if (extractedMetadata.contact_persons && extractedMetadata.contact_persons.length > 0) {
@@ -525,7 +525,7 @@ const handleSubmit = async (e) => {
     let agreementData = {
       source_unit: data.source,
       dts_number: dtsNumber,
-      dts_status: data.dtsStatus,
+     // dts_status: data.dtsStatus,
       document_type: documentType,
       partnership_type: partnershipType,
       agreement_status: data.status,

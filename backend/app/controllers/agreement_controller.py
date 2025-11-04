@@ -89,7 +89,6 @@ async def get_agreements_list(
                 elif status_filter.upper() == "OPEN":
                     base_query = base_query.filter(
                         and_(
-                            Agreements.dts_status == 'Open - OIA',
                             Agreements.agreement_status != 'Active',
                             Agreements.agreement_status != 'Withdrawn'
                         )
@@ -206,7 +205,6 @@ async def get_agreements_list(
                     description=partner.description,
                     logo_path=partner.logo_path,
                     dts_number=agreement.dts_number,
-                    dts_status=agreement.dts_status,
                     entry_date=agreement.entry_date,
                     date_received=agreement.date_received,
                     date_endorsed_to_ulco=agreement.date_endorsed_to_ulco,
@@ -315,7 +313,7 @@ async def get_agreements_summary(
                 Agreements.document_type,
                 Agreements.partnership_type,
                 Agreements.agreement_status,
-                Agreements.dts_status,
+                # Agreements.dts_status,
                 Agreements.date_expiry,
                 Partners.name.label('partner_name'),
                 Partners.country
@@ -329,8 +327,8 @@ async def get_agreements_summary(
             ).all()
             
             total_active = len([r for r in results if r.agreement_status == "Active"])
-            total_open = len([r for r in results if r.dts_status == "Open - OIA" and r.agreement_status not in ["Active", "Withdrawn"]])
-            
+            total_open = len([r for r in results if r.agreement_status not in ["Active", "Withdrawn"]])
+
             nearing_expiry = len([
                 r for r in results 
                 if r.date_expiry and (r.date_expiry - today).days <= 30 and (r.date_expiry - today).days > 0
@@ -389,7 +387,7 @@ async def create_agreement(
                         description=partner.description,
                         logo_path=partner.logo_path,
                         dts_number=existing.dts_number,
-                        dts_status=existing.dts_status,
+                        #dts_status=existing.dts_status,
                         entry_date=existing.entry_date,
                         date_received=existing.date_received,
                         date_endorsed_to_ulco=existing.date_endorsed_to_ulco,
@@ -464,7 +462,6 @@ async def create_agreement(
                 source_unit=getattr(agreement, "source_unit", None),
                 partner_id=partner_id,
                 dts_number=agreement.dts_number,
-                dts_status=agreement.dts_status,
                 entry_date=agreement.entry_date,
                 date_received=agreement.date_received,
                 date_endorsed_to_ulco=agreement.date_endorsed_to_ulco,
@@ -578,7 +575,7 @@ async def create_agreement(
                     description=partner_obj.description,
                     logo_path=partner_obj.logo_path,
                     dts_number=new_agreement.dts_number,
-                    dts_status=new_agreement.dts_status,
+                    #dts_status=new_agreement.dts_status,
                     entry_date=new_agreement.entry_date,
                     date_received=new_agreement.date_received,
                     date_endorsed_to_ulco=new_agreement.date_endorsed_to_ulco,
@@ -638,8 +635,8 @@ async def update_agreement(
                 agreement.source_unit = up['source_unit']
             if 'dts_number' in up:
                 agreement.dts_number = up['dts_number']
-            if 'dts_status' in up:
-                agreement.dts_status = up['dts_status']
+            # if 'dts_status' in up:
+                # agreement.dts_status = up['dts_status']
             if 'entry_date' in up:
                 agreement.entry_date = up['entry_date']
             if 'date_received' in up:
@@ -786,7 +783,7 @@ async def update_agreement(
                 description=partner.description,
                 logo_path=partner.logo_path,
                 dts_number=agreement.dts_number,
-                dts_status=agreement.dts_status,
+                # dts_status=agreement.dts_status,
                 entry_date=agreement.entry_date,
                 date_received=agreement.date_received,
                 date_endorsed_to_ulco=agreement.date_endorsed_to_ulco,

@@ -7,7 +7,7 @@ import { documentService } from "../services/documentService";
 import { useNavigate } from "react-router-dom";
 import useDebounce from "../hooks/useDebounce";
 import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
-import { FiEye, FiLink, FiDownload, FiArchive, FiAlertCircle, FiFilter, FiX, FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import { FiEye, FiLink, FiDownload, FiArchive, FiAlertCircle, FiFilter, FiX, FiRefreshCw, FiTrash2, FiPrinter } from "react-icons/fi";
 import { TbFileText, TbLink, TbClockHour4 } from "react-icons/tb";
 
 const Archive = () => {
@@ -21,8 +21,7 @@ const Archive = () => {
   const [filterClassification, setFilterClassification] = useState("");
   const [allArchiveData, setAllArchiveData] = useState([]);
   const [withdrawnData, setWithdrawnData] = useState([]);
-  const [selectedTab, setSelectedTab] = useState("expired");
-  const [selectedItems, setSelectedItems] = useState([]);
+  // removed unused state: selectedTab, selectedItems
   const [isDownloading, setIsDownloading] = useState(false);
   
 
@@ -71,21 +70,21 @@ const Archive = () => {
       setLoading(true);
       try {
         const expiredData = await agreementService.getArchivedAgreements();
-        
-        const withdrawnAgreements = await agreementService.getAgreements({ 
-          status_filter: 'WITHDRAWN'
-        });
+        const withdrawnAgreements = await agreementService.getAgreements({ status_filter: 'WITHDRAWN' });
 
-        console.log("Expired agreements:", expiredData);
-        console.log("Withdrawn agreements:", withdrawnAgreements);
+        const expiredList = Array.isArray(expiredData) ? expiredData : (expiredData?.items || []);
+        const withdrawnList = Array.isArray(withdrawnAgreements) ? withdrawnAgreements : (withdrawnAgreements?.items || []);
 
-        setAllArchiveData(expiredData);
-        setWithdrawnData(withdrawnAgreements);
-        setDisplayData(expiredData);
+        console.log("Expired agreements (normalized):", expiredList);
+        console.log("Withdrawn agreements (normalized):", withdrawnList);
+
+        setAllArchiveData(expiredList);
+        setWithdrawnData(withdrawnList);
+        setDisplayData(expiredList);
 
         setStats([
-          { label: "Expired", count: expiredData.length },
-          { label: "Withdrawn", count: withdrawnAgreements.length },
+          { label: "Expired", count: expiredList.length },
+          { label: "Withdrawn", count: withdrawnList.length },
         ]);
       } catch (err) {
         console.error("Failed to load archive data:", err);
@@ -104,10 +103,11 @@ const Archive = () => {
     setFilterClassification("");
     setSelectedIds(new Set());
 
-    if (label === "Expired") {
-      setDisplayData(allArchiveData);
-    } else if (label === "Withdrawn") {
-      setDisplayData(withdrawnData);
+    const key = String(label || '').toLowerCase();
+    if (key === 'expired') {
+      setDisplayData(allArchiveData || []);
+    } else if (key === 'withdrawn') {
+      setDisplayData(withdrawnData || []);
     }
   };
 
@@ -462,7 +462,7 @@ const Archive = () => {
 const renderEditableCell = (item, field, value) => {
   const isEditing = editingRow === item.agreement_id;
   const editableFields = [
-    "source_unit", "dts_number", "dts_status", "name", "entity_type", "country", "region", "address",
+    "source_unit", "dts_number", "name", "entity_type", "country", "region", "address",
     "document_type", "partnership_type", "event_info", "validity_period", "date_signed", "date_expiry",
     "date_received", "date_endorsed_to_ulco", "date_ulco_approved", "date_signed_by_pup", "agreement_status",
     "website_url", "description", "hardcopy_location"
@@ -496,21 +496,6 @@ const renderEditableCell = (item, field, value) => {
       <option value="FFUPCopy">FFUP Copy From College/Campus</option>
       <option value="Active">Active</option>
       <option value="Withdrawn">Withdrawn</option>
-      </select>
-    );
-  }
-  if (field === "dts_status") {
-    return (
-      <select
-        value={editedData[field] || ""}
-        onChange={(e) => handleInputChange(field, e.target.value)}
-        style={{ width: "160px" }}
-      >
-        <option value="">Select Status</option>
-        <option value="Open - OIA">Open - OIA</option>
-        <option value="Closed - OIA">Closed - OIA</option>
-        <option value="Open - Other Office">Open - Other Office</option>
-        <option value="Closed - Other Office">Closed - Other Office</option>
       </select>
     );
   }
@@ -793,7 +778,7 @@ const renderEditableCell = (item, field, value) => {
 
           <div className="report-generator-card">
             <div className="report-header">
-              <div className="report-icon">📄</div>
+              <div className="report-icon"><TbFileText size={24} /></div>
               <div>
                 <h4>Report Generator</h4>
                 <div className="report-sub">Generate comprehensive reports for archived agreements</div>
@@ -817,7 +802,7 @@ const renderEditableCell = (item, field, value) => {
                   className="btn btn-primary btn-print"
                   onClick={generatePrintableReport}
                 >
-                  <span className="btn-icon">🖨️</span>
+                  <FiPrinter className="btn-icon" />
                   <span>Generate Report</span>
                 </button>
 
@@ -825,7 +810,7 @@ const renderEditableCell = (item, field, value) => {
                   className="btn btn-outline btn-csv"
                   onClick={downloadCSV}
                 >
-                  <span className="btn-icon">⬇️</span>
+                  <FiDownload className="btn-icon" />
                   <span>Download CSV</span>
                 </button>
               </div>

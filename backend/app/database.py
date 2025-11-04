@@ -28,11 +28,11 @@ if "supabase.co" in db_url and "sslmode" not in db_url:
 print("LOADED DB URL:", raw_url)
 
 # Pool settings optimized for psycopg3 + Supabase pooler
-POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 2))        # SMALLER for pooler
-MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 1))  # MINIMAL overflow
-POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 5))  # FAIL FAST
+POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 20))        # SMALLER for pooler
+MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 2))  # MINIMAL overflow
+POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 10))  # FAIL FAST
 POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", 1800))
-CONNECT_TIMEOUT = int(os.getenv("DB_CONNECT_TIMEOUT", 8))
+CONNECT_TIMEOUT = int(os.getenv("DB_CONNECT_TIMEOUT", 10))
 ECHO = os.getenv("DB_ECHO", "false").lower() == "true"
 
 def _make_engine(application_name: str):

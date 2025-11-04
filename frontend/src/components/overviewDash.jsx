@@ -228,7 +228,7 @@ const excludeActive= (list = []) => {
   if (!Array.isArray(list)) return [];
   return list.filter(a => {
     const s = String(a?.status || a?.agreement_status || '').toLowerCase();
-    return s !== 'active';
+    return s !== 'active' && s !== 'withdrawn';
   });
 };
 
@@ -312,7 +312,7 @@ const MultiPersonField = ({ listKey, legacyKeys, selected, setSelected, disabled
           <input placeholder="Position" value={p.position || ''} onChange={(e) => updateAt(idx, 'position', e.target.value)} disabled={disabled} />
           <input placeholder="Name" value={p.name || ''} onChange={(e) => updateAt(idx, 'name', e.target.value)} disabled={disabled} />
           <input placeholder="Email" value={p.email || ''} onChange={(e) => updateAt(idx, 'email', e.target.value)} disabled={disabled} />
-          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(idx)} disabled={disabled}>🗑️</button>
+          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(idx)} disabled={disabled}><FiTrash2 className="icon" /></button>
         </div>
       ))}
       <button type="button" className="btn" onClick={add} disabled={disabled}>Add</button>
@@ -334,7 +334,7 @@ const MultiRemarkField = ({ listKey, selected, setSelected, disabled = false }) 
       {list.map((r, i) => (
         <div key={i} className="multi-row">
           <input value={typeof r === 'object' ? (r.remark_text || r.text || '') : (r || '')} onChange={(e) => updateAt(i, e.target.value)} disabled={disabled} />
-          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(i)} disabled={disabled}>🗑️</button>
+          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(i)} disabled={disabled}><FiTrash2 className="icon" /></button>
         </div>
       ))}
       <button type="button" className="btn" onClick={add} disabled={disabled}>Add</button>
@@ -408,9 +408,11 @@ const OverviewMerged = () => {
     queryFn: async () => {
       const data = await agreementService.getAgreements();
       const raw = Array.isArray(data) ? data : (data?.items || []);
-      const filtered = raw.filter(a => 
-        (a.agreement_status !== 'Active') && (a.status !== 'Active')
-      );
+      // agreements with status 'Active' or 'Withdrawn'
+      const filtered = raw.filter(a => {
+        const s = String(a?.agreement_status || a?.status || '').toLowerCase();
+        return s !== 'active' && s !== 'withdrawn';
+      });
       const mapped = filtered.map(mapAgreement).map(computeStageInfo);
       return mapped;
     },
@@ -491,16 +493,15 @@ const OverviewMerged = () => {
     if (byId) {
       full = await agreementService.getAgreementById(byId);
     } else {
-      // Fallback by DTS if your service supports it
       if (typeof agreementService.getAgreementByDts === 'function') {
         full = await agreementService.getAgreementByDts(byDts);
       } else {
-       // last resort: try the same endpoint with DTS (may 404)
         full = await agreementService.getAgreementById(byDts);
       }
     }
+
       const mapped = computeStageInfo(mapAgreement(full));
-      setSelected(prev => ({ ...(prev || {}), ...mapped }));
+      setSelected(mapped);
       if (!isEditing) originalRef.current = mapped;
     } catch (e) {
       console.error('Failed to load details:', e);
@@ -511,10 +512,10 @@ const OverviewMerged = () => {
   };
 
   const openDetails = (row) => {
-    // seed the modal with the same mapped data used by the table
-    setSelected({ ...row });
-    originalRef.current = { ...row };
+
+    setSelected(null);
     setIsEditing(false);
+    setModalError('');
     setDetailOpen(true);
     loadAgreementDetails(row);
   };
@@ -737,7 +738,6 @@ const OverviewMerged = () => {
           'DOCUMENT TYPE': a.document_type || '',
           'STATUS': a.status || '',
           'DTS NO.': a.dts_no || a.id || '',
-          'DTS LOCATION': a.dts_status || '',
           'SOURCE': a.source_unit || '',
           'POINT PERSON / POSITION': formatPointPersons(a.point_people||a.point_persons),
           "PARTNER'S NAME": a.partner_name || a.name || '',
@@ -1183,7 +1183,7 @@ if (error) return <div className="overview-container">Error: {error.message}</di
 
               <div className="overview1-modal-body">
                  {modalError && <div style={{ color: '#b00020', margin: '8px 0' }}>{modalError}</div>}
-                 {modalLoading && <div style={{ color: '#666', margin: '4px 0 10px' }}>Syncing latest details…</div>}
+                 {modalLoading && <div style={{ color: '#666', margin: '4px 0 10px' }}>Loading details from database…</div>}
                  <div className="overview1-details-grid overview1-form-grid">
                    {/* Date */}
                     <label className="field">

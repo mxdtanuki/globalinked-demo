@@ -8,7 +8,7 @@ class Agreements(Base):
     agreement_id = Column(Integer, primary_key=True, index=True)
     source_unit = Column(String(100), nullable=True)
     dts_number = Column(String(50), nullable=False)
-    dts_status = Column(String(20), nullable=False)
+   # dts_status = Column(String(20), nullable=False)
     entry_date = Column(Date, nullable=False)
     date_received = Column(Date, nullable=True)
     date_endorsed_to_ulco = Column(Date, nullable=True)
