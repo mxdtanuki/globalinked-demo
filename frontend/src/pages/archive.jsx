@@ -841,7 +841,7 @@ const renderEditableCell = (item, field, value) => {
                 </span>
                 <h2 className="modal-title">{selectedAgreement.event_title || selectedAgreement.partner_name || selectedAgreement.name}</h2>
               </div>
-              <button className="modal-close" onClick={closeModal}>✕</button>
+              <button className="modal-close" onClick={closeModal}><FiX className="modal-close-icon" /></button>
             </header>
 
             <div className="agreement-modal-body">
