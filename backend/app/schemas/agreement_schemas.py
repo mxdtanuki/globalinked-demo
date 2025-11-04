@@ -86,7 +86,7 @@ class AgreementCreate(BaseModel):
 
     # Agreement info
     dts_number: str = Field(..., max_length=50)
-    dts_status: str = Field(..., max_length=20)
+   # dts_status: str = Field(..., max_length=20)
     entry_date: date
     date_received: Optional[date] = None  
     date_endorsed_to_ulco: Optional[date] = None
@@ -127,7 +127,7 @@ class AgreementResponse(BaseModel):
 
     # Agreement info 
     dts_number: str
-    dts_status: str
+   # dts_status: Optional[str] = None
     entry_date: date
     date_received: Optional[date]
     date_endorsed_to_ulco: Optional[date]
@@ -169,7 +169,7 @@ class AgreementUpdateSimple(BaseModel):
     entry_date: Optional[date] = None
     source_unit: Optional[str] = None  # string instead of unit_name
     dts_number: Optional[str] = None
-    dts_status: Optional[str] = None
+   # dts_status: Optional[str] = None
     name: Optional[str] = None
     entity_type: Optional[str] = None
     country: Optional[str] = None

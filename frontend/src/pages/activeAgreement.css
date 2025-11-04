@@ -28,11 +28,12 @@
   border: 1px solid #ececec;
   padding: 8px 14px;
   border-radius: 18px;
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
   cursor: pointer;
   transition: all 0.12s ease;
   box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+  font-size: 14px;
 }
 
 .activeAgreement-tabs button.active {
@@ -67,9 +68,8 @@
   overflow-x: auto;
   border-radius: 10px;
   background: transparent;
-}
 
-.activeAgreement-table table {
+/* Linked MOU card inside modal */
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -127,13 +127,18 @@
   margin-bottom: 6px;
   font-weight: 700;
 }
-
-.activeAgreement-table tbody td .small {
-  color: #9b9b9b;
-  font-size: 13px;
-  line-height: 1.2;
+.table-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
 }
-
+.table-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 72%;
+}
 .activeAgreement-table tbody td:nth-child(4) {
   min-width: 220px;
 }
@@ -474,7 +479,7 @@
   .activeAgreement-main { padding: 16px; }
   .activeAgreement-table-section { padding: 16px; margin-bottom: 18px; }
   .activeAgreement-tabs { gap: 8px; margin-bottom: 12px; }
-  .activeAgreement-tabs button { padding: 7px 12px; border-radius: 14px; }
+  .activeAgreement-tabs button { padding: 7px 12px; border-radius: 14px; font-size: 13px; }
   .activeAgreement-summary { gap: 12px; }
   .activeAgreement-card { padding: 14px; min-width: 170px; }
   .activeAgreement-expiring-card { flex-direction: column; align-items: stretch; }
@@ -826,34 +831,32 @@
   font-weight: 700;
 }
 
-@media (max-width: 880px) {
-  .edit-row { flex-direction: column; align-items: stretch; }
-  .edit-actions { justify-content: flex-end; }
-}
-
 .table-controls {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  justify-content: space-between;
+  /* keep controls on one line; search will occupy most space */
   margin-bottom: 12px;
 }
 
 .table-search {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
+  /* desktop: give search ~72% width */
+  flex: 0 0 72%;
 }
 
 .table-search input[type="search"] {
   padding: 8px 12px;
   border-radius: 12px;
   border: 1px solid #e6e6e6;
-  min-width: 300px;
+  width: 100%;
   font-size: 14px;
   outline: none;
   transition: box-shadow .12s ease;
   background: #fff;
+  box-sizing: border-box;
 }
 .table-search input[type="search"]:focus {
   box-shadow: 0 6px 18px rgba(30,115,255,0.06);
@@ -873,8 +876,19 @@
 
 @media (max-width: 880px) {
   .table-controls { flex-direction: column; align-items: stretch; gap: 10px; }
-  .table-search input[type="search"] { min-width: 100%; }
+    .table-search { flex: 1 1 auto; }
+    .table-search input[type="search"] { min-width: 100%; }
+  }
+
+/* ensure tabs take remaining space and align to right when there's extra room */
+.activeAgreement-tabs {
+  flex: 0 0 auto; /* size to content */
+  display: flex;
+  gap: 10px; /* 8-12px gap between filter buttons */
+  margin-left: auto; /* push tabs to the right of the search on the same line */
+  justify-content: flex-end;
 }
+
 
 /* Linked MOU card inside modal */
 .linked-mou-card {

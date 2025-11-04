@@ -40,7 +40,20 @@ async createAgreement(formData) {
 
     if (!response.ok) {
       const error = await response.json();
-      console.error("API Error: ", error);
+      console.error("API Error (422):", error);
+      
+      // ✅ FIXED: Extract validation errors from detail array
+      if (error.detail && Array.isArray(error.detail)) {
+        const validationErrors = error.detail
+          .map(err => `${err.loc?.[1] || 'Field'}: ${err.msg || err.type}`)
+          .join('\n');
+        
+        const formattedError = new Error(`Validation errors:\n${validationErrors}`);
+        formattedError.detail = validationErrors;
+        formattedError.rawErrors = error.detail;
+        throw formattedError;
+      }
+      
       throw error;
     }
 
