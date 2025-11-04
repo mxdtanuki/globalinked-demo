@@ -4,7 +4,7 @@ import TopBar from "../components/topbar";
 import "../components/layout.css";
 import "./activeAgreement.css";
 import useDebounce from "../hooks/useDebounce";
-import { FiEye, FiLink, FiArrowRight, FiPrinter, FiDownload } from "react-icons/fi";
+import { FiEye, FiLink, FiArrowRight, FiPrinter, FiDownload, FiX, FiEdit, FiAlertCircle } from "react-icons/fi";
 import { TbFileText } from "react-icons/tb";
 import { agreementService } from '../services/agreementService';
 import axios from 'axios';
@@ -562,7 +562,7 @@ const filteredAgreements = useMemo(() => {
                       onClick={() => setSearchQuery("")}
                       aria-label="Clear search"
                     >
-                      ✕
+                      <FiX className="icon" />
                     </button>
                   )}
                 </div>
@@ -779,7 +779,7 @@ const filteredAgreements = useMemo(() => {
 
             {/* Nearing Expiration Section */}
             <div className="activeAgreement-expiring">
-               <h3>⚠️ Nearing Expiration</h3>
+               <h3><FiAlertCircle className="inline-icon" /> Nearing Expiration</h3>
               <p className="subtext">
                 These agreements will expire within the next 90 days
               </p>
@@ -812,7 +812,7 @@ const filteredAgreements = useMemo(() => {
 
                   {getLinkedId(a) && (
                     <p className="linked">
-                      🔗 Requires MOU:{" "}
+                      <FiLink className="inline-icon" /> Requires MOU:{" "}
                       <span>Business education partnership framework</span>
                       <br />
                       <small>MOU expires: Jan 15, 2028 (814 days)</small>
@@ -891,7 +891,7 @@ const filteredAgreements = useMemo(() => {
                 </span>
                 <h2 className="modal-title">{selectedAgreement.event_title || selectedAgreement.eventTitle}</h2>
               </div>
-              <button className="modal-close" onClick={closeModal} aria-label="Close">✕</button>
+              <button className="modal-close" onClick={closeModal} aria-label="Close"><FiX className="icon" /></button>
             </header>
 
             <div className="agreement-modal-body">
@@ -994,7 +994,7 @@ const filteredAgreements = useMemo(() => {
               {linkedAgreement && (
                 <section className="modal-section linked-mou">
                   <h4>
-                    <span style={{ marginRight: 8 }}>🔗</span> Linked MOU
+                    <FiLink style={{ marginRight: 8 }} className="inline-icon" /> Linked MOU
                   </h4>
 
                   <div className="linked-mou-card">
@@ -1056,7 +1056,7 @@ const filteredAgreements = useMemo(() => {
             <footer className="agreement-modal-footer">
               {!isModalEdit ? (
                 <>
-                  <button className="btn edit" onClick={startModalEdit}>✎ Edit</button>
+                  <button className="btn edit" onClick={startModalEdit}><FiEdit className="icon" /> Edit</button>
                 </>
               ) : (
                 <div style={{ width: "100%" }} className="modal-edit-panel">

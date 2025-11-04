@@ -4,7 +4,6 @@ import { useNotifications } from '../pages/notificationContext';
 import { useAuditLogs } from '../pages/auditContext'; 
 import './layout.css';
 import { MdOutlineManageHistory } from 'react-icons/md';
-import { FiBell, FiSettings, FiMenu } from 'react-icons/fi';
 
 const TopBar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
@@ -47,7 +46,7 @@ const TopBar = ({ toggleSidebar }) => {
   return (
     <div className="topbar">
       <div className="topbar-left">
-        <span className="hamburger" onClick={toggleSidebar}><FiMenu className="hamburger-icon" /></span>
+        <span className="hamburger" onClick={toggleSidebar}>☰</span>
         <img src="/globalMap.png" alt="Globe" className="logo-globe" />
         <span className="topbar-title">Globalinked</span>
       </div>
@@ -94,7 +93,7 @@ const TopBar = ({ toggleSidebar }) => {
         
         <div className="notification-wrapper">
           <span className="topbar-icon" onClick={toggleDropdown} title="Show notifications">
-            <FiBell />
+            🔔
             {unreadNotifications.length > 0 && (
               <span className="notif-badge">{unreadNotifications.length}</span>
             )}
@@ -140,7 +139,7 @@ const TopBar = ({ toggleSidebar }) => {
           style={{ cursor: 'pointer' }}
           title="Profile Settings"
         >
-          <FiSettings />
+          ⚙️
         </span>
 
         {/* Logout */}

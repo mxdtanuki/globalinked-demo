@@ -91,7 +91,6 @@ const asDataUrl = (val) => {
   if (!val) return '';
   if (typeof val !== 'string') return '';
   if (val.startsWith('http') || val.startsWith('data:')) return val;
-  // assume backend gives raw base64 (PNG)
   return `data:image/png;base64,${val}`;
 };
 
@@ -222,6 +221,26 @@ const computeStageInfo = (row) => {
   return { ...row, days_in_stage: days, delayed, delay_level };
 };
 
+const RelatedMou = (row, all = []) => {
+  if (!row) return row;
+  const rel = row.related_mou;
+  if (!rel) return row;
+  // if it's already a string that looks like a DTS number, keep it
+  if (typeof rel === 'string' && rel.trim() && !/^\d+$/.test(rel.trim())) return row;
+  // build lookup from agreement_id -> dts_no
+  try {
+    const lookup = (Array.isArray(all) ? all : []).reduce((acc, r) => {
+      if (r && (r.agreement_id != null)) acc[String(r.agreement_id)] = r.dts_no || r.id || r._pk || '';
+      return acc;
+    }, {});
+    const key = String(rel);
+    if (lookup[key]) return { ...row, related_mou: lookup[key] };
+  } catch (e) {
+    // ignore resolution errors and return original row
+  }
+  return row;
+};
+
 // Helper to remove agreements that should not appear in the overview
 // NOTE: exclude only 'Active' status from the overview; keep 'Withdrawn' visible
 const excludeActive= (list = []) => {
@@ -312,7 +331,7 @@ const MultiPersonField = ({ listKey, legacyKeys, selected, setSelected, disabled
           <input placeholder="Position" value={p.position || ''} onChange={(e) => updateAt(idx, 'position', e.target.value)} disabled={disabled} />
           <input placeholder="Name" value={p.name || ''} onChange={(e) => updateAt(idx, 'name', e.target.value)} disabled={disabled} />
           <input placeholder="Email" value={p.email || ''} onChange={(e) => updateAt(idx, 'email', e.target.value)} disabled={disabled} />
-          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(idx)} disabled={disabled}><FiTrash2 className="icon" /></button>
+          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(idx)} disabled={disabled}>🗑️</button>
         </div>
       ))}
       <button type="button" className="btn" onClick={add} disabled={disabled}>Add</button>
@@ -334,7 +353,7 @@ const MultiRemarkField = ({ listKey, selected, setSelected, disabled = false }) 
       {list.map((r, i) => (
         <div key={i} className="multi-row">
           <input value={typeof r === 'object' ? (r.remark_text || r.text || '') : (r || '')} onChange={(e) => updateAt(i, e.target.value)} disabled={disabled} />
-          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(i)} disabled={disabled}><FiTrash2 className="icon" /></button>
+          <button type="button" className="icon-btn" title="Remove" onClick={() => remove(i)} disabled={disabled}>🗑️</button>
         </div>
       ))}
       <button type="button" className="btn" onClick={add} disabled={disabled}>Add</button>
@@ -413,7 +432,19 @@ const OverviewMerged = () => {
         const s = String(a?.agreement_status || a?.status || '').toLowerCase();
         return s !== 'active' && s !== 'withdrawn';
       });
-      const mapped = filtered.map(mapAgreement).map(computeStageInfo);
+      let mapped = filtered.map(mapAgreement).map(computeStageInfo);
+      // Replace related_mou ids with the related agreement's DTS number when available
+      try {
+        const lookup = Object.fromEntries(mapped.map(m => [String(m.agreement_id), m.dts_no || m.id || '']));
+        mapped = mapped.map(m => {
+          if (!m?.related_mou) return m;
+          const k = String(m.related_mou);
+          if (lookup[k]) return { ...m, related_mou: lookup[k] };
+          return m;
+        });
+      } catch (e) {
+        // ignore resolution errors
+      }
       return mapped;
     },
     staleTime: 5 * 60 * 1000,  // Cache for 5 minutes to prevent refetches
@@ -422,7 +453,45 @@ const OverviewMerged = () => {
 
   const agreements = rawAgreements || [];
 
+  // map of related agreement id -> dts_no (populated on-demand when related agreement
+  // isn't already present in the fetched agreements list)
+  const [relatedDtsMap, setRelatedDtsMap] = useState({});
+
   useEffect(() => { setCurrentPage(1); }, [filterStage, filterClassification, filterValidity, filterCountry, searchText, activeTab, agreements]);
+
+  // Resolve any numeric related_mou ids that weren't matched when mapping.
+  useEffect(() => {
+    // collect numeric ids that need resolution
+    const needs = new Set();
+    const presentLookup = Object.fromEntries(agreements.map(a => [String(a.agreement_id), a.dts_no || a.id || '']));
+    for (const a of agreements) {
+      const rel = a?.related_mou;
+      if (!rel) continue;
+      const key = String(rel);
+      // if it's numeric and not already resolved in the present lookup and not already fetched
+      if (/^\d+$/.test(key) && !presentLookup[key] && !relatedDtsMap[key]) needs.add(key);
+    }
+    if (needs.size === 0) return;
+
+    // fetch each missing related agreement by id
+    const fetches = Array.from(needs).map(async (id) => {
+      try {
+        if (typeof agreementService.getAgreementById === 'function') {
+          const full = await agreementService.getAgreementById(Number(id));
+          const dts = full?.dts_number || full?.dts_no || full?.id || '';
+          // set either the found dts or empty string to mark attempted resolution
+          setRelatedDtsMap(prev => ({ ...prev, [id]: dts || '' }));
+        } else {
+          setRelatedDtsMap(prev => ({ ...prev, [id]: '' }));
+        }
+      } catch (e) {
+        // mark as attempted (empty) so we don't retry forever
+        setRelatedDtsMap(prev => ({ ...prev, [id]: '' }));
+      }
+    });
+    // run fetches, no need to await here
+    Promise.all(fetches).catch(() => {});
+  }, [agreements, relatedDtsMap]);
 
   const STAGE_LIST = useMemo(() => LIFECYCLE_OPTIONS.filter(o => o.value), []);
   const classificationOptions = useMemo(
@@ -484,24 +553,54 @@ const OverviewMerged = () => {
 
   const loadAgreementDetails = async (rowOrId) => {
     const row = typeof rowOrId === 'object' ? rowOrId : null;
-    const byId = row ? (row.agreement_id ?? null) : rowOrId;
+    // Prefer canonical PK using helper (agreement_id, _pk, id, or dts_no)
+    const byId = row ? getPk(row) : rowOrId;
     const byDts = row ? (row.dts_no || row.id || null) : null;
     setModalLoading(true);
     setModalError('');
     try {
       let full = null;
-    if (byId) {
-      full = await agreementService.getAgreementById(byId);
-    } else {
-      if (typeof agreementService.getAgreementByDts === 'function') {
-        full = await agreementService.getAgreementByDts(byDts);
-      } else {
-        full = await agreementService.getAgreementById(byDts);
+      // Debug: log what we're trying to fetch
+      // console.debug('loadAgreementDetails: byId=', byId, 'byDts=', byDts, 'row=', row);
+      if (byId) {
+        // try primary id route first
+        try {
+          full = await agreementService.getAgreementById(byId);
+        } catch (err) {
+          // If getAgreementById fails (404 or other), try sensible fallbacks:
+          // 1) if row has a displayed DTS (row.id or row.dts_no) try getAgreementByDts
+          // 2) if not, try getAgreementByDts using the byId value as a last resort
+          const tryDts = (row && (row.dts_no || row.id)) || null;
+          if (tryDts && typeof agreementService.getAgreementByDts === 'function') {
+            try {
+              full = await agreementService.getAgreementByDts(tryDts);
+            } catch (e2) {
+              // second fallback: if byId might actually be a DTS string, try it
+              if (typeof agreementService.getAgreementByDts === 'function') {
+                full = await agreementService.getAgreementByDts(String(byId));
+              } else {
+                throw err;
+              }
+            }
+          } else if (typeof agreementService.getAgreementByDts === 'function') {
+            // try using byId as a DTS when nothing else available
+            full = await agreementService.getAgreementByDts(String(byId));
+          } else {
+            throw err;
+          }
+        }
+      } else if (byDts) {
+        if (typeof agreementService.getAgreementByDts === 'function') {
+          full = await agreementService.getAgreementByDts(byDts);
+        } else {
+          full = await agreementService.getAgreementById(byDts);
+        }
       }
-    }
 
-      const mapped = computeStageInfo(mapAgreement(full));
-      setSelected(mapped);
+  let mapped = computeStageInfo(mapAgreement(full));
+  // try to resolve related MOU id -> DTS number using the current agreements list
+  mapped = RelatedMou(mapped, agreements);
+  setSelected(mapped);
       if (!isEditing) originalRef.current = mapped;
     } catch (e) {
       console.error('Failed to load details:', e);
@@ -511,13 +610,28 @@ const OverviewMerged = () => {
     }
   };
 
+  // Open details for a row. Immediately show the overview row (fast) like ActiveAgreement.
+  // Also launch a background fetch to enrich the modal with full details when available.
   const openDetails = (row) => {
-
-    setSelected(null);
+    if (!row) return;
+    // create a mapped shallow copy of the row so modal fields render consistently
+    try {
+      const mapped = computeStageInfo(mapAgreement(row));
+      // attempt to resolve related MOU from in-memory lists
+      const resolved = RelatedMou(mapped, agreements);
+      setSelected(resolved);
+    } catch (e) {
+      // fallback: set the raw row
+      setSelected(row);
+    }
     setIsEditing(false);
     setModalError('');
+    // open modal immediately (same UX as ActiveAgreement)
     setDetailOpen(true);
-    loadAgreementDetails(row);
+    // NOTE: intentionally do NOT fetch full details from the server here.
+    // We keep the modal data strictly tied to the overview row that was clicked
+    // to avoid the UI jumping to different records when a background fetch completes.
+    // If you later want to fetch richer data on demand, add an explicit "Load details" button.
   };
 
   const closeDetails = () => {
@@ -617,7 +731,8 @@ const OverviewMerged = () => {
     try {
       const payload = buildPayloadFromSelected(selected);
       const updated = await agreementService.updateAgreement(getPk(selected), payload);
-      let mapped = computeStageInfo(mapAgreement(updated));
+  let mapped = computeStageInfo(mapAgreement(updated));
+  mapped = RelatedMou(mapped, agreements);
       // if the status changed compared to the original loaded row, reset stage start so days show from now
       try {
         const origStatus = originalRef.current?.status;
@@ -793,7 +908,8 @@ const OverviewMerged = () => {
         // Use the same update method used elsewhere in this component
         const payload = { agreement_status: 'Active' };
         const updated = await agreementService.updateAgreement(getPk(agreement), payload);
-        let mapped = computeStageInfo(mapAgreement(updated));
+  let mapped = computeStageInfo(mapAgreement(updated));
+  mapped = RelatedMou(mapped, agreements);
         // Ensure stage start/time is reset when switching to Active so days show from now
         try {
           mapped._stage_start_at = new Date().toISOString();
@@ -810,6 +926,27 @@ const OverviewMerged = () => {
       } catch (err) {
         console.error('Failed to activate agreement:', err);
         alert('Failed to activate agreement: ' + (err?.message || err));
+      }
+    })();
+  };
+
+  // Mark an agreement as Withdrawn when user confirms. Used for long-delayed items.
+  const withdrawAgreement = (agreement) => {
+    if (!window.confirm(`Mark ${agreement.id} as Withdrawn?`)) return;
+    (async () => {
+      try {
+        const payload = { agreement_status: 'Withdrawn' };
+        const updated = await agreementService.updateAgreement(getPk(agreement), payload);
+        let mapped = computeStageInfo(mapAgreement(updated));
+        mapped = RelatedMou(mapped, agreements);
+        // ensure stage start reset so days show from now if needed
+        try { mapped._stage_start_at = new Date().toISOString(); mapped = computeStageInfo(mapped); } catch (e) {}
+        queryClient.invalidateQueries(['agreements']);
+        try { window.dispatchEvent(new CustomEvent('agreementWithdrawn', { detail: mapped })); } catch (e) {}
+        alert('Agreement marked as Withdrawn.');
+      } catch (err) {
+        console.error('Failed to withdraw agreement:', err);
+        alert('Failed to mark agreement as Withdrawn: ' + (err?.message || err));
       }
     })();
   };
@@ -870,14 +1007,7 @@ const OverviewMerged = () => {
     finally { setUploading(false); }
   };
 
-//if (isLoading) return (
-  //<div className="overview-container">
-    //<div className="lloading-container">
-      //<div className="spinner"></div>
-     // <p>Loading Overview...</p>
-    //</div>
-  //</div>
-//);
+
 if (error) return <div className="overview-container">Error: {error.message}</div>;
 
   return (
@@ -1070,7 +1200,15 @@ if (error) return <div className="overview-container">Error: {error.message}</di
                   <td>
                     {row.related_mou ? (
                       <span className="related-mou">
-                        {row.related_mou}
+                        {(() => {
+                          const raw = row.related_mou;
+                          const key = String(raw);
+                          // if numeric id, prefer resolved DTS from lookup
+                          if (/^\d+$/.test(key)) {
+                            return relatedDtsMap[key] || raw;
+                          }
+                          return raw;
+                        })()}
                         <div className="req">Required</div>
                       </span>
                     ) : '—'}
@@ -1145,6 +1283,12 @@ if (error) return <div className="overview-container">Error: {error.message}</di
                     {(row.status && String(row.status).toLowerCase().includes('ffup')) && (
                       <div style={{ marginTop: 6 }}>
                         <button className="btn-action" onClick={() => { activateAgreement(row); setMenuOpenId(null); }} aria-label="Activate">Activate</button>
+                      </div>
+                    )}
+                    {/* Show Withdrawn action for items delayed one month or more */}
+                    {(typeof row.days_in_stage === 'number' && row.days_in_stage >= 30 && !String(row.status || '').toLowerCase().includes('withdrawn')) && (
+                      <div style={{ marginTop: 6 }}>
+                        <button className="btn-action" onClick={() => { withdrawAgreement(row); setMenuOpenId(null); }} aria-label="Withdraw">Withdrawn</button>
                       </div>
                     )}
                   </td>
