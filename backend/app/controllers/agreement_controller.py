@@ -74,15 +74,16 @@ async def get_agreements_list(
                     Partners, Agreements.partner_id == Partners.partner_id
                 ).filter(Agreements.agreement_status == "Withdrawn")
             else:
-                base_query = db.query(Agreements, Partners).join(
-                    Partners, Agreements.partner_id == Partners.partner_id
-                ).filter(
-                    or_(
-                        Agreements.date_expiry == None,
-                        Agreements.date_expiry >= today
-                    )
+                base_query = db.query(Agreements, Partners, Timer).join(
+                Partners, Agreements.partner_id == Partners.partner_id
+            ).join(
+                Timer, Timer.agreement_id == Agreements.agreement_id, isouter=True
+            ).filter(
+                or_(
+                    Agreements.date_expiry == None,
+                    Agreements.date_expiry >= today
                 )
-
+            )   
             if status_filter:
                 if status_filter.upper() == "ACTIVE":
                     base_query = base_query.filter(Agreements.agreement_status == "Active")
@@ -162,35 +163,33 @@ async def get_agreements_list(
                 remarks_by_agreement[remark.agreement_id].append(remark)
 
             agreements_list = []
-            for agreement, partner in results:
+            for agreement, partner, timer in results:
+
+                days_in_stage = 0
+                if timer and timer.last_status_change:
+                    last_change = timer.last_status_change
+                    if isinstance(last_change, datetime):
+                        last_change = last_change.date()
+                    days_in_stage = (date.today() - last_change).days
+
                 agreement_contact_persons = contact_persons_by_agreement.get(agreement.agreement_id, [])
                 partner_contact_persons = contact_persons_by_partner.get(partner.partner_id, [])
-                
+
                 seen_contact_ids = set()
                 all_contact_persons = []
-                
+
                 for cp in agreement_contact_persons:
                     if cp.contact_person_id not in seen_contact_ids:
                         all_contact_persons.append(cp)
                         seen_contact_ids.add(cp.contact_person_id)
-                
+
                 for cp in partner_contact_persons:
                     if cp.contact_person_id not in seen_contact_ids:
                         all_contact_persons.append(cp)
                         seen_contact_ids.add(cp.contact_person_id)
-                
+
                 point_persons = point_persons_by_agreement.get(agreement.agreement_id, [])
                 remarks = remarks_by_agreement.get(agreement.agreement_id, [])
-
-                contact_persons_display = ", ".join(
-                    f"{cp.contact_person_position}: {cp.contact_person_name} ({cp.contact_person_email})"
-                    for cp in all_contact_persons
-                ) if all_contact_persons else ""
-
-                point_persons_display = ", ".join(
-                    f"{pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})"
-                    for pp in point_persons
-                ) if point_persons else ""
 
                 agreements_list.append(AgreementResponse(
                     agreement_id=agreement.agreement_id,
@@ -222,17 +221,12 @@ async def get_agreements_list(
                     entry_type=agreement.entry_type,
                     renewed_from_agreement_id=agreement.renewed_from_agreement_id,
                     MOU_to_MOA_id=agreement.MOU_to_MOA_id,
-                    contact_persons=[
-                        ContactPersonResponse.model_validate(cp, from_attributes=True)
-                        for cp in all_contact_persons
-                    ],
-                    point_persons=[
-                        PointPersonResponse.model_validate(pp, from_attributes=True)
-                        for pp in point_persons
-                    ],
-                    contact_persons_display=contact_persons_display,
-                    point_persons_display=point_persons_display,
+                    contact_persons=[ContactPersonResponse.model_validate(cp, from_attributes=True) for cp in all_contact_persons],
+                    point_persons=[PointPersonResponse.model_validate(pp, from_attributes=True) for pp in point_persons],
                     remarks=[RemarkResponse.model_validate(r, from_attributes=True) for r in remarks],
+                    timer=TimerResponse.model_validate(timer, from_attributes=True) if timer else None,
+                    days_in_stage=days_in_stage,
+                    delayed=(days_in_stage >= 14),  # Change if needed
                     created_at=partner.created_at
                 ))
 

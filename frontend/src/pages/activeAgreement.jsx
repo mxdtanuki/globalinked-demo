@@ -4,15 +4,24 @@ import TopBar from "../components/topbar";
 import "../components/layout.css";
 import "./activeAgreement.css";
 import useDebounce from "../hooks/useDebounce";
-import { FiEye, FiLink, FiArrowRight, FiPrinter, FiDownload, FiX, FiEdit, FiAlertCircle } from "react-icons/fi";
+import {
+  FiEye,
+  FiLink,
+  FiArrowRight,
+  FiPrinter,
+  FiDownload,
+  FiX,
+  FiEdit,
+  FiAlertCircle,
+} from "react-icons/fi";
 import { TbFileText } from "react-icons/tb";
-import { agreementService } from '../services/agreementService';
-import axios from 'axios';
- 
+import { agreementService } from "../services/agreementService";
+import axios from "axios";
+
 const ActiveAgreement = () => {
   const [mobileShow, setMobileShow] = useState(false);
   const [filter, setFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState(""); 
+  const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [reportType, setReportType] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -20,7 +29,8 @@ const ActiveAgreement = () => {
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [agreements, setAgreements] = useState([]);
 
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+  const API_BASE_URL =
+    process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -38,27 +48,33 @@ const ActiveAgreement = () => {
   };
 
   const fetchAgreements = async () => {
-  try {
-    const data = await agreementService.getActiveAgreements();
-    console.log("ActiveAgreement fetched agreements:", data);
-    const arr = Array.isArray(data) ? data.slice() : [];
-    const timeOf = (item) => {
-      const cand = item?.updated_at || item?.date_signed || item?.date || item?.created_at || item?.dateOfSigning || item?.date_expiry;
-      const t = new Date(cand).getTime();
-      return isNaN(t) ? 0 : t;
-    };
-    arr.sort((a, b) => timeOf(b) - timeOf(a));
-    setAgreements(arr);
-    return arr;
-  } catch (err) {
-    console.error("Failed to fetch active agreements:", err);
-    setError("Failed to fetch agreements: " + (err.message || err));
-    setAgreements([]); 
-    return [];
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const data = await agreementService.getActiveAgreements();
+      console.log("ActiveAgreement fetched agreements:", data);
+      const arr = Array.isArray(data) ? data.slice() : [];
+      const timeOf = (item) => {
+        const cand =
+          item?.updated_at ||
+          item?.date_signed ||
+          item?.date ||
+          item?.created_at ||
+          item?.dateOfSigning ||
+          item?.date_expiry;
+        const t = new Date(cand).getTime();
+        return isNaN(t) ? 0 : t;
+      };
+      arr.sort((a, b) => timeOf(b) - timeOf(a));
+      setAgreements(arr);
+      return arr;
+    } catch (err) {
+      console.error("Failed to fetch active agreements:", err);
+      setError("Failed to fetch agreements: " + (err.message || err));
+      setAgreements([]);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -71,7 +87,9 @@ const ActiveAgreement = () => {
       if (mapped && (mapped.agreement_id || mapped.id)) {
         setAgreements((prev) => {
           const key = String(mapped.agreement_id ?? mapped.id);
-          const filtered = Array.isArray(prev) ? prev.filter((a) => String(a.agreement_id ?? a.id) !== key) : [];
+          const filtered = Array.isArray(prev)
+            ? prev.filter((a) => String(a.agreement_id ?? a.id) !== key)
+            : [];
           return [mapped, ...filtered];
         });
         fetchAgreements();
@@ -79,15 +97,18 @@ const ActiveAgreement = () => {
       }
       fetchAgreements();
     };
-    window.addEventListener('agreementActivated', onActivated);
-    return () => window.removeEventListener('agreementActivated', onActivated);
+    window.addEventListener("agreementActivated", onActivated);
+    return () => window.removeEventListener("agreementActivated", onActivated);
   }, []);
-  
-  const [editingField, setEditingField] = useState(null); 
+
+  const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState("");
 
   const [isModalEdit, setIsModalEdit] = useState(false);
-  const [editForm, setEditForm] = useState({ hardcopy_location: "", remarks: [] });
+  const [editForm, setEditForm] = useState({
+    hardcopy_location: "",
+    remarks: [],
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -107,7 +128,10 @@ const ActiveAgreement = () => {
     if (selectedAgreement) {
       setIsModalEdit(false);
       setEditForm({
-        hardcopy_location: selectedAgreement.hardcopy_location || selectedAgreement.hardcopyLocator || "",
+        hardcopy_location:
+          selectedAgreement.hardcopy_location ||
+          selectedAgreement.hardcopyLocator ||
+          "",
         remarks: normalizeRemarks(selectedAgreement.remarks),
       });
     } else {
@@ -122,7 +146,10 @@ const ActiveAgreement = () => {
   const startModalEdit = () => {
     setIsModalEdit(true);
     setEditForm({
-      hardcopy_location: selectedAgreement?.hardcopy_location || selectedAgreement?.hardcopyLocator || "",
+      hardcopy_location:
+        selectedAgreement?.hardcopy_location ||
+        selectedAgreement?.hardcopyLocator ||
+        "",
       remarks: normalizeRemarks(selectedAgreement?.remarks),
     });
   };
@@ -130,7 +157,10 @@ const ActiveAgreement = () => {
   const cancelModalEdit = () => {
     setIsModalEdit(false);
     setEditForm({
-      hardcopy_location: selectedAgreement?.hardcopy_location || selectedAgreement?.hardcopyLocator || "",
+      hardcopy_location:
+        selectedAgreement?.hardcopy_location ||
+        selectedAgreement?.hardcopyLocator ||
+        "",
       remarks: normalizeRemarks(selectedAgreement?.remarks),
     });
   };
@@ -142,20 +172,30 @@ const ActiveAgreement = () => {
     const existingRemarks = selectedAgreement?.remarks;
     let remarksPayload = editForm.remarks;
     try {
-      if (Array.isArray(existingRemarks) && existingRemarks.length > 0 && typeof existingRemarks[0] === 'object') {
+      if (
+        Array.isArray(existingRemarks) &&
+        existingRemarks.length > 0 &&
+        typeof existingRemarks[0] === "object"
+      ) {
         // detect likely key name used by server for remark text
         const sampleKeys = Object.keys(existingRemarks[0] || {});
-        const key = sampleKeys.find((k) => ['remark_text', 'text', 'remark'].includes(k)) || 'remark_text';
+        const key =
+          sampleKeys.find((k) =>
+            ["remark_text", "text", "remark"].includes(k)
+          ) || "remark_text";
         remarksPayload = editForm.remarks.map((s) => ({ [key]: s }));
-      } else if (typeof existingRemarks === 'string') {
+      } else if (typeof existingRemarks === "string") {
         // server stores remarks as a single string
-        remarksPayload = editForm.remarks.join('\n');
+        remarksPayload = editForm.remarks.join("\n");
       } else {
         // default: array of strings
         remarksPayload = editForm.remarks;
       }
     } catch (e) {
-      console.warn('Failed to detect existing remarks shape, sending as array of strings', e);
+      console.warn(
+        "Failed to detect existing remarks shape, sending as array of strings",
+        e
+      );
       remarksPayload = editForm.remarks;
     }
 
@@ -168,14 +208,19 @@ const ActiveAgreement = () => {
     setSaving(true);
     try {
       // try to persist to backend (agreementService will throw on error)
-      console.debug('Saving agreement payload:', id, payload);
-      const updatedFromServer = await agreementService.updateAgreement(id, payload);
-      console.debug('Server response for updateAgreement:', updatedFromServer);
+      console.debug("Saving agreement payload:", id, payload);
+      const updatedFromServer = await agreementService.updateAgreement(
+        id,
+        payload
+      );
+      console.debug("Server response for updateAgreement:", updatedFromServer);
 
       // decide what to display for remarks:
       // - prefer server-returned remarks when present
       // - but if server returns fewer/empty remarks than we expect, merge local edits so user sees their additions
-      const serverRemarksNorm = updatedFromServer?.remarks ? normalizeRemarks(updatedFromServer.remarks) : null;
+      const serverRemarksNorm = updatedFromServer?.remarks
+        ? normalizeRemarks(updatedFromServer.remarks)
+        : null;
       const localRemarksNorm = normalizeRemarks(remarksPayload);
       let displayRemarks;
       if (serverRemarksNorm === null) {
@@ -194,99 +239,146 @@ const ActiveAgreement = () => {
 
       // merge returned object into local list, but ensure we keep normalized remarks for display
       const merged = agreements.map((a) =>
-        (String(a.agreement_id ?? a.id) === String(id))
-          ? { ...a, ...updatedFromServer, hardcopy_location: updatedFromServer?.hardcopy_location ?? payload.hardcopy_location, remarks: displayRemarks }
+        String(a.agreement_id ?? a.id) === String(id)
+          ? {
+              ...a,
+              ...updatedFromServer,
+              hardcopy_location:
+                updatedFromServer?.hardcopy_location ??
+                payload.hardcopy_location,
+              remarks: displayRemarks,
+            }
           : a
       );
       setAgreements(merged);
 
-
-      setSelectedAgreement((prev) => ({ ...(prev || {}), ...updatedFromServer, hardcopy_location: updatedFromServer?.hardcopy_location ?? payload.hardcopy_location, remarks: displayRemarks }));
+      setSelectedAgreement((prev) => ({
+        ...(prev || {}),
+        ...updatedFromServer,
+        hardcopy_location:
+          updatedFromServer?.hardcopy_location ?? payload.hardcopy_location,
+        remarks: displayRemarks,
+      }));
 
       // refresh from server to verify persistence (helps detect backend shape/validation issues)
       try {
         const refreshed = await fetchAgreements();
-        const refreshedAgreement = (refreshed || []).find((x) => String(x.agreement_id ?? x.id) === String(id));
-  const persistedRemarks = normalizeRemarks(refreshedAgreement?.remarks);
-  const localNorm = normalizeRemarks(remarksPayload);
-        const missing = localNorm.some((r) => r && !persistedRemarks.includes(r));
+        const refreshedAgreement = (refreshed || []).find(
+          (x) => String(x.agreement_id ?? x.id) === String(id)
+        );
+        const persistedRemarks = normalizeRemarks(refreshedAgreement?.remarks);
+        const localNorm = normalizeRemarks(remarksPayload);
+        const missing = localNorm.some(
+          (r) => r && !persistedRemarks.includes(r)
+        );
 
         // if server did not persist our remarks, try one retry using object-shaped remarks (common API shape)
         if (missing) {
-          console.warn('Remarks not persisted, retrying with object-shaped remarks payload');
-          const retryPayload = { ...payload, remarks: localNorm.map((s) => ({ remark_text: s })) };
+          console.warn(
+            "Remarks not persisted, retrying with object-shaped remarks payload"
+          );
+          const retryPayload = {
+            ...payload,
+            remarks: localNorm.map((s) => ({ remark_text: s })),
+          };
           try {
             await agreementService.updateAgreement(id, retryPayload);
             const refreshed2 = await fetchAgreements();
             // update selectedAgreement from latest refreshed data
-            const latest = (refreshed2 || []).find((x) => String(x.agreement_id ?? x.id) === String(id));
-            if (latest) setSelectedAgreement((prev) => ({ ...(prev || {}), ...latest }));
+            const latest = (refreshed2 || []).find(
+              (x) => String(x.agreement_id ?? x.id) === String(id)
+            );
+            if (latest)
+              setSelectedAgreement((prev) => ({ ...(prev || {}), ...latest }));
           } catch (e) {
-            console.warn('Retry to persist remarks failed', e);
+            console.warn("Retry to persist remarks failed", e);
           }
         }
       } catch (e) {
-        console.warn('Failed to refresh agreements after save', e);
+        console.warn("Failed to refresh agreements after save", e);
       }
 
       // optionally create an audit log entry
       try {
-        await createAuditLog(`Updated agreement ${id}: hardcopy_location and remarks updated`);
+        await createAuditLog(
+          `Updated agreement ${id}: hardcopy_location and remarks updated`
+        );
       } catch (e) {
         // non-fatal
-        console.warn('Audit log failed', e);
+        console.warn("Audit log failed", e);
       }
 
       setIsModalEdit(false);
     } catch (err) {
-      console.error('Failed to save agreement edits:', err);
+      console.error("Failed to save agreement edits:", err);
       // surface error to the user (simple fallback)
-      alert('Failed to save changes. Please try again.');
+      alert("Failed to save changes. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
   const activeAgreements = agreements.filter(
-    (a) => a.agreement_status === "Active" || a.status === "active" || a.status === "expiring-soon" || (!a.date_expiry || new Date(a.date_expiry) > new Date())
+    (a) =>
+      a.agreement_status === "Active" ||
+      a.status === "active" ||
+      a.status === "expiring-soon" ||
+      !a.date_expiry ||
+      new Date(a.date_expiry) > new Date()
   );
-  const activeMOAs = activeAgreements.filter((a) => String(a.document_type).toUpperCase() === "MOA");
-  const activeMOUs = activeAgreements.filter((a) => String(a.document_type).toUpperCase() === "MOU");
+  const activeMOAs = activeAgreements.filter(
+    (a) => String(a.document_type).toUpperCase() === "MOA"
+  );
+  const activeMOUs = activeAgreements.filter(
+    (a) => String(a.document_type).toUpperCase() === "MOU"
+  );
   const expiringSoon = activeAgreements.filter((a) => {
     if (!a.date_expiry) return false;
-    const daysDiff = (new Date(a.date_expiry) - new Date()) / (1000 * 60 * 60 * 24);
+    const daysDiff =
+      (new Date(a.date_expiry) - new Date()) / (1000 * 60 * 60 * 24);
     return daysDiff > 0 && daysDiff <= 90;
   });
 
-const filteredAgreements = useMemo(() => { 
-  return activeAgreements
-    .filter((a) => {
-      if (filter === "moa") return String(a.document_type).toUpperCase() === "MOA";
-      if (filter === "mou") return String(a.document_type).toUpperCase() === "MOU";
-      if (filter === "linked") {
-        return Boolean(a.related_mou || a.MOU_to_MOA_id || a.mou_number || a.linked_mou || a.linkedMouId);
-      }
-      return true;
-    })
-    .filter((a) => {
-      const q = debouncedSearchQuery.trim().toLowerCase();  // Use debounced value
-      if (!q) return true;
-      const fields = [
-        a.dts_number,
-        a.event_title,
-        a.name,
-        a.source_unit || a.source || a.initiating_unit,
-        a.country,
-        a.document_type,
-        a.partnership_type,
-        a.brief_profile,
-        Array.isArray(a.remarks) ? a.remarks.join(' ') : a.remarks,
-      ];
-      return fields.some((f) => f && f.toString().toLowerCase().includes(q));
-    });
-}, [activeAgreements, filter, debouncedSearchQuery]);  // Depend on debouncedSearchQuery and other relevant states
+  const filteredAgreements = useMemo(() => {
+    return activeAgreements
+      .filter((a) => {
+        if (filter === "moa")
+          return String(a.document_type).toUpperCase() === "MOA";
+        if (filter === "mou")
+          return String(a.document_type).toUpperCase() === "MOU";
+        if (filter === "linked") {
+          return Boolean(
+            a.related_mou ||
+              a.MOU_to_MOA_id ||
+              a.mou_number ||
+              a.linked_mou ||
+              a.linkedMouId
+          );
+        }
+        return true;
+      })
+      .filter((a) => {
+        const q = debouncedSearchQuery.trim().toLowerCase(); // Use debounced value
+        if (!q) return true;
+        const fields = [
+          a.dts_number,
+          a.event_title,
+          a.name,
+          a.source_unit || a.source || a.initiating_unit,
+          a.country,
+          a.document_type,
+          a.partnership_type,
+          a.brief_profile,
+          Array.isArray(a.remarks) ? a.remarks.join(" ") : a.remarks,
+        ];
+        return fields.some((f) => f && f.toString().toLowerCase().includes(q));
+      });
+  }, [activeAgreements, filter, debouncedSearchQuery]); // Depend on debouncedSearchQuery and other relevant states
 
-  const totalPages = Math.max(1, Math.ceil(filteredAgreements.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredAgreements.length / itemsPerPage)
+  );
   const paginatedAgreements = filteredAgreements.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -337,8 +429,16 @@ const filteredAgreements = useMemo(() => {
   const normalizeRemarks = (r) => {
     if (!r) return [];
     if (Array.isArray(r))
-      return r.map((item) => (typeof item === "object" ? item.remark_text || item.text || item.remark || "" : String(item)));
-    if (typeof r === "string") return r.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      return r.map((item) =>
+        typeof item === "object"
+          ? item.remark_text || item.text || item.remark || ""
+          : String(item)
+      );
+    if (typeof r === "string")
+      return r
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
     return [];
   };
 
@@ -351,14 +451,27 @@ const filteredAgreements = useMemo(() => {
           if (!item) return "";
           if (typeof item === "string") return item;
           return (
-            item.point_person_name || item.contact_person_name || item.name || item.full_name || item.displayName || item.person_name || ""
+            item.point_person_name ||
+            item.contact_person_name ||
+            item.name ||
+            item.full_name ||
+            item.displayName ||
+            item.person_name ||
+            ""
           );
         })
         .filter(Boolean)
         .join(", ");
     }
     if (typeof v === "object") {
-      return v.point_person_name || v.contact_person_name || v.name || v.full_name || v.displayName || JSON.stringify(v);
+      return (
+        v.point_person_name ||
+        v.contact_person_name ||
+        v.name ||
+        v.full_name ||
+        v.displayName ||
+        JSON.stringify(v)
+      );
     }
     return String(v);
   };
@@ -367,15 +480,27 @@ const filteredAgreements = useMemo(() => {
     if (!v) return "";
     if (Array.isArray(v)) {
       return v
-        .map((item) => (typeof item === "string" ? item : item.point_person_email || item.email || item.contact_person_email || ""))
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : item.point_person_email ||
+              item.email ||
+              item.contact_person_email ||
+              ""
+        )
         .filter(Boolean)
         .join(", ");
     }
-    if (typeof v === "object") return v.point_person_email || v.email || v.contact_person_email || "";
+    if (typeof v === "object")
+      return v.point_person_email || v.email || v.contact_person_email || "";
     return String(v);
   };
 
-  const addEditRemark = () => setEditForm((prev) => ({ ...prev, remarks: [...(prev.remarks || []), ""] }));
+  const addEditRemark = () =>
+    setEditForm((prev) => ({
+      ...prev,
+      remarks: [...(prev.remarks || []), ""],
+    }));
   const updateEditRemark = (idx, val) =>
     setEditForm((prev) => {
       const arr = Array.isArray(prev.remarks) ? [...prev.remarks] : [];
@@ -393,7 +518,11 @@ const filteredAgreements = useMemo(() => {
     if (!selectedAgreement) return null;
     const lid = getLinkedId(selectedAgreement) || selectedAgreement.linkedMouId;
     if (!lid) return null;
-    return agreements.find((a) => a.id === lid || a.agreement_id === lid || a.linkedMouId === lid) || null;
+    return (
+      agreements.find(
+        (a) => a.id === lid || a.agreement_id === lid || a.linkedMouId === lid
+      ) || null
+    );
   })();
 
   const reportLabelMap = {
@@ -417,14 +546,24 @@ const filteredAgreements = useMemo(() => {
   }
 
   const reportItems = (() => {
-    if (reportType === "mou") return agreements.filter((a) => String(a.document_type).toUpperCase() === "MOU");
-    if (reportType === "moa") return agreements.filter((a) => String(a.document_type).toUpperCase() === "MOA");
-    if (reportType === "linked") return agreements.filter((a) => Boolean(getLinkedId(a)));
+    if (reportType === "mou")
+      return agreements.filter(
+        (a) => String(a.document_type).toUpperCase() === "MOU"
+      );
+    if (reportType === "moa")
+      return agreements.filter(
+        (a) => String(a.document_type).toUpperCase() === "MOA"
+      );
+    if (reportType === "linked")
+      return agreements.filter((a) => Boolean(getLinkedId(a)));
     return agreements.slice();
   })();
 
   const escapeHtml = (str = "") =>
-    String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
 
   const safeCsv = (v = "") => {
     const s = String(v ?? "").replace(/"/g, '""');
@@ -435,16 +574,30 @@ const filteredAgreements = useMemo(() => {
     const rows = reportItems
       .map((r) => {
         const parentId = getLinkedId(r);
-        const parent = parentId ? agreements.find((x) => x.id === parentId || x.agreement_id === parentId) : null;
+        const parent = parentId
+          ? agreements.find(
+              (x) => x.id === parentId || x.agreement_id === parentId
+            )
+          : null;
         return `<tr>
             <td>${escapeHtml(r.document_type)}</td>
             <td>${escapeHtml(r.dts_number)}</td>
             <td>${escapeHtml(r.event_title || r.event || r.title || "")}</td>
             <td>${escapeHtml(r.name || r.partnerName || "")}</td>
-            <td>${escapeHtml(r.source_unit || r.source || r.initiating_unit || "")}</td>
-            <td>${escapeHtml(r.date_signed ? new Date(r.date_signed).toLocaleDateString() : "")}</td>
-            <td>${escapeHtml(r.date_expiry ? new Date(r.date_expiry).toLocaleDateString() : "")}</td>
-            <td>${parent ? escapeHtml(parent.event_title || parent.eventTitle || "") : ""}</td>
+            <td>${escapeHtml(
+              r.source_unit || r.source || r.initiating_unit || ""
+            )}</td>
+            <td>${escapeHtml(
+              r.date_signed ? new Date(r.date_signed).toLocaleDateString() : ""
+            )}</td>
+            <td>${escapeHtml(
+              r.date_expiry ? new Date(r.date_expiry).toLocaleDateString() : ""
+            )}</td>
+            <td>${
+              parent
+                ? escapeHtml(parent.event_title || parent.eventTitle || "")
+                : ""
+            }</td>
           </tr>`;
       })
       .join("");
@@ -482,7 +635,18 @@ const filteredAgreements = useMemo(() => {
   };
 
   const downloadCSV = () => {
-    const headers = ['Type','DTS Number','Title','Partner','Country','Source','DateOfSigning','ExpiryDate','LinkedMouId','Remarks'];
+    const headers = [
+      "Type",
+      "DTS Number",
+      "Title",
+      "Partner",
+      "Country",
+      "Source",
+      "DateOfSigning",
+      "ExpiryDate",
+      "LinkedMouId",
+      "Remarks",
+    ];
     const csvRows = [headers.join(",")];
 
     reportItems.forEach((r) => {
@@ -496,7 +660,9 @@ const filteredAgreements = useMemo(() => {
         safeCsv(r.date_signed || ""),
         safeCsv(r.date_expiry || ""),
         safeCsv(getLinkedId(r) || ""),
-        safeCsv(Array.isArray(r.remarks) ? r.remarks.join(" | ") : r.remarks || ""),
+        safeCsv(
+          Array.isArray(r.remarks) ? r.remarks.join(" | ") : r.remarks || ""
+        ),
       ];
       csvRows.push(row.join(","));
     });
@@ -514,12 +680,17 @@ const filteredAgreements = useMemo(() => {
   return (
     <div className="dashboard-container active-agreements-page">
       <TopBar toggleSidebar={toggleMobileSidebar} />
-      {mobileShow && <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />}
+      {mobileShow && (
+        <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />
+      )}
 
       <div className="content-body">
         <Sidebar mobileShow={mobileShow} />
 
-        <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
+        <div
+          className="main-content"
+          onClick={() => mobileShow && setMobileShow(false)}
+        >
           <div className="activeAgreement-main">
             {/* === Summary Cards === */}
             <div className="activeAgreement-summary">
@@ -595,21 +766,34 @@ const filteredAgreements = useMemo(() => {
                 </div>
               </div>
 
-              <h3 className="section-title">Agreements ({filteredAgreements.length})</h3>
+              <h3 className="section-title">
+                Agreements ({filteredAgreements.length})
+              </h3>
               {filter === "linked" ? (
                 (() => {
-                  const mouList = activeAgreements.filter((a) => String(a.document_type || a.documentType).toUpperCase() === "MOU");
+                  const mouList = activeAgreements.filter(
+                    (a) =>
+                      String(
+                        a.document_type || a.documentType
+                      ).toUpperCase() === "MOU"
+                  );
 
                   const mouWithChildren = mouList
                     .map((mou) => {
                       const mid = mou.id || mou.agreement_id;
-                      const children = activeAgreements.filter((c) => getLinkedId(c) === mid || c.linkedMouId === mid);
+                      const children = activeAgreements.filter(
+                        (c) => getLinkedId(c) === mid || c.linkedMouId === mid
+                      );
                       return { mou, children };
                     })
                     .filter((item) => item.children.length > 0);
 
                   if (mouWithChildren.length === 0) {
-                    return <div className="no-linked">No linked agreements found.</div>;
+                    return (
+                      <div className="no-linked">
+                        No linked agreements found.
+                      </div>
+                    );
                   }
 
                   return (
@@ -620,21 +804,47 @@ const filteredAgreements = useMemo(() => {
                             <span className="mou-dot" />
                             <span className={`badge mou`}>MOU</span>
                             <div className="mou-meta">
-                              <strong className="mou-title">{mou.event_title || mou.eventTitle}</strong>
+                              <strong className="mou-title">
+                                {mou.event_title || mou.eventTitle}
+                              </strong>
                               <div className="mou-sub">
-                                Partner: {mou.name || mou.partnerName} ({mou.country})
+                                Partner: {mou.name || mou.partnerName} (
+                                {mou.country})
                               </div>
                               <div className="mou-sub small">
-                                Valid: {new Date(mou.date_signed || mou.dateOfSigning).toLocaleDateString()} →{" "}
-                                {new Date(mou.date_expiry || mou.expiryDate).toLocaleDateString()}
+                                Valid:{" "}
+                                {new Date(
+                                  mou.date_signed || mou.dateOfSigning
+                                ).toLocaleDateString()}{" "}
+                                →{" "}
+                                {new Date(
+                                  mou.date_expiry || mou.expiryDate
+                                ).toLocaleDateString()}
                               </div>
-                              <div className="mou-dts small">{mou.dts_number || mou.dtsNumber}</div>
+                              <div className="mou-dts small">
+                                {mou.dts_number || mou.dtsNumber}
+                              </div>
                             </div>
+                            {/* View details button for the MOU */}
+                            <button
+                              className="mou-view-btn"
+                              onClick={() => setSelectedAgreement(mou)}
+                              aria-label={`View details for ${
+                                mou.dts_number ||
+                                mou.dtsNumber ||
+                                mou.event_title ||
+                                "MOU"
+                              }`}
+                              title="View details"
+                            >
+                              <FiEye className="icon" />
+                            </button>
                           </div>
 
                           <div className="mou-based">
                             <div className="mou-based-title">
-                              <FiLink className="link-inline" /> Agreements based on this MOU ({children.length})
+                              <FiLink className="link-inline" /> Agreements
+                              based on this MOU ({children.length})
                             </div>
 
                             <div className="mou-children">
@@ -644,20 +854,49 @@ const filteredAgreements = useMemo(() => {
                                     <FiArrowRight className="arrow-icon" />
                                     <span className="badge moa">MOA</span>
                                   </div>
+
                                   <div className="moa-body">
-                                    <strong className="moa-title">{c.event_title || c.eventTitle}</strong>
+                                    <strong className="moa-title">
+                                      {c.event_title || c.eventTitle}
+                                    </strong>
                                     <div className="moa-sub small">
-                                      Partner: {c.name || c.partnerName} ({c.country})
+                                      Partner: {c.name || c.partnerName} (
+                                      {c.country})
                                     </div>
                                     <div className="moa-sub small">
-                                      Source: {c.source_unit || c.source || c.initiating_unit}
+                                      Source:{" "}
+                                      {c.source_unit ||
+                                        c.source ||
+                                        c.initiating_unit}
                                     </div>
                                     <div className="moa-valid small">
-                                      Valid: {new Date(c.date_signed || c.dateOfSigning).toLocaleDateString()} →{" "}
-                                      {new Date(c.date_expiry || c.expiryDate).toLocaleDateString()}
+                                      Valid:{" "}
+                                      {new Date(
+                                        c.date_signed || c.dateOfSigning
+                                      ).toLocaleDateString()}{" "}
+                                      →{" "}
+                                      {new Date(
+                                        c.date_expiry || c.expiryDate
+                                      ).toLocaleDateString()}
                                     </div>
-                                    <div className="moa-dts small">{c.dts_number || c.dtsNumber}</div>
+                                    <div className="moa-dts small">
+                                      {c.dts_number || c.dtsNumber}
+                                    </div>
                                   </div>
+
+                                  {/* View details button for each linked child */}
+                                  <button
+                                    className="moa-view-btn"
+                                    onClick={() => setSelectedAgreement(c)}
+                                    aria-label={`View details for ${
+                                      c.dts_number ||
+                                      c.dtsNumber ||
+                                      c.event_title ||
+                                      "agreement"
+                                    }`}
+                                  >
+                                    <FiEye className="icon" />
+                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -684,70 +923,149 @@ const filteredAgreements = useMemo(() => {
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedAgreements.map((a, i) => (
-                        <tr key={a.id || i}>
-                              <td>
-                                <span className={`badge ${String(a.document_type || a.documentType || "").toLowerCase()}`}>
-                                  {a.document_type || a.documentType}
+                      {paginatedAgreements.map((a, i) => {
+                        const parentId = getLinkedId(a);
+                        const parent = parentId
+                          ? agreements.find(
+                              (x) =>
+                                x.id === parentId ||
+                                x.agreement_id === parentId ||
+                                x.linkedMouId === parentId
+                            )
+                          : null;
+                        return (
+                          <tr key={a.id || i}>
+                            <td>
+                              <span
+                                className={`badge ${String(
+                                  a.document_type || a.documentType || ""
+                                ).toLowerCase()}`}
+                              >
+                                {a.document_type || a.documentType}
+                              </span>
+                            </td>
+
+                            <td className="dts-number">
+                              {a.dts_number || a.dtsNumber}
+                            </td>
+
+                            <td>
+                              <div>
+                                <b>{a.event_title || a.eventTitle}</b>
+                                <div className="small">
+                                  {a.partnership_type ||
+                                    a.partnershipClassification}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td>
+                              <div>
+                                <b>{a.name || a.partnerName}</b>
+                                <div className="small">{a.country}</div>
+                              </div>
+                            </td>
+
+                            <td>
+                              {a.source_unit || a.source || a.initiating_unit}
+                            </td>
+
+                            <td>
+                              {new Date(
+                                a.date_expiry || a.expiryDate
+                              ).toDateString()}
+                            </td>
+
+                            <td>
+                              <span className="days-pill">
+                                {calculateDaysLeft(
+                                  a.date_expiry || a.expiryDate
+                                )}{" "}
+                                days
+                              </span>
+                            </td>
+
+                            {/* Connection column */}
+                            <td className="connection">
+                              {parentId ? (
+                                <span className="agreement-tooltip">
+                                  <a
+                                    href={`#${parentId}`}
+                                    className="linked"
+                                    aria-describedby={`agreement-tooltip-${
+                                      a.id || i
+                                    }`}
+                                  >
+                                    <FiLink className="link-icon" />
+                                    Linked to MOU
+                                  </a>
+
+                                  <div
+                                    id={`agreement-tooltip-${a.id || i}`}
+                                    className="agreement-tooltip-content"
+                                    role="tooltip"
+                                  >
+                                    <div className="agreement-dts">
+                                      DTS:{" "}
+                                      <strong>
+                                        {parent?.dts_number ||
+                                          parent?.dtsNumber ||
+                                          parentId}
+                                      </strong>
+                                    </div>
+                                    <div className="agreement-title">
+                                      {parent?.event_title ||
+                                        parent?.eventTitle ||
+                                        "No title available"}
+                                    </div>
+                                    <div className="agreement-expiry">
+                                      Expires:{" "}
+                                      <strong>
+                                        {parent?.date_expiry
+                                          ? new Date(
+                                              parent.date_expiry
+                                            ).toLocaleDateString()
+                                          : parent?.expiryDate
+                                          ? new Date(
+                                              parent.expiryDate
+                                            ).toLocaleDateString()
+                                          : "—"}
+                                      </strong>
+                                    </div>
+                                  </div>
                                 </span>
-                              </td>
+                              ) : String(
+                                  a.document_type || a.documentType
+                                ).toUpperCase() === "MOA" ? (
+                                <span className="independent">Independent</span>
+                              ) : (
+                                <span className="dash">—</span>
+                              )}
+                            </td>
 
-                              <td className="dts-number">{a.dts_number || a.dtsNumber}</td>
-
-                              <td>
-                                <div>
-                                  <b>{a.event_title || a.eventTitle}</b>
-                                  <div className="small">{a.partnership_type || a.partnershipClassification}</div>
-                                </div>
-                              </td>
-
-                              <td>
-                                <div>
-                                  <b>{a.name || a.partnerName}</b>
-                                  <div className="small">{a.country}</div>
-                                </div>
-                              </td>
-
-                              <td>{a.source_unit || a.source || a.initiating_unit}</td>
-
-                              <td>{new Date(a.date_expiry || a.expiryDate).toDateString()}</td>
-
-                              <td>
-                                <span className="days-pill">{calculateDaysLeft(a.date_expiry || a.expiryDate)} days</span>
-                              </td>
-
-                          {/* Connection column */}
-                          <td className="connection">
-                            {getLinkedId(a) ? (
-                              <a href={`#${getLinkedId(a)}`} className="linked">
-                                <FiLink className="link-icon" />
-                                Linked to MOU
-                              </a>
-                            ) : String(a.document_type || a.documentType).toUpperCase() === "MOA" ? (
-                              <span className="independent">Independent</span>
-                            ) : (
-                              <span className="dash">—</span>
-                            )}
-                          </td>
-
-                          <td>
-                            <button
-                              className="icon-btn"
-                              onClick={() => setSelectedAgreement(a)}
-                              aria-label="View details"
-                            >
-                              <FiEye className="icon" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            <td>
+                              <button
+                                className="icon-btn"
+                                onClick={() => setSelectedAgreement(a)}
+                                aria-label="View details"
+                              >
+                                <FiEye className="icon" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
 
                   {/* Pagination controls */}
                   {totalPages > 1 && (
                     <div className="pagination">
-                      <button className="page-btn" onClick={prevPage} disabled={currentPage === 1}>
+                      <button
+                        className="page-btn"
+                        onClick={prevPage}
+                        disabled={currentPage === 1}
+                      >
                         Prev
                       </button>
 
@@ -756,7 +1074,9 @@ const filteredAgreements = useMemo(() => {
                         return (
                           <button
                             key={page}
-                            className={`page-btn ${page === currentPage ? "active" : ""}`}
+                            className={`page-btn ${
+                              page === currentPage ? "active" : ""
+                            }`}
                             onClick={() => gotoPage(page)}
                           >
                             {page}
@@ -779,7 +1099,9 @@ const filteredAgreements = useMemo(() => {
 
             {/* Nearing Expiration Section */}
             <div className="activeAgreement-expiring">
-               <h3><FiAlertCircle className="inline-icon" /> Nearing Expiration</h3>
+              <h3>
+                <FiAlertCircle className="inline-icon" /> Nearing Expiration
+              </h3>
               <p className="subtext">
                 These agreements will expire within the next 90 days
               </p>
@@ -787,7 +1109,11 @@ const filteredAgreements = useMemo(() => {
               {expiringSoon.map((a, i) => (
                 <div key={i} className="activeAgreement-expiring-card">
                   <div className="activeAgreement-expiring-header">
-                    <span className={`badge ${String(a.document_type || a.documentType || "").toLowerCase()}`}>
+                    <span
+                      className={`badge ${String(
+                        a.document_type || a.documentType || ""
+                      ).toLowerCase()}`}
+                    >
                       {a.document_type || a.documentType}
                     </span>
                     <h4>{a.event_title || a.eventTitle}</h4>
@@ -799,15 +1125,21 @@ const filteredAgreements = useMemo(() => {
                       >
                         <FiEye className="icon" />
                       </button>
-                      <span>{calculateDaysLeft(a.date_expiry || a.expiryDate)} days left</span>
+                      <span>
+                        {calculateDaysLeft(a.date_expiry || a.expiryDate)} days
+                        left
+                      </span>
                     </div>
                   </div>
                   <p>
                     <b>Partner:</b> {a.name || a.partnerName}
                     <br />
-                    <b>Expires:</b> {new Date(a.date_expiry || a.expiryDate).toDateString()}
+                    <b>Expires:</b>{" "}
+                    {new Date(a.date_expiry || a.expiryDate).toDateString()}
                     <br />
-                    <b>Source:</b> {a.source_unit || a.source || a.initiating_unit} • <span>{a.dts_number || a.dtsNumber}</span>
+                    <b>Source:</b>{" "}
+                    {a.source_unit || a.source || a.initiating_unit} •{" "}
+                    <span>{a.dts_number || a.dtsNumber}</span>
                   </p>
 
                   {getLinkedId(a) && (
@@ -825,12 +1157,17 @@ const filteredAgreements = useMemo(() => {
             {/* Report Generator */}
             <div className="report-generator-card">
               <div className="report-header">
-                  <div className="report-icon"><TbFileText size={24} /></div>
-                  <div>
-                    <h4>Report Generator</h4>
-                    <div className="report-sub">Generate comprehensive reports for agreements in various formats</div>
+                <div className="report-icon">
+                  <TbFileText size={24} />
+                </div>
+                <div>
+                  <h4>Report Generator</h4>
+                  <div className="report-sub">
+                    Generate comprehensive reports for agreements in various
+                    formats
                   </div>
                 </div>
+              </div>
 
               <div className="report-controls">
                 <div className="report-select">
@@ -869,10 +1206,12 @@ const filteredAgreements = useMemo(() => {
 
               <div className="report-meta">
                 <div>
-                  <strong>Selected:</strong> <span className="muted">{reportLabelMap[reportType]}</span>
+                  <strong>Selected:</strong>{" "}
+                  <span className="muted">{reportLabelMap[reportType]}</span>
                 </div>
                 <div>
-                  <strong>Total records:</strong> <span className="muted">{reportItems.length}</span>
+                  <strong>Total records:</strong>{" "}
+                  <span className="muted">{reportItems.length}</span>
                 </div>
               </div>
             </div>
@@ -886,49 +1225,87 @@ const filteredAgreements = useMemo(() => {
           <div className="agreement-modal" onClick={(e) => e.stopPropagation()}>
             <header className="agreement-modal-header">
               <div className="modal-badge-row">
-                <span className={`badge ${String(selectedAgreement.document_type || selectedAgreement.documentType || "").toLowerCase()}`}>
-                  {selectedAgreement.document_type || selectedAgreement.documentType}
+                <span
+                  className={`badge ${String(
+                    selectedAgreement.document_type ||
+                      selectedAgreement.documentType ||
+                      ""
+                  ).toLowerCase()}`}
+                >
+                  {selectedAgreement.document_type ||
+                    selectedAgreement.documentType}
                 </span>
-                <h2 className="modal-title">{selectedAgreement.event_title || selectedAgreement.eventTitle}</h2>
+                <h2 className="modal-title">
+                  {selectedAgreement.event_title ||
+                    selectedAgreement.eventTitle}
+                </h2>
               </div>
-              <button className="modal-close" onClick={closeModal} aria-label="Close"><FiX className="icon" /></button>
+              <button
+                className="modal-close"
+                onClick={closeModal}
+                aria-label="Close"
+              >
+                <FiX className="icon" />
+              </button>
             </header>
 
             <div className="agreement-modal-body">
-
               {/* Document Information */}
               <section className="modal-section docinfo">
                 <h4>Document Information</h4>
                 <div className="row two-col">
                   <div>
                     <div className="label">DTS Number</div>
-                    <div className="value mono">{selectedAgreement.dts_number || selectedAgreement.dtsNumber}</div>
+                    <div className="value mono">
+                      {selectedAgreement.dts_number ||
+                        selectedAgreement.dtsNumber}
+                    </div>
                   </div>
 
                   <div>
                     <div className="label">Hardcopy Locator</div>
-                    <div className="value">{selectedAgreement.hardcopy_location || selectedAgreement.hardcopyLocator || "—"}</div>
+                    <div className="value">
+                      {selectedAgreement.hardcopy_location ||
+                        selectedAgreement.hardcopyLocator ||
+                        "—"}
+                    </div>
                   </div>
 
                   <div>
                     <div className="label">Entry Date</div>
-                    <div className="value">{new Date(selectedAgreement.date || selectedAgreement.date_signed || selectedAgreement.dateOfSigning).toLocaleDateString()}</div>
+                    <div className="value">
+                      {new Date(
+                        selectedAgreement.date ||
+                          selectedAgreement.date_signed ||
+                          selectedAgreement.dateOfSigning
+                      ).toLocaleDateString()}
+                    </div>
                   </div>
                 </div>
 
                 <div className="label">Brief Profile</div>
-                <div className="brief">{selectedAgreement.brief_profile || selectedAgreement.briefProfile}</div>
+                <div className="brief">
+                  {selectedAgreement.brief_profile ||
+                    selectedAgreement.briefProfile}
+                </div>
               </section>
 
               <section className="modal-section partner">
                 <h4>Partner Information</h4>
 
-                  <div className="partner-top">
+                <div className="partner-top">
                   <div className="partner-logo">
-                    {LogoSrc(selectedAgreement.logo_path || selectedAgreement.logo) ? (
+                    {LogoSrc(
+                      selectedAgreement.logo_path || selectedAgreement.logo
+                    ) ? (
                       <img
-                        src={LogoSrc(selectedAgreement.logo_path || selectedAgreement.logo)}
-                        alt={`${selectedAgreement.name || selectedAgreement.partnerName} logo`}
+                        src={LogoSrc(
+                          selectedAgreement.logo_path || selectedAgreement.logo
+                        )}
+                        alt={`${
+                          selectedAgreement.name ||
+                          selectedAgreement.partnerName
+                        } logo`}
                         onError={(e) => {
                           console.warn("Logo failed to load:", e.target.src);
                           e.target.onerror = null;
@@ -936,7 +1313,12 @@ const filteredAgreements = useMemo(() => {
                         }}
                       />
                     ) : (
-                      <div className="partner-fallback">{getInitials(selectedAgreement.name || selectedAgreement.partnerName)}</div>
+                      <div className="partner-fallback">
+                        {getInitials(
+                          selectedAgreement.name ||
+                            selectedAgreement.partnerName
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -944,7 +1326,10 @@ const filteredAgreements = useMemo(() => {
                     <div className="row two-col">
                       <div>
                         <div className="label">Organization</div>
-                        <div className="value">{selectedAgreement.name || selectedAgreement.partnerName}</div>
+                        <div className="value">
+                          {selectedAgreement.name ||
+                            selectedAgreement.partnerName}
+                        </div>
                       </div>
                       <div>
                         <div className="label">Country</div>
@@ -960,7 +1345,19 @@ const filteredAgreements = useMemo(() => {
                       </div>
                       <div>
                         <div className="label">Website</div>
-                        <div className="value"><a href={selectedAgreement.website_link || selectedAgreement.websiteLink} target="_blank" rel="noreferrer">{selectedAgreement.website_link || selectedAgreement.websiteLink}</a></div>
+                        <div className="value">
+                          <a
+                            href={
+                              selectedAgreement.website_link ||
+                              selectedAgreement.websiteLink
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {selectedAgreement.website_link ||
+                              selectedAgreement.websiteLink}
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -972,19 +1369,65 @@ const filteredAgreements = useMemo(() => {
                 <div className="contacts-grid">
                   <div className="contact-card">
                     <div className="contact-role">PUP Point Person</div>
-                    <div className="contact-name">{formatContactPersons(selectedAgreement.point_persons_display || selectedAgreement.pointPerson || selectedAgreement.point_persons)}</div>
-                    <div className="contact-org">{selectedAgreement.source_unit || selectedAgreement.source || selectedAgreement.initiating_unit}</div>
-                    {formatContactEmails(selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail) ? (
-                      <a className="contact-email" href={`mailto:${formatContactEmails(selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail)}`}>{formatContactEmails(selectedAgreement.point_persons_email || selectedAgreement.pointPersonEmail)}</a>
+                    <div className="contact-name">
+                      {formatContactPersons(
+                        selectedAgreement.point_persons_display ||
+                          selectedAgreement.pointPerson ||
+                          selectedAgreement.point_persons
+                      )}
+                    </div>
+                    <div className="contact-org">
+                      {selectedAgreement.source_unit ||
+                        selectedAgreement.source ||
+                        selectedAgreement.initiating_unit}
+                    </div>
+                    {formatContactEmails(
+                      selectedAgreement.point_persons_email ||
+                        selectedAgreement.pointPersonEmail
+                    ) ? (
+                      <a
+                        className="contact-email"
+                        href={`mailto:${formatContactEmails(
+                          selectedAgreement.point_persons_email ||
+                            selectedAgreement.pointPersonEmail
+                        )}`}
+                      >
+                        {formatContactEmails(
+                          selectedAgreement.point_persons_email ||
+                            selectedAgreement.pointPersonEmail
+                        )}
+                      </a>
                     ) : null}
                   </div>
 
                   <div className="contact-card alt">
                     <div className="contact-role">Partner Contact Person</div>
-                    <div className="contact-name">{formatContactPersons(selectedAgreement.contact_persons_display || selectedAgreement.contactPerson || selectedAgreement.contact_persons)}</div>
-                    <div className="contact-org">{selectedAgreement.name || selectedAgreement.partnerName}</div>
-                    {formatContactEmails(selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail) ? (
-                      <a className="contact-email" href={`mailto:${formatContactEmails(selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail)}`}>{formatContactEmails(selectedAgreement.contact_persons_email || selectedAgreement.contactPersonEmail)}</a>
+                    <div className="contact-name">
+                      {formatContactPersons(
+                        selectedAgreement.contact_persons_display ||
+                          selectedAgreement.contactPerson ||
+                          selectedAgreement.contact_persons
+                      )}
+                    </div>
+                    <div className="contact-org">
+                      {selectedAgreement.name || selectedAgreement.partnerName}
+                    </div>
+                    {formatContactEmails(
+                      selectedAgreement.contact_persons_email ||
+                        selectedAgreement.contactPersonEmail
+                    ) ? (
+                      <a
+                        className="contact-email"
+                        href={`mailto:${formatContactEmails(
+                          selectedAgreement.contact_persons_email ||
+                            selectedAgreement.contactPersonEmail
+                        )}`}
+                      >
+                        {formatContactEmails(
+                          selectedAgreement.contact_persons_email ||
+                            selectedAgreement.contactPersonEmail
+                        )}
+                      </a>
                     ) : null}
                   </div>
                 </div>
@@ -994,7 +1437,11 @@ const filteredAgreements = useMemo(() => {
               {linkedAgreement && (
                 <section className="modal-section linked-mou">
                   <h4>
-                    <FiLink style={{ marginRight: 8 }} className="inline-icon" /> Linked MOU
+                    <FiLink
+                      style={{ marginRight: 8 }}
+                      className="inline-icon"
+                    />{" "}
+                    Linked MOU
                   </h4>
 
                   <div className="linked-mou-card">
@@ -1003,12 +1450,25 @@ const filteredAgreements = useMemo(() => {
                     </div>
 
                     <div className="linked-mou-body">
-                      <strong className="linked-mou-title">{linkedAgreement.event_title || linkedAgreement.eventTitle}</strong>
-                      <div className="small linked-mou-sub">{linkedAgreement.partnership_type || linkedAgreement.partnershipClassification}</div>
-                      <div className="small linked-mou-valid">
-                        Valid until: {new Date(linkedAgreement.date_expiry || linkedAgreement.expiryDate).toLocaleDateString()}
+                      <strong className="linked-mou-title">
+                        {linkedAgreement.event_title ||
+                          linkedAgreement.eventTitle}
+                      </strong>
+                      <div className="small linked-mou-sub">
+                        {linkedAgreement.partnership_type ||
+                          linkedAgreement.partnershipClassification}
                       </div>
-                      <div className="linked-mou-dts small">{linkedAgreement.dts_number || linkedAgreement.dtsNumber}</div>
+                      <div className="small linked-mou-valid">
+                        Valid until:{" "}
+                        {new Date(
+                          linkedAgreement.date_expiry ||
+                            linkedAgreement.expiryDate
+                        ).toLocaleDateString()}
+                      </div>
+                      <div className="linked-mou-dts small">
+                        {linkedAgreement.dts_number ||
+                          linkedAgreement.dtsNumber}
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1020,19 +1480,38 @@ const filteredAgreements = useMemo(() => {
                 <div className="row two-col">
                   <div>
                     <div className="label">Date of Signing</div>
-                    <div className="value">{new Date(selectedAgreement.date_signed || selectedAgreement.dateOfSigning).toLocaleDateString()}</div>
+                    <div className="value">
+                      {new Date(
+                        selectedAgreement.date_signed ||
+                          selectedAgreement.dateOfSigning
+                      ).toLocaleDateString()}
+                    </div>
                   </div>
                   <div>
                     <div className="label">Expiry Date</div>
-                    <div className="value">{new Date(selectedAgreement.date_expiry || selectedAgreement.expiryDate).toLocaleDateString()}</div>
+                    <div className="value">
+                      {new Date(
+                        selectedAgreement.date_expiry ||
+                          selectedAgreement.expiryDate
+                      ).toLocaleDateString()}
+                    </div>
                   </div>
                   <div>
                     <div className="label">Validity Period</div>
-                    <div className="value">{selectedAgreement.validity_period || selectedAgreement.validityPeriod} years</div>
+                    <div className="value">
+                      {selectedAgreement.validity_period ||
+                        selectedAgreement.validityPeriod}{" "}
+                      years
+                    </div>
                   </div>
                   <div>
                     <div className="label">Status</div>
-                    <div className="value status-pill">{(selectedAgreement.agreement_status || selectedAgreement.status) === "expiring-soon" ? "Expiring soon" : "Active"}</div>
+                    <div className="value status-pill">
+                      {(selectedAgreement.agreement_status ||
+                        selectedAgreement.status) === "expiring-soon"
+                        ? "Expiring soon"
+                        : "Active"}
+                    </div>
                   </div>
                 </div>
               </section>
@@ -1042,7 +1521,11 @@ const filteredAgreements = useMemo(() => {
                 <div className="brief">
                   {Array.isArray(selectedAgreement.remarks) ? (
                     selectedAgreement.remarks.map((r, idx) => (
-                      <div key={idx}>{typeof r === "object" ? r.remark_text || r.text || r.remark || "" : r}</div>
+                      <div key={idx}>
+                        {typeof r === "object"
+                          ? r.remark_text || r.text || r.remark || ""
+                          : r}
+                      </div>
                     ))
                   ) : selectedAgreement.remarks ? (
                     <div>{selectedAgreement.remarks}</div>
@@ -1056,49 +1539,95 @@ const filteredAgreements = useMemo(() => {
             <footer className="agreement-modal-footer">
               {!isModalEdit ? (
                 <>
-                  <button className="btn edit" onClick={startModalEdit}><FiEdit className="icon" /> Edit</button>
+                  <button className="btn edit" onClick={startModalEdit}>
+                    <FiEdit className="icon" /> Edit
+                  </button>
                 </>
               ) : (
                 <div style={{ width: "100%" }} className="modal-edit-panel">
-                    <div className="row two-col" style={{ gap: 12, alignItems: "flex-start" }}>
-                      <div>
-                        <div className="label">Hardcopy Locator</div>
-                        <input
-                          className="edit-input"
-                          value={editForm.hardcopy_location}
-                          onChange={(e) => setEditForm({ ...editForm, hardcopy_location: e.target.value })}
-                          placeholder="Enter hardcopy locator"
-                        />
-                      </div>
+                  <div
+                    className="row two-col"
+                    style={{ gap: 12, alignItems: "flex-start" }}
+                  >
+                    <div>
+                      <div className="label">Hardcopy Locator</div>
+                      <input
+                        className="edit-input"
+                        value={editForm.hardcopy_location}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            hardcopy_location: e.target.value,
+                          })
+                        }
+                        placeholder="Enter hardcopy locator"
+                      />
+                    </div>
 
-                      <div>
-                        <div className="label">Remarks</div>
-                        <div style={{ background: "#fff8dc", padding: "5px" }}>
-                          {Array.isArray(editForm.remarks) && editForm.remarks.length > 0 ? (
-                            editForm.remarks.map((rm, idx) => (
-                              <div key={idx} style={{ display: "flex", alignItems: "center", marginBottom: "5px" }}>
-                                <input
-                                  type="text"
-                                  value={rm}
-                                  onChange={(e) => updateEditRemark(idx, e.target.value)}
-                                  style={{ flex: 1 }}
-                                />
-                                <button onClick={() => removeEditRemark(idx)} style={{ marginLeft: 8 }}>x</button>
-                              </div>
-                            ))
-                          ) : (
-                            <div style={{ color: "#666", fontStyle: "italic" }}>No remarks</div>
-                          )}
-                          <div>
-                            <button onClick={addEditRemark}>+ Add</button>
+                    <div>
+                      <div className="label">Remarks</div>
+                      <div style={{ background: "#fff8dc", padding: "5px" }}>
+                        {Array.isArray(editForm.remarks) &&
+                        editForm.remarks.length > 0 ? (
+                          editForm.remarks.map((rm, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                marginBottom: "5px",
+                              }}
+                            >
+                              <input
+                                type="text"
+                                value={rm}
+                                onChange={(e) =>
+                                  updateEditRemark(idx, e.target.value)
+                                }
+                                style={{ flex: 1 }}
+                              />
+                              <button
+                                onClick={() => removeEditRemark(idx)}
+                                style={{ marginLeft: 8 }}
+                              >
+                                x
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ color: "#666", fontStyle: "italic" }}>
+                            No remarks
                           </div>
+                        )}
+                        <div>
+                          <button onClick={addEditRemark}>+ Add</button>
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12, gap: 8 }}>
-                    <button className="btn save" onClick={saveModalEdits} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-                    <button className="btn cancel" onClick={cancelModalEdit} disabled={saving}>Cancel</button>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      marginTop: 12,
+                      gap: 8,
+                    }}
+                  >
+                    <button
+                      className="btn save"
+                      onClick={saveModalEdits}
+                      disabled={saving}
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      className="btn cancel"
+                      onClick={cancelModalEdit}
+                      disabled={saving}
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
               )}
