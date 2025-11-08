@@ -1147,3 +1147,45 @@
     min-width: unset;
   }
 }
+
+/* Action buttons: withdrawn and activate */
+.overview1-agreements-table .actions-cell .btn-action {
+  display: flex !important;
+  align-items: center !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  border: 1px solid !important;
+  margin-top: 3px !important;
+}
+
+.overview1-agreements-table .actions-cell .btn-action.activate-btn {
+  background: #10b981 !important;
+  color: white !important;
+  border-color: #10b981 !important;
+}
+
+.overview1-agreements-table .actions-cell .btn-action.activate-btn:hover {
+  background: #0da271 !important;
+  border-color: #0da271 !important;
+}
+
+.overview1-agreements-table .actions-cell .btn-action.withdraw-btn {
+  background: #3b82f6 !important;
+  color: white !important;
+  border-color: #3b82f6 !important;
+}
+
+.overview1-agreements-table .actions-cell .btn-action.withdraw-btn:hover {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+.overview1-agreements-table .actions-cell .btn-action svg {
+  width: 14px !important;
+  height: 14px !important;
+  color: inherit !important;
+}

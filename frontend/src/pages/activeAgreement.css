@@ -213,6 +213,83 @@
   gap: 8px;
 }
 
+/* Cohesive row actions (eye + menu) */
+.row-actions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+/* Row overflow menu */
+.row-menu { position: relative; }
+.menu-toggle { padding: 6px 8px; font-size: 16px; }
+.row-menu-panel {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.row-menu-panel .menu-item {
+  color: var(--ga-text);
+  font-weight: 700;
+}
+.row-menu-panel .menu-item:hover {
+  background: #f6f7fb;
+}
+
+/* Linked child MOA buttons styling to match app pills */
+.mou-children-inline {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.linked-child {
+  background: transparent;
+  border: 1px solid rgba(155,30,255,0.08);
+  color: var(--ga-primary);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.linked-child .link-icon { color: var(--ga-primary); font-size: 14px; }
+.linked-child:hover {
+  background: rgba(155,30,255,0.04);
+  box-shadow: 0 6px 18px rgba(155,30,255,0.04);
+}
+.parent-dts-button {
+  /* make parent DTS visually match child pills but with a slightly stronger weight */
+  border-color: rgba(155,30,255,0.12);
+  background: transparent;
+  padding: 6px 10px;
+}
+.parent-dts-button .link-icon { font-size: 14px; }
+.parent-dts-button:hover {
+  background: rgba(155,30,255,0.04);
+}
+.parent-dts {
+  color: var(--ga-primary);
+  font-weight: 800;
+}
+.child-label { white-space: nowrap; }
+
 /* Tooltip for linked MOU (prefixed with agreement-) */
 .agreement-tooltip {
   position: relative;

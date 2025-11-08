@@ -6,6 +6,9 @@ import {
   FiFileText,
   FiArchive,
   FiUpload,
+  FiCheckCircle,
+  FiXCircle,
+  FiPower,
 } from "react-icons/fi";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -209,10 +212,13 @@ const mapAgreement = (a = {}) => {
 
   const _parsed_days = (() => {
     const v = a.days_in_stage;
-    if (typeof v === 'number') return v;
-    if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) return Number(v);
-    if (v && typeof v === 'object' && v instanceof Date && !isNaN(v)) {
-      const diff = Math.floor((Date.now() - v.getTime()) / (1000 * 60 * 60 * 24));
+    if (typeof v === "number") return v;
+    if (typeof v === "string" && v.trim() !== "" && !isNaN(Number(v)))
+      return Number(v);
+    if (v && typeof v === "object" && v instanceof Date && !isNaN(v)) {
+      const diff = Math.floor(
+        (Date.now() - v.getTime()) / (1000 * 60 * 60 * 24)
+      );
       return Math.max(0, diff);
     }
     return 0;
@@ -1805,12 +1811,14 @@ const OverviewMerged = () => {
                       </td>
                       {/* Actions */}
                       <td className="actions-cell">
+                        {/* First row - Regular action buttons */}
                         <div
                           className="action-buttons"
                           style={{
                             display: "flex",
                             gap: 8,
                             alignItems: "center",
+                            marginBottom: 6,
                           }}
                         >
                           <button
@@ -1830,6 +1838,7 @@ const OverviewMerged = () => {
                             <FiTrash2 className="icon" />
                           </button>
 
+                          {/* More options menu */}
                           <div
                             className="dots-menu"
                             style={{ display: "inline-block" }}
@@ -1845,6 +1854,7 @@ const OverviewMerged = () => {
                               <FiMoreVertical className="icon" />
                             </button>
                           </div>
+
                           {menuOpenId === (row._pk ?? row.id) &&
                             createPortal(
                               <div
@@ -1902,41 +1912,55 @@ const OverviewMerged = () => {
                               document.body
                             )}
                         </div>
-                        {/* Activate button rendered below the inline icons */}
-                        {row.status &&
-                          String(row.status).toLowerCase().includes("ffup") && (
-                            <div style={{ marginTop: 6 }}>
+
+                        {/* Second row - Activate and Withdrawn buttons with text AND icons */}
+                        <div
+                          className="action-buttons-secondary"
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            alignItems: "center",
+                          }}
+                        >
+                          {/* Activate button - shown for FFUP status */}
+                          {row.status &&
+                            String(row.status)
+                              .toLowerCase()
+                              .includes("ffup") && (
                               <button
-                                className="btn-action"
+                                className="btn-action activate-btn"
+                                title="Activate Agreement"
                                 onClick={() => {
                                   activateAgreement(row);
                                   setMenuOpenId(null);
                                 }}
                                 aria-label="Activate"
                               >
-                                Activate
+                                <FiCheckCircle style={{ marginRight: 6 }} />
+                                Activate Agreement
                               </button>
-                            </div>
-                          )}
-                        {/* Show Withdrawn action for items delayed one month or more */}
-                        {typeof row.days_in_stage === "number" &&
-                          row.days_in_stage >= 30 &&
-                          !String(row.status || "")
-                            .toLowerCase()
-                            .includes("withdrawn") && (
-                            <div style={{ marginTop: 6 }}>
+                            )}
+
+                          {/* Withdrawn button - for items delayed 30+ days */}
+                          {typeof row.days_in_stage === "number" &&
+                            row.days_in_stage >= 30 &&
+                            !String(row.status || "")
+                              .toLowerCase()
+                              .includes("withdrawn") && (
                               <button
-                                className="btn-action"
+                                className="btn-action withdraw-btn"
+                                title="Mark as Withdrawn"
                                 onClick={() => {
                                   withdrawAgreement(row);
                                   setMenuOpenId(null);
                                 }}
                                 aria-label="Withdraw"
                               >
-                                Withdrawn
+                                <FiXCircle style={{ marginRight: 6 }} />
+                                Mark as Withdrawn
                               </button>
-                            </div>
-                          )}
+                            )}
+                        </div>
                       </td>
                     </tr>
                   ))}

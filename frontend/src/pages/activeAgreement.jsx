@@ -103,6 +103,47 @@ const ActiveAgreement = () => {
 
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState("");
+  // three-dot row menu
+  const [menuOpenId, setMenuOpenId] = useState(null);
+
+  // close menu on outside click
+  useEffect(() => {
+    const handler = () => setMenuOpenId(null);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
+
+  const toggleRowMenu = (id, e) => {
+    // stop the event from bubbling up (prevents row-level click handlers)
+    if (e && e.stopPropagation) e.stopPropagation();
+    setMenuOpenId((prev) => (prev === id ? null : id));
+  };
+
+  const viewAgreementFile = (agreement, which = "latest") => {
+    setMenuOpenId(null);
+    // attempt common fields used in the app to reference files
+    const attachments =
+      agreement?.files || agreement?.attachments || agreement?.documents || [];
+
+    let url = null;
+    if (which === "latest") {
+      url =
+        agreement?.latest_file_url ||
+        agreement?.file_url ||
+        (Array.isArray(attachments) && attachments[0] && (attachments[0].url || attachments[0].file_url));
+    } else {
+      url =
+        agreement?.older_file_url ||
+        (Array.isArray(attachments) && attachments[1] && (attachments[1].url || attachments[1].file_url));
+    }
+
+    if (url) {
+      window.open(url, "_blank");
+    } else {
+      // basic user feedback if no file is available
+      alert("No file found for this agreement.");
+    }
+  };
 
   const [isModalEdit, setIsModalEdit] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -933,6 +974,16 @@ const ActiveAgreement = () => {
                                 x.linkedMouId === parentId
                             )
                           : null;
+                        // find children (MOAs) that link to this agreement (useful when this row is an MOU)
+                        const keyId = a.id || a.agreement_id;
+                        const childrenOfThis = Array.isArray(agreements)
+                          ? agreements.filter(
+                              (c) =>
+                                getLinkedId(c) === keyId ||
+                                c.linkedMouId === keyId ||
+                                c.MOU_to_MOA_id === keyId
+                            )
+                          : [];
                         return (
                           <tr key={a.id || i}>
                             <td>
@@ -989,16 +1040,19 @@ const ActiveAgreement = () => {
                             <td className="connection">
                               {parentId ? (
                                 <span className="agreement-tooltip">
-                                  <a
-                                    href={`#${parentId}`}
-                                    className="linked"
+                                  <button
+                                    type="button"
+                                    className="linked linked-child parent-dts-button"
                                     aria-describedby={`agreement-tooltip-${
                                       a.id || i
                                     }`}
+                                    onClick={() => setSelectedAgreement(parent)}
+                                    aria-label={`View linked MOU ${parent?.dts_number || parent?.dtsNumber || parentId}`}
+                                    title={parent?.dts_number || parent?.dtsNumber || parentId}
                                   >
                                     <FiLink className="link-icon" />
-                                    Linked to MOU
-                                  </a>
+                                    <span className="parent-dts">{parent?.dts_number || parent?.dtsNumber || parentId}</span>
+                                  </button>
 
                                   <div
                                     id={`agreement-tooltip-${a.id || i}`}
@@ -1006,7 +1060,7 @@ const ActiveAgreement = () => {
                                     role="tooltip"
                                   >
                                     <div className="agreement-dts">
-                                      DTS:{" "}
+                                      DTS: {" "}
                                       <strong>
                                         {parent?.dts_number ||
                                           parent?.dtsNumber ||
@@ -1019,7 +1073,7 @@ const ActiveAgreement = () => {
                                         "No title available"}
                                     </div>
                                     <div className="agreement-expiry">
-                                      Expires:{" "}
+                                      Expires: {" "}
                                       <strong>
                                         {parent?.date_expiry
                                           ? new Date(
@@ -1036,6 +1090,32 @@ const ActiveAgreement = () => {
                                 </span>
                               ) : String(
                                   a.document_type || a.documentType
+                                ).toUpperCase() === "MOU" &&
+                                childrenOfThis.length > 0 ? (
+                                // This row is an MOU and it has linked MOAs — render each child as its own clickable button
+                                <div
+                                  className="mou-children-inline"
+                                  role="group"
+                                  aria-label={`${childrenOfThis.length} linked MOAs`}
+                                >
+                                  {childrenOfThis.map((ch, idx) => (
+                                    <button
+                                      key={ch.id || ch.agreement_id || idx}
+                                      type="button"
+                                      className="linked linked-child"
+                                      onClick={() => setSelectedAgreement(ch)}
+                                      aria-label={`View linked MOA ${ch.dts_number || ch.event_title || idx + 1}`}
+                                      title={ch.event_title || ch.dts_number || `MOA ${idx + 1}`}
+                                    >
+                                      <FiLink className="link-icon" />
+                                      <span className="child-label">
+                                        {ch.dts_number || ch.event_title || `MOA ${idx + 1}`}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : String(
+                                  a.document_type || a.documentType
                                 ).toUpperCase() === "MOA" ? (
                                 <span className="independent">Independent</span>
                               ) : (
@@ -1044,13 +1124,85 @@ const ActiveAgreement = () => {
                             </td>
 
                             <td>
-                              <button
-                                className="icon-btn"
-                                onClick={() => setSelectedAgreement(a)}
-                                aria-label="View details"
-                              >
-                                <FiEye className="icon" />
-                              </button>
+                              <div className="row-actions" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                <button
+                                  className="icon-btn"
+                                  onClick={() => setSelectedAgreement(a)}
+                                  aria-label="View details"
+                                  title="View details"
+                                >
+                                  <FiEye className="icon" />
+                                </button>
+
+                                {/* three-dot menu button */}
+                                <div className="row-menu" style={{ position: "relative" }}>
+                                  <button
+                                    className="icon-btn menu-toggle"
+                                    onClick={(e) => toggleRowMenu(a.id || i, e)}
+                                    aria-haspopup="true"
+                                    aria-expanded={menuOpenId === (a.id || i)}
+                                    title="More"
+                                  >
+                                    {/* Use a simple ellipsis glyph; CSS can replace with an icon */}
+                                    <span style={{ fontSize: 18 }}>⋯</span>
+                                  </button>
+
+                                  {menuOpenId === (a.id || i) && (
+                                    <div
+                                      className="row-menu-panel"
+                                      role="menu"
+                                      style={{
+                                        position: "absolute",
+                                        right: 0,
+                                        top: "28px",
+                                        background: "#fff",
+                                        border: "1px solid rgba(0,0,0,0.08)",
+                                        boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                                        zIndex: 60,
+                                        minWidth: 160,
+                                        padding: 6,
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <button
+                                        type="button"
+                                        className="menu-item"
+                                        role="menuitem"
+                                        onClick={() => viewAgreementFile(a, "latest")}
+                                        style={{
+                                          display: "block",
+                                          width: "100%",
+                                          padding: "8px 10px",
+                                          textAlign: "left",
+                                          background: "transparent",
+                                          border: "none",
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        View file
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        className="menu-item"
+                                        role="menuitem"
+                                        onClick={() => viewAgreementFile(a, "older")}
+                                        style={{
+                                          display: "block",
+                                          width: "100%",
+                                          padding: "8px 10px",
+                                          textAlign: "left",
+                                          background: "transparent",
+                                          border: "none",
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        View older file
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                           </tr>
                         );
