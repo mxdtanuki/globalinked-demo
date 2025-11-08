@@ -329,7 +329,7 @@ const MOUMOAPublicPage = () => {
           <div className="moumoa-loading-spinner">
             <div className="moumoa-spinner-ring"></div>
           </div>
-          <p className="moumoa-loading-text">Loading partnership data...</p>
+          <p className="moumoa-loading-text">Loading, please wait...</p>
         </div>
       </div>
     );

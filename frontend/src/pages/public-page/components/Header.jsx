@@ -106,13 +106,25 @@ export default function Header() {
                 ABOUT
               </button>
 
-              <Link to="/mou-moa" className="nav-item">
+              <button
+                className="nav-item"
+                onClick={() => {
+                  navigate("/mou-moa");
+                  setIsMobileMenuOpen(false);
+                }}
+              >
                 MOUs/MOAs
-              </Link>
+              </button>
 
-              <Link to="/templates" className="nav-item">
-                TEMPLATES
-              </Link>
+              <button
+                className="nav-item"
+                onClick={() => {
+                  navigate("/templates");
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                AGREEMENT TEMPLATES
+              </button>
 
               <button
                 className="nav-item"
