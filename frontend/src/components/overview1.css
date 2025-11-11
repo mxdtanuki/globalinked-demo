@@ -10,7 +10,7 @@
   min-height: calc(100vh - 120px);
   position: relative;
   box-sizing: border-box;
-}
+} 
 
 /* may outer scroll bar (vertical), no inner
 .overview1-page .overview1-inner {
@@ -98,6 +98,38 @@
   margin-top: 6px;
 }
 
+/* New styles: show 'pending' / 'needs-attention' summary cards in the
+   maroon/pale-pink theme (matches pasted image). When the card has both the
+   status class (pending / needs-attention) and is marked active, this
+   styling will apply. */
+.overview1-summary-card.pending.active,
+.overview1-summary-card.needs-attention.active {
+  background: linear-gradient(180deg, #fff6f4, #fff0ee); /* pale pink gradient */
+  border-color: rgba(139, 31, 45, 0.22); /* maroon-ish border */
+  box-shadow: 0 8px 26px rgba(139, 31, 45, 0.06);
+  color: #7a1f2f; /* heading / text tint */
+  transform: translateY(-2px);
+  /* Disable the generic summary-card pulse animation for these specific cards */
+  animation: none !important;
+}
+
+.overview1-summary-card.pending.active .summary-title,
+.overview1-summary-card.needs-attention.active .summary-title {
+  color: #7a1f2f;
+}
+
+.overview1-summary-card.pending.active .summary-number,
+.overview1-summary-card.needs-attention.active .summary-number {
+  color: #d14f3b; /* reddish number color like the screenshot */
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.overview1-summary-card.pending.active .summary-sub,
+.overview1-summary-card.needs-attention.active .summary-sub {
+  color: #8b4a4a;
+}
+
 .overview1-controls-row {
   display: flex;
   gap: 12px;
@@ -112,11 +144,16 @@
   background: #fafafa;
 }
 .btn.generate {
-  padding: 10px 14px;
+  /* Match appearance of the Filters button */
+  padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid #eee;
   background: #fff;
+  color: #333;
   cursor: pointer;
+  font-weight: 600; /* same as .overview1-filter-btn */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
 }
 
 .overview1-filters-row {
@@ -259,6 +296,53 @@
   border-color: #eee;
 }
 
+/* Additional status-specific colors to make Current Status column identifiable */
+.overview1-page .overview1-agreements-table .status-badge.status-endorse {
+  background: #e8f4ff;
+  color: #155ec4;
+  border-color: rgba(30, 115, 255, 0.08);
+}
+.overview1-page .overview1-agreements-table .status-badge.status-revert {
+  background: #fff2f0;
+  color: #b83b2f;
+  border-color: rgba(184, 59, 47, 0.08);
+}
+.overview1-page .overview1-agreements-table .status-badge.status-consultation {
+  background: #fff8e6;
+  color: #a36100;
+  border-color: rgba(163, 97, 0, 0.06);
+}
+.overview1-page .overview1-agreements-table .status-badge.status-replication {
+  background: #f0fff4;
+  color: #1f8a3a;
+  border-color: rgba(31, 138, 58, 0.08);
+}
+.overview1-page .overview1-agreements-table .status-badge.status-signiturespup {
+  background: #fff6e8;
+  color: #a36100;
+  border-color: rgba(163, 97, 0, 0.06);
+}
+.overview1-page .overview1-agreements-table .status-badge.status-signedpup {
+  background: #e6fff0;
+  color: #0f6f40;
+  border-color: rgba(15, 111, 64, 0.08);
+}
+.overview1-page .overview1-agreements-table .status-badge.status-signiturespartner {
+  background: #f7eef6;
+  color: #6b2a6b;
+  border-color: rgba(107, 42, 107, 0.06);
+}
+.overview1-page .overview1-agreements-table .status-badge.status-signedpartner {
+  background: #eef6ff;
+  color: #1e73ff;
+  border-color: rgba(30, 115, 255, 0.08);
+}
+.overview1-page .overview1-agreements-table .status-badge.status-ffupcopy {
+  background: #f5f7fa;
+  color: #4a5568;
+  border-color: rgba(74,85,104,0.06);
+}
+
 /* Pagination  */
 .overview1-pagination-row {
   display: flex;
@@ -352,6 +436,103 @@
 .overview1-modal-body {
   padding: 0 16px 16px 16px;
   overflow: auto;
+}
+
+/* Report Generator card (matches pasted design) */
+.report-generator-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 6px 30px rgba(139, 31, 45, 0.06);
+  border: 1px solid rgba(139,31,45,0.06);
+}
+.report-generator-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.report-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(139,31,45,0.06), rgba(255,255,255,0.6));
+  font-size: 20px;
+}
+.report-titles .report-title {
+  font-weight: 700;
+  color: #7a1f2f;
+  font-size: 18px;
+}
+.report-titles .report-sub {
+  color: #6b6b6b;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.report-controls {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.report-controls select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  min-width: 220px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.report-buttons {
+  display: flex;
+  gap: 10px;
+}
+.btn.report-generate {
+  background: #7a1f2f;
+  color: #fff;
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  box-shadow: 0 4px 14px rgba(122,31,47,0.08);
+}
+.btn.report-download {
+  background: #fff;
+  color: #7a1f2f;
+  border: 1px solid rgba(122,31,47,0.12);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.report-selected-line {
+  margin-top: 10px;
+  color: #333;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* small responsive tweak for report modal */
+@media (max-width:640px) {
+  .report-controls { flex-direction: column; align-items: stretch; }
+  .report-buttons { justify-content: flex-start; }
+  .report-icon { display:none; }
+}
+.report-selected-line .sel-text {
+  color: #6b6b6b;
+  margin-left: 6px;
+  font-weight: 600;
 }
 
 /* two-column   */
@@ -1015,9 +1196,26 @@
 }
 
 .overview1-summary-card.active {
-  border-color: rgba(139, 31, 45, 0.18);
-  box-shadow: 0 10px 28px rgba(139, 31, 45, 0.06);
+  /* Make the active summary card (Needs Attention) clearly visible */
+  background: linear-gradient(180deg, #fff6f6, #fff0f0);
+  border-color: #c92a2a;
+  box-shadow: 0 12px 36px rgba(201, 42, 42, 0.18), 0 4px 12px rgba(0,0,0,0.04);
   transform: translateY(-3px);
+  animation: summary-card-pulse 1.6s ease-in-out infinite;
+}
+
+.overview1-summary-card.active .summary-title {
+  color: #8b1f2d;
+  font-weight: 700;
+}
+.overview1-summary-card.active .summary-number {
+  color: #b82a2a;
+}
+
+@keyframes summary-card-pulse {
+  0% { box-shadow: 0 12px 36px rgba(201,42,42,0.18), 0 4px 12px rgba(0,0,0,0.04); transform: translateY(-2px); }
+  50% { box-shadow: 0 22px 60px rgba(201,42,42,0.24), 0 6px 18px rgba(0,0,0,0.06); transform: translateY(-6px); }
+  100% { box-shadow: 0 12px 36px rgba(201,42,42,0.18), 0 4px 12px rgba(0,0,0,0.04); transform: translateY(-2px); }
 }
 
 .overview1-summary-card[disabled],

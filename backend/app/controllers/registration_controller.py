@@ -44,57 +44,37 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered"
             )
-
+    # Create the user
     new_user = Users(
         user_name=user.user_name,
-        user_pass=hash_password(user.user_pass), # Hash the password before storing
-        user_profile_img=user.user_profile_img,
+        user_pass=hash_password(user.user_pass),
         user_position=user.user_position,
-        user_role=user_role, 
-        user_status="pending"  # default until admin approval
+        user_role=user_role,
+        user_status="pending"
     )
-
     if hasattr(user, 'user_email') and user.user_email:
-         new_user.user_email = user.user_email
+        new_user.user_email = user.user_email
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
-    # Send notification to system
+    # Send notification to system (one for all admins, not per-admin)
     try:
-        # Get all admin users
-        admin_users = db.query(Users).filter(Users.user_role == "admin").all()
-        print(f"🔍 Found {len(admin_users)} admin users for notification")
-        
-        if len(admin_users) == 0:
-            print("WARNING: No admin users found - no notifications will be created!")
-        
-        notification_count = 0
-        
-        for admin in admin_users:
-            print(f"Creating notification for admin: {admin.user_name} (ID: {admin.user_id})")
-            
-            # Create notification for each admin
-            result = create_notification_if_new(
-                db=db,
-                agreement_id=None, 
-                category="user_registration",
-                message=f"New user registration: {new_user.user_name} ({new_user.user_position}) is requesting access to the system.",
-                recommended_action=f"Review and approve/reject {new_user.user_name}'s registration request in User Management.",
-                user_id=admin.user_id
-            )
-            
-            if result:
-                notification_count += 1
-                print(f"Notification created successfully (ID: {result.notification_id})")
-            else:
-                print(f"Notification already exists or failed for admin {admin.user_name}")
-        
-        print(f"🎉 TOTAL: {notification_count} new notifications created for {len(admin_users)} admins")
-        
+        result = create_notification_if_new(
+            db=db,
+            agreement_id=None,
+            category="user_registration",
+            message=f"New user registration: {new_user.user_name} ({new_user.user_position}) is requesting access to the system.",
+            recommended_action=f"Review and approve/reject {new_user.user_name}'s registration request in User Management.",
+            user_id=None  # System-wide notification
+        )
+        if result:
+            print(f"System notification created for user registration (ID: {result.notification_id})")
+        else:
+            print("System notification already exists or failed")
     except Exception as e:
-        print(f"Failed to create admin notifications: {e}")
+        print(f"Failed to create system notification: {e}")
         import traceback
         print(f"Full error: {traceback.format_exc()}")
         # Don't fail registration if notification creation fails

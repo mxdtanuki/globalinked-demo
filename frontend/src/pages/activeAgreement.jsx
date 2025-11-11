@@ -13,6 +13,8 @@ import {
   FiX,
   FiEdit,
   FiAlertCircle,
+  FiGlobe,
+  FiCalendar,
 } from "react-icons/fi";
 import { TbFileText } from "react-icons/tb";
 import { agreementService } from "../services/agreementService";
@@ -28,6 +30,10 @@ const ActiveAgreement = () => {
   const itemsPerPage = 5;
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [agreements, setAgreements] = useState([]);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [filterValidityPeriod, setFilterValidityPeriod] = useState("");
+  const [filterClassification, setFilterClassification] = useState("");
+  const [filterCountryScope, setFilterCountryScope] = useState("all"); // all | local | international
 
   const API_BASE_URL =
     process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
@@ -130,11 +136,15 @@ const ActiveAgreement = () => {
       url =
         agreement?.latest_file_url ||
         agreement?.file_url ||
-        (Array.isArray(attachments) && attachments[0] && (attachments[0].url || attachments[0].file_url));
+        (Array.isArray(attachments) &&
+          attachments[0] &&
+          (attachments[0].url || attachments[0].file_url));
     } else {
       url =
         agreement?.older_file_url ||
-        (Array.isArray(attachments) && attachments[1] && (attachments[1].url || attachments[1].file_url));
+        (Array.isArray(attachments) &&
+          attachments[1] &&
+          (attachments[1].url || attachments[1].file_url));
     }
 
     if (url) {
@@ -151,6 +161,7 @@ const ActiveAgreement = () => {
     remarks: [],
   });
   const [saving, setSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     if (selectedAgreement) {
@@ -164,6 +175,15 @@ const ActiveAgreement = () => {
       document.body.style.overflow = "";
     };
   }, [selectedAgreement]);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+    } catch (e) {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedAgreement) {
@@ -185,6 +205,23 @@ const ActiveAgreement = () => {
   const closeModal = () => setSelectedAgreement(null);
 
   const startModalEdit = () => {
+    // Only allow administrators to edit
+    const isAdminUser = (user = currentUser) => {
+      const u = user || currentUser;
+      if (!u) return false;
+      if (u.is_admin || u.isAdmin) return true;
+      if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
+      if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
+      if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
+      if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
+      if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+      return false;
+    };
+    if (!isAdminUser()) {
+      alert("Only administrators may edit agreements.");
+      return;
+    }
+
     setIsModalEdit(true);
     setEditForm({
       hardcopy_location:
@@ -208,6 +245,22 @@ const ActiveAgreement = () => {
 
   const saveModalEdits = async () => {
     if (!selectedAgreement) return;
+    // admin-only
+    const isAdminUser = (user = currentUser) => {
+      const u = user || currentUser;
+      if (!u) return false;
+      if (u.is_admin || u.isAdmin) return true;
+      if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
+      if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
+      if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
+      if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
+      if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+      return false;
+    };
+    if (!isAdminUser()) {
+      alert("Only administrators may save changes.");
+      return;
+    }
     const id = selectedAgreement.agreement_id ?? selectedAgreement.id;
     // Build remarks payload to match existing server shape when possible
     const existingRemarks = selectedAgreement?.remarks;
@@ -380,7 +433,33 @@ const ActiveAgreement = () => {
     return daysDiff > 0 && daysDiff <= 90;
   });
 
-  const filteredAgreements = useMemo(() => {
+  
+
+  // derived options for validity period select (from activeAgreements)
+  const validityOptions = useMemo(() => {
+    const s = new Set();
+    for (const a of activeAgreements) if (a.validity_period) s.add(String(a.validity_period));
+    return Array.from(s).sort();
+  }, [activeAgreements]);
+
+  // derived options for partnership classification (from activeAgreements)
+  // Accept multiple possible field names that may come from the API/schema
+  const classificationOptions = useMemo(() => {
+    const s = new Set();
+    for (const a of activeAgreements) {
+      const v =
+        a.partnership_classification ??
+        a.partnership_type ??
+        a.partnershipClassification ??
+        a.partnershipType ??
+        null;
+      if (v !== null && v !== undefined && String(v).trim() !== "") s.add(String(v));
+    }
+    return Array.from(s).sort();
+  }, [activeAgreements]);
+
+  // recompute filteredAgreements with the additional filters (validity period and country scope)
+  const filteredAgreementsWithFilters = useMemo(() => {
     return activeAgreements
       .filter((a) => {
         if (filter === "moa")
@@ -400,27 +479,46 @@ const ActiveAgreement = () => {
       })
       .filter((a) => {
         const q = debouncedSearchQuery.trim().toLowerCase(); // Use debounced value
-        if (!q) return true;
-        const fields = [
-          a.dts_number,
-          a.event_title,
-          a.name,
-          a.source_unit || a.source || a.initiating_unit,
-          a.country,
-          a.document_type,
-          a.partnership_type,
-          a.brief_profile,
-          Array.isArray(a.remarks) ? a.remarks.join(" ") : a.remarks,
-        ];
-        return fields.some((f) => f && f.toString().toLowerCase().includes(q));
+        if (q) {
+          const fields = [
+            a.dts_number,
+            a.event_title,
+            a.name,
+            a.source_unit || a.source || a.initiating_unit,
+            a.country,
+            a.document_type,
+            a.partnership_type,
+            a.brief_profile,
+            Array.isArray(a.remarks) ? a.remarks.join(" ") : a.remarks,
+          ];
+          if (!fields.some((f) => f && f.toString().toLowerCase().includes(q))) return false;
+        }
+        // apply partnership classification filter if set (check multiple possible fields)
+        if (filterClassification) {
+          const classific =
+            (a.partnership_classification ?? a.partnership_type ?? a.partnershipClassification ?? a.partnershipType ?? "").toString();
+          if (classific !== String(filterClassification)) return false;
+        }
+        // apply validity period filter if set
+        if (filterValidityPeriod) {
+          if (String(a.validity_period) !== String(filterValidityPeriod)) return false;
+        }
+        // apply country scope
+        if (filterCountryScope && filterCountryScope !== "all") {
+          const country = (a.country || "").toString().toLowerCase();
+          const isPH = country.includes("philipp") || country === "ph" || country === "philippines";
+          if (filterCountryScope === "local" && !isPH) return false;
+          if (filterCountryScope === "international" && isPH) return false;
+        }
+        return true;
       });
-  }, [activeAgreements, filter, debouncedSearchQuery]); // Depend on debouncedSearchQuery and other relevant states
+  }, [activeAgreements, filter, debouncedSearchQuery, filterClassification, filterValidityPeriod, filterCountryScope]);
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredAgreements.length / itemsPerPage)
+    Math.ceil(filteredAgreementsWithFilters.length / itemsPerPage)
   );
-  const paginatedAgreements = filteredAgreements.slice(
+  const paginatedAgreements = filteredAgreementsWithFilters.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -718,6 +816,35 @@ const ActiveAgreement = () => {
     URL.revokeObjectURL(url);
   };
 
+  if (error) {
+    return <div className="overview-container">Error: {error}</div>;
+  }
+
+  if (loading) {
+    return (
+      <div className="dashboard-container active-agreements-page">
+        <TopBar toggleSidebar={toggleMobileSidebar} />
+        {mobileShow && (
+          <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />
+        )}
+
+        <div className="content-body">
+          <Sidebar mobileShow={mobileShow} />
+
+          <div
+            className="main-content"
+            onClick={() => mobileShow && setMobileShow(false)}
+          >
+            <div className="lloading-container" style={{ padding: 40, textAlign: "center" }}>
+              <div className="spinner" style={{ margin: "0 auto 12px" }} />
+              <p>Loading agreements...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container active-agreements-page">
       <TopBar toggleSidebar={toggleMobileSidebar} />
@@ -760,55 +887,130 @@ const ActiveAgreement = () => {
             {/* === Agreement Table Section === */}
             <div className="activeAgreement-table-section">
               <div className="table-controls">
-                <div className="table-search">
-                  <input
-                    type="search"
-                    placeholder="Search DTS, title, partner, source..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search agreements"
-                  />
-                  {searchQuery && (
+                <div className="table-search-wrapper" style={{ position: "relative" }}>
+                  <div className="table-search" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="search"
+                      placeholder="Search DTS, partner, type..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      aria-label="Search agreements"
+                      style={{ flex: 1 }}
+                    />
+                    {searchQuery && (
+                      <button
+                        className="clear-search"
+                        onClick={() => setSearchQuery("")}
+                        aria-label="Clear search"
+                      >
+                        <FiX />
+                      </button>
+                    )}
                     <button
-                      className="clear-search"
-                      onClick={() => setSearchQuery("")}
-                      aria-label="Clear search"
+                      type="button"
+                      className={`btn ${showFilterPanel ? "active" : ""}`}
+                      onClick={() => setShowFilterPanel((v) => !v)}
+                      aria-expanded={showFilterPanel}
                     >
-                      <FiX className="icon" />
+                      Filters
                     </button>
-                  )}
+                  </div>
                 </div>
-
-                <div className="activeAgreement-tabs">
-                  <button
-                    className={filter === "all" ? "active" : ""}
-                    onClick={() => setFilter("all")}
-                  >
-                    All Agreements
-                  </button>
-                  <button
-                    className={filter === "moa" ? "active" : ""}
-                    onClick={() => setFilter("moa")}
-                  >
-                    MOA
-                  </button>
-                  <button
-                    className={filter === "mou" ? "active" : ""}
-                    onClick={() => setFilter("mou")}
-                  >
-                    MOU
-                  </button>
-                  <button
-                    className={filter === "linked" ? "active" : ""}
-                    onClick={() => setFilter("linked")}
-                  >
-                    Linked Agreements
-                  </button>
+                <div className="table-actions">
+                  <div className="filter-tabs">
+                    <button
+                      className={filter === "all" ? "active" : ""}
+                      onClick={() => setFilter("all")}
+                    >
+                      All Active Agreements
+                    </button>
+                    <button
+                      className={filter === "moa" ? "active" : ""}
+                      onClick={() => setFilter("moa")}
+                    >
+                      MOA
+                    </button>
+                    <button
+                      className={filter === "mou" ? "active" : ""}
+                      onClick={() => setFilter("mou")}
+                    >
+                      MOU
+                    </button>
+                    <button
+                      className={filter === "linked" ? "active" : ""}
+                      onClick={() => setFilter("linked")}
+                    >
+                      Linked Agreements
+                    </button>
+                  </div>
                 </div>
               </div>
 
+              {/* Inline filter panel (rendered below search + tabs when open) */}
+              {showFilterPanel && (
+                <div className="overview1-filter-panel" style={{ marginTop: 12 }}>
+                  <div className="overview1-panel-row">
+                    <div className="overview1-panel-field">
+                      <label>Partnership Classification</label>
+                      <select
+                        value={filterClassification}
+                        onChange={(e) => { setFilterClassification(e.target.value); setCurrentPage(1); }}
+                      >
+                        <option value="">Select Classification</option>
+                        {classificationOptions.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="overview1-panel-field">
+                      <label>Validity Period</label>
+                      <select
+                        value={filterValidityPeriod}
+                        onChange={(e) => { setFilterValidityPeriod(e.target.value); setCurrentPage(1); }}
+                      >
+                        <option value="">Select Validity</option>
+                        {validityOptions.map((v) => (
+                          <option key={v} value={v}>{v}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="overview1-panel-field">
+                      <label>Country</label>
+                      <select
+                        value={filterCountryScope}
+                        onChange={(e) => { setFilterCountryScope(e.target.value); setCurrentPage(1); }}
+                      >
+                        <option value="all">Select Country</option>
+                        <option value="local">Local (Philippines)</option>
+                        <option value="international">International</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="overview1-filter-actions">
+                    <button
+                      className="btn clear"
+                      onClick={() => { setFilterClassification(""); setFilterValidityPeriod(""); setFilterCountryScope("all"); setShowFilterPanel(false); setCurrentPage(1); }}
+                    >
+                      Clear
+                    </button>
+                    <button
+                      className="btn apply"
+                      onClick={() => setShowFilterPanel(false)}
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <h3 className="section-title">
-                Agreements ({filteredAgreements.length})
+                Agreements ({filteredAgreementsWithFilters.length})
               </h3>
               {filter === "linked" ? (
                 (() => {
@@ -1013,7 +1215,17 @@ const ActiveAgreement = () => {
                             <td>
                               <div>
                                 <b>{a.name || a.partnerName}</b>
-                                <div className="small">{a.country}</div>
+                                <div
+                                  className="small"
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                  }}
+                                >
+                                  <FiGlobe className="inline-icon" />
+                                  {a.country}
+                                </div>
                               </div>
                             </td>
 
@@ -1022,9 +1234,18 @@ const ActiveAgreement = () => {
                             </td>
 
                             <td>
-                              {new Date(
-                                a.date_expiry || a.expiryDate
-                              ).toDateString()}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                }}
+                              >
+                                <FiCalendar className="inline-icon" />
+                                {new Date(
+                                  a.date_expiry || a.expiryDate
+                                ).toDateString()}
+                              </div>
                             </td>
 
                             <td>
@@ -1047,11 +1268,23 @@ const ActiveAgreement = () => {
                                       a.id || i
                                     }`}
                                     onClick={() => setSelectedAgreement(parent)}
-                                    aria-label={`View linked MOU ${parent?.dts_number || parent?.dtsNumber || parentId}`}
-                                    title={parent?.dts_number || parent?.dtsNumber || parentId}
+                                    aria-label={`View linked MOU ${
+                                      parent?.dts_number ||
+                                      parent?.dtsNumber ||
+                                      parentId
+                                    }`}
+                                    title={
+                                      parent?.dts_number ||
+                                      parent?.dtsNumber ||
+                                      parentId
+                                    }
                                   >
                                     <FiLink className="link-icon" />
-                                    <span className="parent-dts">{parent?.dts_number || parent?.dtsNumber || parentId}</span>
+                                    <span className="parent-dts">
+                                      {parent?.dts_number ||
+                                        parent?.dtsNumber ||
+                                        parentId}
+                                    </span>
                                   </button>
 
                                   <div
@@ -1060,7 +1293,7 @@ const ActiveAgreement = () => {
                                     role="tooltip"
                                   >
                                     <div className="agreement-dts">
-                                      DTS: {" "}
+                                      DTS:{" "}
                                       <strong>
                                         {parent?.dts_number ||
                                           parent?.dtsNumber ||
@@ -1073,7 +1306,7 @@ const ActiveAgreement = () => {
                                         "No title available"}
                                     </div>
                                     <div className="agreement-expiry">
-                                      Expires: {" "}
+                                      Expires:{" "}
                                       <strong>
                                         {parent?.date_expiry
                                           ? new Date(
@@ -1104,12 +1337,22 @@ const ActiveAgreement = () => {
                                       type="button"
                                       className="linked linked-child"
                                       onClick={() => setSelectedAgreement(ch)}
-                                      aria-label={`View linked MOA ${ch.dts_number || ch.event_title || idx + 1}`}
-                                      title={ch.event_title || ch.dts_number || `MOA ${idx + 1}`}
+                                      aria-label={`View linked MOA ${
+                                        ch.dts_number ||
+                                        ch.event_title ||
+                                        idx + 1
+                                      }`}
+                                      title={
+                                        ch.event_title ||
+                                        ch.dts_number ||
+                                        `MOA ${idx + 1}`
+                                      }
                                     >
                                       <FiLink className="link-icon" />
                                       <span className="child-label">
-                                        {ch.dts_number || ch.event_title || `MOA ${idx + 1}`}
+                                        {ch.dts_number ||
+                                          ch.event_title ||
+                                          `MOA ${idx + 1}`}
                                       </span>
                                     </button>
                                   ))}
@@ -1124,7 +1367,14 @@ const ActiveAgreement = () => {
                             </td>
 
                             <td>
-                              <div className="row-actions" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                              <div
+                                className="row-actions"
+                                style={{
+                                  display: "flex",
+                                  gap: 8,
+                                  alignItems: "center",
+                                }}
+                              >
                                 <button
                                   className="icon-btn"
                                   onClick={() => setSelectedAgreement(a)}
@@ -1135,7 +1385,10 @@ const ActiveAgreement = () => {
                                 </button>
 
                                 {/* three-dot menu button */}
-                                <div className="row-menu" style={{ position: "relative" }}>
+                                <div
+                                  className="row-menu"
+                                  style={{ position: "relative" }}
+                                >
                                   <button
                                     className="icon-btn menu-toggle"
                                     onClick={(e) => toggleRowMenu(a.id || i, e)}
@@ -1157,7 +1410,8 @@ const ActiveAgreement = () => {
                                         top: "28px",
                                         background: "#fff",
                                         border: "1px solid rgba(0,0,0,0.08)",
-                                        boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                                        boxShadow:
+                                          "0 6px 18px rgba(0,0,0,0.08)",
                                         zIndex: 60,
                                         minWidth: 160,
                                         padding: 6,
@@ -1168,7 +1422,9 @@ const ActiveAgreement = () => {
                                         type="button"
                                         className="menu-item"
                                         role="menuitem"
-                                        onClick={() => viewAgreementFile(a, "latest")}
+                                        onClick={() =>
+                                          viewAgreementFile(a, "latest")
+                                        }
                                         style={{
                                           display: "block",
                                           width: "100%",
@@ -1186,7 +1442,9 @@ const ActiveAgreement = () => {
                                         type="button"
                                         className="menu-item"
                                         role="menuitem"
-                                        onClick={() => viewAgreementFile(a, "older")}
+                                        onClick={() =>
+                                          viewAgreementFile(a, "older")
+                                        }
                                         style={{
                                           display: "block",
                                           width: "100%",
@@ -1284,10 +1542,31 @@ const ActiveAgreement = () => {
                     </div>
                   </div>
                   <p>
-                    <b>Partner:</b> {a.name || a.partnerName}
+                    <b>Partner:</b>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        marginLeft: "4px",
+                      }}
+                    >
+                      <FiGlobe className="inline-icon" />
+                      {a.name || a.partnerName}
+                    </span>
                     <br />
                     <b>Expires:</b>{" "}
-                    {new Date(a.date_expiry || a.expiryDate).toDateString()}
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        marginLeft: "4px",
+                      }}
+                    >
+                      <FiCalendar className="inline-icon" />
+                      {new Date(a.date_expiry || a.expiryDate).toDateString()}
+                    </span>
                     <br />
                     <b>Source:</b>{" "}
                     {a.source_unit || a.source || a.initiating_unit} •{" "}
@@ -1691,9 +1970,25 @@ const ActiveAgreement = () => {
             <footer className="agreement-modal-footer">
               {!isModalEdit ? (
                 <>
-                  <button className="btn edit" onClick={startModalEdit}>
-                    <FiEdit className="icon" /> Edit
-                  </button>
+                  {/** Show Edit only to admins */}
+                  {(() => {
+                    const isAdminUser = (user = currentUser) => {
+                      const u = user || currentUser;
+                      if (!u) return false;
+                      if (u.is_admin || u.isAdmin) return true;
+                      if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
+                      if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
+                      if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
+                      if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
+                      if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+                      return false;
+                    };
+                    return isAdminUser() ? (
+                      <button className="btn edit" onClick={startModalEdit}>
+                        <FiEdit className="icon" /> Edit
+                      </button>
+                    ) : null;
+                  })()}
                 </>
               ) : (
                 <div style={{ width: "100%" }} className="modal-edit-panel">

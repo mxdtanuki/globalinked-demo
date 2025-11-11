@@ -66,15 +66,201 @@
   font-weight: 600;
 }
 
+/* Archive-style table controls */
+.table-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.table-search-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+}
+
+.table-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 150p !important;
+  flex: 1;
+  max-width: 400px;
+}
+
+.table-search input[type="search"] {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e6e6;
+  width: 100%;
+  font-size: 14px;
+  outline: none;
+  transition: box-shadow .12s ease;
+  background: #fff;
+}
+
+.table-search input[type="search"]:focus {
+  box-shadow: 0 6px 18px rgba(139,31,45,0.08);
+  border-color: var(--ga-primary);
+}
+
+/* Filter panel shown near the search box */
+.filter-panel {
+  background: #fff;
+  border: 1px solid #eef1f4;
+  padding: 18px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(16, 20, 30, 0.06);
+  min-width: 680px; /* ensure it feels wide like the mock */
+  max-width: 980px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.filter-panel .filter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.filter-panel label {
+  color: #666;
+  font-weight: 400; /* not bold */
+  font-size: 14px;
+  display: block;
+  margin-bottom: 8px;
+}
+.filter-panel select,
+.filter-panel .select {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.filter-panel .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+.filter-panel .btn-clear {
+  background: transparent;
+  border: 1px solid rgba(209,79,59,0.08);
+  color: #9b1f2f;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.filter-panel .btn-apply {
+  background: linear-gradient(180deg,#7a1f2f,#c03b45);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(139,31,45,0.08);
+}
+
+/* Make the Filters button neutral by default; show pale-pink/red when active */
+.table-search .btn {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  color: #333;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.12s ease;
+}
+
+.table-search .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.table-search .btn.active,
+.table-search .btn:active,
+.table-search .btn:focus {
+  background: linear-gradient(180deg, #fff6f4, #fff0ee);
+  border: 1px solid rgba(139, 31, 45, 0.18);
+  color: var(--ga-primary);
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.06);
+}
+
+.table-search-wrapper { position: relative; }
+.table-search .btn { margin-left: 6px; }
+.table-actions { display: flex; align-items: center; }
+.table-actions .filter-tabs { margin-left: auto; }
+
+.clear-search {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.clear-search:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: -1.5px;
+}
+
+.filter-tabs button {
+  background: #fff;
+  border: 1px solid #ececec;
+  padding: 8px 14px;
+  border-radius: 18px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-tabs button.active {
+  background: linear-gradient(
+    180deg,
+    rgba(209, 79, 59, 0.1) 0%,
+    rgba(209, 79, 59, 0.04) 100%
+  );
+  color: var(--ga-primary);
+  border: 1px solid rgba(209, 79, 59, 0.18);
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(209, 79, 59, 0.06);
+}
+
+.filter-tabs button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.table-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
 /* === Table === */
 .activeAgreement-table {
   width: 100%;
   overflow-x: auto;
   border-radius: 10px;
   background: transparent;
-
-  /* Linked MOU card inside modal */
-  width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 15px;
@@ -97,7 +283,7 @@
 }
 
 .activeAgreement-table tbody td {
-  padding: 18px 16px;
+  padding: 22px 16px;
   border-bottom: 1px solid #faf0f0;
   vertical-align: middle;
   color: var(--ga-text, #222);
@@ -131,35 +317,24 @@
   margin-bottom: 6px;
   font-weight: 700;
 }
-.table-controls {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.table-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 72%;
-}
+
 .activeAgreement-table tbody td:nth-child(4) {
   min-width: 220px;
+}
+
+/* New icon styles for country and calendar icons */
+.inline-icon {
+  font-size: 14px;
+  color: #666;
+  opacity: 0.8;
+  flex-shrink: 0;
 }
 
 .activeAgreement-table tbody td:nth-child(4) .small {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: #9b9b9b;
-}
-
-.activeAgreement-table tbody td:nth-child(4) .small::before {
-  content: "🏫";
-  display: inline-block;
-  transform: translateY(1px);
-  opacity: 0.86;
-  font-size: 14px;
 }
 
 .activeAgreement-table tbody td:nth-child(5) {
@@ -168,14 +343,15 @@
 }
 
 .activeAgreement-table tbody td:nth-child(6) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
   color: #666;
   white-space: nowrap;
-}
-.activeAgreement-table tbody td:nth-child(6)::before {
-  content: "📅";
-  margin-right: 8px;
-  opacity: 0.9;
-  transform: translateY(1px);
+  padding-top: 49px;
+  padding-bottom: 50px;
 }
 
 .activeAgreement-table td:nth-child(7) {
@@ -205,12 +381,21 @@
 }
 
 .activeAgreement-table td.connection .linked {
-  color: #9b1eff;
-  font-weight: 700;
+  color: var(--ga-primary);
+  font-weight: 800;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+}
+
+.activeAgreement-table td.connection .linked:hover {
+  background: rgba(209, 79, 59, 0.04);
+  border-radius: 999px;
+  padding: 6px 10px;
+  text-decoration: none;
+  color: var(--ga-primary);
 }
 
 /* Cohesive row actions (eye + menu) */
@@ -258,7 +443,7 @@
 }
 .linked-child {
   background: transparent;
-  border: 1px solid rgba(155,30,255,0.08);
+  border: 1px solid rgba(209,79,59,0.08);
   color: var(--ga-primary);
   padding: 6px 10px;
   border-radius: 999px;
@@ -269,20 +454,19 @@
   gap: 8px;
   cursor: pointer;
 }
-.linked-child .link-icon { color: var(--ga-primary); font-size: 14px; }
-.linked-child:hover {
-  background: rgba(155,30,255,0.04);
-  box-shadow: 0 6px 18px rgba(155,30,255,0.04);
+ .linked-child .link-icon { color: var(--ga-primary); font-size: 14px; }
+ .linked-child:hover {
+  background: rgba(209,79,59,0.04);
+  box-shadow: 0 6px 18px rgba(209,79,59,0.04);
 }
 .parent-dts-button {
-  /* make parent DTS visually match child pills but with a slightly stronger weight */
-  border-color: rgba(155,30,255,0.12);
+  border-color: rgba(209,79,59,0.12);
   background: transparent;
   padding: 6px 10px;
 }
 .parent-dts-button .link-icon { font-size: 14px; }
 .parent-dts-button:hover {
-  background: rgba(155,30,255,0.04);
+  background: rgba(209,79,59,0.04);
 }
 .parent-dts {
   color: var(--ga-primary);
@@ -290,7 +474,7 @@
 }
 .child-label { white-space: nowrap; }
 
-/* Tooltip for linked MOU (prefixed with agreement-) */
+/* Tooltip for linked MOU */
 .agreement-tooltip {
   position: relative;
   display: inline-block;
@@ -353,18 +537,9 @@
   color: var(--ga-muted, #666);
 }
 
-@media (max-width: 880px) {
-  .agreement-tooltip .agreement-tooltip-content {
-    left: 0;
-    right: 0;
-    min-width: auto;
-    max-width: calc(100vw - 48px);
-  }
-}
-
 .activeAgreement-table td.connection .link-icon {
   font-size: 16px;
-  color: #9b1eff;
+  color: var(--ga-primary);
 }
 
 .activeAgreement-table td.connection .independent {
@@ -400,7 +575,32 @@
   background: transparent;
 }
 
+/* Responsive design */
 @media (max-width: 880px) {
+  .filter-tabs {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .filter-tabs button {
+    padding: 7px 12px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+  
+  .table-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .table-search-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .table-search {
+    max-width: 100%;
+  }
+
   .activeAgreement-table table {
     min-width: 720px;
   }
@@ -421,6 +621,13 @@
   }
   .activeAgreement-table td.connection .linked {
     gap: 6px;
+  }
+  
+  .agreement-tooltip .agreement-tooltip-content {
+    left: 0;
+    right: 0;
+    min-width: auto;
+    max-width: calc(100vw - 48px);
   }
 }
 
@@ -565,7 +772,7 @@
   right: 16px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 3px;
   background: #ff6b24;
   color: #fff;
   padding: 8px 12px;
@@ -620,7 +827,7 @@
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid #f3d7c7;
-  color: #9b1eff;
+  color: var(--ga-primary);
   font-weight: 600;
   text-decoration: none;
   font-size: 14px;
@@ -632,7 +839,7 @@
   font-weight: 600;
   margin-top: 8px;
   font-size: 15px;
-  color: #444;
+  color: var(--ga-primary);
 }
 
 .activeAgreement-expiring-card:last-child {
@@ -1116,10 +1323,12 @@
 .badge.moa {
   background: #1e73ff;
   border-color: rgba(30, 115, 255, 0.12);
+  color: #fff;
 }
 .badge.mou {
   background: #b85c6b;
   border-color: rgba(184, 92, 107, 0.12);
+  color: #fff;
 }
 
 .activeAgreement-expiring-card .days-left {
@@ -1540,7 +1749,7 @@
 }
 
 .btn-primary {
-  background: var(--ga-primary);
+  background: #9e1b2e !important;
   color: #fff;
   box-shadow: 0 8px 24px rgba(139, 31, 45, 0.15);
   border: 1px solid rgba(139, 31, 45, 0.1);
@@ -1548,10 +1757,10 @@
 }
 
 .btn-primary:hover {
-  background: #6a1622;
-  color: #fff; /* text */
-  transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(139, 31, 45, 0.2);
+  background: #761727 !important;
+  color: #fff !important; /* text */
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 28px rgba(139, 31, 45, 0.2) !important;
 }
 
 .btn-icon {

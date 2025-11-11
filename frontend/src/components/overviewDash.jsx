@@ -31,7 +31,7 @@ import { saveAs } from "file-saver";
 
 import TopBar from "./topbar";
 import Sidebar from "./sidebar";
-
+ 
 const LIFECYCLE_OPTIONS = [
   { value: "", label: "Select Status" },
   { value: "InitialReview", label: "Initial Review" },
@@ -297,10 +297,17 @@ const applyBackendStageData = (agreement) => {
   const days =
     typeof agreement.days_in_stage === "number" ? agreement.days_in_stage : 0;
 
+  // derive delayed flag and optional delay level when backend omitted these
+  const delayed = days >= DEFAULT_THRESHOLD_DAYS;
+  const delay_level = days >= CRITICAL_THRESHOLD_DAYS ? "critical" : delayed ? "warning" : undefined;
+
   return {
     ...agreement,
     days_in_stage: days,
-    delayed: days >= 14, // fallback threshold if backend omitted delayed flag
+    // if backend already provided a delayed boolean, prefer it; otherwise fall back
+    delayed: agreement.delayed != null ? agreement.delayed : delayed,
+    // provide a delay_level used by the UI for styling (warning/critical)
+    delay_level: agreement.delay_level || delay_level,
   };
 };
 
@@ -640,6 +647,28 @@ const OverviewMerged = () => {
   const [uploading, setUploading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Helper to check admin privileges. Accepts an optional user object, defaults
+  // to the currentUser state. This is intentionally permissive in what it
+  // recognizes as an "admin" flag to support different backends (is_admin,
+  // isAdmin, role string, roles array, permissions array).
+  const isAdminUser = (user = currentUser) => {
+    const u = user || currentUser;
+    if (!u) return false;
+    if (u.is_admin || u.isAdmin) return true;
+    if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
+    // some payloads use `user_role` or `role_name`
+    if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
+    if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
+    if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
+    if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+    return false;
+  };
+
+  // generate report modal
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateDocType, setGenerateDocType] = useState("All");
+  const [generateStatus, setGenerateStatus] = useState("All");
+
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef(null);
@@ -834,7 +863,41 @@ const OverviewMerged = () => {
     row?.agreement_id ?? row?._pk ?? row?.id ?? row?.dts_no;
 
   // counts for summary and stage cards (Overview1-style)
-  const pendingCount = baseList.length;
+  // pendingCount should represent the total pending agreements (ignoring the
+  // "filterDelayed" toggle) so it doesn't change when the user clicks
+  // the "Needs Attention" summary card. We still respect other filters like
+  // activeTab / classification / country / validity / search text.
+  const pendingCount = useMemo(() =>
+    agreements.filter((a) => {
+      if (activeTab === "MOA" && a.document_type !== "MOA") return false;
+      if (activeTab === "MOU" && a.document_type !== "MOU") return false;
+      // NOTE: intentionally do NOT filter by filterDelayed here
+      if (
+        filterClassification &&
+        a.partnership_classification !== filterClassification
+      )
+        return false;
+      if (filterCountry && a.country !== filterCountry) return false;
+      if (filterValidity && a.validity_period !== filterValidity) return false;
+      if (debouncedSearchText) {
+        const s = debouncedSearchText.toLowerCase();
+        const fields = [
+          a.id,
+          a.dts_no,
+          a.partner_name,
+          a.contact_person,
+          a.point_name,
+          a.country,
+        ]
+          .filter(Boolean)
+          .map((v) => String(v).toLowerCase());
+        if (!fields.some((f) => f.includes(s))) return false;
+      }
+      return true;
+    }).length,
+    [agreements, activeTab, filterClassification, filterCountry, filterValidity, debouncedSearchText]
+  );
+
   const needsAttention = baseList.filter((a) => a.delayed).length;
   const stageCounts = useMemo(() => {
     const map = {};
@@ -1073,6 +1136,11 @@ const OverviewMerged = () => {
 
   const saveDetails = async () => {
     if (!selected) return;
+    if (!isAdminUser()) {
+      setModalError("Only administrators may save changes.");
+      alert("Only administrators may save changes.");
+      return;
+    }
     try {
       const payload = buildPayloadFromSelected(selected);
       const updated = await agreementService.updateAgreement(
@@ -1104,6 +1172,11 @@ const OverviewMerged = () => {
 
   /* ---------- Legacy editing functions (from overviewDash) ---------- */
   const startEditing = (agreement) => {
+    if (!isAdminUser()) {
+      setModalError("Only administrators may edit agreements.");
+      alert("Only administrators may edit agreements.");
+      return;
+    }
     setEditingRow(agreement._pk ?? agreement.agreement_id ?? agreement.id);
     setEditedData({ ...agreement });
   };
@@ -1115,6 +1188,11 @@ const OverviewMerged = () => {
     setEditedData((prev) => ({ ...prev, [field]: value }));
 
   const saveRow = async (agreementId) => {
+    if (!isAdminUser()) {
+      setModalError("Only administrators may save changes.");
+      alert("Only administrators may save changes.");
+      return;
+    }
     try {
       setSavingRows((prev) => new Set(prev).add(agreementId));
       await agreementService.updateAgreement(agreementId, editedData);
@@ -1135,6 +1213,11 @@ const OverviewMerged = () => {
   };
 
   const deleteRow = async (agreementId) => {
+    if (!isAdminUser()) {
+      setModalError("Only administrators may delete agreements.");
+      alert("Only administrators may delete agreements.");
+      return;
+    }
     const proceed = window.confirm(
       "Are you sure you want to delete this agreement? This action cannot be undone."
     );
@@ -1202,7 +1285,7 @@ const OverviewMerged = () => {
     }
   };
 
-  const exportToExcel = async () => {
+  const exportToExcel = async (docFilter = "All", statusFilter = "All") => {
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Agreements");
@@ -1237,7 +1320,12 @@ const OverviewMerged = () => {
         "REMARKS",
       ];
       worksheet.columns = cols.map((c) => ({ header: c, key: c, width: 30 }));
-      const overviewData = agreements.filter((a) => a.status !== "Active");
+      const overviewData = agreements.filter((a) => {
+        if (!a || String(a.status || "").toLowerCase() === "active") return false;
+        if (docFilter !== "All" && (String(a.document_type || "").toUpperCase() !== String(docFilter).toUpperCase())) return false;
+        if (statusFilter !== "All" && String(a.status) !== String(statusFilter)) return false;
+        return true;
+      });
       const formatPointPersons = (pps) => {
         if (!Array.isArray(pps) || pps.length === 0) return "-";
         return pps
@@ -1304,7 +1392,10 @@ const OverviewMerged = () => {
       }
 
       const buffer = await workbook.xlsx.writeBuffer();
-      saveAs(new Blob([buffer]), "agreements_overview.xlsx");
+      saveAs(
+        new Blob([buffer]),
+        `agreements_overview${docFilter === "All" ? "" : "_" + docFilter}${statusFilter === "All" ? "" : "_" + statusFilter}.xlsx`
+      );
     } catch (err) {
       console.error("Export failed", err);
       alert("Export failed: " + (err.message || err));
@@ -1431,6 +1522,12 @@ const OverviewMerged = () => {
   }, [showFilterPanel]);
 
   const handleLogoUpload = (e) => {
+    // only allow admins to upload/change the logo
+    if (!isAdminUser()) {
+      setModalError("Only administrators may upload/change the logo.");
+      alert("Only administrators may upload/change the logo.");
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -1444,10 +1541,20 @@ const OverviewMerged = () => {
 
   /* ---------- Upload modal actions ---------- */
   const openUploadFor = (agreement) => {
+    if (!isAdminUser()) {
+      setModalError("Only administrators may upload files.");
+      alert("Only administrators may upload files.");
+      return;
+    }
     setSelectedAgreement(agreement);
     setShowUploadForm(true);
   };
   const submitUpload = async () => {
+    if (!isAdminUser()) {
+      setModalError("Only administrators may upload files.");
+      alert("Only administrators may upload files.");
+      return;
+    }
     if (!uploadFile || !selectedAgreement) {
       alert("Please select file");
       return;
@@ -1475,8 +1582,34 @@ const OverviewMerged = () => {
     }
   };
 
-  if (error)
+  if (error) {
     return <div className="overview-container">Error: {error.message}</div>;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="dashboard-container overview1-page">
+        <TopBar toggleSidebar={toggleMobileSidebar} />
+        {mobileShow && (
+          <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />
+        )}
+
+        <div className="content-body">
+          <Sidebar mobileShow={mobileShow} />
+
+          <div
+            className="main-content"
+            onClick={() => mobileShow && setMobileShow(false)}
+          >
+            <div className="lloading-container" style={{ padding: 40, textAlign: "center" }}>
+              <div className="spinner" style={{ margin: "0 auto 12px" }} />
+              <p>Loading Overview...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container overview1-page">
@@ -1512,9 +1645,25 @@ const OverviewMerged = () => {
             <div className="overview1-summary-row">
               <button
                 type="button"
-                className="overview1-summary-card unified"
-                disabled
-                aria-disabled="true"
+                className={`overview1-summary-card unified pending ${
+                  !filterDelayed && !filterStage && !filterClassification && !filterValidity && !filterCountry && activeTab === "All"
+                    ? "active"
+                    : ""
+                }`}
+                onClick={() => {
+                  // Reset filters to show the pending agreements list
+                  setFilterDelayed(false);
+                  setFilterStage("");
+                  setFilterClassification("");
+                  setFilterValidity("");
+                  setFilterCountry("");
+                  setActiveTab("All");
+                  setCurrentPage(1);
+                }}
+                aria-pressed={
+                  !filterDelayed && !filterStage && !filterClassification && !filterValidity && !filterCountry && activeTab === "All"
+                }
+                title="Show pending agreements"
               >
                 <div className="summary-title">Pending Tasks</div>
                 <div className="summary-number">{pendingCount}</div>
@@ -1522,7 +1671,7 @@ const OverviewMerged = () => {
               </button>
               <button
                 type="button"
-                className={`overview1-summary-card unified ${
+                className={`overview1-summary-card unified needs-attention ${
                   filterDelayed ? "active" : ""
                 }`}
                 onClick={() => {
@@ -1590,7 +1739,15 @@ const OverviewMerged = () => {
               >
                 Filters
               </button>
-              <button className="btn generate" onClick={exportToExcel}>
+              <button
+                className="btn generate"
+                onClick={() => {
+                  // open modal to let user choose All / MOU only / MOA only
+                  setGenerateDocType("All");
+                  setGenerateStatus("All");
+                  setShowGenerateModal(true);
+                }}
+              >
                 Generate Report
               </button>
             </div>
@@ -1758,16 +1915,75 @@ const OverviewMerged = () => {
                       <td>
                         {row.related_mou ? (
                           <span className="related-mou">
-                            {(() => {
-                              const raw = row.related_mou;
-                              const key = String(raw);
-                              // if numeric id, prefer resolved DTS from lookup
-                              if (/^\d+$/.test(key)) {
-                                return relatedDtsMap[key] || raw;
-                              }
-                              return raw;
-                            })()}
-                            <div className="req">Required</div>
+                            <div className="req">
+                              <button
+                                type="button"
+                                className="linked-mou-btn"
+                                onClick={(e) => {
+                                  // prevent row click bubbling
+                                  if (e && e.stopPropagation) e.stopPropagation();
+                                  const raw = row.related_mou;
+                                  const key = String(raw);
+                                  // Try to find the related agreement in-memory first
+                                  let found = null;
+                                  if (/^\d+$/.test(key)) {
+                                    // numeric id
+                                    found = agreements.find(
+                                      (a) =>
+                                        String(a.agreement_id) === key ||
+                                        String(a._pk) === key ||
+                                        String(a.id) === key
+                                    );
+                                    if (found) {
+                                      openDetails(found);
+                                      return;
+                                    }
+                                    // not found locally -> load by id
+                                    loadAgreementDetails(Number(key));
+                                    setDetailOpen(true);
+                                    return;
+                                  }
+
+                                  // treat as a DTS string
+                                  found = agreements.find(
+                                    (a) =>
+                                      (a.dts_no && String(a.dts_no) === String(raw)) ||
+                                      (a.id && String(a.id) === String(raw)) ||
+                                      (a._pk && String(a._pk) === String(raw))
+                                  );
+                                  if (found) {
+                                    openDetails(found);
+                                    return;
+                                  }
+                                  // fallback: try to load by DTS or id
+                                  loadAgreementDetails(raw);
+                                  setDetailOpen(true);
+                                }}
+                                title={
+                                  `View linked MOU ${
+                                    relatedDtsMap[String(row.related_mou)] ||
+                                    String(row.related_mou)
+                                  }`
+                                }
+                                aria-label={
+                                  `View linked MOU ${
+                                    relatedDtsMap[String(row.related_mou)] ||
+                                    String(row.related_mou)
+                                  }`
+                                }
+                                style={{
+                                  background: "transparent",
+                                  border: "none",
+                                  color: "#5a1522",
+                                  cursor: "pointer",
+                                  padding: 0,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {relatedDtsMap[String(row.related_mou)] ||
+                                  String(row.related_mou)}
+                              </button>
+                            </div>
                           </span>
                         ) : (
                           "—"
@@ -1823,7 +2039,7 @@ const OverviewMerged = () => {
                         >
                           <button
                             className="icon-btn"
-                            title="View"
+                            title="View Details"
                             onClick={() => openDetails(row)}
                             aria-label="View details"
                           >
@@ -1898,16 +2114,18 @@ const OverviewMerged = () => {
                                   <FiArchive style={{ marginRight: 4 }} /> View
                                   Older Files
                                 </button>
-                                <button
-                                  className="menu-item"
-                                  onClick={() => {
-                                    openUploadFor(row);
-                                    setMenuOpenId(null);
-                                  }}
-                                >
-                                  <FiUpload style={{ marginRight: 4 }} /> Upload
-                                  New Version
-                                </button>
+                                {isAdminUser() && (
+                                  <button
+                                    className="menu-item"
+                                    onClick={() => {
+                                      openUploadFor(row);
+                                      setMenuOpenId(null);
+                                    }}
+                                  >
+                                    <FiUpload style={{ marginRight: 4 }} /> Upload
+                                    New Version
+                                  </button>
+                                )}
                               </div>,
                               document.body
                             )}
@@ -1926,7 +2144,8 @@ const OverviewMerged = () => {
                           {row.status &&
                             String(row.status)
                               .toLowerCase()
-                              .includes("ffup") && (
+                              .includes("ffup") &&
+                            isAdminUser() && (
                               <button
                                 className="btn-action activate-btn"
                                 title="Activate Agreement"
@@ -1937,7 +2156,7 @@ const OverviewMerged = () => {
                                 aria-label="Activate"
                               >
                                 <FiCheckCircle style={{ marginRight: 6 }} />
-                                Activate Agreement
+                                Activate
                               </button>
                             )}
 
@@ -2556,12 +2775,15 @@ const OverviewMerged = () => {
                       Cancel
                     </button>
                     {!isEditing ? (
-                      <button
-                        className="btn save"
-                        onClick={() => setIsEditing(true)}
-                      >
-                        Edit
-                      </button>
+                      // show Edit button only to admins
+                      isAdminUser() ? (
+                        <button
+                          className="btn save"
+                          onClick={() => setIsEditing(true)}
+                        >
+                          Edit
+                        </button>
+                      ) : null
                     ) : (
                       <>
                         <button className="btn save" onClick={saveDetails}>
@@ -2578,6 +2800,128 @@ const OverviewMerged = () => {
                         </button>
                       </>
                     )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Generate Report Modal */}
+            {showGenerateModal && (
+              <div
+                className="overview1-modal-backdrop"
+                onClick={() => setShowGenerateModal(false)}
+              >
+                <div
+                  className="overview1-modal"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div
+                    className="overview1-modal-header"
+                    role="dialog"
+                    aria-labelledby="generate-modal-title"
+                  >
+                    <h3 id="generate-modal-title">Generate Report</h3>
+                    <button
+                      className="close"
+                      onClick={() => setShowGenerateModal(false)}
+                      aria-label="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="overview1-modal-body">
+                    <div className="report-generator-card">
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexWrap:'wrap'}}>
+                          <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                            <div className="report-icon">📄</div>
+                            <div className="report-titles">
+                              <div className="report-title">Report Generator</div>
+                              <div className="report-sub">Generate comprehensive reports for agreements in various formats</div>
+                            </div>
+                          </div>
+
+                          <div style={{textAlign:'right',minWidth:160}}>
+                            <div style={{fontSize:12,color:'#6b6b6b'}}>Selected</div>
+                            <div style={{fontWeight:700,color:'#333'}}>{generateDocType === 'All' ? 'All Agreements' : generateDocType + ' only'}</div>
+                            <div style={{fontSize:12,color:'#666',marginTop:6}}>{generateStatus === 'All' ? 'All statuses' : (LIFECYCLE_OPTIONS.find(o => o.value === generateStatus)?.label || generateStatus)}</div>
+                            <div style={{marginTop:6,fontSize:13}}><strong>Total records:</strong> <span style={{color:'#333',fontWeight:600}}>{filtered.length}</span></div>
+                          </div>
+                        </div>
+
+                        <div className="report-controls" style={{marginTop:12,alignItems:'flex-start',gap:16,flexWrap:'wrap'}}>
+                          <div style={{display:'flex',flexDirection:'column',gap:8,minWidth:320}}>
+                            <label style={{fontSize:13,color:'#666'}}>Report scope</label>
+                            <select
+                              value={generateDocType}
+                              onChange={(e) => setGenerateDocType(e.target.value)}
+                              aria-label="Select document type"
+                            >
+                              <option value="All">All Agreements</option>
+                              <option value="MOU">MOU only</option>
+                              <option value="MOA">MOA only</option>
+                            </select>
+                            <div style={{fontSize:12,color:'#888'}}>Choose which agreements to include in the generated report.</div>
+                            <label style={{fontSize:13,color:'#666',marginTop:8}}>Status</label>
+                            <select
+                              value={generateStatus}
+                              onChange={(e) => setGenerateStatus(e.target.value)}
+                              aria-label="Select status filter"
+                            >
+                              <option value="All">All statuses</option>
+                              <option value="SignedPUP">Signed by PUP Officials</option>
+                              <option value="SignedPartner">Signed by Partner Institution</option>
+                              <option value="Complete">Completely Signed</option>
+                            </select>
+                            <div style={{fontSize:12,color:'#888'}}>Optionally limit the report to a signing status.</div>
+
+                            <div style={{display:'flex',gap:10,marginTop:12}}>
+                              <button
+                                className="btn report-generate"
+                                onClick={async () => {
+                                  await exportToExcel(generateDocType, generateStatus);
+                                  setShowGenerateModal(false);
+                                }}
+                                title="Generate an Excel report and download"
+                              >
+                                <span className="icon">🖨️</span>
+                                Generate Report
+                              </button>
+                              <button
+                                className="btn report-download"
+                                onClick={async () => {
+                                  try {
+                                    const header = [
+                                      'DTS NO','Partner','Document Type','Status','Date Received'
+                                    ];
+                                    const rows = agreements
+                                      .filter(a => {
+                                        if (!a || String(a.status || '').toLowerCase() === 'active') return false;
+                                        if (generateDocType !== 'All' && String(a.document_type || '').toUpperCase() !== String(generateDocType).toUpperCase()) return false;
+                                        if (generateStatus !== 'All' && String(a.status) !== String(generateStatus)) return false;
+                                        return true;
+                                      })
+                                      .map(a => [a.dts_no||a.id||'', a.partner_name||'', a.document_type||'', a.status||'', a.date_received||'']);
+                                    const csv = [header, ...rows].map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+                                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                                    saveAs(blob, `agreements_overview${generateDocType==='All' ? '' : '_'+generateDocType}${generateStatus==='All' ? '' : '_'+generateStatus}.csv`);
+                                  } catch (e) {
+                                    console.error('CSV export failed', e);
+                                    alert('CSV export failed: ' + (e?.message||e));
+                                  }
+                                  setShowGenerateModal(false);
+                                }}
+                                title="Download a simple CSV of the selected agreements"
+                              >
+                                <span className="icon">⬇️</span>
+                                Download CSV
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* right-side quick summary remains unchanged */}
+                        </div>
+                    </div>
                   </div>
                 </div>
               </div>

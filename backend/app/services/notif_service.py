@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 from app.models.notification import Notification
@@ -28,19 +28,38 @@ def notification_exists(db: Session, agreement_id: int, category: str, user_id: 
 
 def create_notification_if_new(db: Session, agreement_id: int, category: str, message: str,
                                recommended_action: str = None, user_id: int = None):
-    if notification_exists(db, agreement_id, category, user_id, message):
-        return None
+    """
+    Create a notification if none exists, or if the existing one is stale (>24 hours).
+    """
+    from datetime import datetime, timedelta
 
+    query = db.query(Notification).filter(
+        Notification.agreement_id == agreement_id,
+        Notification.category == category
+    )
+    if user_id is not None:
+        query = query.filter(Notification.user_id == user_id)
+
+    existing = query.order_by(Notification.created_at.desc()).first() 
+
+    now = datetime.now(PH_TZ)
+    if existing:
+        #allow re-notif if >24 hours old
+        if category == "pending_long" and (now - existing.created_at) > timedelta(hours=24):
+            pass  # Proceed to create new
+        else:
+            return None 
+
+    # Create new notification
     notif = Notification(
         agreement_id=agreement_id,
         user_id=user_id,
         category=category,
         message=message,
         recommended_action=recommended_action,
-        created_at=datetime.now(PH_TZ),  # ✅ Manila time
+        created_at=now,
         is_read=False
     )
-
     db.add(notif)
     db.commit()
     db.refresh(notif)
@@ -56,16 +75,16 @@ def get_notifications_for_user(db: Session, user_id: int = None):
 def mark_notification_read(db: Session, notification_id: int, current_user):
     notif = db.query(Notification).filter(Notification.notification_id == notification_id).first()
     if not notif:
-        print(f"🚫 Mark read failed: Notification {notification_id} not found")
+        print(f"Mark read failed: Notification {notification_id} not found")
         return None
 
     if not current_user or current_user.user_role.lower() != "admin":
-        print(f"🚫 Mark read denied: User {current_user.user_name if current_user else 'Unknown'} is not admin")
+        print(f"Mark read denied: User {current_user.user_name if current_user else 'Unknown'} is not admin")
         return None
 
     notif.is_read = True
     db.commit()
     db.refresh(notif)
 
-    print(f"✅ Notification {notification_id} marked as read by admin {current_user.user_name}")
+    print(f"Notification {notification_id} marked as read by admin {current_user.user_name}")
     return notif

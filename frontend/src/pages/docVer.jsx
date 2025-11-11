@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
-import "./docVer.css";                                                                                       
+import "./docVer.css";
 import { useSearchParams } from "react-router-dom";
-import { renderDocumentTypeBadge } from '../utils/documentTypeUtils';
+import { renderDocumentTypeBadge } from "../utils/documentTypeUtils";
 import { documentService } from "../services/documentService";
+import {
+  FiEye,
+  FiDownload,
+  FiFilter,
+  FiX,
+  FiTrash2,
+  FiEdit,
+  FiSave,
+  FiXCircle,
+  FiRefreshCw,
+} from "react-icons/fi";
 
 const DocumentVersion = () => {
   const [searchParams] = useSearchParams();
@@ -19,7 +30,7 @@ const DocumentVersion = () => {
   const [filterStatus, setFilterStatus] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const [editingDoc, setEditingDoc] = useState(null);
   const [editComment, setEditComment] = useState("");
   const [editFile, setEditFile] = useState(null);
@@ -32,7 +43,6 @@ const DocumentVersion = () => {
   const [tempVersion, setTempVersion] = useState("");
   const [tempStatus, setTempStatus] = useState("");
 
-
   useEffect(() => {
     if (prefilledDts) {
       setSearchQuery(prefilledDts);
@@ -42,8 +52,9 @@ const DocumentVersion = () => {
 
   // Fetch versions/all
   useEffect(() => {
-    setLoading(true); 
-    documentService.getAllVersions()
+    setLoading(true);
+    documentService
+      .getAllVersions()
       .then((data) => setDocuments(data || []))
       .catch((err) => console.error("Failed to fetch versions:", err))
       .finally(() => setLoading(false));
@@ -58,7 +69,10 @@ const DocumentVersion = () => {
         const parsedUser = JSON.parse(userStr);
         setCurrentUser(parsedUser);
 
-        if (parsedUser.user_role && parsedUser.user_role.toLowerCase() === "admin") {
+        if (
+          parsedUser.user_role &&
+          parsedUser.user_role.toLowerCase() === "admin"
+        ) {
           setIsAdmin(true);
           console.log("Is Admin:", true);
         } else {
@@ -71,26 +85,47 @@ const DocumentVersion = () => {
     }
   }, []);
 
-  const partnershipTypes = [...new Set(documents.map((d) => d.partnership_type))];
+  const partnershipTypes = [
+    ...new Set(documents.map((d) => d.partnership_type)),
+  ];
   const versions = [...new Set(documents.map((d) => String(d.version_number)))];
   const statuses = [...new Set(documents.map((d) => d.status_at_upload))];
 
   const filteredDocuments = documents.filter((doc) => {
     const query = (searchQuery || "").toLowerCase();
     const matchesSearch =
-      (doc.uploaded_at && new Date(doc.uploaded_at).toLocaleDateString().toLowerCase().includes(query)) ||
+      (doc.uploaded_at &&
+        new Date(doc.uploaded_at)
+          .toLocaleDateString()
+          .toLowerCase()
+          .includes(query)) ||
       (doc.partner_name && doc.partner_name.toLowerCase().includes(query)) ||
       (doc.document_type && doc.document_type.toLowerCase().includes(query)) ||
-      (doc.partnership_type && doc.partnership_type.toLowerCase().includes(query)) ||
+      (doc.partnership_type &&
+        doc.partnership_type.toLowerCase().includes(query)) ||
       (doc.version_number && String(doc.version_number).includes(query)) ||
       (doc.dts_number && doc.dts_number.toLowerCase().includes(query));
 
-    const matchesDocType = filterDocType ? doc.document_type === filterDocType : true;
-    const matchesPartnershipType = filterPartnershipType ? doc.partnership_type === filterPartnershipType : true;
-    const matchesVersion = filterVersion ? String(doc.version_number) === filterVersion : true;
-    const matchesStatus = filterStatus ? doc.status_at_upload === filterStatus : true;
+    const matchesDocType = filterDocType
+      ? doc.document_type === filterDocType
+      : true;
+    const matchesPartnershipType = filterPartnershipType
+      ? doc.partnership_type === filterPartnershipType
+      : true;
+    const matchesVersion = filterVersion
+      ? String(doc.version_number) === filterVersion
+      : true;
+    const matchesStatus = filterStatus
+      ? doc.status_at_upload === filterStatus
+      : true;
 
-    return matchesSearch && matchesDocType && matchesPartnershipType && matchesVersion && matchesStatus;
+    return (
+      matchesSearch &&
+      matchesDocType &&
+      matchesPartnershipType &&
+      matchesVersion &&
+      matchesStatus
+    );
   });
 
   const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
@@ -103,7 +138,7 @@ const DocumentVersion = () => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  // Editing 
+  // Editing
   const handleEdit = (doc) => {
     if (!isAdmin) {
       alert("You do not have permission to edit this version.");
@@ -135,10 +170,17 @@ const DocumentVersion = () => {
     }
 
     try {
-      const data = await documentService.updateVersion(editingDoc.version_id, formData);
+      const data = await documentService.updateVersion(
+        editingDoc.version_id,
+        formData
+      );
       if (data?.version) {
         setDocuments((prev) =>
-          prev.map((d) => (d.version_id === editingDoc.version_id ? { ...d, ...data.version } : d))
+          prev.map((d) =>
+            d.version_id === editingDoc.version_id
+              ? { ...d, ...data.version }
+              : d
+          )
         );
       }
     } catch (err) {
@@ -152,7 +194,8 @@ const DocumentVersion = () => {
       alert("You do not have permission to delete this version.");
       return;
     }
-    if (!window.confirm("Are you sure you want to delete this version?")) return;
+    if (!window.confirm("Are you sure you want to delete this version?"))
+      return;
 
     try {
       await documentService.deleteVersion(versionId);
@@ -170,298 +213,369 @@ const DocumentVersion = () => {
     return acc;
   }, {});
 
-
   return (
     <div className="dashboard-container">
       <TopBar toggleSidebar={toggleMobileSidebar} />
-      {mobileShow && <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />}
-      <div className="content-body">
-        <Sidebar collapsed={collapsed} toggleCollapse={toggleCollapse} mobileShow={mobileShow} />
-        <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
-
-      {loading ? (
-        <div className="lloading-container">
-          <div className="spinner"></div>
-          <p>Loading document versions...</p>
-        </div>
-      ) : (
-        <>
-    <h2 className="doc-ver-title">Document Version Control</h2>
-
-    <div className="contact-person-wrapper">
-      {/* Search + Filter toggle button */}
-      <div className="search-filter-bar">
-        <input
-          type="text"
-          placeholder="Search here"
-          className="search-input"
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
-        <button
-          className="filter-btn"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          {showFilters ? " Filters" : " Filters"}
-        </button>
-      </div>
-
-      {/* Filters */}
-      {showFilters && (
-        <div className="filter-section">
-          {/* Temporary state selectors */}
-          <select
-            value={tempDocType}
-            onChange={(e) => setTempDocType(e.target.value)}
-          >
-            <option value="">All Document Types</option>
-            <option value="MOA">MOA</option>
-            <option value="MOU">MOU</option>
-          </select>
-
-          <select
-            value={tempPartnershipType}
-            onChange={(e) => setTempPartnershipType(e.target.value)}
-          >
-            <option value="">All Partnership Types</option>
-            {partnershipTypes.map((type, i) => (
-              <option key={i} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={tempVersion}
-            onChange={(e) => setTempVersion(e.target.value)}
-          >
-            <option value="">All Versions</option>
-            {versions.map((v, i) => (
-              <option key={i} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={tempStatus}
-            onChange={(e) => setTempStatus(e.target.value)}
-          >
-            <option value="">All Status</option>
-            {statuses.map((s, i) => (
-              <option key={i} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-
-          <div className="filter-actions">
-            <button
-              className="apply-btn"
-              onClick={() => {
-                setFilterDocType(tempDocType);
-                setFilterPartnershipType(tempPartnershipType);
-                setFilterVersion(tempVersion);
-                setFilterStatus(tempStatus);
-                setCurrentPage(1);
-              }}
-            >
-              Apply
-            </button>
-            <button
-              className="clear-btn"
-              onClick={() => {
-                setTempDocType("");
-                setTempPartnershipType("");
-                setTempVersion("");
-                setTempStatus("");
-                setFilterDocType("");
-                setFilterPartnershipType("");
-                setFilterVersion("");
-                setFilterStatus("");
-                setCurrentPage(1);
-              }}
-            >
-              Clear
-            </button>
-          </div>
-        </div>
+      {mobileShow && (
+        <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />
       )}
-
-      {/* Table */}
-      <div className="table-container">
-        <table className="contact-person-table">
-          <thead>
-            <tr>
-              <th>UPLOAD DATE</th>
-              <th>DTS NUMBER</th>
-              <th>PARTNER NAME</th>
-              <th>DOCUMENT TYPE</th>
-              <th>PARTNERSHIP TYPE</th>
-              <th>VERSION</th>
-              <th>COMMENTS</th>
-              <th>STATUS AT UPLOAD</th>
-              <th>ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentData.length > 0 ? (
-               currentData.map((doc) => (
-                <React.Fragment key={doc.version_id}>
-                  <tr>
-                    <td>{new Date(doc.uploaded_at).toLocaleDateString()}</td>
-                    <td>{doc.dts_number}</td>
-                    <td>{doc.partner_name}</td>
-                    <td>{renderDocumentTypeBadge(doc.document_type)}</td>
-                    <td>{doc.partnership_type}</td>
-                    <td>{doc.version_number}</td>
-                    <td>{doc.version_comment || "-"}</td>
-                    <td>{doc.status_at_upload || "-"}</td>
-                    <td>
-                      <div className="docu-action-buttons">
-                        <div className="docu-top-actions">
-                          {isAdmin && (
-                            <>
-                              <button
-                                className="docu-edit-btn"
-                                onClick={() => handleEdit(doc)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="docu-delete-btn"
-                                disabled={doc.version_number !== latestByDts[doc.dts_number]}
-                                onClick={() => handleDelete(doc.version_id)}
-                              >
-                                Delete
-                              </button>
-                            </>
-                          )}
-                        </div>
-                        <div className="docu-bottom-action">
-                          <button
-                            className="docu-view-btn"
-                            onClick={async () => {
-                              try {
-                                const signed = await documentService.getDownloadUrl(doc.version_id);
-                                const response = await fetch(signed.download_url, { headers: { Accept: "application/pdf" } });
-                                if (!response.ok) throw new Error(`Failed to fetch file (${response.status})`);
-                                const arrayBuffer = await response.arrayBuffer();
-                                const blob = new Blob([arrayBuffer], { type: "application/pdf" });
-                                const url = window.URL.createObjectURL(blob);
-                                window.open(url, "_blank");
-                              } catch (err) {
-                                console.error("View failed:", err);
-                                alert("Failed to open file.");
-                              }
-                            }}
-                          >
-                            View
-                          </button>
-                          <button
-                            className="docu-download-btn"
-                            onClick={async () => {
-                              try {
-                                const signed = await documentService.getDownloadUrl(doc.version_id);
-                                const response = await fetch(signed.download_url, { headers: { Accept: "application/pdf" } });
-                                if (!response.ok) throw new Error(`Failed to download file (${response.status})`);
-                                const arrayBuffer = await response.arrayBuffer();
-                                const blob = new Blob([arrayBuffer], { type: "application/pdf" });
-                                const url = window.URL.createObjectURL(blob);
-                                const link = document.createElement("a");
-                                link.href = url;
-                                link.download = `${doc.dts_number}_v${doc.version_number}.pdf`;
-                                document.body.appendChild(link);
-                                link.click();
-                                link.remove();
-                                window.URL.revokeObjectURL(url);
-                              } catch (err) {
-                                console.error("Download failed:", err);
-                                alert("Download failed.");
-                              }
-                            }}
-                          >
-                            Download
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-
-                  {isAdmin && editingDoc?.version_id === doc.version_id && (
-                    <tr className="edit-row">
-                      <td colSpan="9">
-                        <div className="edit-form-expanded">
-                          <textarea
-                            value={editComment}
-                            onChange={(e) => setEditComment(e.target.value)}
-                            placeholder="Edit comment"
-                          />
-                          <input
-                            type="file"
-                            accept="application/pdf"
-                            onChange={(e) =>
-                              setEditFile(e.target.files[0])
-                            }
-                          />
-                          <div className="inline-edit-actions">
-                            <button className="save-btn" onClick={handleSave}>
-                              Save
-                            </button>
-                            <button
-                              className="cancel-btn"
-                              onClick={() => setEditingDoc(null)}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="9" style={{ textAlign: "center" }}>
-                  No records found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="pagination">
-        <button
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
+      <div className="content-body">
+        <Sidebar
+          collapsed={collapsed}
+          toggleCollapse={toggleCollapse}
+          mobileShow={mobileShow}
+        />
+        <div
+          className="main-content"
+          onClick={() => mobileShow && setMobileShow(false)}
         >
-          ← Previous
-        </button>
-        {[...Array(totalPages)].map((_, index) => (
-          <button
-            key={index}
-            className={currentPage === index + 1 ? "active" : ""}
-            onClick={() => handlePageChange(index + 1)}
-          >
-            {index + 1}
-          </button>
-        ))}
-        <button
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          Next →
-        </button>
-          </div>
-        </div>
-          </>
-        )}
+          {loading ? (
+            <div className="lloading-container">
+              <div className="spinner"></div>
+              <p>Loading document versions...</p>
+            </div>
+          ) : (
+            <>
+              <h2 className="doc-ver-title">Document Version Control</h2>
+
+              <div className="contact-person-wrapper">
+                {/* Search + Filter toggle button */}
+                <div className="search-filter-bar">
+                  <input
+                    type="text"
+                    placeholder="Search here"
+                    className="search-input"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                  <button
+                    className="filter-btn"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
+                    <FiFilter size={16} />
+                    {showFilters ? " Hide Filters" : " Show Filters"}
+                  </button>
+                </div>
+
+                {/* Filters */}
+                {showFilters && (
+                  <div className="filter-section">
+                    {/* Temporary state selectors */}
+                    <select
+                      value={tempDocType}
+                      onChange={(e) => setTempDocType(e.target.value)}
+                    >
+                      <option value="">All Document Types</option>
+                      <option value="MOA">MOA</option>
+                      <option value="MOU">MOU</option>
+                    </select>
+
+                    <select
+                      value={tempPartnershipType}
+                      onChange={(e) => setTempPartnershipType(e.target.value)}
+                    >
+                      <option value="">All Partnership Types</option>
+                      {partnershipTypes.map((type, i) => (
+                        <option key={i} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={tempVersion}
+                      onChange={(e) => setTempVersion(e.target.value)}
+                    >
+                      <option value="">All Versions</option>
+                      {versions.map((v, i) => (
+                        <option key={i} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={tempStatus}
+                      onChange={(e) => setTempStatus(e.target.value)}
+                    >
+                      <option value="">All Status</option>
+                      {statuses.map((s, i) => (
+                        <option key={i} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="filter-actions">
+                      <button
+                        className="apply-btn"
+                        onClick={() => {
+                          setFilterDocType(tempDocType);
+                          setFilterPartnershipType(tempPartnershipType);
+                          setFilterVersion(tempVersion);
+                          setFilterStatus(tempStatus);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <FiFilter size={14} />
+                        Apply
+                      </button>
+                      <button
+                        className="clear-btn"
+                        onClick={() => {
+                          setTempDocType("");
+                          setTempPartnershipType("");
+                          setTempVersion("");
+                          setTempStatus("");
+                          setFilterDocType("");
+                          setFilterPartnershipType("");
+                          setFilterVersion("");
+                          setFilterStatus("");
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <FiX size={14} />
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Table */}
+                <div className="table-container">
+                  <table className="contact-person-table">
+                    <thead>
+                      <tr>
+                        <th>UPLOAD DATE</th>
+                        <th>DTS NUMBER</th>
+                        <th>PARTNER NAME</th>
+                        <th>DOCUMENT TYPE</th>
+                        <th>PARTNERSHIP TYPE</th>
+                        <th>VERSION</th>
+                        <th>COMMENTS</th>
+                        <th>STATUS AT UPLOAD</th>
+                        <th>ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentData.length > 0 ? (
+                        currentData.map((doc) => (
+                          <React.Fragment key={doc.version_id}>
+                            <tr>
+                              <td>
+                                {new Date(doc.uploaded_at).toLocaleDateString()}
+                              </td>
+                              <td>{doc.dts_number}</td>
+                              <td>{doc.partner_name}</td>
+                              <td>
+                                {renderDocumentTypeBadge(doc.document_type)}
+                              </td>
+                              <td>{doc.partnership_type}</td>
+                              <td>{doc.version_number}</td>
+                              <td>{doc.version_comment || "-"}</td>
+                              <td>{doc.status_at_upload || "-"}</td>
+                              <td>
+                                <div className="docu-action-buttons">
+                                  {/* View Button */}
+                                  <button
+                                    className="docu-icon-btn docu-view"
+                                    title="View Document"
+                                    onClick={async () => {
+                                      try {
+                                        const signed =
+                                          await documentService.getDownloadUrl(
+                                            doc.version_id
+                                          );
+                                        const response = await fetch(
+                                          signed.download_url,
+                                          {
+                                            headers: {
+                                              Accept: "application/pdf",
+                                            },
+                                          }
+                                        );
+                                        if (!response.ok)
+                                          throw new Error(
+                                            `Failed to fetch file (${response.status})`
+                                          );
+                                        const arrayBuffer =
+                                          await response.arrayBuffer();
+                                        const blob = new Blob([arrayBuffer], {
+                                          type: "application/pdf",
+                                        });
+                                        const url =
+                                          window.URL.createObjectURL(blob);
+                                        window.open(url, "_blank");
+                                      } catch (err) {
+                                        console.error("View failed:", err);
+                                        alert("Failed to open file.");
+                                      }
+                                    }}
+                                  >
+                                    <FiEye className="docu-icon" />
+                                  </button>
+
+                                  {/* Download Button */}
+                                  <button
+                                    className="docu-icon-btn docu-download"
+                                    title="Download Document"
+                                    onClick={async () => {
+                                      try {
+                                        const signed =
+                                          await documentService.getDownloadUrl(
+                                            doc.version_id
+                                          );
+                                        const response = await fetch(
+                                          signed.download_url,
+                                          {
+                                            headers: {
+                                              Accept: "application/pdf",
+                                            },
+                                          }
+                                        );
+                                        if (!response.ok)
+                                          throw new Error(
+                                            `Failed to download file (${response.status})`
+                                          );
+                                        const arrayBuffer =
+                                          await response.arrayBuffer();
+                                        const blob = new Blob([arrayBuffer], {
+                                          type: "application/pdf",
+                                        });
+                                        const url =
+                                          window.URL.createObjectURL(blob);
+                                        const link =
+                                          document.createElement("a");
+                                        link.href = url;
+                                        link.download = `${doc.dts_number}_v${doc.version_number}.pdf`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        link.remove();
+                                        window.URL.revokeObjectURL(url);
+                                      } catch (err) {
+                                        console.error("Download failed:", err);
+                                        alert("Download failed.");
+                                      }
+                                    }}
+                                  >
+                                    <FiDownload className="docu-icon" />
+                                  </button>
+
+                                  {/* Admin Actions */}
+                                  {isAdmin && (
+                                    <>
+                                      {/* Edit Button */}
+                                      <button
+                                        className="docu-icon-btn docu-edit"
+                                        title="Edit Version"
+                                        onClick={() => handleEdit(doc)}
+                                      >
+                                        <FiEdit className="docu-icon" />
+                                      </button>
+
+                                      {/* Delete Button */}
+                                      <button
+                                        className="docu-icon-btn docu-delete"
+                                        title="Delete Version"
+                                        disabled={
+                                          doc.version_number !==
+                                          latestByDts[doc.dts_number]
+                                        }
+                                        onClick={() =>
+                                          handleDelete(doc.version_id)
+                                        }
+                                      >
+                                        <FiTrash2 className="docu-icon" />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* Edit Form Row */}
+                            {isAdmin &&
+                              editingDoc?.version_id === doc.version_id && (
+                                <tr className="edit-row">
+                                  <td colSpan="9">
+                                    <div className="edit-form-expanded">
+                                      <textarea
+                                        value={editComment}
+                                        onChange={(e) =>
+                                          setEditComment(e.target.value)
+                                        }
+                                        placeholder="Edit comment"
+                                      />
+                                      <input
+                                        type="file"
+                                        accept="application/pdf"
+                                        onChange={(e) =>
+                                          setEditFile(e.target.files[0])
+                                        }
+                                      />
+                                      <div className="inline-edit-actions">
+                                        <button
+                                          className="save-btn"
+                                          onClick={handleSave}
+                                        >
+                                          <FiSave size={16} />
+                                          Save Changes
+                                        </button>
+                                        <button
+                                          className="cancel-btn"
+                                          onClick={() => setEditingDoc(null)}
+                                        >
+                                          <FiXCircle size={16} />
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                          </React.Fragment>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="9" style={{ textAlign: "center" }}>
+                            No records found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="pagination">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    ← Previous
+                  </button>
+                  {[...Array(totalPages)].map((_, index) => (
+                    <button
+                      key={index}
+                      className={currentPage === index + 1 ? "active" : ""}
+                      onClick={() => handlePageChange(index + 1)}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
