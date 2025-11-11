@@ -70,20 +70,23 @@ async def get_agreements_list(
             today = date.today()
 
             if status_filter and status_filter.upper() == "WITHDRAWN":
-                base_query = db.query(Agreements, Partners).join(
+                base_query = db.query(Agreements, Partners, Timer).join(  
                     Partners, Agreements.partner_id == Partners.partner_id
+                ).join(
+                    Timer, Timer.agreement_id == Agreements.agreement_id, isouter=True  
                 ).filter(Agreements.agreement_status == "Withdrawn")
             else:
                 base_query = db.query(Agreements, Partners, Timer).join(
-                Partners, Agreements.partner_id == Partners.partner_id
-            ).join(
-                Timer, Timer.agreement_id == Agreements.agreement_id, isouter=True
-            ).filter(
-                or_(
-                    Agreements.date_expiry == None,
-                    Agreements.date_expiry >= today
-                )
-            )   
+                    Partners, Agreements.partner_id == Partners.partner_id
+                ).join(
+                    Timer, Timer.agreement_id == Agreements.agreement_id, isouter=True
+                ).filter(
+                    or_(
+                        Agreements.date_expiry == None,
+                        Agreements.date_expiry >= today
+                    )
+                )  
+
             if status_filter:
                 if status_filter.upper() == "ACTIVE":
                     base_query = base_query.filter(Agreements.agreement_status == "Active")
@@ -94,11 +97,7 @@ async def get_agreements_list(
                             Agreements.agreement_status != 'Withdrawn'
                         )
                     )
-                elif status_filter.upper() == "WITHDRAWN":
-                    base_query = db.query(Agreements, Partners).join(
-                        Partners, Agreements.partner_id == Partners.partner_id
-                    ).filter(Agreements.agreement_status == "Withdrawn")
-            
+        
             if document_type:
                 base_query = base_query.filter(Agreements.document_type == document_type)
             
@@ -120,8 +119,8 @@ async def get_agreements_list(
             if not results:
                 return []
 
-            agreement_ids = [agreement.agreement_id for agreement, _ in results]
-            partner_ids = [partner.partner_id for _, partner in results]
+            agreement_ids = [agreement.agreement_id for agreement, _, _ in results]
+            partner_ids = [partner.partner_id for _, partner, _ in results]
 
             contact_persons_query = db.query(ContactPersons).filter(
                 or_(
