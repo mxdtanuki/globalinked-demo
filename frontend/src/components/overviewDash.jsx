@@ -8,7 +8,23 @@ import {
   FiUpload,
   FiCheckCircle,
   FiXCircle,
-  FiPower,
+  FiFilter,
+  FiX,
+  FiLink,
+  FiEdit,
+  FiUploadCloud,
+  FiFile,
+  FiMessageCircle,
+  FiInfo,
+  FiPrinter,
+  FiTag,
+  FiCalendar,
+  FiMapPin,
+  FiChevronDown,
+  FiCheck,
+  FiBarChart,
+  FiSettings,
+  FiDownload,
 } from "react-icons/fi";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +47,7 @@ import { saveAs } from "file-saver";
 
 import TopBar from "./topbar";
 import Sidebar from "./sidebar";
- 
+
 const LIFECYCLE_OPTIONS = [
   { value: "", label: "Select Status" },
   { value: "InitialReview", label: "Initial Review" },
@@ -129,8 +145,9 @@ const asDataUrl = (val) => {
   return `data:image/png;base64,${val}`;
 };
 
+// REMOVED THE DUPLICATE: Keep only one formatSignatories function
 const formatSignatories = (list) => {
-  if (!Array.isArray(list) || list.length === 0) return "-";
+  if (!Array.isArray(list) || list.length === 0) return "—";
   return list
     .map((s) => {
       const name = s.signatory_name || s.name || s.person || "";
@@ -299,7 +316,12 @@ const applyBackendStageData = (agreement) => {
 
   // derive delayed flag and optional delay level when backend omitted these
   const delayed = days >= DEFAULT_THRESHOLD_DAYS;
-  const delay_level = days >= CRITICAL_THRESHOLD_DAYS ? "critical" : delayed ? "warning" : undefined;
+  const delay_level =
+    days >= CRITICAL_THRESHOLD_DAYS
+      ? "critical"
+      : delayed
+      ? "warning"
+      : undefined;
 
   return {
     ...agreement,
@@ -332,6 +354,92 @@ const RelatedMou = (row, all = []) => {
   }
   return row;
 };
+
+// Helper to get initials for partner logo fallback
+const getInitials = (name = "") => {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+};
+
+// Helper to resolve logo path
+const LogoSrc = (lp) => {
+  if (!lp) return null;
+  try {
+    if (typeof lp === "string") {
+      if (lp.startsWith("data:image")) return lp;
+      if (lp.startsWith("iVBORw0")) return `data:image/png;base64,${lp}`;
+      if (lp.startsWith("/9j/")) return `data:image/jpeg;base64,${lp}`;
+      if (lp.startsWith("http://") || lp.startsWith("https://")) return lp;
+      const API_BASE_URL =
+        process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+      return `${API_BASE_URL.replace(/\/$/, "")}/${lp.replace(/^\/+/, "")}`;
+    }
+  } catch (err) {
+    console.warn("LogoSrc error:", err, lp);
+  }
+  return null;
+};
+
+// Helper to format contact persons for display
+const formatContactPersons = (v) => {
+  if (!v) return "N/A";
+  if (Array.isArray(v)) {
+    return v
+      .map((item) => {
+        if (!item) return "";
+        if (typeof item === "string") return item;
+        return (
+          item.point_person_name ||
+          item.contact_person_name ||
+          item.name ||
+          item.full_name ||
+          item.displayName ||
+          item.person_name ||
+          ""
+        );
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (typeof v === "object") {
+    return (
+      v.point_person_name ||
+      v.contact_person_name ||
+      v.name ||
+      v.full_name ||
+      v.displayName ||
+      JSON.stringify(v)
+    );
+  }
+  return String(v);
+};
+
+const formatContactEmails = (v) => {
+  if (!v) return "";
+  if (Array.isArray(v)) {
+    return v
+      .map((item) =>
+        typeof item === "string"
+          ? item
+          : item.point_person_email ||
+            item.email ||
+            item.contact_person_email ||
+            ""
+      )
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (typeof v === "object")
+    return v.point_person_email || v.email || v.contact_person_email || "";
+  return String(v);
+};
+
+// REMOVED THE DUPLICATE formatSignatories function that was here
 
 // Helper to remove agreements that should not appear in the overview
 // NOTE: exclude only 'Active' status from the overview; keep 'Withdrawn' visible
@@ -592,7 +700,7 @@ const MultiRemarkField = ({
             onClick={() => remove(i)}
             disabled={disabled}
           >
-            🗑️
+            <FiX className="icon" />
           </button>
         </div>
       ))}
@@ -655,12 +763,23 @@ const OverviewMerged = () => {
     const u = user || currentUser;
     if (!u) return false;
     if (u.is_admin || u.isAdmin) return true;
-    if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
+    if (typeof u.role === "string" && /admin|administrator/i.test(u.role))
+      return true;
     // some payloads use `user_role` or `role_name`
-    if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
-    if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
-    if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
-    if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+    if (
+      typeof u.user_role === "string" &&
+      /admin|administrator/i.test(u.user_role)
+    )
+      return true;
+    if (
+      typeof u.role_name === "string" &&
+      /admin|administrator/i.test(u.role_name)
+    )
+      return true;
+    if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r))))
+      return true;
+    if (Array.isArray(u.permissions) && u.permissions.includes("admin"))
+      return true;
     return false;
   };
 
@@ -867,35 +986,44 @@ const OverviewMerged = () => {
   // "filterDelayed" toggle) so it doesn't change when the user clicks
   // the "Needs Attention" summary card. We still respect other filters like
   // activeTab / classification / country / validity / search text.
-  const pendingCount = useMemo(() =>
-    agreements.filter((a) => {
-      if (activeTab === "MOA" && a.document_type !== "MOA") return false;
-      if (activeTab === "MOU" && a.document_type !== "MOU") return false;
-      // NOTE: intentionally do NOT filter by filterDelayed here
-      if (
-        filterClassification &&
-        a.partnership_classification !== filterClassification
-      )
-        return false;
-      if (filterCountry && a.country !== filterCountry) return false;
-      if (filterValidity && a.validity_period !== filterValidity) return false;
-      if (debouncedSearchText) {
-        const s = debouncedSearchText.toLowerCase();
-        const fields = [
-          a.id,
-          a.dts_no,
-          a.partner_name,
-          a.contact_person,
-          a.point_name,
-          a.country,
-        ]
-          .filter(Boolean)
-          .map((v) => String(v).toLowerCase());
-        if (!fields.some((f) => f.includes(s))) return false;
-      }
-      return true;
-    }).length,
-    [agreements, activeTab, filterClassification, filterCountry, filterValidity, debouncedSearchText]
+  const pendingCount = useMemo(
+    () =>
+      agreements.filter((a) => {
+        if (activeTab === "MOA" && a.document_type !== "MOA") return false;
+        if (activeTab === "MOU" && a.document_type !== "MOU") return false;
+        // NOTE: intentionally do NOT filter by filterDelayed here
+        if (
+          filterClassification &&
+          a.partnership_classification !== filterClassification
+        )
+          return false;
+        if (filterCountry && a.country !== filterCountry) return false;
+        if (filterValidity && a.validity_period !== filterValidity)
+          return false;
+        if (debouncedSearchText) {
+          const s = debouncedSearchText.toLowerCase();
+          const fields = [
+            a.id,
+            a.dts_no,
+            a.partner_name,
+            a.contact_person,
+            a.point_name,
+            a.country,
+          ]
+            .filter(Boolean)
+            .map((v) => String(v).toLowerCase());
+          if (!fields.some((f) => f.includes(s))) return false;
+        }
+        return true;
+      }).length,
+    [
+      agreements,
+      activeTab,
+      filterClassification,
+      filterCountry,
+      filterValidity,
+      debouncedSearchText,
+    ]
   );
 
   const needsAttention = baseList.filter((a) => a.delayed).length;
@@ -1321,9 +1449,16 @@ const OverviewMerged = () => {
       ];
       worksheet.columns = cols.map((c) => ({ header: c, key: c, width: 30 }));
       const overviewData = agreements.filter((a) => {
-        if (!a || String(a.status || "").toLowerCase() === "active") return false;
-        if (docFilter !== "All" && (String(a.document_type || "").toUpperCase() !== String(docFilter).toUpperCase())) return false;
-        if (statusFilter !== "All" && String(a.status) !== String(statusFilter)) return false;
+        if (!a || String(a.status || "").toLowerCase() === "active")
+          return false;
+        if (
+          docFilter !== "All" &&
+          String(a.document_type || "").toUpperCase() !==
+            String(docFilter).toUpperCase()
+        )
+          return false;
+        if (statusFilter !== "All" && String(a.status) !== String(statusFilter))
+          return false;
         return true;
       });
       const formatPointPersons = (pps) => {
@@ -1394,7 +1529,9 @@ const OverviewMerged = () => {
       const buffer = await workbook.xlsx.writeBuffer();
       saveAs(
         new Blob([buffer]),
-        `agreements_overview${docFilter === "All" ? "" : "_" + docFilter}${statusFilter === "All" ? "" : "_" + statusFilter}.xlsx`
+        `agreements_overview${docFilter === "All" ? "" : "_" + docFilter}${
+          statusFilter === "All" ? "" : "_" + statusFilter
+        }.xlsx`
       );
     } catch (err) {
       console.error("Export failed", err);
@@ -1485,6 +1622,7 @@ const OverviewMerged = () => {
     })();
   };
 
+  //menu toggle, lumalagpas, so ginawa kong di na sa utmost right part
   const toggleMenu = (id, evt) => {
     // if closing same menu
     if (menuOpenId === id) {
@@ -1494,8 +1632,23 @@ const OverviewMerged = () => {
     // compute a fixed position for the popup based on the button
     try {
       const rect = evt.currentTarget.getBoundingClientRect();
-      const top = rect.bottom + 8; // small offset
-      const left = rect.left;
+      let top = rect.bottom + 8;
+      let left = rect.left;
+
+      // Adjust if menu would go off-screen
+      const menuWidth = 160; // minWidth of menu
+      const menuHeight = 100; // approximate height
+
+      // Check right edge
+      if (left + menuWidth > window.innerWidth) {
+        left = rect.right - menuWidth;
+      }
+
+      // Check bottom edge
+      if (top + menuHeight > window.innerHeight) {
+        top = rect.top - menuHeight - 8; // show above button instead
+      }
+
       setMenuPos({ top, left });
     } catch (e) {
       // fallback: center of viewport
@@ -1591,7 +1744,10 @@ const OverviewMerged = () => {
       <div className="dashboard-container overview1-page">
         <TopBar toggleSidebar={toggleMobileSidebar} />
         {mobileShow && (
-          <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />
+          <div
+            className="mobile-backdrop"
+            onClick={() => setMobileShow(false)}
+          />
         )}
 
         <div className="content-body">
@@ -1601,7 +1757,10 @@ const OverviewMerged = () => {
             className="main-content"
             onClick={() => mobileShow && setMobileShow(false)}
           >
-            <div className="lloading-container" style={{ padding: 40, textAlign: "center" }}>
+            <div
+              className="lloading-container"
+              style={{ padding: 40, textAlign: "center" }}
+            >
               <div className="spinner" style={{ margin: "0 auto 12px" }} />
               <p>Loading Overview...</p>
             </div>
@@ -1646,7 +1805,12 @@ const OverviewMerged = () => {
               <button
                 type="button"
                 className={`overview1-summary-card unified pending ${
-                  !filterDelayed && !filterStage && !filterClassification && !filterValidity && !filterCountry && activeTab === "All"
+                  !filterDelayed &&
+                  !filterStage &&
+                  !filterClassification &&
+                  !filterValidity &&
+                  !filterCountry &&
+                  activeTab === "All"
                     ? "active"
                     : ""
                 }`}
@@ -1661,7 +1825,12 @@ const OverviewMerged = () => {
                   setCurrentPage(1);
                 }}
                 aria-pressed={
-                  !filterDelayed && !filterStage && !filterClassification && !filterValidity && !filterCountry && activeTab === "All"
+                  !filterDelayed &&
+                  !filterStage &&
+                  !filterClassification &&
+                  !filterValidity &&
+                  !filterCountry &&
+                  activeTab === "All"
                 }
                 title="Show pending agreements"
               >
@@ -1737,22 +1906,22 @@ const OverviewMerged = () => {
                 aria-controls="overview1-filter-panel"
                 title="Filters"
               >
+                <FiFilter className="filter-icon" />
                 Filters
               </button>
               <button
-                className="btn generate"
+                className={`btn generate ${showGenerateModal ? "active" : ""}`}
                 onClick={() => {
-                  // open modal to let user choose All / MOU only / MOA only
                   setGenerateDocType("All");
                   setGenerateStatus("All");
                   setShowGenerateModal(true);
                 }}
               >
+                <FiPrinter className="icon" />
                 Generate Report
               </button>
             </div>
 
-            {/* Filter panel */}
             {showFilterPanel && (
               <div
                 id="overview1-filter-panel"
@@ -1761,51 +1930,84 @@ const OverviewMerged = () => {
                 role="region"
                 aria-label="Table filters"
               >
+                <div className="overview1-panel-header">
+                  <FiFilter className="panel-header-icon" />
+                  <h4>Filter Agreements</h4>
+                  <button
+                    className="panel-close-btn"
+                    onClick={() => setShowFilterPanel(false)}
+                    aria-label="Close filters"
+                  >
+                    <FiX className="icon" />
+                  </button>
+                </div>
+
                 <div className="overview1-panel-row">
-                  <label className="overview1-panel-field">
-                    Partnership Classification
-                    <select
-                      value={tmpClassification}
-                      onChange={(e) => setTmpClassification(e.target.value)}
-                    >
-                      <option value="">Select Classification</option>
-                      {classificationOptions.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="overview1-panel-field">
+                    <label className="filter-label">
+                      <FiTag className="filter-icon" />
+                      Partnership Classification
+                    </label>
+                    <div className="filter-select-wrapper">
+                      <select
+                        value={tmpClassification}
+                        onChange={(e) => setTmpClassification(e.target.value)}
+                        className="filter-select"
+                      >
+                        <option value="">All Classifications</option>
+                        {classificationOptions.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown className="select-chevron" />
+                    </div>
+                  </div>
 
-                  <label className="overview1-panel-field">
-                    Validity Period
-                    <select
-                      value={tmpValidity}
-                      onChange={(e) => setTmpValidity(e.target.value)}
-                    >
-                      <option value="">Select Validity</option>
-                      {validityOptions.map((v) => (
-                        <option key={v} value={v}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="overview1-panel-field">
+                    <label className="filter-label">
+                      <FiCalendar className="filter-icon" />
+                      Validity Period
+                    </label>
+                    <div className="filter-select-wrapper">
+                      <select
+                        value={tmpValidity}
+                        onChange={(e) => setTmpValidity(e.target.value)}
+                        className="filter-select"
+                      >
+                        <option value="">All Periods</option>
+                        {validityOptions.map((v) => (
+                          <option key={v} value={v}>
+                            {v} {v ? "years" : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown className="select-chevron" />
+                    </div>
+                  </div>
 
-                  <label className="overview1-panel-field">
-                    Country
-                    <select
-                      value={tmpCountry}
-                      onChange={(e) => setTmpCountry(e.target.value)}
-                    >
-                      <option value="">Select Country</option>
-                      {countryOptions.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="overview1-panel-field">
+                    <label className="filter-label">
+                      <FiMapPin className="filter-icon" />
+                      Country
+                    </label>
+                    <div className="filter-select-wrapper">
+                      <select
+                        value={tmpCountry}
+                        onChange={(e) => setTmpCountry(e.target.value)}
+                        className="filter-select"
+                      >
+                        <option value="">All Countries</option>
+                        {countryOptions.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown className="select-chevron" />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="overview1-filter-actions">
@@ -1815,13 +2017,10 @@ const OverviewMerged = () => {
                       setTmpClassification("");
                       setTmpValidity("");
                       setTmpCountry("");
-                      setFilterClassification("");
-                      setFilterValidity("");
-                      setFilterCountry("");
-                      setShowFilterPanel(false);
                     }}
                   >
-                    Clear
+                    <FiXCircle className="btn-icon" />
+                    Clear All
                   </button>
                   <button
                     className="btn apply"
@@ -1832,7 +2031,8 @@ const OverviewMerged = () => {
                       setShowFilterPanel(false);
                     }}
                   >
-                    Apply
+                    <FiCheck className="btn-icon" />
+                    Apply Filters
                   </button>
                 </div>
               </div>
@@ -1921,7 +2121,8 @@ const OverviewMerged = () => {
                                 className="linked-mou-btn"
                                 onClick={(e) => {
                                   // prevent row click bubbling
-                                  if (e && e.stopPropagation) e.stopPropagation();
+                                  if (e && e.stopPropagation)
+                                    e.stopPropagation();
                                   const raw = row.related_mou;
                                   const key = String(raw);
                                   // Try to find the related agreement in-memory first
@@ -1947,7 +2148,8 @@ const OverviewMerged = () => {
                                   // treat as a DTS string
                                   found = agreements.find(
                                     (a) =>
-                                      (a.dts_no && String(a.dts_no) === String(raw)) ||
+                                      (a.dts_no &&
+                                        String(a.dts_no) === String(raw)) ||
                                       (a.id && String(a.id) === String(raw)) ||
                                       (a._pk && String(a._pk) === String(raw))
                                   );
@@ -1959,18 +2161,14 @@ const OverviewMerged = () => {
                                   loadAgreementDetails(raw);
                                   setDetailOpen(true);
                                 }}
-                                title={
-                                  `View linked MOU ${
-                                    relatedDtsMap[String(row.related_mou)] ||
-                                    String(row.related_mou)
-                                  }`
-                                }
-                                aria-label={
-                                  `View linked MOU ${
-                                    relatedDtsMap[String(row.related_mou)] ||
-                                    String(row.related_mou)
-                                  }`
-                                }
+                                title={`View linked MOU ${
+                                  relatedDtsMap[String(row.related_mou)] ||
+                                  String(row.related_mou)
+                                }`}
+                                aria-label={`View linked MOU ${
+                                  relatedDtsMap[String(row.related_mou)] ||
+                                  String(row.related_mou)
+                                }`}
                                 style={{
                                   background: "transparent",
                                   border: "none",
@@ -2041,7 +2239,7 @@ const OverviewMerged = () => {
                             className="icon-btn"
                             title="View Details"
                             onClick={() => openDetails(row)}
-                            aria-label="View details"
+                            aria-label="View Details"
                           >
                             <FiEye className="icon" />
                           </button>
@@ -2061,6 +2259,7 @@ const OverviewMerged = () => {
                           >
                             <button
                               className="icon-btn dots"
+                              title="More Actions"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleMenu(row._pk ?? row.id, e);
@@ -2090,6 +2289,7 @@ const OverviewMerged = () => {
                                   minWidth: 160,
                                 }}
                               >
+                                {/* View Latest File - for all users */}
                                 <button
                                   className="menu-item"
                                   onClick={() => {
@@ -2097,9 +2297,11 @@ const OverviewMerged = () => {
                                     setMenuOpenId(null);
                                   }}
                                 >
-                                  <FiFileText style={{ marginRight: 4 }} /> View
-                                  File
+                                  <FiFile style={{ marginRight: 4 }} />
+                                  View Latest File
                                 </button>
+
+                                {/* View Older Files - for all users */}
                                 <button
                                   className="menu-item"
                                   onClick={() => {
@@ -2114,6 +2316,8 @@ const OverviewMerged = () => {
                                   <FiArchive style={{ marginRight: 4 }} /> View
                                   Older Files
                                 </button>
+
+                                {/* Upload New Version - admin only */}
                                 {isAdminUser() && (
                                   <button
                                     className="menu-item"
@@ -2122,8 +2326,8 @@ const OverviewMerged = () => {
                                       setMenuOpenId(null);
                                     }}
                                   >
-                                    <FiUpload style={{ marginRight: 4 }} /> Upload
-                                    New Version
+                                    <FiUpload style={{ marginRight: 4 }} />{" "}
+                                    Upload New Version
                                   </button>
                                 )}
                               </div>,
@@ -2142,21 +2346,23 @@ const OverviewMerged = () => {
                         >
                           {/* Activate button - shown for FFUP status */}
                           {row.status &&
-                            String(row.status)
-                              .toLowerCase()
-                              .includes("ffup") &&
+                            String(row.status).toLowerCase().includes("ffup") &&
                             isAdminUser() && (
                               <button
                                 className="btn-action activate-btn"
-                                title="Activate Agreement"
+                                title={`Activate This ${
+                                  row.document_type || "Agreement"
+                                }`}
                                 onClick={() => {
                                   activateAgreement(row);
                                   setMenuOpenId(null);
                                 }}
-                                aria-label="Activate"
+                                aria-label={`Activate ${
+                                  row.document_type || "Agreement"
+                                }`}
                               >
                                 <FiCheckCircle style={{ marginRight: 6 }} />
-                                Activate
+                                Activate {row.document_type || "Agreement"}
                               </button>
                             )}
 
@@ -2243,34 +2449,49 @@ const OverviewMerged = () => {
                     role="dialog"
                     aria-labelledby="modal-title"
                   >
-                    <div className="modal-nav">
-                      <button
-                        className="nav-btn"
-                        onClick={() => navigateDetail(-1)}
-                        title="Previous"
+                    <div className="modal-badge-row">
+                      <span
+                        className={`badge ${String(
+                          selected.document_type || ""
+                        ).toLowerCase()}`}
                       >
-                        ‹
-                      </button>
-                      <h3 id="modal-title">
-                        Agreement Details — {selected.id}
+                        {selected.document_type || "—"}
+                      </span>
+                      <h3 id="modal-title" className="modal-title">
+                        {selected.partner_name ||
+                          selected.name ||
+                          "Agreement Details"}
                       </h3>
-                      <button
-                        className="nav-btn"
-                        onClick={() => navigateDetail(1)}
-                        title="Next"
-                      >
-                        ›
-                      </button>
                     </div>
                     <div
                       style={{ display: "flex", gap: 8, alignItems: "center" }}
                     >
+                      {!isEditing && (
+                        <>
+                          <button
+                            className="nav-btn"
+                            onClick={() => navigateDetail(-1)}
+                            title="Previous"
+                            aria-label="Previous agreement"
+                          >
+                            ‹
+                          </button>
+                          <button
+                            className="nav-btn"
+                            onClick={() => navigateDetail(1)}
+                            title="Next"
+                            aria-label="Next agreement"
+                          >
+                            ›
+                          </button>
+                        </>
+                      )}
                       <button
-                        className="close"
+                        className="modal-close"
                         onClick={closeDetails}
                         aria-label="Close"
                       >
-                        ×
+                        <FiX className="icon" />
                       </button>
                     </div>
                   </div>
@@ -2286,509 +2507,896 @@ const OverviewMerged = () => {
                         Loading details from database…
                       </div>
                     )}
-                    <div className="overview1-details-grid overview1-form-grid">
-                      {/* Date */}
-                      <label className="field">
-                        Date
-                        <input
-                          ref={modalFirstFieldRef}
-                          type="date"
-                          value={selected.date || selected.date_received || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              date_received: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
 
-                      {/* Source */}
-                      <label className="field">
-                        Source
-                        <input
-                          value={selected.source_unit || selected.source || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              source_unit: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
+                    {!isEditing ? (
+                      /* === VIEW MODE - Match ActiveAgreement === */
+                      <>
+                        {/* Document Information */}
+                        <section className="modal-section docinfo">
+                          <h4>Document Information</h4>
+                          <div className="row two-col">
+                            <div>
+                              <div className="label">DTS Number</div>
+                              <div className="value mono">
+                                {selected.dts_no || selected.id || "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">Document Type</div>
+                              <div className="value">
+                                {selected.document_type || "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">Date Received</div>
+                              <div className="value">
+                                {selected.date_received
+                                  ? new Date(
+                                      selected.date_received
+                                    ).toLocaleDateString()
+                                  : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">Source Unit</div>
+                              <div className="value">
+                                {selected.source_unit || "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">Hardcopy Locator</div>
+                              <div className="value">
+                                {selected.hardcopy_locator || "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">Current Status</div>
+                              <div className="value">
+                                <span
+                                  className={`status-badge status-${slugifyStatus(
+                                    selected.status
+                                  )}`}
+                                >
+                                  {LIFECYCLE_OPTIONS.find(
+                                    (o) => o.value === selected.status
+                                  )?.label ||
+                                    selected.status ||
+                                    "—"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="label" style={{ marginTop: 12 }}>
+                            Brief Profile
+                          </div>
+                          <div className="brief">
+                            {selected.brief_profile ||
+                              selected.description ||
+                              "—"}
+                          </div>
+                        </section>
 
-                      {/* Point person / position */}
-                      <div className="full-col">
-                        <label className="field full">
-                          Point person / position
-                          <MultiPersonField
-                            listKey="point_people"
-                            legacyKeys={{
-                              positionKey: "point_position",
-                              nameKey: "point_name",
-                              emailKey: "point_email",
-                            }}
-                            selected={selected}
-                            setSelected={setSelected}
-                            disabled={!isEditing}
-                          />
-                        </label>
-                      </div>
+                        {/* Partner Information */}
+                        <section className="modal-section partner">
+                          <h4>Partner Information</h4>
+                          <div className="partner-top">
+                            <div className="partner-logo">
+                              {LogoSrc(selected.logo_path || selected.logo) ? (
+                                <img
+                                  src={LogoSrc(
+                                    selected.logo_path || selected.logo
+                                  )}
+                                  alt={`${
+                                    selected.partner_name || selected.name
+                                  } logo`}
+                                  onError={(e) => {
+                                    console.warn(
+                                      "Logo failed to load:",
+                                      e.target.src
+                                    );
+                                    e.target.onerror = null;
+                                    e.target.style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <div className="partner-fallback">
+                                  {getInitials(
+                                    selected.partner_name || selected.name
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="partner-details">
+                              <div className="row two-col">
+                                <div>
+                                  <div className="label">Organization</div>
+                                  <div className="value">
+                                    {selected.partner_name ||
+                                      selected.name ||
+                                      "—"}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="label">Entity Type</div>
+                                  <div className="value">
+                                    {selected.entity_type || "—"}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="label">Country</div>
+                                  <div className="value">
+                                    {selected.country || "—"}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="label">Region</div>
+                                  <div className="value">
+                                    {selected.region || "—"}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="label">Address</div>
+                                  <div className="value">
+                                    {selected.address || "—"}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="label">Website</div>
+                                  <div className="value">
+                                    {selected.website_link ? (
+                                      <a
+                                        href={selected.website_link}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        style={{
+                                          color: "#3b82f6",
+                                          textDecoration: "none",
+                                        }}
+                                      >
+                                        {selected.website_link}
+                                      </a>
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </section>
 
-                      {/* DTS NO. */}
-                      <label className="field">
-                        DTS NO.
-                        <input
-                          value={selected.dts_no || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              dts_no: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
+                        {/* Contact Persons */}
+                        <section className="modal-section contacts">
+                          <h4>Contact Persons</h4>
+                          <div className="contacts-grid">
+                            <div className="contact-card">
+                              <div className="contact-role">
+                                PUP Point Person
+                              </div>
+                              <div className="contact-name">
+                                {formatContactPersons(
+                                  selected.point_people ||
+                                    selected.point_persons ||
+                                    selected.point_name ||
+                                    selected.point_person
+                                )}
+                              </div>
+                              <div className="contact-org">
+                                {selected.source_unit || "—"}
+                              </div>
+                              {formatContactEmails(
+                                selected.point_people ||
+                                  selected.point_persons ||
+                                  selected.point_email
+                              ) ? (
+                                <a
+                                  className="contact-email"
+                                  href={`mailto:${formatContactEmails(
+                                    selected.point_people ||
+                                      selected.point_persons ||
+                                      selected.point_email
+                                  )}`}
+                                >
+                                  {formatContactEmails(
+                                    selected.point_people ||
+                                      selected.point_persons ||
+                                      selected.point_email
+                                  )}
+                                </a>
+                              ) : null}
+                            </div>
 
-                      {/* Status */}
-                      <label className="field">
-                        STATUS
-                        <select
-                          value={selected.status || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => {
-                              const nextStatus = e.target.value;
-                              if (nextStatus !== s.status) {
-                                const now = new Date().toISOString();
-                                return {
-                                  ...s,
-                                  status: nextStatus,
-                                  _stage_start_at: now,
-                                  last_status_change: now,
-                                  days_in_stage: 0,
-                                  delayed: false,
-                                  delay_level: "none",
-                                };
-                              }
-                              return s;
-                            });
-                          }}
-                          disabled={!isEditing}
-                        >
-                          <option value="">Select Status</option>
-                          {LIFECYCLE_OPTIONS.filter((o) => o.value).map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
-                            </option>
-                          ))}
-                          {/* Fallback for unmapped statuses */}
-                          {selected.status &&
-                            !LIFECYCLE_OPTIONS.some(
-                              (o) => o.value === selected.status
-                            ) && (
-                              <option value={selected.status}>
-                                {selected.status}
-                              </option>
+                            <div className="contact-card alt">
+                              <div className="contact-role">
+                                Partner Contact Person
+                              </div>
+                              <div className="contact-name">
+                                {formatContactPersons(
+                                  selected.contact_people ||
+                                    selected.contact_persons ||
+                                    selected.contact_name ||
+                                    selected.contact_person
+                                )}
+                              </div>
+                              <div className="contact-org">
+                                {selected.partner_name || selected.name || "—"}
+                              </div>
+                              {formatContactEmails(
+                                selected.contact_people ||
+                                  selected.contact_persons ||
+                                  selected.contact_email
+                              ) ? (
+                                <a
+                                  className="contact-email"
+                                  href={`mailto:${formatContactEmails(
+                                    selected.contact_people ||
+                                      selected.contact_persons ||
+                                      selected.contact_email
+                                  )}`}
+                                >
+                                  {formatContactEmails(
+                                    selected.contact_people ||
+                                      selected.contact_persons ||
+                                      selected.contact_email
+                                  )}
+                                </a>
+                              ) : null}
+                            </div>
+                          </div>
+                        </section>
+
+                        {/* Linked MOU */}
+                        {(() => {
+                          const relatedId =
+                            selected.related_mou || selected.MOU_to_MOA_id;
+                          if (!relatedId) return null;
+                          const linkedAgreement = agreements.find(
+                            (a) =>
+                              a.id === relatedId ||
+                              a.agreement_id === relatedId ||
+                              a.dts_no === relatedId
+                          );
+                          if (!linkedAgreement) return null;
+                          return (
+                            <section className="modal-section linked-mou">
+                              <h4>
+                                <FiLink
+                                  style={{ marginRight: 8 }}
+                                  className="inline-icon"
+                                />
+                                Linked MOU
+                              </h4>
+                              <div
+                                className="linked-mou-card"
+                                onClick={() => openDetails(linkedAgreement)}
+                              >
+                                <div className="linked-mou-left">
+                                  <span className="badge mou">MOU</span>
+                                </div>
+                                <div className="linked-mou-body">
+                                  <strong className="linked-mou-title">
+                                    {linkedAgreement.partner_name ||
+                                      linkedAgreement.name ||
+                                      "—"}
+                                  </strong>
+                                  <div className="linked-mou-sub">
+                                    {linkedAgreement.partnership_classification ||
+                                      linkedAgreement.partnership_type ||
+                                      "—"}
+                                  </div>
+                                  <div className="linked-mou-valid">
+                                    Valid until:{" "}
+                                    {linkedAgreement.expiry
+                                      ? new Date(
+                                          linkedAgreement.expiry
+                                        ).toLocaleDateString()
+                                      : "—"}
+                                  </div>
+                                  <div className="linked-mou-dts">
+                                    {linkedAgreement.dts_no ||
+                                      linkedAgreement.id ||
+                                      "—"}
+                                  </div>
+                                </div>
+                              </div>
+                            </section>
+                          );
+                        })()}
+
+                        {/* Agreement Timeline */}
+                        <section className="modal-section timeline">
+                          <h4>Agreement Timeline</h4>
+                          <div className="row two-col">
+                            <div>
+                              <div className="label">Date of Signing</div>
+                              <div className="value">
+                                {selected.date_of_signing
+                                  ? new Date(
+                                      selected.date_of_signing
+                                    ).toLocaleDateString()
+                                  : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">Expiry Date</div>
+                              <div className="value">
+                                {selected.expiry
+                                  ? new Date(
+                                      selected.expiry
+                                    ).toLocaleDateString()
+                                  : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">Date Endorsed to ULCO</div>
+                              <div className="value">
+                                {selected.date_endorsed_ulco
+                                  ? new Date(
+                                      selected.date_endorsed_ulco
+                                    ).toLocaleDateString()
+                                  : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">ULCO's Approval</div>
+                              <div className="value">
+                                {selected.ulco_approval
+                                  ? new Date(
+                                      selected.ulco_approval
+                                    ).toLocaleDateString()
+                                  : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">
+                                PUP Officials' Signature
+                              </div>
+                              <div className="value">
+                                {selected.pup_official_sign
+                                  ? new Date(
+                                      selected.pup_official_sign
+                                    ).toLocaleDateString()
+                                  : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">Validity Period</div>
+                              <div className="value">
+                                {selected.validity_period
+                                  ? `${selected.validity_period} years`
+                                  : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">
+                                Partnership Classification
+                              </div>
+                              <div className="value">
+                                {selected.partnership_classification ||
+                                  selected.partnership_type ||
+                                  "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="label">Event Title</div>
+                              <div className="value">
+                                {selected.event_title || "—"}
+                              </div>
+                            </div>
+                          </div>
+                        </section>
+
+                        {/* Signatories */}
+                        <section className="modal-section">
+                          <h4>Signatories</h4>
+                          <div className="value">
+                            {selected.signatories_list
+                              ? formatSignatories(selected.signatories_list)
+                              : selected.signatories || "—"}
+                          </div>
+                        </section>
+
+                        {/* Remarks */}
+                        <section className="modal-section remarks">
+                          <h4>Remarks</h4>
+                          <div className="brief">
+                            {Array.isArray(selected.remarks) ? (
+                              selected.remarks.map((r, idx) => (
+                                <div key={idx} style={{ marginBottom: 6 }}>
+                                  {typeof r === "object"
+                                    ? r.remark_text || r.text || r.remark || ""
+                                    : r}
+                                </div>
+                              ))
+                            ) : selected.remarks ? (
+                              <div>{selected.remarks}</div>
+                            ) : (
+                              "—"
                             )}
-                        </select>
-                      </label>
-
-                      {/* Partner's name */}
-                      <label className="field">
-                        Partner's name
-                        <input
-                          value={selected.partner_name || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              partner_name: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* Address */}
-                      <label className="field">
-                        Address
-                        <input
-                          value={selected.address || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              address: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* Country */}
-                      <label className="field">
-                        Country
-                        <SearchableSelect
-                          options={countryOptions.map((c) => ({
-                            value: c,
-                            label: c,
-                          }))}
-                          value={selected.country || ""}
-                          onChange={(val) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({ ...s, country: val }));
-                          }}
-                          placeholder="Select Country"
-                          allowClear={!isEditing}
-                        />
-                      </label>
-
-                      {/* Region */}
-                      <label className="field">
-                        Region
-                        <input
-                          value={selected.region || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              region: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* Signatories */}
-                      <div className="full-col">
+                          </div>
+                        </section>
+                      </>
+                    ) : (
+                      /* === EDIT MODE - Form Fields === */
+                      <div className="overview1-details-grid overview1-form-grid">
+                        {/* Keep existing form fields from your current implementation */}
+                        {/* Date */}
                         <label className="field">
-                          Signatories
+                          Date
                           <input
-                            value={selected.signatories || ""}
+                            ref={modalFirstFieldRef}
+                            type="date"
+                            value={
+                              selected.date || selected.date_received || ""
+                            }
                             onChange={(e) => {
-                              if (!isEditing) return;
                               setSelected((s) => ({
                                 ...s,
-                                signatories: e.target.value,
+                                date_received: e.target.value,
                               }));
                             }}
-                            disabled={!isEditing}
                           />
                         </label>
-                      </div>
 
-                      {/* Contact person / details */}
-                      <div className="full-col">
-                        <label className="field full">
-                          Contact person / details
-                          <MultiPersonField
-                            listKey="contact_people"
-                            legacyKeys={{
-                              positionKey: "contact_position",
-                              nameKey: "contact_name",
-                              emailKey: "contact_email",
-                            }}
-                            selected={selected}
-                            setSelected={setSelected}
-                            disabled={!isEditing}
-                          />
-                        </label>
-                      </div>
-
-                      {/* Document type */}
-                      <label className="field">
-                        Document type
-                        <select
-                          value={selected.document_type || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              document_type: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        >
-                          <option value="">Select</option>
-                          <option value="MOA">MOA</option>
-                          <option value="MOU">MOU</option>
-                        </select>
-                      </label>
-
-                      {/* Partnership classification */}
-                      <label className="field">
-                        Partnership classification
-                        <SearchableSelect
-                          options={classificationOptions.map((c) => ({
-                            value: c,
-                            label: c,
-                          }))}
-                          value={selected.partnership_classification || ""}
-                          onChange={(val) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              partnership_classification: val,
-                            }));
-                          }}
-                          placeholder="Select Classification"
-                          allowClear={!isEditing}
-                        />
-                      </label>
-
-                      {/* Validity Period */}
-                      <label className="field">
-                        Validity Period
-                        <select
-                          value={selected.validity_period || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              validity_period: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        >
-                          <option value="">Select Validity</option>
-                          {validityOptions.map((v) => (
-                            <option key={v} value={v}>
-                              {v}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-
-                      {/* Date / Year of Signing */}
-                      <label className="field">
-                        DATE / YEAR OF SIGNING
-                        <input
-                          type="date"
-                          value={selected.date_of_signing || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              date_of_signing: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* Expiry */}
-                      <label className="field">
-                        EXPIRY DATE / YEAR
-                        <input
-                          type="date"
-                          value={selected.expiry || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              expiry: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* Date Received */}
-                      <label className="field">
-                        DATE RECEIVED
-                        <input
-                          type="date"
-                          value={selected.date_received || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              date_received: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* Date Endorsed to ULCO */}
-                      <label className="field">
-                        DATE ENDORSED TO ULCO
-                        <input
-                          type="date"
-                          value={selected.date_endorsed_ulco || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              date_endorsed_ulco: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* ULCO's Approval */}
-                      <label className="field">
-                        ULCO'S APPROVAL
-                        <input
-                          type="date"
-                          value={selected.ulco_approval || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              ulco_approval: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* PUP Official's Signature */}
-                      <label className="field">
-                        PUP OFFICIALS' SIGNATURE
-                        <input
-                          type="date"
-                          value={selected.pup_official_sign || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              pup_official_sign: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* Website Link */}
-                      <label className="field">
-                        WEBSITE LINK
-                        <input
-                          value={selected.website_link || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              website_link: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* Event title full width */}
-                      <div className="full-col">
-                        <label className="field full">
-                          EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT
+                        {/* Source */}
+                        <label className="field">
+                          Source
                           <input
-                            value={selected.event_title || ""}
+                            value={
+                              selected.source_unit || selected.source || ""
+                            }
                             onChange={(e) => {
-                              if (!isEditing) return;
                               setSelected((s) => ({
                                 ...s,
-                                event_title: e.target.value,
+                                source_unit: e.target.value,
                               }));
                             }}
-                            disabled={!isEditing}
                           />
                         </label>
-                      </div>
 
-                      {/* Brief Profile - full width */}
-                      <div className="full-col">
-                        <label className="field full">
-                          BRIEF PROFILE
-                          <input
-                            value={selected.brief_profile || ""}
-                            onChange={(e) => {
-                              if (!isEditing) return;
-                              setSelected((s) => ({
-                                ...s,
-                                brief_profile: e.target.value,
-                              }));
-                            }}
-                            disabled={!isEditing}
-                          />
-                        </label>
-                      </div>
-
-                      {/* Logo */}
-                      <label className="field">
-                        LOGO - upload
-                        <div className="logo-upload">
-                          {selected.logo ? (
-                            <img
-                              src={selected.logo}
-                              className="logo-preview"
-                              alt="logo"
+                        {/* Point person / position */}
+                        <div className="full-col">
+                          <label className="field full">
+                            Point person / position
+                            <MultiPersonField
+                              listKey="point_people"
+                              legacyKeys={{
+                                positionKey: "point_position",
+                                nameKey: "point_name",
+                                emailKey: "point_email",
+                              }}
+                              selected={selected}
+                              setSelected={setSelected}
+                              disabled={false}
                             />
-                          ) : null}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleLogoUpload}
-                            disabled={!isEditing}
-                          />
+                          </label>
                         </div>
-                      </label>
 
-                      {/* Hardcopy locator */}
-                      <label className="field">
-                        HARDCOPY LOCATOR
-                        <input
-                          value={selected.hardcopy_locator || ""}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            setSelected((s) => ({
-                              ...s,
-                              hardcopy_locator: e.target.value,
-                            }));
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </label>
-
-                      {/* Remarks full width */}
-                      <div className="full-col">
-                        <label className="field full">
-                          REMARKS
-                          <MultiRemarkField
-                            listKey="remarks"
-                            selected={selected}
-                            setSelected={setSelected}
-                            disabled={!isEditing}
+                        {/* DTS NO. */}
+                        <label className="field">
+                          DTS NO.
+                          <input
+                            value={selected.dts_no || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                dts_no: e.target.value,
+                              }));
+                            }}
                           />
                         </label>
+
+                        {/* Status */}
+                        <label className="field">
+                          STATUS
+                          <select
+                            value={selected.status || ""}
+                            onChange={(e) => {
+                              setSelected((s) => {
+                                const nextStatus = e.target.value;
+                                if (nextStatus !== s.status) {
+                                  const now = new Date().toISOString();
+                                  return {
+                                    ...s,
+                                    status: nextStatus,
+                                    _stage_start_at: now,
+                                    last_status_change: now,
+                                    days_in_stage: 0,
+                                    delayed: false,
+                                    delay_level: "none",
+                                  };
+                                }
+                                return s;
+                              });
+                            }}
+                          >
+                            <option value="">Select Status</option>
+                            {LIFECYCLE_OPTIONS.filter((o) => o.value).map(
+                              (o) => (
+                                <option key={o.value} value={o.value}>
+                                  {o.label}
+                                </option>
+                              )
+                            )}
+                            {selected.status &&
+                              !LIFECYCLE_OPTIONS.some(
+                                (o) => o.value === selected.status
+                              ) && (
+                                <option value={selected.status}>
+                                  {selected.status}
+                                </option>
+                              )}
+                          </select>
+                        </label>
+
+                        {/* Partner's name */}
+                        <label className="field">
+                          Partner's name
+                          <input
+                            value={selected.partner_name || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                partner_name: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Entity Type */}
+                        <label className="field">
+                          Entity Type
+                          <input
+                            value={selected.entity_type || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                entity_type: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Address */}
+                        <label className="field">
+                          Address
+                          <input
+                            value={selected.address || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                address: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Country */}
+                        <label className="field">
+                          Country
+                          <SearchableSelect
+                            options={countryOptions.map((c) => ({
+                              value: c,
+                              label: c,
+                            }))}
+                            value={selected.country || ""}
+                            onChange={(val) => {
+                              setSelected((s) => ({ ...s, country: val }));
+                            }}
+                            placeholder="Select Country"
+                            allowClear={true}
+                          />
+                        </label>
+
+                        {/* Region */}
+                        <label className="field">
+                          Region
+                          <input
+                            value={selected.region || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                region: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Signatories */}
+                        <div className="full-col">
+                          <label className="field">
+                            Signatories
+                            <input
+                              value={selected.signatories || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  signatories: e.target.value,
+                                }));
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Contact person / details */}
+                        <div className="full-col">
+                          <label className="field full">
+                            Contact person / details
+                            <MultiPersonField
+                              listKey="contact_people"
+                              legacyKeys={{
+                                positionKey: "contact_position",
+                                nameKey: "contact_name",
+                                emailKey: "contact_email",
+                              }}
+                              selected={selected}
+                              setSelected={setSelected}
+                              disabled={false}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Document type */}
+                        <label className="field">
+                          Document type
+                          <select
+                            value={selected.document_type || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                document_type: e.target.value,
+                              }));
+                            }}
+                          >
+                            <option value="">Select</option>
+                            <option value="MOA">MOA</option>
+                            <option value="MOU">MOU</option>
+                          </select>
+                        </label>
+
+                        {/* Partnership classification */}
+                        <label className="field">
+                          Partnership classification
+                          <SearchableSelect
+                            options={classificationOptions.map((c) => ({
+                              value: c,
+                              label: c,
+                            }))}
+                            value={selected.partnership_classification || ""}
+                            onChange={(val) => {
+                              setSelected((s) => ({
+                                ...s,
+                                partnership_classification: val,
+                              }));
+                            }}
+                            placeholder="Select Classification"
+                            allowClear={true}
+                          />
+                        </label>
+
+                        {/* Validity Period */}
+                        <label className="field">
+                          Validity Period
+                          <select
+                            value={selected.validity_period || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                validity_period: e.target.value,
+                              }));
+                            }}
+                          >
+                            <option value="">Select Validity</option>
+                            {validityOptions.map((v) => (
+                              <option key={v} value={v}>
+                                {v}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        {/* Event Title */}
+                        <div className="full-col">
+                          <label className="field">
+                            Event Title
+                            <input
+                              value={selected.event_title || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  event_title: e.target.value,
+                                }));
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Date / Year of Signing */}
+                        <label className="field">
+                          DATE / YEAR OF SIGNING
+                          <input
+                            type="date"
+                            value={selected.date_of_signing || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                date_of_signing: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Expiry */}
+                        <label className="field">
+                          EXPIRY DATE / YEAR
+                          <input
+                            type="date"
+                            value={selected.expiry || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                expiry: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Date Received */}
+                        <label className="field">
+                          DATE RECEIVED
+                          <input
+                            type="date"
+                            value={selected.date_received || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                date_received: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Date Endorsed to ULCO */}
+                        <label className="field">
+                          DATE ENDORSED TO ULCO
+                          <input
+                            type="date"
+                            value={selected.date_endorsed_ulco || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                date_endorsed_ulco: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* ULCO's Approval */}
+                        <label className="field">
+                          ULCO'S APPROVAL
+                          <input
+                            type="date"
+                            value={selected.ulco_approval || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                ulco_approval: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* PUP Official's Signature */}
+                        <label className="field">
+                          PUP OFFICIALS' SIGNATURE
+                          <input
+                            type="date"
+                            value={selected.pup_official_sign || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                pup_official_sign: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Website Link */}
+                        <label className="field">
+                          WEBSITE LINK
+                          <input
+                            value={selected.website_link || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                website_link: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Brief Profile - full width */}
+                        <div className="full-col">
+                          <label className="field full">
+                            BRIEF PROFILE
+                            <textarea
+                              value={selected.brief_profile || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  brief_profile: e.target.value,
+                                }));
+                              }}
+                              rows={3}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Logo */}
+                        <label className="field">
+                          LOGO - upload
+                          <div className="logo-upload">
+                            {selected.logo ? (
+                              <img
+                                src={selected.logo}
+                                className="logo-preview"
+                                alt="logo"
+                              />
+                            ) : null}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoUpload}
+                            />
+                          </div>
+                        </label>
+
+                        {/* Hardcopy locator */}
+                        <label className="field">
+                          HARDCOPY LOCATOR
+                          <input
+                            value={selected.hardcopy_locator || ""}
+                            onChange={(e) => {
+                              setSelected((s) => ({
+                                ...s,
+                                hardcopy_locator: e.target.value,
+                              }));
+                            }}
+                          />
+                        </label>
+
+                        {/* Remarks full width */}
+                        <div className="full-col">
+                          <label className="field full">
+                            REMARKS
+                            <MultiRemarkField
+                              listKey="remarks"
+                              selected={selected}
+                              setSelected={setSelected}
+                              disabled={false}
+                            />
+                          </label>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   <div className="overview1-modal-footer">
                     <button className="btn cancel" onClick={closeDetails}>
-                      Cancel
+                      Close
                     </button>
                     {!isEditing ? (
-                      // show Edit button only to admins
                       isAdminUser() ? (
                         <button
-                          className="btn save"
+                          className="btn edit"
                           onClick={() => setIsEditing(true)}
                         >
+                          <FiEdit className="icon" />
                           Edit
                         </button>
                       ) : null
                     ) : (
                       <>
-                        <button className="btn save" onClick={saveDetails}>
-                          Save
-                        </button>
                         <button
                           className="btn cancel"
                           onClick={() => {
@@ -2796,7 +3404,10 @@ const OverviewMerged = () => {
                             setIsEditing(false);
                           }}
                         >
-                          Revert
+                          Cancel
+                        </button>
+                        <button className="btn save" onClick={saveDetails}>
+                          Save
                         </button>
                       </>
                     )}
@@ -2812,153 +3423,445 @@ const OverviewMerged = () => {
                 onClick={() => setShowGenerateModal(false)}
               >
                 <div
-                  className="overview1-modal"
+                  className="overview1-modal report-modal"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div
-                    className="overview1-modal-header"
-                    role="dialog"
-                    aria-labelledby="generate-modal-title"
-                  >
-                    <h3 id="generate-modal-title">Generate Report</h3>
+                  <div className="overview1-modal-header">
+                    <div className="modal-badge-row">
+                      <FiFileText className="header-icon" />
+                      <h3 className="modal-title">Generate Report</h3>
+                    </div>
                     <button
-                      className="close"
+                      className="modal-close"
                       onClick={() => setShowGenerateModal(false)}
                       aria-label="Close"
                     >
-                      ×
+                      <FiX className="icon" />
                     </button>
                   </div>
 
                   <div className="overview1-modal-body">
-                    <div className="report-generator-card">
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexWrap:'wrap'}}>
-                          <div style={{display:'flex',gap:12,alignItems:'center'}}>
-                            <div className="report-icon">📄</div>
-                            <div className="report-titles">
-                              <div className="report-title">Report Generator</div>
-                              <div className="report-sub">Generate comprehensive reports for agreements in various formats</div>
-                            </div>
+                    {/* Report Summary Card */}
+                    <div className="report-summary-card">
+                      <div className="report-header">
+                        <div className="report-icon-container">
+                          <FiBarChart className="report-main-icon" />
+                        </div>
+                        <div className="report-titles">
+                          <div className="report-title">
+                            Agreement Report Generator
                           </div>
-
-                          <div style={{textAlign:'right',minWidth:160}}>
-                            <div style={{fontSize:12,color:'#6b6b6b'}}>Selected</div>
-                            <div style={{fontWeight:700,color:'#333'}}>{generateDocType === 'All' ? 'All Agreements' : generateDocType + ' only'}</div>
-                            <div style={{fontSize:12,color:'#666',marginTop:6}}>{generateStatus === 'All' ? 'All statuses' : (LIFECYCLE_OPTIONS.find(o => o.value === generateStatus)?.label || generateStatus)}</div>
-                            <div style={{marginTop:6,fontSize:13}}><strong>Total records:</strong> <span style={{color:'#333',fontWeight:600}}>{filtered.length}</span></div>
+                          <div className="report-sub">
+                            Generate comprehensive reports for agreements in
+                            Excel or CSV format
                           </div>
                         </div>
+                      </div>
 
-                        <div className="report-controls" style={{marginTop:12,alignItems:'flex-start',gap:16,flexWrap:'wrap'}}>
-                          <div style={{display:'flex',flexDirection:'column',gap:8,minWidth:320}}>
-                            <label style={{fontSize:13,color:'#666'}}>Report scope</label>
+                      <div className="report-stats">
+                        <div className="stat-item">
+                          <div className="stat-label">Total Agreements</div>
+                          <div className="stat-number">{filtered.length}</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="stat-label">Document Type</div>
+                          <div className="stat-value">
+                            {generateDocType === "All"
+                              ? "All Agreements"
+                              : generateDocType + " only"}
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="stat-label">Status Filter</div>
+                          <div className="stat-value">
+                            {generateStatus === "All"
+                              ? "All statuses"
+                              : LIFECYCLE_OPTIONS.find(
+                                  (o) => o.value === generateStatus
+                                )?.label || generateStatus}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Report Configuration */}
+                    <div className="report-configuration">
+                      <div className="config-section">
+                        <h4 className="config-title">
+                          <FiSettings className="config-icon" />
+                          Report Configuration
+                        </h4>
+
+                        <div className="config-rows">
+                          <div className="config-row">
+                            <label className="config-label">
+                              <FiFile className="label-icon" />
+                              Document Type
+                            </label>
                             <select
                               value={generateDocType}
-                              onChange={(e) => setGenerateDocType(e.target.value)}
-                              aria-label="Select document type"
+                              onChange={(e) =>
+                                setGenerateDocType(e.target.value)
+                              }
+                              className="config-select"
                             >
                               <option value="All">All Agreements</option>
                               <option value="MOU">MOU only</option>
                               <option value="MOA">MOA only</option>
                             </select>
-                            <div style={{fontSize:12,color:'#888'}}>Choose which agreements to include in the generated report.</div>
-                            <label style={{fontSize:13,color:'#666',marginTop:8}}>Status</label>
-                            <select
-                              value={generateStatus}
-                              onChange={(e) => setGenerateStatus(e.target.value)}
-                              aria-label="Select status filter"
-                            >
-                              <option value="All">All statuses</option>
-                              <option value="SignedPUP">Signed by PUP Officials</option>
-                              <option value="SignedPartner">Signed by Partner Institution</option>
-                              <option value="Complete">Completely Signed</option>
-                            </select>
-                            <div style={{fontSize:12,color:'#888'}}>Optionally limit the report to a signing status.</div>
-
-                            <div style={{display:'flex',gap:10,marginTop:12}}>
-                              <button
-                                className="btn report-generate"
-                                onClick={async () => {
-                                  await exportToExcel(generateDocType, generateStatus);
-                                  setShowGenerateModal(false);
-                                }}
-                                title="Generate an Excel report and download"
-                              >
-                                <span className="icon">🖨️</span>
-                                Generate Report
-                              </button>
-                              <button
-                                className="btn report-download"
-                                onClick={async () => {
-                                  try {
-                                    const header = [
-                                      'DTS NO','Partner','Document Type','Status','Date Received'
-                                    ];
-                                    const rows = agreements
-                                      .filter(a => {
-                                        if (!a || String(a.status || '').toLowerCase() === 'active') return false;
-                                        if (generateDocType !== 'All' && String(a.document_type || '').toUpperCase() !== String(generateDocType).toUpperCase()) return false;
-                                        if (generateStatus !== 'All' && String(a.status) !== String(generateStatus)) return false;
-                                        return true;
-                                      })
-                                      .map(a => [a.dts_no||a.id||'', a.partner_name||'', a.document_type||'', a.status||'', a.date_received||'']);
-                                    const csv = [header, ...rows].map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-                                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                                    saveAs(blob, `agreements_overview${generateDocType==='All' ? '' : '_'+generateDocType}${generateStatus==='All' ? '' : '_'+generateStatus}.csv`);
-                                  } catch (e) {
-                                    console.error('CSV export failed', e);
-                                    alert('CSV export failed: ' + (e?.message||e));
-                                  }
-                                  setShowGenerateModal(false);
-                                }}
-                                title="Download a simple CSV of the selected agreements"
-                              >
-                                <span className="icon">⬇️</span>
-                                Download CSV
-                              </button>
-                            </div>
                           </div>
 
-                          {/* right-side quick summary remains unchanged */}
+                          <div className="config-row">
+                            <label className="config-label">
+                              <FiFilter className="label-icon" />
+                              Status Filter
+                            </label>
+                            <select
+                              value={generateStatus}
+                              onChange={(e) =>
+                                setGenerateStatus(e.target.value)
+                              }
+                              className="config-select"
+                            >
+                              <option value="All">All statuses</option>
+                              <option value="SignedPUP">
+                                Signed by PUP Officials
+                              </option>
+                              <option value="SignedPartner">
+                                Signed by Partner Institution
+                              </option>
+                              <option value="Complete">
+                                Completely Signed
+                              </option>
+                              <option value="InitialReview">
+                                Initial Review
+                              </option>
+                              <option value="Endorse">Endorsed to ULCO</option>
+                            </select>
+                          </div>
                         </div>
+                      </div>
+
+                      {/* Report Preview - MOVED BEFORE EXPORT OPTIONS */}
+                      <div className="preview-section">
+                        <h4 className="config-title">
+                          <FiEye className="config-icon" />
+                          Report Preview
+                        </h4>
+                        <div className="preview-info">
+                          <div className="preview-stats">
+                            <div className="preview-stat">
+                              <FiFile className="stat-icon" />
+                              <span>
+                                Total records:{" "}
+                                <strong>{filtered.length}</strong>
+                              </span>
+                            </div>
+                            <div className="preview-stat">
+                              <FiCalendar className="stat-icon" />
+                              <span>
+                                Generated:{" "}
+                                <strong>
+                                  {new Date().toLocaleDateString()}
+                                </strong>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="preview-note">
+                            <FiInfo className="note-icon" />
+                            The report will include all agreement details,
+                            contact information, and timeline data.
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Export Options - MOVED AFTER PREVIEW */}
+                      <div className="export-section">
+                        <h4 className="config-title">
+                          <FiDownload className="config-icon" />
+                          Export Options
+                        </h4>
+
+                        <div className="export-options">
+                          <div className="export-option">
+                            <div className="option-header">
+                              <FiFile className="option-icon excel" />
+                              <div className="option-info">
+                                <div className="option-title">Excel Report</div>
+                                <div className="option-desc">
+                                  Comprehensive spreadsheet with all agreement
+                                  details and formatting
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              className="btn export-btn excel-btn"
+                              onClick={async () => {
+                                await exportToExcel(
+                                  generateDocType,
+                                  generateStatus
+                                );
+                                setShowGenerateModal(false);
+                              }}
+                            >
+                              <FiDownload className="icon" />
+                              Download Excel
+                            </button>
+                          </div>
+
+                          <div className="export-option">
+                            <div className="option-header">
+                              <FiFileText className="option-icon csv" />
+                              <div className="option-info">
+                                <div className="option-title">CSV Export</div>
+                                <div className="option-desc">
+                                  Simple comma-separated values for quick data
+                                  analysis
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              className="btn export-btn csv-btn"
+                              onClick={async () => {
+                                try {
+                                  const header = [
+                                    "DTS NO",
+                                    "Partner",
+                                    "Document Type",
+                                    "Status",
+                                    "Date Received",
+                                    "Country",
+                                    "Classification",
+                                  ];
+                                  const rows = agreements
+                                    .filter((a) => {
+                                      if (
+                                        !a ||
+                                        String(a.status || "").toLowerCase() ===
+                                          "active"
+                                      )
+                                        return false;
+                                      if (
+                                        generateDocType !== "All" &&
+                                        String(
+                                          a.document_type || ""
+                                        ).toUpperCase() !==
+                                          String(generateDocType).toUpperCase()
+                                      )
+                                        return false;
+                                      if (
+                                        generateStatus !== "All" &&
+                                        String(a.status) !==
+                                          String(generateStatus)
+                                      )
+                                        return false;
+                                      return true;
+                                    })
+                                    .map((a) => [
+                                      a.dts_no || a.id || "",
+                                      a.partner_name || "",
+                                      a.document_type || "",
+                                      a.status || "",
+                                      a.date_received || "",
+                                      a.country || "",
+                                      a.partnership_classification || "",
+                                    ]);
+                                  const csv = [header, ...rows]
+                                    .map((r) =>
+                                      r
+                                        .map(
+                                          (v) =>
+                                            '"' +
+                                            String(v).replace(/"/g, '""') +
+                                            '"'
+                                        )
+                                        .join(",")
+                                    )
+                                    .join("\n");
+                                  const blob = new Blob([csv], {
+                                    type: "text/csv;charset=utf-8;",
+                                  });
+                                  saveAs(
+                                    blob,
+                                    `agreements_${generateDocType.toLowerCase()}_${generateStatus.toLowerCase()}.csv`
+                                  );
+                                } catch (e) {
+                                  console.error("CSV export failed", e);
+                                  alert(
+                                    "CSV export failed: " + (e?.message || e)
+                                  );
+                                }
+                                setShowGenerateModal(false);
+                              }}
+                            >
+                              <FiDownload className="icon" />
+                              Download CSV
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="overview1-modal-footer">
+                    <button
+                      className="btn cancel"
+                      onClick={() => setShowGenerateModal(false)}
+                    >
+                      <FiX className="icon" />
+                      Close
+                    </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Upload Modal */}
+            {/* Upload New Version Modal */}
             {showUploadForm && (
-              <div className="overview-upload-form-overlay">
-                <div className="overview-upload-form-modal">
-                  <h3>Upload New File</h3>
-                  {selectedAgreement && (
-                    <p>
-                      For:{" "}
-                      <strong>
-                        {selectedAgreement.partner_name ||
-                          selectedAgreement.name}
-                      </strong>
-                    </p>
-                  )}
-                  <div className="overview-upload-form-group">
-                    <label>Upload File:</label>
-                    <input
-                      type="file"
-                      onChange={(e) => setUploadFile(e.target.files[0])}
-                    />
-                  </div>
-                  <div className="overview-upload-form-group">
-                    <label>Comments:</label>
-                    <textarea
-                      placeholder="Enter comments here"
-                      value={uploadComment}
-                      onChange={(e) => setUploadComment(e.target.value)}
-                    ></textarea>
-                  </div>
-                  <div className="modal-actions">
+              <div
+                className="overview1-modal-backdrop"
+                onClick={() => setShowUploadForm(false)}
+              >
+                <div
+                  className="overview1-modal upload-modal"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="overview1-modal-header">
+                    <div className="modal-badge-row">
+                      <FiUpload className="header-icon" />
+                      <h3 className="modal-title">
+                        Upload New Document Version
+                      </h3>
+                    </div>
                     <button
-                      className="cancel-button"
+                      className="modal-close"
+                      onClick={() => {
+                        setShowUploadForm(false);
+                        setSelectedAgreement(null);
+                        setUploadFile(null);
+                        setUploadComment("");
+                      }}
+                      aria-label="Close"
+                    >
+                      <FiX className="icon" />
+                    </button>
+                  </div>
+
+                  <div className="overview1-modal-body">
+                    {/* Agreement Info Card */}
+                    {selectedAgreement && (
+                      <div className="upload-agreement-info">
+                        <div className="agreement-badge">
+                          <span
+                            className={`badge doc ${
+                              selectedAgreement.document_type?.toLowerCase() ===
+                              "moa"
+                                ? "moa"
+                                : "mou"
+                            }`}
+                          >
+                            {selectedAgreement.document_type || "DOC"}
+                          </span>
+                        </div>
+                        <div className="agreement-details">
+                          <div className="agreement-title">
+                            {selectedAgreement.partner_name ||
+                              selectedAgreement.name ||
+                              "Unknown Agreement"}
+                          </div>
+                          <div className="agreement-meta">
+                            <span className="dts-number">
+                              <FiFileText className="meta-icon" />
+                              DTS:{" "}
+                              {selectedAgreement.dts_no ||
+                                selectedAgreement.id ||
+                                "—"}
+                            </span>
+                            <span className="current-status">
+                              <FiCheckCircle className="meta-icon" />
+                              Status: {selectedAgreement.status || "—"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Upload Form */}
+                    <div className="upload-form-section">
+                      <div className="form-row">
+                        <label className="form-label">
+                          <FiFile className="label-icon" />
+                          Select Document File
+                          <span className="required">*</span>
+                        </label>
+                        <div className="file-upload-area">
+                          <input
+                            type="file"
+                            id="document-upload"
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            onChange={(e) => setUploadFile(e.target.files[0])}
+                            className="file-input"
+                          />
+                          <label
+                            htmlFor="document-upload"
+                            className="file-upload-label"
+                          >
+                            <div className="upload-placeholder">
+                              <FiUploadCloud className="upload-icon" />
+                              <div className="upload-text">
+                                <strong>Choose file to upload</strong>
+                                <span>
+                                  PDF, DOC, DOCX, JPG, PNG (Max: 10MB)
+                                </span>
+                              </div>
+                            </div>
+                          </label>
+                          {uploadFile && (
+                            <div className="file-preview">
+                              <FiFileText className="file-icon" />
+                              <span className="file-name">
+                                {uploadFile.name}
+                              </span>
+                              <span className="file-size">
+                                ({(uploadFile.size / (1024 * 1024)).toFixed(2)}{" "}
+                                MB)
+                              </span>
+                              <button
+                                type="button"
+                                className="remove-file"
+                                onClick={() => setUploadFile(null)}
+                              >
+                                <FiX className="icon" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <label className="form-label">
+                          <FiMessageCircle className="label-icon" />
+                          Version Comments
+                        </label>
+                        <div className="textarea-container">
+                          <textarea
+                            placeholder="Enter comments about this version (e.g., 'Updated signatures', 'Revised terms', etc.)"
+                            value={uploadComment}
+                            onChange={(e) => setUploadComment(e.target.value)}
+                            className="comment-textarea"
+                            rows={4}
+                          />
+                          <div className="character-count">
+                            {uploadComment.length}/500 characters
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overview1-modal-footer">
+                    <button
+                      className="btn cancel"
                       onClick={() => {
                         setShowUploadForm(false);
                         setSelectedAgreement(null);
@@ -2966,14 +3869,25 @@ const OverviewMerged = () => {
                         setUploadComment("");
                       }}
                     >
+                      <FiX className="icon" />
                       Cancel
                     </button>
                     <button
-                      className="submit-button"
-                      disabled={uploading}
+                      className="btn save upload-btn"
                       onClick={submitUpload}
+                      disabled={uploading || !uploadFile}
                     >
-                      {uploading ? "Uploading..." : "Submit"}
+                      {uploading ? (
+                        <>
+                          <div className="upload-spinner"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <FiUpload className="icon" />
+                          Upload New Version
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

@@ -802,7 +802,7 @@ const Archive = () => {
                                   <button
                                     className="archive-icon-btn archive-view"
                                     onClick={() => setSelectedAgreement(item)}
-                                    title="View details"
+                                    title="View Details"
                                   >
                                     <FiEye className="archive-icon" />
                                   </button>
@@ -814,7 +814,7 @@ const Archive = () => {
                                         true
                                       )
                                     }
-                                    title="Download file"
+                                    title="Download File"
                                   >
                                     <FiDownload className="archive-icon" />
                                   </button>
@@ -840,7 +840,7 @@ const Archive = () => {
                                         disabled={deletingRows.has(
                                           item.agreement_id
                                         )}
-                                        title="Delete permanently"
+                                        title="Delete Permanently"
                                       >
                                         <FiTrash2 className="archive-icon" />
                                       </button>

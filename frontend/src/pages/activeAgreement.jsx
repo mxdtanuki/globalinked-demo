@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import "../components/layout.css";
 import "./activeAgreement.css";
 import useDebounce from "../hooks/useDebounce";
+import { useNavigate } from "react-router-dom";
 import {
   FiEye,
   FiLink,
@@ -15,10 +17,16 @@ import {
   FiAlertCircle,
   FiGlobe,
   FiCalendar,
+  FiFilter,
+  FiMoreVertical,
+  FiFileText,
+  FiArchive,
+  FiPlusCircle,
 } from "react-icons/fi";
 import { TbFileText } from "react-icons/tb";
 import { agreementService } from "../services/agreementService";
 import axios from "axios";
+import { documentService } from "../services/documentService";
 
 const ActiveAgreement = () => {
   const [mobileShow, setMobileShow] = useState(false);
@@ -112,6 +120,10 @@ const ActiveAgreement = () => {
   // three-dot row menu
   const [menuOpenId, setMenuOpenId] = useState(null);
 
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const menuRef = useRef(null);
+  const navigate = useNavigate();
+
   // close menu on outside click
   useEffect(() => {
     const handler = () => setMenuOpenId(null);
@@ -120,12 +132,54 @@ const ActiveAgreement = () => {
   }, []);
 
   const toggleRowMenu = (id, e) => {
-    // stop the event from bubbling up (prevents row-level click handlers)
     if (e && e.stopPropagation) e.stopPropagation();
-    setMenuOpenId((prev) => (prev === id ? null : id));
+
+    if (menuOpenId === id) {
+      setMenuOpenId(null);
+      return;
+    }
+
+    // Compute position based on button
+    try {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const top = rect.bottom + 8;
+      const left = rect.left;
+      setMenuPos({ top, left });
+    } catch (err) {
+      setMenuPos({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
+    }
+
+    setMenuOpenId(id);
   };
 
-  const viewAgreementFile = (agreement, which = "latest") => {
+  // mirror overviewDash behavior: use documentService.getLatestVersion and open blob URL
+  const handleViewLatestFile = async (dtsNumber) => {
+    try {
+      if (!dtsNumber) {
+        alert("No DTS number provided for this agreement.");
+        return;
+      }
+      const latest = await documentService.getLatestVersion(dtsNumber);
+      if (!latest) {
+        alert("No document versions found for this DTS number.");
+        return;
+      }
+      const resp = await fetch(latest.download_url, {
+        headers: { Accept: "application/pdf" },
+      });
+      if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
+      const blob = await resp.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      console.error("View failed:", err);
+      alert("Failed to open file: " + (err.message || err));
+    }
+  };
+
+  const viewAgreementFile = async (agreement, which = "latest") => {
     setMenuOpenId(null);
     // attempt common fields used in the app to reference files
     const attachments =
@@ -147,12 +201,89 @@ const ActiveAgreement = () => {
           (attachments[1].url || attachments[1].file_url));
     }
 
+    // Fast path: direct URL on agreement/attachment
     if (url) {
       window.open(url, "_blank");
-    } else {
-      // basic user feedback if no file is available
-      alert("No file found for this agreement.");
+      return;
     }
+
+    // If user requested older versions, open the versions viewer / docVer page
+    const dts =
+      agreement?.dts_number ||
+      agreement?.dtsNumber ||
+      agreement?.dts_no ||
+      agreement?.id ||
+      agreement?.agreement_id;
+    if (which === "older") {
+      if (dts) {
+        // navigate in-app to docVer (do not open a new tab)
+        navigate(`/docVer?dts_number=${encodeURIComponent(dts)}`);
+        return;
+      }
+    }
+
+    // Fallback: try documentService to find latest/signed URL or download blob (like overviewDash)
+    try {
+      // 1) Try service helper to get latest version by DTS number (preferred)
+      if (dts && documentService && typeof documentService.getLatestVersion === "function") {
+        const latest = await documentService.getLatestVersion(dts);
+        const downloadUrl = latest?.download_url || latest?.url || latest?.signedUrl || latest?.downloadUrl;
+        if (downloadUrl) {
+          // fetch as blob and open (better cross-origin support & consistent behavior)
+          const resp = await fetch(downloadUrl, { headers: { Accept: "application/pdf" } });
+          if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
+          const blob = await resp.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          window.open(blobUrl, "_blank");
+          setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+          return;
+        }
+        // if service returned an id instead of URL, try getDownloadUrl
+        if (latest && (latest.id || latest.version_id) && typeof documentService.getDownloadUrl === "function") {
+          const signed = await documentService.getDownloadUrl(latest.id || latest.version_id);
+          const dl = signed?.download_url || signed?.url || signed;
+          if (dl) {
+            window.open(dl, "_blank");
+            return;
+          }
+        }
+      }
+
+      // 2) Try to locate a version id from attachments / agreement and request a signed url
+      const findVersionId = () => {
+        return (
+          agreement?.latest_version_id ||
+          agreement?.version_id ||
+          agreement?.file_version_id ||
+          agreement?.file_id ||
+          (Array.isArray(attachments) &&
+            (() => {
+              const a = which === "latest" ? attachments[0] : attachments[1] || attachments[0];
+              return a?.version_id || a?.id || a?.file_id || a?.versionId;
+            })())
+        );
+      };
+
+      const versionId = findVersionId();
+      if (
+        versionId &&
+        documentService &&
+        typeof documentService.getDownloadUrl === "function"
+      ) {
+        const signed = await documentService.getDownloadUrl(versionId);
+        const downloadUrl = signed?.download_url || signed?.url || signed;
+        if (downloadUrl) {
+          // open signed URL directly (server usually sets correct headers)
+          window.open(downloadUrl, "_blank");
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("documentService / file fetch failed:", err);
+    }
+
+    // final fallback message
+    alert("No file found for this agreement.");
   };
 
   const [isModalEdit, setIsModalEdit] = useState(false);
@@ -162,6 +293,10 @@ const ActiveAgreement = () => {
   });
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  // Generate report modal state (behaves like OverviewDash)
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateDocType, setGenerateDocType] = useState("All");
+  const [generateStatus, setGenerateStatus] = useState("All");
 
   useEffect(() => {
     if (selectedAgreement) {
@@ -210,11 +345,25 @@ const ActiveAgreement = () => {
       const u = user || currentUser;
       if (!u) return false;
       if (u.is_admin || u.isAdmin) return true;
-      if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
-      if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
-      if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
-      if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
-      if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+      if (typeof u.role === "string" && /admin|administrator/i.test(u.role))
+        return true;
+      if (
+        typeof u.user_role === "string" &&
+        /admin|administrator/i.test(u.user_role)
+      )
+        return true;
+      if (
+        typeof u.role_name === "string" &&
+        /admin|administrator/i.test(u.role_name)
+      )
+        return true;
+      if (
+        Array.isArray(u.roles) &&
+        u.roles.some((r) => /admin/i.test(String(r)))
+      )
+        return true;
+      if (Array.isArray(u.permissions) && u.permissions.includes("admin"))
+        return true;
       return false;
     };
     if (!isAdminUser()) {
@@ -250,11 +399,25 @@ const ActiveAgreement = () => {
       const u = user || currentUser;
       if (!u) return false;
       if (u.is_admin || u.isAdmin) return true;
-      if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
-      if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
-      if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
-      if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
-      if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+      if (typeof u.role === "string" && /admin|administrator/i.test(u.role))
+        return true;
+      if (
+        typeof u.user_role === "string" &&
+        /admin|administrator/i.test(u.user_role)
+      )
+        return true;
+      if (
+        typeof u.role_name === "string" &&
+        /admin|administrator/i.test(u.role_name)
+      )
+        return true;
+      if (
+        Array.isArray(u.roles) &&
+        u.roles.some((r) => /admin/i.test(String(r)))
+      )
+        return true;
+      if (Array.isArray(u.permissions) && u.permissions.includes("admin"))
+        return true;
       return false;
     };
     if (!isAdminUser()) {
@@ -433,12 +596,11 @@ const ActiveAgreement = () => {
     return daysDiff > 0 && daysDiff <= 90;
   });
 
-  
-
   // derived options for validity period select (from activeAgreements)
   const validityOptions = useMemo(() => {
     const s = new Set();
-    for (const a of activeAgreements) if (a.validity_period) s.add(String(a.validity_period));
+    for (const a of activeAgreements)
+      if (a.validity_period) s.add(String(a.validity_period));
     return Array.from(s).sort();
   }, [activeAgreements]);
 
@@ -453,7 +615,8 @@ const ActiveAgreement = () => {
         a.partnershipClassification ??
         a.partnershipType ??
         null;
-      if (v !== null && v !== undefined && String(v).trim() !== "") s.add(String(v));
+      if (v !== null && v !== undefined && String(v).trim() !== "")
+        s.add(String(v));
     }
     return Array.from(s).sort();
   }, [activeAgreements]);
@@ -491,28 +654,45 @@ const ActiveAgreement = () => {
             a.brief_profile,
             Array.isArray(a.remarks) ? a.remarks.join(" ") : a.remarks,
           ];
-          if (!fields.some((f) => f && f.toString().toLowerCase().includes(q))) return false;
+          if (!fields.some((f) => f && f.toString().toLowerCase().includes(q)))
+            return false;
         }
         // apply partnership classification filter if set (check multiple possible fields)
         if (filterClassification) {
-          const classific =
-            (a.partnership_classification ?? a.partnership_type ?? a.partnershipClassification ?? a.partnershipType ?? "").toString();
+          const classific = (
+            a.partnership_classification ??
+            a.partnership_type ??
+            a.partnershipClassification ??
+            a.partnershipType ??
+            ""
+          ).toString();
           if (classific !== String(filterClassification)) return false;
         }
         // apply validity period filter if set
         if (filterValidityPeriod) {
-          if (String(a.validity_period) !== String(filterValidityPeriod)) return false;
+          if (String(a.validity_period) !== String(filterValidityPeriod))
+            return false;
         }
         // apply country scope
         if (filterCountryScope && filterCountryScope !== "all") {
           const country = (a.country || "").toString().toLowerCase();
-          const isPH = country.includes("philipp") || country === "ph" || country === "philippines";
+          const isPH =
+            country.includes("philipp") ||
+            country === "ph" ||
+            country === "philippines";
           if (filterCountryScope === "local" && !isPH) return false;
           if (filterCountryScope === "international" && isPH) return false;
         }
         return true;
       });
-  }, [activeAgreements, filter, debouncedSearchQuery, filterClassification, filterValidityPeriod, filterCountryScope]);
+  }, [
+    activeAgreements,
+    filter,
+    debouncedSearchQuery,
+    filterClassification,
+    filterValidityPeriod,
+    filterCountryScope,
+  ]);
 
   const totalPages = Math.max(
     1,
@@ -825,7 +1005,10 @@ const ActiveAgreement = () => {
       <div className="dashboard-container active-agreements-page">
         <TopBar toggleSidebar={toggleMobileSidebar} />
         {mobileShow && (
-          <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />
+          <div
+            className="mobile-backdrop"
+            onClick={() => setMobileShow(false)}
+          />
         )}
 
         <div className="content-body">
@@ -835,7 +1018,10 @@ const ActiveAgreement = () => {
             className="main-content"
             onClick={() => mobileShow && setMobileShow(false)}
           >
-            <div className="lloading-container" style={{ padding: 40, textAlign: "center" }}>
+            <div
+              className="lloading-container"
+              style={{ padding: 40, textAlign: "center" }}
+            >
               <div className="spinner" style={{ margin: "0 auto 12px" }} />
               <p>Loading agreements...</p>
             </div>
@@ -887,8 +1073,14 @@ const ActiveAgreement = () => {
             {/* === Agreement Table Section === */}
             <div className="activeAgreement-table-section">
               <div className="table-controls">
-                <div className="table-search-wrapper" style={{ position: "relative" }}>
-                  <div className="table-search" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  className="table-search-wrapper"
+                  style={{ position: "relative" }}
+                >
+                  <div
+                    className="table-search"
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
                     <input
                       type="search"
                       placeholder="Search DTS, partner, type..."
@@ -915,7 +1107,22 @@ const ActiveAgreement = () => {
                       onClick={() => setShowFilterPanel((v) => !v)}
                       aria-expanded={showFilterPanel}
                     >
+                      <FiFilter className="filter-icon" />
                       Filters
+                    </button>
+
+                    {/* Generate Report button placed next to Filters to match overviewDash */}
+                    <button
+                      type="button"
+                      className="btn generate"
+                      onClick={() => {
+                        // navigate to the Overview page where the report generator lives
+                        // adjust route if your overview route differs (e.g. '/overview', '/overview/merged')
+                        navigate("/overview");
+                      }}
+                    >
+                      <FiPrinter className="icon" />
+                      Generate Report
                     </button>
                   </div>
                 </div>
@@ -951,17 +1158,25 @@ const ActiveAgreement = () => {
 
               {/* Inline filter panel (rendered below search + tabs when open) */}
               {showFilterPanel && (
-                <div className="overview1-filter-panel" style={{ marginTop: 12 }}>
+                <div
+                  className="overview1-filter-panel"
+                  style={{ marginTop: 12 }}
+                >
                   <div className="overview1-panel-row">
                     <div className="overview1-panel-field">
                       <label>Partnership Classification</label>
                       <select
                         value={filterClassification}
-                        onChange={(e) => { setFilterClassification(e.target.value); setCurrentPage(1); }}
+                        onChange={(e) => {
+                          setFilterClassification(e.target.value);
+                          setCurrentPage(1);
+                        }}
                       >
                         <option value="">Select Classification</option>
                         {classificationOptions.map((c) => (
-                          <option key={c} value={c}>{c}</option>
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -970,11 +1185,16 @@ const ActiveAgreement = () => {
                       <label>Validity Period</label>
                       <select
                         value={filterValidityPeriod}
-                        onChange={(e) => { setFilterValidityPeriod(e.target.value); setCurrentPage(1); }}
+                        onChange={(e) => {
+                          setFilterValidityPeriod(e.target.value);
+                          setCurrentPage(1);
+                        }}
                       >
                         <option value="">Select Validity</option>
                         {validityOptions.map((v) => (
-                          <option key={v} value={v}>{v}</option>
+                          <option key={v} value={v}>
+                            {v}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -983,7 +1203,10 @@ const ActiveAgreement = () => {
                       <label>Country</label>
                       <select
                         value={filterCountryScope}
-                        onChange={(e) => { setFilterCountryScope(e.target.value); setCurrentPage(1); }}
+                        onChange={(e) => {
+                          setFilterCountryScope(e.target.value);
+                          setCurrentPage(1);
+                        }}
                       >
                         <option value="all">Select Country</option>
                         <option value="local">Local (Philippines)</option>
@@ -995,7 +1218,13 @@ const ActiveAgreement = () => {
                   <div className="overview1-filter-actions">
                     <button
                       className="btn clear"
-                      onClick={() => { setFilterClassification(""); setFilterValidityPeriod(""); setFilterCountryScope("all"); setShowFilterPanel(false); setCurrentPage(1); }}
+                      onClick={() => {
+                        setFilterClassification("");
+                        setFilterValidityPeriod("");
+                        setFilterCountryScope("all");
+                        setShowFilterPanel(false);
+                        setCurrentPage(1);
+                      }}
                     >
                       Clear
                     </button>
@@ -1078,7 +1307,7 @@ const ActiveAgreement = () => {
                                 mou.event_title ||
                                 "MOU"
                               }`}
-                              title="View details"
+                              title="View Details"
                             >
                               <FiEye className="icon" />
                             </button>
@@ -1142,10 +1371,102 @@ const ActiveAgreement = () => {
                                   </button>
                                 </div>
                               ))}
+
+                              {/* Add button to create new linked agreement */}
+                              <div className="moa-child-card add-new">
+                                <div className="moa-left">
+                                  <FiArrowRight className="arrow-icon" />
+                                  <span className="badge moa">MOA</span>
+                                </div>
+
+                                <div className="moa-body">
+                                  <strong className="moa-title">
+                                    Create new agreement based on this MOU
+                                  </strong>
+                                </div>
+
+                                <button
+                                  className="moa-view-btn"
+                                  onClick={() => {
+                                    // pre-fill some fields in the new agreement form
+                                    const newAgreementData = {
+                                      ...mou,
+                                      id: undefined, // clear id for new agreement
+                                      agreement_id: undefined,
+                                      dts_number: undefined,
+                                      date_signed: undefined,
+                                      date_expiry: undefined,
+                                      status: "active", // default to active
+                                      remarks: [],
+                                      files: [],
+                                    };
+                                    setSelectedAgreement(newAgreementData);
+                                  }}
+                                  aria-label="Create new agreement based on this MOU"
+                                >
+                                  <FiEdit className="icon" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
                       ))}
+
+                      {/* Add button for creating a new MOU (if user has permission) */}
+                      {(() => {
+                        const canCreateMou = true; // TODO: check user permissions
+                        if (!canCreateMou) return null;
+                        return (
+                          <div className="mou-relationship add-new-mou">
+                            <div className="mou-relationship-header">
+                              <span className="mou-dot" />
+                              <span className={`badge mou`}>MOU</span>
+                              <div className="mou-meta">
+                                <strong className="mou-title">
+                                  Create new MOU
+                                </strong>
+                              </div>
+                            </div>
+
+                            <div className="mou-based">
+                              <div className="mou-based-title">
+                                <FiLink className="link-inline" /> Agreements
+                                based on this MOU
+                              </div>
+
+                              <div className="mou-children">
+                                {/* Empty state or prompt to create new MOU */}
+                                <div className="no-linked">
+                                  No MOU linked yet.{" "}
+                                  <button
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() => {
+                                      // open blank MOU form
+                                      setSelectedAgreement({
+                                        id: undefined,
+                                        agreement_id: undefined,
+                                        dts_number: undefined,
+                                        event_title: "",
+                                        partnerName: "",
+                                        country: "",
+                                        source_unit: "",
+                                        date_signed: null,
+                                        date_expiry: null,
+                                        status: "active",
+                                        remarks: [],
+                                        files: [],
+                                      });
+                                    }}
+                                  >
+                                    <FiPlusCircle className="icon" />
+                                    Create MOU
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()
@@ -1394,71 +1715,72 @@ const ActiveAgreement = () => {
                                     onClick={(e) => toggleRowMenu(a.id || i, e)}
                                     aria-haspopup="true"
                                     aria-expanded={menuOpenId === (a.id || i)}
-                                    title="More"
+                                    title="More Actions"
                                   >
-                                    {/* Use a simple ellipsis glyph; CSS can replace with an icon */}
-                                    <span style={{ fontSize: 18 }}>⋯</span>
+                                    <FiMoreVertical className="icon" />
                                   </button>
 
-                                  {menuOpenId === (a.id || i) && (
-                                    <div
-                                      className="row-menu-panel"
-                                      role="menu"
-                                      style={{
-                                        position: "absolute",
-                                        right: 0,
-                                        top: "28px",
-                                        background: "#fff",
-                                        border: "1px solid rgba(0,0,0,0.08)",
-                                        boxShadow:
-                                          "0 6px 18px rgba(0,0,0,0.08)",
-                                        zIndex: 60,
-                                        minWidth: 160,
-                                        padding: 6,
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <button
-                                        type="button"
-                                        className="menu-item"
-                                        role="menuitem"
-                                        onClick={() =>
-                                          viewAgreementFile(a, "latest")
-                                        }
+                                  {menuOpenId === (a.id || i) &&
+                                    createPortal(
+                                      <div
+                                        ref={menuRef}
+                                        className="menu-popup"
+                                        onClick={(e) => e.stopPropagation()}
                                         style={{
-                                          display: "block",
-                                          width: "100%",
-                                          padding: "8px 10px",
-                                          textAlign: "left",
-                                          background: "transparent",
-                                          border: "none",
-                                          cursor: "pointer",
+                                          position: "fixed",
+                                          top: menuPos.top,
+                                          left: menuPos.left,
+                                          zIndex: 2000,
+                                          background: "#fff",
+                                          border: "1px solid #eee",
+                                          borderRadius: 6,
+                                          boxShadow:
+                                            "0 8px 24px rgba(0,0,0,0.12)",
+                                          padding: 6,
+                                          minWidth: 160,
                                         }}
                                       >
-                                        View file
-                                      </button>
+                                        <button
+                                          type="button"
+                                          className="menu-item"
+                                          role="menuitem"
+                                          onClick={() => {
+                                            handleViewLatestFile(
+                                              a.dts_number ||
+                                                a.dtsNumber ||
+                                                a.dts_no ||
+                                                a.id
+                                            );
+                                            setMenuOpenId(null);
+                                          }}
+                                        >
+                                          <FiFileText style={{ marginRight: 4 }} />{" "}
+                                          View latest file
+                                        </button>
 
-                                      <button
-                                        type="button"
-                                        className="menu-item"
-                                        role="menuitem"
-                                        onClick={() =>
-                                          viewAgreementFile(a, "older")
-                                        }
-                                        style={{
-                                          display: "block",
-                                          width: "100%",
-                                          padding: "8px 10px",
-                                          textAlign: "left",
-                                          background: "transparent",
-                                          border: "none",
-                                          cursor: "pointer",
-                                        }}
-                                      >
-                                        View older file
-                                      </button>
-                                    </div>
-                                  )}
+                                        <button
+                                          type="button"
+                                          className="menu-item"
+                                          role="menuitem"
+                                          onClick={() => {
+                                            // navigate in-app to docVer (no new tab)
+                                            navigate(
+                                              `/docVer?dts_number=${
+                                                a.dts_number ||
+                                                a.dtsNumber ||
+                                                a.dts_no ||
+                                                a.id
+                                              }`
+                                            );
+                                            setMenuOpenId(null);
+                                          }}
+                                        >
+                                          <FiArchive style={{ marginRight: 4 }} /> View
+                                          Older Files
+                                        </button>
+                                      </div>,
+                                      document.body
+                                    )}
                                 </div>
                               </div>
                             </td>
@@ -1976,11 +2298,31 @@ const ActiveAgreement = () => {
                       const u = user || currentUser;
                       if (!u) return false;
                       if (u.is_admin || u.isAdmin) return true;
-                      if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
-                      if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
-                      if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
-                      if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
-                      if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+                      if (
+                        typeof u.role === "string" &&
+                        /admin|administrator/i.test(u.role)
+                      )
+                        return true;
+                      if (
+                        typeof u.user_role === "string" &&
+                        /admin|administrator/i.test(u.user_role)
+                      )
+                        return true;
+                      if (
+                        typeof u.role_name === "string" &&
+                        /admin|administrator/i.test(u.role_name)
+                      )
+                        return true;
+                      if (
+                        Array.isArray(u.roles) &&
+                        u.roles.some((r) => /admin/i.test(String(r)))
+                      )
+                        return true;
+                      if (
+                        Array.isArray(u.permissions) &&
+                        u.permissions.includes("admin")
+                      )
+                        return true;
                       return false;
                     };
                     return isAdminUser() ? (
@@ -1993,6 +2335,7 @@ const ActiveAgreement = () => {
               ) : (
                 <div style={{ width: "100%" }} className="modal-edit-panel">
                   <div
+
                     className="row two-col"
                     style={{ gap: 12, alignItems: "flex-start" }}
                   >
