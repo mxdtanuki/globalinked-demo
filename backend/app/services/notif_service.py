@@ -26,13 +26,21 @@ def notification_exists(db: Session, agreement_id: int, category: str, user_id: 
 
     return query.first() is not None
 
-def create_notification_if_new(db: Session, agreement_id: int, category: str, message: str,
-                               recommended_action: str = None, user_id: int = None):
+def create_notification_if_new(
+    db: Session,
+    agreement_id: int,
+    category: str,
+    message: str,
+    recommended_action: str = None,
+    user_id: int = None,
+    last_status_change: datetime = None
+):
     """
-    Create a notification if none exists, or if the existing one is stale (>24 hours).
+    Create a notification if:
+    - none exists,
+    - the last one is >24h old and status did not change,
+    - the last one was before the latest status change.
     """
-    from datetime import datetime, timedelta
-
     query = db.query(Notification).filter(
         Notification.agreement_id == agreement_id,
         Notification.category == category
@@ -40,17 +48,19 @@ def create_notification_if_new(db: Session, agreement_id: int, category: str, me
     if user_id is not None:
         query = query.filter(Notification.user_id == user_id)
 
-    existing = query.order_by(Notification.created_at.desc()).first() 
-
+    existing = query.order_by(Notification.created_at.desc()).first()
     now = datetime.now(PH_TZ)
-    if existing:
-        #allow re-notif if >24 hours old
-        if category == "pending_long" and (now - existing.created_at) > timedelta(hours=24):
-            pass  # Proceed to create new
-        else:
-            return None 
 
-    # Create new notification
+    if existing:
+        # If status changed , allow new notification
+        if last_status_change and existing.created_at < last_status_change:
+            pass  
+        # If status did not change, only allow if >24h old
+        elif (now - existing.created_at) > timedelta(hours=24):
+            pass  
+        else:
+            return None
+
     notif = Notification(
         agreement_id=agreement_id,
         user_id=user_id,

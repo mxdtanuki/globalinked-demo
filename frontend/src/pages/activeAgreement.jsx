@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import "../components/layout.css";
+import "../components/overview1.css";
 import "./activeAgreement.css";
 import useDebounce from "../hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +28,116 @@ import { TbFileText } from "react-icons/tb";
 import { agreementService } from "../services/agreementService";
 import axios from "axios";
 import { documentService } from "../services/documentService";
+
+/* Reusable searchable select (adapted from OverviewDash) */
+const SearchableSelect = ({
+  options = [],
+  value,
+  onChange,
+  placeholder = "Select...",
+  allowClear = true,
+}) => {
+  const normalized = options.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : o
+  );
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef();
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
+  }, []);
+
+  const filtered = normalized.filter((o) =>
+    o.label.toLowerCase().includes(query.toLowerCase())
+  );
+  const selectedLabel =
+    normalized.find((o) => String(o.value) === String(value))?.label || "";
+
+  return (
+    <div className="searchable-select" ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        className="ss-toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className={`ss-value ${selectedLabel ? "" : "placeholder"}`}>
+          {selectedLabel || placeholder}
+        </span>
+        <span className="ss-caret">▾</span>
+      </button>
+      {allowClear && selectedLabel && (
+        <button
+          className="ss-clear"
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange && onChange("");
+          }}
+          aria-label="Clear selection"
+        >
+          ×
+        </button>
+      )}
+      {open && (
+        <div
+          className="ss-panel"
+          role="dialog"
+          style={{
+            position: "absolute",
+            zIndex: 40,
+            background: "#fff",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            marginTop: 6,
+            width: 320,
+            maxHeight: 260,
+            overflow: "auto",
+          }}
+        >
+          <div style={{ padding: 8 }}>
+            <input
+              autoFocus
+              className="ss-search"
+              placeholder="Type to search..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <ul
+            className="ss-list"
+            role="listbox"
+            aria-label="options"
+            style={{ listStyle: "none", margin: 0, padding: 0 }}
+          >
+            {filtered.length === 0 && (
+              <li style={{ padding: 8, color: "#666" }}>No results</li>
+            )}
+            {filtered.map((o) => (
+              <li
+                key={o.value}
+                className="ss-item"
+                style={{ padding: 8, cursor: "pointer" }}
+                onClick={() => {
+                  onChange && onChange(o.value);
+                  setOpen(false);
+                }}
+              >
+                {o.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ActiveAgreement = () => {
   const [mobileShow, setMobileShow] = useState(false);
@@ -635,6 +746,16 @@ const ActiveAgreement = () => {
     return Array.from(s).sort();
   }, [activeAgreements]);
 
+    // derived options for country (from activeAgreements)
+    const countryOptions = useMemo(() => {
+      const s = new Set();
+      for (const a of activeAgreements) {
+        const c =
+          a.country || a.country_name || a.countryName || a.location || "";
+        if (c != null && String(c).trim() !== "") s.add(String(c).trim());
+      }
+      return Array.from(s).sort((x, y) => x.localeCompare(y));
+    }, [activeAgreements]);
   // recompute filteredAgreements with the additional filters (validity period and country scope)
   const filteredAgreementsWithFilters = useMemo(() => {
     return activeAgreements
@@ -687,15 +808,11 @@ const ActiveAgreement = () => {
           if (String(a.validity_period) !== String(filterValidityPeriod))
             return false;
         }
-        // apply country scope
+        // apply country filter: when not 'all', match selected country string
         if (filterCountryScope && filterCountryScope !== "all") {
-          const country = (a.country || "").toString().toLowerCase();
-          const isPH =
-            country.includes("philipp") ||
-            country === "ph" ||
-            country === "philippines";
-          if (filterCountryScope === "local" && !isPH) return false;
-          if (filterCountryScope === "international" && isPH) return false;
+          const selected = String(filterCountryScope).trim().toLowerCase();
+          const country = String(a.country || "").trim().toLowerCase();
+          if (!country || country !== selected) return false;
         }
         return true;
       });
@@ -1014,7 +1131,7 @@ const ActiveAgreement = () => {
     return <div className="overview-container">Error: {error}</div>;
   }
 
-  if (loading) {
+  /* if (loading) {
     return (
       <div className="dashboard-container active-agreements-page">
         <TopBar toggleSidebar={toggleMobileSidebar} />
@@ -1043,7 +1160,7 @@ const ActiveAgreement = () => {
         </div>
       </div>
     );
-  }
+  } */ 
 
   return (
     <div className="dashboard-container active-agreements-page">
@@ -1097,7 +1214,7 @@ const ActiveAgreement = () => {
             <div className="activeAgreement-table-section">
               <div className="table-controls">
                 {/* Top row: filter tabs (All / MOA / MOU / Linked) */}
-                <div className="table-controls-top" style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-start' }}>
+                <div className="table-controls-top" style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end' }}>
                   <div className="table-actions">
                     <div className="filter-tabs">
                       <button
@@ -1130,7 +1247,7 @@ const ActiveAgreement = () => {
 
                 {/* Bottom row: search, filters button and generate */}
                 <div className="table-controls-bottom" style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div className="table-search-wrapper" style={{ position: "relative", flex: 1, marginRight: 12 }}>
+                  <div className="table-search-wrapper" style={{ position: "relative", flex: 1 }}>
                     <div className="table-search" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <input
                         type="search"
@@ -1190,53 +1307,54 @@ const ActiveAgreement = () => {
                   <div className="overview1-panel-row">
                     <div className="overview1-panel-field">
                       <label>Partnership Classification</label>
-                      <select
+                      <SearchableSelect
+                        options={[
+                          { value: "", label: "Select Classification" },
+                          ...classificationOptions.map((c) => ({ value: c, label: c })),
+                        ]}
                         value={filterClassification}
-                        onChange={(e) => {
-                          setFilterClassification(e.target.value);
+                        onChange={(v) => {
+                          setFilterClassification(v || "");
                           setCurrentPage(1);
                         }}
-                      >
-                        <option value="">Select Classification</option>
-                        {classificationOptions.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Select Classification"
+                        allowClear={false}
+                      />
                     </div>
 
                     <div className="overview1-panel-field">
                       <label>Validity Period</label>
-                      <select
+                      <SearchableSelect
+                        options={[
+                          { value: "", label: "Select Validity" },
+                          ...validityOptions.map((v) => ({ value: v, label: v })),
+                        ]}
                         value={filterValidityPeriod}
-                        onChange={(e) => {
-                          setFilterValidityPeriod(e.target.value);
+                        onChange={(v) => {
+                          setFilterValidityPeriod(v || "");
                           setCurrentPage(1);
                         }}
-                      >
-                        <option value="">Select Validity</option>
-                        {validityOptions.map((v) => (
-                          <option key={v} value={v}>
-                            {v}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Select Validity"
+                        allowClear={false}
+                      />
                     </div>
 
                     <div className="overview1-panel-field">
                       <label>Country</label>
-                      <select
+                      <SearchableSelect
+                        options={[
+                          { value: "all", label: "All Countries" },
+                          ...countryOptions.map((c) => ({ value: c, label: c })),
+                        ]}
                         value={filterCountryScope}
-                        onChange={(e) => {
-                          setFilterCountryScope(e.target.value);
+                        onChange={(v) => {
+                          // treat 'all' as no filter
+                          setFilterCountryScope(v || "all");
                           setCurrentPage(1);
                         }}
-                      >
-                        <option value="all">Select Country</option>
-                        <option value="local">Local (Philippines)</option>
-                        <option value="international">International</option>
-                      </select>
+                        placeholder="Select Country"
+                        allowClear={false}
+                      />
                     </div>
                   </div>
 

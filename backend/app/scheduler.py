@@ -285,23 +285,23 @@ def agreement_notification_job():
             pending_statuses = list(STATUS_THRESHOLD_DAYS.keys())
             pending_query = (
                 db.query(Agreements)
-                  .options(
-                      selectinload(Agreements.partner),
-                      selectinload(Agreements.timer)
-                  )
-                  .filter(
-                      and_(
-                          Agreements.agreement_status.in_(pending_statuses),
-                          Agreements.agreement_status != "Withdrawn",
-                          Agreements.agreement_status != "Active"
-                      )
-                  )
-                  .all()
+                .options(
+                    selectinload(Agreements.partner),
+                    selectinload(Agreements.timer)
+                )
+                .filter(
+                    and_(
+                        Agreements.agreement_status.in_(pending_statuses),
+                        Agreements.agreement_status != "Withdrawn",
+                        Agreements.agreement_status != "Active"
+                    )
+                )
+                .all()
             )
-            
+
             logger.info(f"[Scheduler] Found {len(pending_query)} agreements in pending status")
             pending_count = 0
-            
+
             for a in pending_query:
                 try:
                     partner = a.partner
@@ -326,9 +326,11 @@ def agreement_notification_job():
                         )
                         days_pending = (today - entry_date).days
                         last_change_info = f"since entry {entry_date}"
+                        last_status_change = None
                     else:
                         days_pending = days_threshold + 1
                         last_change_info = "no timestamp available"
+                        last_status_change = None
 
                     logger.debug(f"[Scheduler] {a.dts_number} in '{status}': {days_pending}/{days_threshold} days")
 
@@ -347,7 +349,8 @@ def agreement_notification_job():
                             a.agreement_id, 
                             category, 
                             msg, 
-                            "\n".join(actions)
+                            "\n".join(actions),
+                            last_status_change=last_status_change
                         )
                         
                         if notif:

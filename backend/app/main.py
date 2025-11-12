@@ -133,8 +133,8 @@ async def performance_test(db: Session = Depends(get_db)):
 def on_startup():
     """Initialize scheduler, preload NLP model, and verify DB connectivity."""
     try:
-       # from app.scheduler import start_scheduler
-       # start_scheduler()
+        from app.scheduler import start_scheduler
+        start_scheduler()
         logger.info("Scheduler started successfully.")
     except Exception as e:
         logger.warning(f"Scheduler failed to start: {e}")
