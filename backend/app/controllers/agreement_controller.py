@@ -669,7 +669,7 @@ async def update_agreement(
                         )
                         db.add(timer)
                 else:
-                    # Status did not change, just update the field (if needed)
+                    # Status did not change, just update the field 
                     agreement.agreement_status = up['agreement_status']
 
             if 'hardcopy_location' in up:

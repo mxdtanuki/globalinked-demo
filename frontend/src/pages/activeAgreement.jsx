@@ -19,7 +19,11 @@ import {
   FiTag,
   FiGlobe,
   FiCalendar,
+  FiBarChart,
   FiFilter,
+  FiSettings,
+  FiFile,
+  FiInfo,
   FiMapPin,
   FiMoreVertical,
   FiFileText,
@@ -33,7 +37,7 @@ import { agreementService } from "../services/agreementService";
 import axios from "axios";
 import { documentService } from "../services/documentService";
 
-/* Reusable searchable select (adapted from OverviewDash) */
+/* Reusable searchable select */
 const SearchableSelect = ({
   options = [],
   value,
@@ -879,6 +883,34 @@ const ActiveAgreement = () => {
     return null;
   };
 
+  // Helper: find website string on agreement using common field names
+  const getWebsiteFromAgreement = (a) => {
+    if (!a) return null;
+    const keys = [
+      "website",
+      "website_link",
+      "websiteLink",
+      "website_url",
+      "websiteUrl",
+      "url",
+      "website_link_url",
+      "websiteLinkUrl",
+    ];
+    for (const k of keys) {
+      const v = a[k];
+      if (v) return String(v).trim();
+    }
+    return null;
+  };
+
+  // Ensure href has a protocol; allow protocol-relative and mailto
+  const normalizeHref = (raw) => {
+    if (!raw) return null;
+    const s = String(raw).trim();
+    if (/^(https?:|mailto:|tel:|\/\/)/i.test(s)) return s;
+    return `https://${s}`;
+  };
+
   // normalize remarks into an array of plain strings
   const normalizeRemarks = (r) => {
     if (!r) return [];
@@ -950,6 +982,25 @@ const ActiveAgreement = () => {
     return String(v);
   };
 
+  // Prepare contact email values from several possible shapes on the selectedAgreement
+  const pupEmailRaw = selectedAgreement
+    ? selectedAgreement.point_persons_email ??
+      selectedAgreement.pointPersonEmail ??
+      selectedAgreement.point_persons ??
+      selectedAgreement.pointPerson ??
+      null
+    : null;
+  const pupEmail = formatContactEmails(pupEmailRaw);
+
+  const partnerEmailRaw = selectedAgreement
+    ? selectedAgreement.contact_persons_email ??
+      selectedAgreement.contactPersonEmail ??
+      selectedAgreement.contact_persons ??
+      selectedAgreement.contactPerson ??
+      null
+    : null;
+  const partnerEmail = formatContactEmails(partnerEmailRaw);
+
   const addEditRemark = () =>
     setEditForm((prev) => ({
       ...prev,
@@ -999,18 +1050,46 @@ const ActiveAgreement = () => {
     );
   }
 
+  // Normalize reportType for comparisons (select options may use mixed case)
+  // Prefer the modal's generateDocType when present so the modal preview/count
+  // updates when the user changes the Document Type select inside the modal.
+  const reportKey = String((typeof generateDocType !== "undefined" && generateDocType)
+    ? generateDocType
+    : reportType || "").toLowerCase();
+
   const reportItems = (() => {
-    if (reportType === "mou")
-      return agreements.filter(
-        (a) => String(a.document_type).toUpperCase() === "MOU"
+    // Start from all agreements and apply document-type filter first
+    let items = agreements.slice();
+
+    if (reportKey === "mou") {
+      items = items.filter(
+        (a) => String(a.document_type || a.documentType || "").toUpperCase() === "MOU"
       );
-    if (reportType === "moa")
-      return agreements.filter(
-        (a) => String(a.document_type).toUpperCase() === "MOA"
+    } else if (reportKey === "moa") {
+      items = items.filter(
+        (a) => String(a.document_type || a.documentType || "").toUpperCase() === "MOA"
       );
-    if (reportType === "linked")
-      return agreements.filter((a) => Boolean(getLinkedId(a)));
-    return agreements.slice();
+    } else if (reportKey === "linked") {
+      items = items.filter((a) => Boolean(getLinkedId(a)));
+    }
+
+    // Apply status filter from the modal (if set). generateStatus is kept for
+    // backward compatibility even if the UI control was removed.
+    try {
+      const statusKey = String(generateStatus || "").trim().toLowerCase();
+      if (statusKey && statusKey !== "all") {
+        items = items.filter((a) => {
+          const s = String(a.agreement_status || a.status || "").trim().toLowerCase();
+          // allow partial matches for flexible status naming
+          return s === statusKey || s.replace(/\s+/g, "").includes(statusKey.replace(/\s+/g, ""));
+        });
+      }
+    } catch (e) {
+      // if anything goes wrong, fall back to current items without status filtering
+      console.warn("report status filter error", e);
+    }
+
+    return items;
   })();
 
   const escapeHtml = (str = "") =>
@@ -1059,7 +1138,7 @@ const ActiveAgreement = () => {
     const html = `
       <html>
         <head>
-          <title>${reportLabelMap[reportType]}</title>
+          <title>${reportLabelMap[reportKey] || reportLabelMap.all}</title>
           <style>
             body{font-family: Arial, Helvetica, sans-serif; padding:20px; color:#111}
             h1{font-size:20px; margin-bottom:6px}
@@ -1069,7 +1148,7 @@ const ActiveAgreement = () => {
           </style>
         </head>
         <body>
-          <h1>${reportLabelMap[reportType]}</h1>
+          <h1>${reportLabelMap[reportKey] || reportLabelMap.all}</h1>
           <div>Total records: ${reportItems.length}</div>
           <table>
             <thead>
@@ -1126,7 +1205,7 @@ const ActiveAgreement = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${reportType}-agreements-report.csv`;
+  a.download = `${reportKey || 'all'}-agreements-report.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -1135,7 +1214,7 @@ const ActiveAgreement = () => {
     return <div className="overview-container">Error: {error}</div>;
   }
 
-  /* if (loading) {
+   if (loading) {
     return (
       <div className="dashboard-container active-agreements-page">
         <TopBar toggleSidebar={toggleMobileSidebar} />
@@ -1164,7 +1243,7 @@ const ActiveAgreement = () => {
         </div>
       </div>
     );
-  } */ 
+  } 
 
   return (
     <div className="dashboard-container active-agreements-page">
@@ -1434,8 +1513,13 @@ const ActiveAgreement = () => {
                   const mouWithChildren = mouList
                     .map((mou) => {
                       const mid = mou.id || mou.agreement_id;
+                      // Only consider linked MOAs as children. Exclude other MOUs or unrelated records.
                       const children = activeAgreements.filter(
-                        (c) => getLinkedId(c) === mid || c.linkedMouId === mid
+                        (c) =>
+                          String(
+                            (c.document_type || c.documentType || "")
+                          ).toUpperCase() === "MOA" &&
+                          (getLinkedId(c) === mid || c.linkedMouId === mid)
                       );
                       return { mou, children };
                     })
@@ -1552,102 +1636,13 @@ const ActiveAgreement = () => {
                                   </button>
                                 </div>
                               ))}
-
-                              {/* Add button to create new linked agreement */}
-                              <div className="moa-child-card add-new">
-                                <div className="moa-left">
-                                  <FiArrowRight className="arrow-icon" />
-                                  <span className="badge moa">MOA</span>
-                                </div>
-
-                                <div className="moa-body">
-                                  <strong className="moa-title">
-                                    Create new agreement based on this MOU
-                                  </strong>
-                                </div>
-
-                                <button
-                                  className="moa-view-btn"
-                                  onClick={() => {
-                                    // pre-fill some fields in the new agreement form
-                                    const newAgreementData = {
-                                      ...mou,
-                                      id: undefined, // clear id for new agreement
-                                      agreement_id: undefined,
-                                      dts_number: undefined,
-                                      date_signed: undefined,
-                                      date_expiry: undefined,
-                                      status: "active", // default to active
-                                      remarks: [],
-                                      files: [],
-                                    };
-                                    setSelectedAgreement(newAgreementData);
-                                  }}
-                                  aria-label="Create new agreement based on this MOU"
-                                >
-                                  <FiEdit className="icon" />
-                                </button>
-                              </div>
                             </div>
                           </div>
                         </div>
                       ))}
 
                       {/* Add button for creating a new MOU (if user has permission) */}
-                      {(() => {
-                        const canCreateMou = true; // TODO: check user permissions
-                        if (!canCreateMou) return null;
-                        return (
-                          <div className="mou-relationship add-new-mou">
-                            <div className="mou-relationship-header">
-                              <span className="mou-dot" />
-                              <span className={`badge mou`}>MOU</span>
-                              <div className="mou-meta">
-                                <strong className="mou-title">
-                                  Create new MOU
-                                </strong>
-                              </div>
-                            </div>
-
-                            <div className="mou-based">
-                              <div className="mou-based-title">
-                                <FiLink className="link-inline" /> Agreements
-                                based on this MOU
-                              </div>
-
-                              <div className="mou-children">
-                                {/* Empty state or prompt to create new MOU */}
-                                <div className="no-linked">
-                                  No MOU linked yet.{" "}
-                                  <button
-                                    className="btn btn-primary btn-sm"
-                                    onClick={() => {
-                                      // open blank MOU form
-                                      setSelectedAgreement({
-                                        id: undefined,
-                                        agreement_id: undefined,
-                                        dts_number: undefined,
-                                        event_title: "",
-                                        partnerName: "",
-                                        country: "",
-                                        source_unit: "",
-                                        date_signed: null,
-                                        date_expiry: null,
-                                        status: "active",
-                                        remarks: [],
-                                        files: [],
-                                      });
-                                    }}
-                                  >
-                                    <FiPlusCircle className="icon" />
-                                    Create MOU
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
+                      {/* 'Create new MOU' action removed from Linked Agreements view per request */}
                     </div>
                   );
                 })()
@@ -1970,44 +1965,45 @@ const ActiveAgreement = () => {
                       })}
                     </tbody>
                   </table>
-
-                  {/* Pagination controls */}
-                  {totalPages > 1 && (
-                    <div className="pagination">
-                      <button
-                        className="page-btn"
-                        onClick={prevPage}
-                        disabled={currentPage === 1}
-                      >
-                        Prev
-                      </button>
-
-                      {Array.from({ length: totalPages }, (_, idx) => {
-                        const page = idx + 1;
-                        return (
-                          <button
-                            key={page}
-                            className={`page-btn ${
-                              page === currentPage ? "active" : ""
-                            }`}
-                            onClick={() => gotoPage(page)}
-                          >
-                            {page}
-                          </button>
-                        );
-                      })}
-
-                      <button
-                        className="page-btn"
-                        onClick={nextPage}
-                        disabled={currentPage === totalPages}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
                 </div>
-              )}
+
+                )}
+
+                {/* Pagination controls (rendered below the table) */}
+                {filter !== "linked" && totalPages > 1 && (
+                  <div className="pagination" style={{ marginTop: 12 }}>
+                    <button
+                      className="page-btn"
+                      onClick={prevPage}
+                      disabled={currentPage === 1}
+                    >
+                      Prev
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, idx) => {
+                      const page = idx + 1;
+                      return (
+                        <button
+                          key={page}
+                          className={`page-btn ${
+                            page === currentPage ? "active" : ""
+                          }`}
+                          onClick={() => gotoPage(page)}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      className="page-btn"
+                      onClick={nextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
             </div>
 
             {/* Nearing Expiration Section */}
@@ -2093,67 +2089,7 @@ const ActiveAgreement = () => {
               ))}
             </div>
 
-            {/* Report Generator */}
-            <div className="report-generator-card">
-              <div className="report-header">
-                <div className="report-icon">
-                  <TbFileText size={24} />
-                </div>
-                <div>
-                  <h4>Report Generator</h4>
-                  <div className="report-sub">
-                    Generate comprehensive reports for agreements in various
-                    formats
-                  </div>
-                </div>
-              </div>
-
-              <div className="report-controls">
-                <div className="report-select">
-                  <select
-                    value={reportType}
-                    onChange={(e) => setReportType(e.target.value)}
-                    aria-label="Select report type"
-                  >
-                    <option value="all">All Agreements</option>
-                    <option value="mou">MOU</option>
-                    <option value="moa">MOA</option>
-                    <option value="linked">Linked MOU to MOA</option>
-                  </select>
-                </div>
-
-                <div className="report-actions">
-                  <button
-                    className="btn btn-primary btn-print"
-                    onClick={generatePrintableReport}
-                    aria-label="Generate printable report"
-                  >
-                    <FiPrinter className="btn-icon" />
-                    <span>Generate Report</span>
-                  </button>
-
-                  <button
-                    className="btn btn-outline btn-csv"
-                    onClick={downloadCSV}
-                    aria-label="Download CSV"
-                  >
-                    <FiDownload className="btn-icon" />
-                    <span>Download CSV</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="report-meta">
-                <div>
-                  <strong>Selected:</strong>{" "}
-                  <span className="muted">{reportLabelMap[reportType]}</span>
-                </div>
-                <div>
-                  <strong>Total records:</strong>{" "}
-                  <span className="muted">{reportItems.length}</span>
-                </div>
-              </div>
-            </div>
+            {/* Report Generator (now shown in modal) */}
           </div>
         </div>
       </div>
@@ -2285,17 +2221,16 @@ const ActiveAgreement = () => {
                       <div>
                         <div className="label">Website</div>
                         <div className="value">
-                          <a
-                            href={
-                              selectedAgreement.website_link ||
-                              selectedAgreement.websiteLink
-                            }
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {selectedAgreement.website_link ||
-                              selectedAgreement.websiteLink}
-                          </a>
+                          {(() => {
+                            const raw = getWebsiteFromAgreement(selectedAgreement);
+                            const href = normalizeHref(raw);
+                            if (!raw) return "—";
+                            return (
+                              <a href={href} target="_blank" rel="noopener noreferrer">
+                                {raw}
+                              </a>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -2320,21 +2255,9 @@ const ActiveAgreement = () => {
                         selectedAgreement.source ||
                         selectedAgreement.initiating_unit}
                     </div>
-                    {formatContactEmails(
-                      selectedAgreement.point_persons_email ||
-                        selectedAgreement.pointPersonEmail
-                    ) ? (
-                      <a
-                        className="contact-email"
-                        href={`mailto:${formatContactEmails(
-                          selectedAgreement.point_persons_email ||
-                            selectedAgreement.pointPersonEmail
-                        )}`}
-                      >
-                        {formatContactEmails(
-                          selectedAgreement.point_persons_email ||
-                            selectedAgreement.pointPersonEmail
-                        )}
+                    {pupEmail ? (
+                      <a className="contact-email" href={`mailto:${pupEmail}`}>
+                        {pupEmail}
                       </a>
                     ) : null}
                   </div>
@@ -2351,21 +2274,9 @@ const ActiveAgreement = () => {
                     <div className="contact-org">
                       {selectedAgreement.name || selectedAgreement.partnerName}
                     </div>
-                    {formatContactEmails(
-                      selectedAgreement.contact_persons_email ||
-                        selectedAgreement.contactPersonEmail
-                    ) ? (
-                      <a
-                        className="contact-email"
-                        href={`mailto:${formatContactEmails(
-                          selectedAgreement.contact_persons_email ||
-                            selectedAgreement.contactPersonEmail
-                        )}`}
-                      >
-                        {formatContactEmails(
-                          selectedAgreement.contact_persons_email ||
-                            selectedAgreement.contactPersonEmail
-                        )}
+                    {partnerEmail ? (
+                      <a className="contact-email" href={`mailto:${partnerEmail}`}>
+                        {partnerEmail}
                       </a>
                     ) : null}
                   </div>
@@ -2541,8 +2452,8 @@ const ActiveAgreement = () => {
                     </div>
 
                     <div>
-                      <div className="label">Remarks</div>
-                      <div style={{ background: "#fff8dc", padding: "5px" }}>
+                        <div className="label">Remarks</div>
+                        <div style={{ background: "#fff", padding: "5px" }}>
                         {Array.isArray(editForm.remarks) &&
                         editForm.remarks.length > 0 ? (
                           editForm.remarks.map((rm, idx) => (
@@ -2608,6 +2519,189 @@ const ActiveAgreement = () => {
                 </div>
               )}
             </footer>
+          </div>
+        </div>
+      )}
+
+      {showGenerateModal && (
+        <div
+          className="overview1-modal-backdrop"
+          onClick={() => setShowGenerateModal(false)}
+        >
+          <div
+            className="overview1-modal report-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="overview1-modal-header">
+              <div className="modal-badge-row">
+                <FiFileText className="header-icon" />
+                <h3 className="modal-title">Generate Report</h3>
+              </div>
+              <button
+                className="modal-close"
+                onClick={() => setShowGenerateModal(false)}
+                aria-label="Close"
+              >
+                <FiX className="icon" />
+              </button>
+            </div>
+
+            <div className="overview1-modal-body">
+              {/* Report Summary Card */}
+              <div className="report-summary-card">
+                <div className="report-header">
+                  <div className="report-icon-container">
+                    <FiBarChart className="report-main-icon" />
+                  </div>
+                  <div className="report-titles">
+                    <div className="report-title">Agreement Report Generator</div>
+                    <div className="report-sub">Generate comprehensive reports for agreements in Excel, CSV or PDF</div>
+                  </div>
+                </div>
+
+                <div className="report-stats">
+                  <div className="stat-item">
+                    <div className="stat-label">Total Agreements</div>
+                    <div className="stat-number">{reportItems.length}</div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-label">Document Type</div>
+                    <div className="stat-value">
+                      {generateDocType === "All" ? "All Agreements" : generateDocType + " only"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Report Configuration */}
+              <div className="report-configuration">
+                <div className="config-section">
+                  <h4 className="config-title">
+                    <FiSettings className="config-icon" />
+                    Report Configuration
+                  </h4>
+
+                  <div className="config-rows">
+                    <div className="config-row">
+                      <label className="config-label">
+                        <FiFile className="label-icon" />
+                        Document Type
+                      </label>
+                      <select
+                        value={generateDocType}
+                        onChange={(e) => setGenerateDocType(e.target.value)}
+                        className="config-select"
+                      >
+                        <option value="All">All Agreements</option>
+                        <option value="MOU">MOU only</option>
+                        <option value="MOA">MOA only</option>
+                        <option value="linked">Linked MOU → MOA</option>
+                      </select>
+                    </div>
+
+                    {/* Status filter removed per request */}
+                  </div>
+                </div>
+
+                {/* Preview Section */}
+                <div className="preview-section">
+                  <h4 className="config-title">
+                    <FiEye className="config-icon" />
+                    Report Preview
+                  </h4>
+                  <div className="preview-info">
+                    <div className="preview-stats">
+                      <div className="preview-stat">
+                        <FiFile className="stat-icon" />
+                        <span>
+                          Total records: <strong>{reportItems.length}</strong>
+                        </span>
+                      </div>
+                      <div className="preview-stat">
+                        <FiCalendar className="stat-icon" />
+                        <span>
+                          Generated: <strong>{new Date().toLocaleDateString()}</strong>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="preview-note">
+                      <FiInfo className="note-icon" />
+                      <span style={{ marginLeft: 8 }}>The report will include all agreement details, contact information, and timeline data.</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Export Options */}
+                <div className="export-section">
+                  <h4 className="config-title">
+                    <FiDownload className="config-icon" />
+                    Export Options
+                  </h4>
+
+                  <div className="export-options">
+                    <div className="export-option">
+                      <div className="option-header">
+                        <FiFile className="option-icon excel" />
+                        <div className="option-info">
+                          <div className="option-title">Excel Report</div>
+                          <div className="option-desc">Comprehensive spreadsheet with all agreement details and formatting</div>
+                        </div>
+                      </div>
+                      <button
+                        className="btn export-btn excel-btn"
+                        onClick={async () => {
+                          // fallback: use CSV download helper for now
+                          try {
+                            downloadCSV();
+                          } catch (e) {
+                            console.error(e);
+                            alert("Failed to download Excel/CSV: " + (e?.message || e));
+                          }
+                          setShowGenerateModal(false);
+                        }}
+                      >
+                        <FiDownload className="icon" />
+                        Download Excel
+                      </button>
+                    </div>
+
+                    <div className="export-option">
+                      <div className="option-header">
+                        <FiFileText className="option-icon csv" />
+                        <div className="option-info">
+                          <div className="option-title">PDF Report</div>
+                          <div className="option-desc">Printable PDF formatted report</div>
+                        </div>
+                      </div>
+                      <button
+                        className="btn export-btn pdf-btn"
+                        onClick={async () => {
+                          try {
+                            await generatePrintableReport();
+                          } catch (e) {
+                            console.error(e);
+                            alert("PDF generation failed: " + (e?.message || e));
+                          }
+                          setShowGenerateModal(false);
+                        }}
+                      >
+                        <FiPrinter className="icon" />
+                        Download PDF
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="overview1-modal-footer">
+              <button
+                className="btn cancel"
+                onClick={() => setShowGenerateModal(false)}
+              >
+                <FiX className="icon" /> Close
+              </button>
+            </div>
           </div>
         </div>
       )}

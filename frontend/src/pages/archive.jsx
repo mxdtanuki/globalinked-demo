@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { agreementService } from "../services/agreementService";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
@@ -8,18 +8,26 @@ import { useNavigate } from "react-router-dom";
 import useDebounce from "../hooks/useDebounce";
 import { renderDocumentTypeBadge } from "../utils/documentTypeUtils";
 import {
-  FiEye,
-  FiLink,
-  FiDownload,
-  FiArchive,
   FiAlertCircle,
+  FiArchive,
+  FiBarChart,
+  FiCalendar,
+  FiCheck,
+  FiChevronDown,
+  FiDownload,
+  FiEye,
+  FiFile,
+  FiFileText,
   FiFilter,
-  FiX,
-  FiRefreshCw,
-  FiTrash2,
+  FiInfo,
   FiPrinter,
+  FiRefreshCw,
+  FiSettings,
+  FiTag,
+  FiTrash2,
+  FiX,
+  FiXCircle,
 } from "react-icons/fi";
-import { TbFileText, TbLink, TbClockHour4 } from "react-icons/tb";
 
 const Archive = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -32,33 +40,11 @@ const Archive = () => {
   const [filterClassification, setFilterClassification] = useState("");
   const [allArchiveData, setAllArchiveData] = useState([]);
   const [withdrawnData, setWithdrawnData] = useState([]);
-  // removed unused state: selectedTab, selectedItems
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [tmpDocType, setTmpDocType] = useState("");
+  const [tmpClassification, setTmpClassification] = useState("");
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-
-  const handleMassDownload = async () => {
-    if (selectedIds.size === 0) {
-      alert("Please select agreements to download.");
-      return;
-    }
-
-    setIsDownloading(true);
-    try {
-      for (const id of selectedIds) {
-        const item = filteredData.find((a) => a.agreement_id === id);
-        if (item && item.dts_number) {
-          await handleViewLatestFile(item.dts_number, true);
-          // small delay between downloads to prevent browser blocking
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      }
-    } catch (error) {
-      console.error("Error downloading documents:", error);
-      alert("Error downloading some documents. Please try again.");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
   const [displayData, setDisplayData] = useState([]);
   const [activeTab, setActiveTab] = useState("Expired");
   const [stats, setStats] = useState([]);
@@ -71,8 +57,23 @@ const Archive = () => {
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [reportType, setReportType] = useState("all");
+
+  const filterPanelRef = useRef();
   const navigate = useNavigate();
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (
+        showFilterPanel &&
+        filterPanelRef.current &&
+        !filterPanelRef.current.contains(e.target)
+      )
+        setShowFilterPanel(false);
+    }
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showFilterPanel]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,6 +110,14 @@ const Archive = () => {
     };
     fetchData();
   }, []);
+
+  const classificationOptions = Array.from(
+    new Set(
+      [...allArchiveData, ...withdrawnData]
+        .map((a) => a.partnership_type)
+        .filter(Boolean)
+    )
+  );
 
   const filterByStat = (label) => {
     setActiveTab(label);
@@ -183,7 +192,7 @@ const Archive = () => {
         // Force download the file
         const a = document.createElement("a");
         a.href = url;
-        a.download = latest.filename || `${dtsNumber}.pdf`; // Use original filename if available
+        a.download = latest.filename || `${dtsNumber}.pdf`;
         a.style.display = "none";
         document.body.appendChild(a);
         a.click();
@@ -191,7 +200,6 @@ const Archive = () => {
         window.URL.revokeObjectURL(url);
       } else {
         // View file in new tab
-        const newWindow = window.open(url, "_blank");
         window.open(url, "_blank");
         setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
       }
@@ -203,6 +211,29 @@ const Archive = () => {
           " file: " +
           (err.message || err)
       );
+    }
+  };
+
+  const handleMassDownload = async () => {
+    if (selectedIds.size === 0) {
+      alert("Please select agreements to download.");
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      for (const id of selectedIds) {
+        const item = filteredData.find((a) => a.agreement_id === id);
+        if (item && item.dts_number) {
+          await handleViewLatestFile(item.dts_number, true);
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    } catch (error) {
+      console.error("Error downloading documents:", error);
+      alert("Error downloading some documents. Please try again.");
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -334,7 +365,7 @@ const Archive = () => {
     if (!window.confirm("Reactivate this agreement?")) return;
     try {
       await agreementService.updateAgreement(agreementId, {
-        agreement_status: "Initial Review", // Change status to Initial Review instead of Active
+        agreement_status: "Initial Review",
       });
 
       const removeData = (data) =>
@@ -563,10 +594,6 @@ const Archive = () => {
       );
     }
 
-    if (field === "document_type" && !isEditing) {
-      return renderDocumentTypeBadge(value);
-    }
-
     if (field.includes("date")) {
       return (
         <input
@@ -645,6 +672,35 @@ const Archive = () => {
                 </div>
 
                 <div className="archive-table-section">
+                  {/* First row: filter tabs */}
+                  <div className="archive-filter-tabs" style={{ marginBottom: 12 }}>
+                    <button
+                      className={selectedFilter === "all" ? "archive-active" : ""}
+                      onClick={() => setSelectedFilter("all")}
+                    >
+                      All {activeTab} Agreements
+                    </button>
+                    <button
+                      className={selectedFilter === "moa" ? "archive-active" : ""}
+                      onClick={() => setSelectedFilter("moa")}
+                    >
+                      MOA
+                    </button>
+                    <button
+                      className={selectedFilter === "mou" ? "archive-active" : ""}
+                      onClick={() => setSelectedFilter("mou")}
+                    >
+                      MOU
+                    </button>
+                    <button
+                      className={selectedFilter === "linked" ? "archive-active" : ""}
+                      onClick={() => setSelectedFilter("linked")}
+                    >
+                      Linked Agreements
+                    </button>
+                  </div>
+
+                  {/* Second row: search, filters and actions */}
                   <div className="archive-table-controls">
                     <div className="archive-table-search-wrapper">
                       <div className="archive-table-search">
@@ -667,41 +723,126 @@ const Archive = () => {
                         )}
                       </div>
 
-                      <div className="archive-filter-tabs">
-                        <button
-                          className={
-                            selectedFilter === "all" ? "archive-active" : ""
-                          }
-                          onClick={() => setSelectedFilter("all")}
-                        >
-                          All {activeTab} Agreements
-                        </button>
-                        <button
-                          className={
-                            selectedFilter === "moa" ? "archive-active" : ""
-                          }
-                          onClick={() => setSelectedFilter("moa")}
-                        >
-                          MOA
-                        </button>
-                        <button
-                          className={
-                            selectedFilter === "mou" ? "archive-active" : ""
-                          }
-                          onClick={() => setSelectedFilter("mou")}
-                        >
-                          MOU
-                        </button>
-                        <button
-                          className={
-                            selectedFilter === "linked" ? "archive-active" : ""
-                          }
-                          onClick={() => setSelectedFilter("linked")}
-                        >
-                          Linked Agreements
-                        </button>
-                      </div>
+                      <button
+                        className={`archive-filter-btn ${showFilterPanel ? "open" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowFilterPanel((v) => {
+                            if (!v) {
+                              setTmpDocType(filterDocType);
+                              setTmpClassification(filterClassification);
+                            }
+                            return !v;
+                          });
+                        }}
+                        aria-expanded={showFilterPanel}
+                        aria-controls="archive-filter-panel"
+                        title="Filters"
+                      >
+                        <FiFilter className="filter-icon" />
+                        Filters
+                      </button>
+
+                      <button
+                        className={`btn archive-generate ${showGenerateModal ? "active" : ""}`}
+                        onClick={() => {
+                          setReportType("all");
+                          setShowGenerateModal(true);
+                        }}
+                      >
+                        <FiPrinter className="icon" />
+                        Generate Report
+                      </button>
                     </div>
+
+                    {showFilterPanel && (
+                      <div
+                        id="archive-filter-panel"
+                        className="archive-filter-panel"
+                        ref={filterPanelRef}
+                        role="region"
+                        aria-label="Table filters"
+                      >
+                        <div className="archive-panel-header">
+                          <FiFilter className="panel-header-icon" />
+                          <h4>Filter Agreements</h4>
+                          <button
+                            className="panel-close-btn"
+                            onClick={() => setShowFilterPanel(false)}
+                            aria-label="Close filters"
+                          >
+                            <FiX className="icon" />
+                          </button>
+                        </div>
+
+                        <div className="archive-panel-row">
+                          <div className="archive-panel-field">
+                            <label className="filter-label">
+                              <FiTag className="filter-icon" />
+                              Document Type
+                            </label>
+                            <div className="filter-select-wrapper">
+                              <select
+                                value={tmpDocType}
+                                onChange={(e) => setTmpDocType(e.target.value)}
+                                className="filter-select"
+                              >
+                                <option value="">All Types</option>
+                                <option value="MOA">MOA</option>
+                                <option value="MOU">MOU</option>
+                              </select>
+                              <FiChevronDown className="select-chevron" />
+                            </div>
+                          </div>
+
+                          <div className="archive-panel-field">
+                            <label className="filter-label">
+                              <FiTag className="filter-icon" />
+                              Partnership Classification
+                            </label>
+                            <div className="filter-select-wrapper">
+                              <select
+                                value={tmpClassification}
+                                onChange={(e) => setTmpClassification(e.target.value)}
+                                className="filter-select"
+                              >
+                                <option value="">All Classifications</option>
+                                {classificationOptions.map((c) => (
+                                  <option key={c} value={c}>
+                                    {c}
+                                  </option>
+                                ))}
+                              </select>
+                              <FiChevronDown className="select-chevron" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="archive-filter-actions">
+                          <button
+                            className="btn clear"
+                            onClick={() => {
+                              setTmpDocType("");
+                              setTmpClassification("");
+                            }}
+                          >
+                            <FiXCircle className="btn-icon" />
+                            Clear All
+                          </button>
+                          <button
+                            className="btn apply"
+                            onClick={() => {
+                              setFilterDocType(tmpDocType);
+                              setFilterClassification(tmpClassification);
+                              setShowFilterPanel(false);
+                            }}
+                          >
+                            <FiCheck className="btn-icon" />
+                            Apply Filters
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="archive-table-actions">
                       {selectedIds.size > 0 && (
@@ -715,8 +856,7 @@ const Archive = () => {
                             Download Selected ({selectedIds.size})
                           </button>
 
-                          {currentUser?.user_role?.toLowerCase() ===
-                            "admin" && (
+                          {currentUser?.user_role?.toLowerCase() === "admin" && (
                             <button
                               className="archive-mass-delete-btn archive-clean-btn"
                               onClick={handleMassDelete}
@@ -898,66 +1038,6 @@ const Archive = () => {
                       </button>
                     </div>
                   )}
-                </div>
-
-                <div className="archive-report-generator-card">
-                  <div className="archive-report-header">
-                    <div className="archive-report-icon">
-                      <TbFileText size={24} />
-                    </div>
-                    <div>
-                      <h4>Report Generator</h4>
-                      <div className="archive-report-sub">
-                        Generate comprehensive reports for archived agreements
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="archive-report-controls">
-                    <div className="archive-report-select">
-                      <select
-                        value={reportType}
-                        onChange={(e) => setReportType(e.target.value)}
-                      >
-                        <option value="all">All Archive</option>
-                        <option value="expired">Expired Only</option>
-                        <option value="withdrawn">Withdrawn Only</option>
-                      </select>
-                    </div>
-
-                    <div className="archive-report-actions">
-                      <button
-                        className="archive-btn archive-btn-primary archive-btn-print"
-                        onClick={generatePrintableReport}
-                      >
-                        <FiPrinter className="archive-btn-icon" />
-                        <span>Generate Report</span>
-                      </button>
-
-                      <button
-                        className="archive-btn archive-btn-outline archive-btn-csv"
-                        onClick={downloadCSV}
-                      >
-                        <FiDownload className="archive-btn-icon" />
-                        <span>Download CSV</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="archive-report-meta">
-                    <div>
-                      <strong>Selected:</strong>{" "}
-                      <span className="archive-muted">
-                        {reportLabelMap[reportType]}
-                      </span>
-                    </div>
-                    <div>
-                      <strong>Total records:</strong>{" "}
-                      <span className="archive-muted">
-                        {reportItems.length}
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </>
@@ -1236,6 +1316,193 @@ const Archive = () => {
                   </button>
                 )}
             </footer>
+          </div>
+        </div>
+      )}
+
+      {showGenerateModal && (
+        <div
+          className="archive-modal-backdrop"
+          onClick={() => setShowGenerateModal(false)}
+        >
+          <div
+            className="archive-modal report-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="archive-modal-header">
+              <div className="modal-badge-row">
+                <FiFileText className="header-icon" />
+                <h3 className="modal-title">Generate Archive Report</h3>
+              </div>
+              <button
+                className="modal-close"
+                onClick={() => setShowGenerateModal(false)}
+                aria-label="Close"
+              >
+                <FiX className="icon" />
+              </button>
+            </div>
+
+            <div className="archive-modal-body">
+              <div className="archive-report-summary-card">
+                <div className="archive-report-header">
+                  <div className="archive-report-icon-container">
+                    <FiBarChart className="archive-report-main-icon" />
+                  </div>
+                  <div className="archive-report-titles">
+                    <div className="archive-report-title">
+                      Archive Report Generator
+                    </div>
+                    <div className="archive-report-sub">
+                      Generate comprehensive reports for archived agreements in
+                      Excel or CSV format
+                    </div>
+                  </div>
+                </div>
+
+                <div className="archive-report-stats">
+                  <div className="archive-stat-item">
+                    <div className="archive-stat-label">Total Agreements</div>
+                    <div className="archive-stat-number">
+                      {reportItems.length}
+                    </div>
+                  </div>
+                  <div className="archive-stat-item">
+                    <div className="archive-stat-label">Report Type</div>
+                    <div className="archive-stat-value">
+                      {reportType === "all"
+                        ? "All Archives"
+                        : reportType === "expired"
+                        ? "Expired Only"
+                        : "Withdrawn Only"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="archive-report-configuration">
+                <div className="archive-config-section">
+                  <h4 className="archive-config-title">
+                    <FiSettings className="archive-config-icon" />
+                    Report Configuration
+                  </h4>
+
+                  <div className="archive-config-rows">
+                    <div className="archive-config-row">
+                      <label className="archive-config-label">
+                        <FiFilter className="archive-label-icon" />
+                        Report Type
+                      </label>
+                      <select
+                        value={reportType}
+                        onChange={(e) => setReportType(e.target.value)}
+                        className="archive-config-select"
+                      >
+                        <option value="all">All Archives</option>
+                        <option value="expired">Expired Only</option>
+                        <option value="withdrawn">Withdrawn Only</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="archive-preview-section">
+                  <h4 className="archive-config-title">
+                    <FiEye className="archive-config-icon" />
+                    Report Preview
+                  </h4>
+                  <div className="archive-preview-info">
+                    <div className="archive-preview-stats">
+                      <div className="archive-preview-stat">
+                        <FiFile className="archive-stat-icon" />
+                        <span>
+                          Total records: <strong>{reportItems.length}</strong>
+                        </span>
+                      </div>
+                      <div className="archive-preview-stat">
+                        <FiCalendar className="archive-stat-icon" />
+                        <span>
+                          Generated:{" "}
+                          <strong>{new Date().toLocaleDateString()}</strong>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="archive-preview-note">
+                      <FiInfo className="archive-note-icon" />
+                      The report will include all agreement details, contact
+                      information, and archive status.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="archive-export-section">
+                  <h4 className="archive-config-title">
+                    <FiDownload className="archive-config-icon" />
+                    Export Options
+                  </h4>
+
+                  <div className="archive-export-options">
+                    <div className="archive-export-option">
+                      <div className="archive-option-header">
+                        <FiFile className="archive-option-icon excel" />
+                        <div className="archive-option-info">
+                          <div className="archive-option-title">
+                            Excel Report
+                          </div>
+                          <div className="archive-option-desc">
+                            Comprehensive spreadsheet with all archive details
+                            and formatting
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        className="btn archive-export-btn excel-btn"
+                        onClick={async () => {
+                          generatePrintableReport();
+                          setShowGenerateModal(false);
+                        }}
+                      >
+                        <FiDownload className="icon" />
+                        Download Excel
+                      </button>
+                    </div>
+
+                    <div className="archive-export-option">
+                      <div className="archive-option-header">
+                        <FiFileText className="archive-option-icon csv" />
+                        <div className="archive-option-info">
+                          <div className="archive-option-title">CSV Export</div>
+                          <div className="archive-option-desc">
+                            Simple comma-separated values for quick data
+                            analysis
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        className="btn archive-export-btn csv-btn"
+                        onClick={async () => {
+                          downloadCSV();
+                          setShowGenerateModal(false);
+                        }}
+                      >
+                        <FiDownload className="icon" />
+                        Download CSV
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="archive-modal-footer">
+              <button
+                className="btn cancel"
+                onClick={() => setShowGenerateModal(false)}
+              >
+                <FiX className="icon" />
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

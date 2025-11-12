@@ -7,6 +7,9 @@
   flex-direction: column;
 }
 
+/* Import a close-matching headline font used in the pasted image */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap');
+
 .activeAgreement-body {
   display: flex;
 }
@@ -303,6 +306,12 @@
   white-space: nowrap;
 }
 
+/* Center the Expiration Date header (6th column) to match table body cells */
+.activeAgreement-table thead th:nth-child(6) {
+  text-align: center;
+  vertical-align: middle;
+}
+
 .activeAgreement-table tbody tr {
   background: #fff;
 }
@@ -379,15 +388,31 @@
 }
 
 .activeAgreement-table tbody td:nth-child(6) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* Keep this cell as a table-cell so it participates in table layout,
+     and center its contents using the inner container. */
+  vertical-align: middle;
   text-align: center;
-  gap: 6px;
   color: #666;
   white-space: nowrap;
-  padding-top: 49px;
-  padding-bottom: 50px;
+  padding: 22px 16px;
+}
+
+/* Use an inner inline-flex container (the markup already has a div inside the td)
+   to horizontally and vertically center the icon + date while preserving table layout. */
+.activeAgreement-table tbody td:nth-child(6) > div {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Ensure inner elements don't carry extra margins and align their text center */
+.activeAgreement-table tbody td:nth-child(6) .inline-icon,
+.activeAgreement-table tbody td:nth-child(6) .agreement-expiry,
+.activeAgreement-table tbody td:nth-child(6) .value,
+.activeAgreement-table tbody td:nth-child(6) .small {
+  margin: 0;
+  text-align: center;
 }
 
 .activeAgreement-table td:nth-child(7) {
@@ -592,6 +617,14 @@
 .agreement-tooltip .agreement-expiry {
   font-size: 13px;
   color: var(--ga-muted, #666);
+}
+
+/* Center the displayed Expiry/Expiry Date wherever .agreement-expiry is used
+   (agreement details modal, linked parent display, and timeline). */
+.agreement-expiry {
+  text-align: center;
+  display: block;
+  width: 100%;
 }
 
 .activeAgreement-table td.connection .link-icon {
@@ -1138,38 +1171,65 @@
   }
 }
 
-/* Agreement details modal */
+/* Agreement details modal - styled to match OverviewDash 'generate report' modal */
 .agreement-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(20, 20, 20, 0.45);
-  z-index: 2200;
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 28px;
+  z-index: 2200;
 }
 
 .agreement-modal {
-  width: 820px;
-  max-width: calc(100% - 48px);
-  max-height: 86vh;
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 18px 60px rgba(4, 12, 28, 0.35);
-  overflow-y: auto;
-  padding: 18px;
-  position: relative;
+  width: 94%;
+  max-width: 920px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+}
+
+/* Force parity with Overview modal in case other rules override it elsewhere */
+.agreement-modal.force-overview,
+.agreement-modal.overview1-modal,
+.overview1-modal {
+  width: 94% !important;
+  max-width: 920px !important;
+  max-height: 92vh !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35) !important;
+  border-radius: 10px !important;
+}
+
+.agreement-modal-backdrop {
+  /* reinforce backdrop to match overview */
+  background: rgba(0, 0, 0, 0.35) !important;
+  z-index: 2200 !important;
 }
 
 .agreement-modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 6px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid #f0e6e6;
+  background: linear-gradient(180deg, #7a1f2f, #5a1522);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}
+
+.agreement-modal-header h3,
+.agreement-modal-header .nav-btn,
+.agreement-modal-header .modal-title {
+  color: #fff;
+  margin: 0;
 }
 
 .modal-badge-row {
@@ -1178,30 +1238,89 @@
   gap: 12px;
 }
 .modal-title {
-  margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
-  color: #111;
+  color: #fff;
+}
+
+/* Generate Report modal specific header styles (match pasted image) */
+.overview1-modal-header {
+  /* darker/more saturated maroon gradient to match image */
+  background: linear-gradient(180deg,#7b1420 0%, #4d0710 100%);
+  color: #fff;
+  padding: 14px 18px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.overview1-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.overview1-header-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background: #6f1720; /* icon square color matched to image */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.14);
+}
+
+.overview1-header-icon-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+.overview1-header-icon-svg g rect { fill: #fff; }
+
+.overview1-header-titles .modal-title {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.05;
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+.overview1-header-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.95);
+  margin-top: 4px;
+  opacity: 0.95;
+  font-weight: 600;
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+.agreement-modal-header .modal-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.agreement-modal-header .modal-close .icon {
+  color: #fff;
 }
 
 .modal-close {
-  background: transparent;
-  border: none;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 6px 8px;
-  border-radius: 6px;
-}
-.modal-close:hover {
-  background: rgba(0, 0, 0, 0.04);
+  display: none; /* overview modal hides the close control in header because header is styled */
 }
 
 .agreement-modal-body {
-  padding: 6px 2px 10px 2px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+  padding: 0 16px 16px 16px;
+  overflow: auto;
 }
 
 .modal-section h4 {
@@ -1282,25 +1401,36 @@
 }
 
 .agreement-modal-footer {
+  padding: 12px 18px;
+  border-top: 1px solid #f0e6e6;
   display: flex;
   justify-content: flex-end;
-  padding-top: 10px;
-  border-top: 1px solid #f0f0f0;
-  margin-top: 6px;
+  gap: 12px;
+  background: linear-gradient(180deg, #fff, #fff);
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
-.btn.edit {
-  background: #fff;
-  border: 1px solid #e6e6e6;
-  padding: 8px 12px;
+.agreement-modal-footer .btn.save {
+  background: #8b1f2d;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 14px;
   border-radius: 8px;
-  cursor: pointer;
-  font-weight: 700;
+}
+.agreement-modal-footer .btn.save:hover {
+  filter: brightness(1.06);
+}
+.agreement-modal-footer .btn.cancel {
+  background: #fff;
+  color: #333;
+  border: 1px solid #e6e0e0;
+  padding: 10px 14px;
+  border-radius: 8px;
 }
 
 @media (max-width: 900px) {
   .agreement-modal {
-    width: 94%;
-    padding: 14px;
+    width: 96%;
+    max-width: 96%;
   }
   .row.two-col {
     grid-template-columns: 1fr;

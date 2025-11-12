@@ -1275,23 +1275,24 @@ const OverviewMerged = () => {
         getPk(selected),
         payload
       );
-        let mapped = applyBackendStageData(mapAgreement(updated));
-        mapped = RelatedMou(mapped, agreements);
-        try {
-          const origStatus = originalRef.current?.status;
-          if (origStatus && mapped.status && origStatus !== mapped.status) {
-            // Status changed: reset stage start
-            mapped._stage_start_at = new Date().toISOString();
-            mapped = applyBackendStageData(mapped);
-          } else if (originalRef.current?._stage_start_at) {
-            mapped._stage_start_at = originalRef.current._stage_start_at;
-            mapped = applyBackendStageData(mapped);
-          }
-        } catch (e) {
-          /* ignore */
-        }
-        setSelected(mapped);
-        originalRef.current = mapped;
+let mapped = applyBackendStageData(mapAgreement(updated));
+mapped = RelatedMou(mapped, agreements);
+try {
+  const origStatus = originalRef.current?.status;
+  if (origStatus && mapped.status && origStatus !== mapped.status) {
+    // Status changed: reset stage start
+    mapped._stage_start_at = new Date().toISOString();
+    mapped = applyBackendStageData(mapped);
+  } else if (originalRef.current?._stage_start_at) {
+    // Status did NOT change: always preserve original stage start, ignore backend value
+    mapped._stage_start_at = originalRef.current._stage_start_at;
+    mapped = applyBackendStageData(mapped);
+  }
+} catch (e) {
+  /* ignore */
+}
+setSelected(mapped);
+originalRef.current = mapped;
       setIsEditing(false);
       // ensure overview list excludes Active after save (but keep Withdrawn)
       queryClient.invalidateQueries(["agreements"]);

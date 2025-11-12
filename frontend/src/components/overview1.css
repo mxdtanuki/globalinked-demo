@@ -145,7 +145,7 @@
 
 .overview1-summary-card.pending.active .summary-number,
 .overview1-summary-card.needs-attention.active .summary-number {
-  color: #d14f3b; /* reddish number color like the screenshot */
+  color: #d14f3b;
   font-size: 30px;
   font-weight: 700;
 }
@@ -254,14 +254,14 @@
 .overview1-filter-btn.active {
   background: linear-gradient(180deg, #fff6f4, #fff0ee);
   border: 1px solid rgba(139, 31, 45, 0.18);
-  color: var(--archive-primary);
+  color: #800020 !important;
   box-shadow: 0 6px 18px rgba(139, 31, 45, 0.06);
 }
 
 .overview1-filter-btn.open .filter-icon,
 .overview1-filter-btn:active .filter-icon,
 .overview1-filter-btn.active .filter-icon {
-  color: inherit;
+  color: #800020 !important;
 }
 
 /* Table (scoped) */
@@ -1990,12 +1990,12 @@
 .btn.generate.active {
   background: linear-gradient(180deg, #fff6f4, #fff0ee);
   border: 1px solid rgba(139, 31, 45, 0.18);
-  color: var(--archive-primary);
+  color: #800020 !important;
   box-shadow: 0 6px 18px rgba(139, 31, 45, 0.06);
 }
 
 .btn.generate.active .icon {
-  color: var(--archive-primary);
+  color: #800020 !important;
 }
 
 /* Report Modal Styles */

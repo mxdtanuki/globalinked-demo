@@ -552,7 +552,7 @@ const handleSubmit = async (e) => {
       partnership_type: partnershipType,
       agreement_status: data.status,
       entry_type: data.entryType,
-      entry_date: entryDate || null, // not from form
+      entry_date: entryDate , // || null // not from form
       related_agreement_id:
         selectedRelatedAgreement?.value === "NA"
           ? null
@@ -847,6 +847,22 @@ const handleSubmit = async (e) => {
               value={source}
               onChange={(e) => setSource(e.target.value)}
               required 
+            />
+          </div>
+          
+          {/* PARTNERSHIP TYPE */}
+          <div className="form-group">
+            <label htmlFor="partnershipType">Partnership Type:*</label>
+            <Select
+              options={partnershipTypeOptions}
+              name="partnershipType"
+              id="partnershipType"
+              required
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select Partnership Type"
+              value={partnershipTypeOptions.find(o => o.value === partnershipType) || null}
+              onChange={(opt) => setPartnershipType(opt?.value || "")}
             />
           </div>
 
