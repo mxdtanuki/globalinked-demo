@@ -122,6 +122,20 @@ const ActiveAgreement = () => {
 
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef(null);
+  // ref to the "Nearing Expiration" section so summary card can scroll to it
+  const expiringRef = useRef(null);
+  const goToExpiringSection = () => {
+    try {
+      if (expiringRef && expiringRef.current) {
+        expiringRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        // also focus for keyboard users
+        if (typeof expiringRef.current.focus === "function")
+          expiringRef.current.focus();
+      }
+    } catch (e) {
+      console.warn("Scrolling to expiring section failed", e);
+    }
+  };
   const navigate = useNavigate();
 
   // close menu on outside click
@@ -1063,7 +1077,16 @@ const ActiveAgreement = () => {
                 <p className="count">{activeMOUs.length}</p>
                 <span>Memorandum of Understanding</span>
               </div>
-              <div className="activeAgreement-card expiring">
+              <div
+                className="activeAgreement-card expiring"
+                role="button"
+                tabIndex={0}
+                onClick={goToExpiringSection}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") goToExpiringSection();
+                }}
+                aria-label={`Expiring soon: ${expiringSoon.length} agreements.`}
+              >
                 <h4>Expiring Soon</h4>
                 <p className="count">{expiringSoon.length}</p>
                 <span>Within 90 days</span>
@@ -1073,37 +1096,69 @@ const ActiveAgreement = () => {
             {/* === Agreement Table Section === */}
             <div className="activeAgreement-table-section">
               <div className="table-controls">
-                <div
-                  className="table-search-wrapper"
-                  style={{ position: "relative" }}
-                >
-                  <div
-                    className="table-search"
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <input
-                      type="search"
-                      placeholder="Search DTS, partner, type..."
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      aria-label="Search agreements"
-                      style={{ flex: 1 }}
-                    />
-                    {searchQuery && (
+                {/* Top row: filter tabs (All / MOA / MOU / Linked) */}
+                <div className="table-controls-top" style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-start' }}>
+                  <div className="table-actions">
+                    <div className="filter-tabs">
                       <button
-                        className="clear-search"
-                        onClick={() => setSearchQuery("")}
-                        aria-label="Clear search"
+                        className={filter === "all" ? "active" : ""}
+                        onClick={() => setFilter("all")}
                       >
-                        <FiX />
+                        All Active Agreements
                       </button>
-                    )}
+                      <button
+                        className={filter === "moa" ? "active" : ""}
+                        onClick={() => setFilter("moa")}
+                      >
+                        MOA
+                      </button>
+                      <button
+                        className={filter === "mou" ? "active" : ""}
+                        onClick={() => setFilter("mou")}
+                      >
+                        MOU
+                      </button>
+                      <button
+                        className={filter === "linked" ? "active" : ""}
+                        onClick={() => setFilter("linked")}
+                      >
+                        Linked Agreements
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom row: search, filters button and generate */}
+                <div className="table-controls-bottom" style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="table-search-wrapper" style={{ position: "relative", flex: 1, marginRight: 12 }}>
+                    <div className="table-search" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input
+                        type="search"
+                        placeholder="Search DTS, partner, type..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        aria-label="Search agreements"
+                        style={{ flex: 1 }}
+                      />
+                      {searchQuery && (
+                        <button
+                          className="clear-search"
+                          onClick={() => setSearchQuery("")}
+                          aria-label="Clear search"
+                        >
+                          <FiX />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <button
                       type="button"
-                      className={`btn ${showFilterPanel ? "active" : ""}`}
+                      className={`btn overview1-filter-btn ${showFilterPanel ? "active" : ""}`}
                       onClick={() => setShowFilterPanel((v) => !v)}
                       aria-expanded={showFilterPanel}
                     >
@@ -1116,41 +1171,11 @@ const ActiveAgreement = () => {
                       type="button"
                       className="btn generate"
                       onClick={() => {
-                        // navigate to the Overview page where the report generator lives
-                        // adjust route if your overview route differs (e.g. '/overview', '/overview/merged')
                         navigate("/overview");
                       }}
                     >
                       <FiPrinter className="icon" />
                       Generate Report
-                    </button>
-                  </div>
-                </div>
-                <div className="table-actions">
-                  <div className="filter-tabs">
-                    <button
-                      className={filter === "all" ? "active" : ""}
-                      onClick={() => setFilter("all")}
-                    >
-                      All Active Agreements
-                    </button>
-                    <button
-                      className={filter === "moa" ? "active" : ""}
-                      onClick={() => setFilter("moa")}
-                    >
-                      MOA
-                    </button>
-                    <button
-                      className={filter === "mou" ? "active" : ""}
-                      onClick={() => setFilter("mou")}
-                    >
-                      MOU
-                    </button>
-                    <button
-                      className={filter === "linked" ? "active" : ""}
-                      onClick={() => setFilter("linked")}
-                    >
-                      Linked Agreements
                     </button>
                   </div>
                 </div>
@@ -1830,7 +1855,12 @@ const ActiveAgreement = () => {
             </div>
 
             {/* Nearing Expiration Section */}
-            <div className="activeAgreement-expiring">
+            <div
+              className="activeAgreement-expiring"
+              ref={expiringRef}
+              tabIndex={-1}
+              aria-label="Nearing expiration list"
+            >
               <h3>
                 <FiAlertCircle className="inline-icon" /> Nearing Expiration
               </h3>

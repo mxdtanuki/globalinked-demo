@@ -341,6 +341,7 @@ async def get_agreements_summary(
             logger.error(f"Error fetching summary: {e}")
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Error fetching summary: {str(e)}")
+        
 
 @router.post("/", response_model=dict)
 async def create_agreement(
@@ -891,3 +892,4 @@ async def delete_agreement(
             logger.error(f"Unhandled error in delete_agreement: {e}")
             traceback.print_exc() 
             raise HTTPException(status_code=500, detail="Internal Server Error")
+

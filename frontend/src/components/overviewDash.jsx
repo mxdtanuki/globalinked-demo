@@ -1283,6 +1283,9 @@ const OverviewMerged = () => {
         if (origStatus && mapped.status && origStatus !== mapped.status) {
           mapped._stage_start_at = new Date().toISOString();
           mapped = applyBackendStageData(mapped);
+        } else if (originalRef.current?._stage_start_at) {
+          mapped._stage_start_at = originalRef.current._stage_start_at;
+          mapped = applyBackendStageData(mapped);
         }
       } catch (e) {
         /* ignore */

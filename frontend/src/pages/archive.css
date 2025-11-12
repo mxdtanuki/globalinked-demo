@@ -1,9 +1,10 @@
 :root {
-  --archive-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --archive-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
   --archive-text: #222;
   --archive-muted: #666;
-  --archive-primary: #8b1f2d;   
-  --archive-accent: #d14f3b;   
+  --archive-primary: #8b1f2d;
+  --archive-accent: #d14f3b;
   --archive-surface: #fff;
   --archive-card-border: #f0eaea;
 }
@@ -40,8 +41,12 @@
 }
 
 @keyframes archive-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Filter tabs */
@@ -102,7 +107,8 @@
   flex: 1;
   min-height: 90px;
   border: 1px solid #f0eaea;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease,
+    border-color 0.12s ease;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -120,7 +126,9 @@
 .archive-stat-card-full.archive-active {
   background: linear-gradient(180deg, #f8e8e6, #f4d9d6);
   border-color: #e8b8b0;
-  box-shadow: 0 8px 26px rgba(139, 31, 45, 0.12);
+  box-shadow: 0 12px 36px rgba(139, 31, 45, 0.18),
+    0 4px 12px rgba(0, 0, 0, 0.04);
+  transform: translateY(-3px);
 }
 
 .archive-stat-icon-full-centered {
@@ -193,7 +201,7 @@
   background: var(--archive-surface);
   border-radius: 12px;
   padding: 22px 28px;
-  box-shadow: 0 6px 22px rgba(11,15,20,0.03);
+  box-shadow: 0 6px 22px rgba(11, 15, 20, 0.03);
   border: 1px solid var(--archive-card-border);
   margin-bottom: 26px;
   width: 100%;
@@ -205,7 +213,7 @@
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .archive-stat-card-full {
     width: 100%;
     min-width: auto;
@@ -244,12 +252,12 @@
   width: 100%;
   font-size: 14px;
   outline: none;
-  transition: box-shadow .12s ease;
+  transition: box-shadow 0.12s ease;
   background: #fff;
 }
 
 .archive-table-search input[type="search"]:focus {
-  box-shadow: 0 6px 18px rgba(139,31,45,0.08);
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.08);
   border-color: var(--archive-primary);
 }
 
@@ -264,7 +272,7 @@
 }
 
 .archive-clear-search:hover {
-  background: rgba(0,0,0,0.04);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .archive-table-actions {
@@ -388,12 +396,12 @@
 
 .archive-badge.moa {
   background: #1e73ff;
-  border: 1px solid rgba(30,115,255,0.12);
+  border: 1px solid rgba(30, 115, 255, 0.12);
 }
 
 .archive-badge.mou {
   background: #b85c6b;
-  border: 1px solid rgba(184,92,107,0.12);
+  border: 1px solid rgba(184, 92, 107, 0.12);
 }
 
 .archive-dts-number {
@@ -421,43 +429,41 @@
   transform: translateY(-1px);
 }
 
-.archive-icon-btn.archive-view {
-  color: var(--archive-primary);
-}
-
 .archive-icon-btn.archive-view:hover {
-  background: #fff5f5;
-  border-color: var(--archive-primary);
-}
-
-.archive-icon-btn.archive-download {
-  color: #1e73ff;
+  background: #fffdf0;
+  border-color: #D4AF37;
+  color: #D4AF37;
 }
 
 .archive-icon-btn.archive-download:hover {
   background: #f0f7ff;
   border-color: #1e73ff;
-}
-
-.archive-icon-btn.archive-reactivate {
-  color: #16a34a;
-  font-weight: 700;
+  color: #1e73ff;
 }
 
 .archive-icon-btn.archive-reactivate:hover {
   background: #f0fdf4;
   border-color: #16a34a;
+  color: #16a34a;
   transform: translateY(-1px) rotate(180deg);
-}
-
-.archive-icon-btn.archive-delete {
-  color: #dc2626;
 }
 
 .archive-icon-btn.archive-delete:hover {
   background: #fef2f2;
   border-color: #dc2626;
-  transform: translateY(-1px);
+  color: #dc2626;
+}
+
+.archive-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.archive-icon-btn:disabled:hover {
+  transform: none;
+  background: transparent;
+  border-color: #e6e6e6;
+  color: inherit;
 }
 
 .archive-icon-btn .archive-icon {
@@ -465,9 +471,20 @@
   color: #777;
 }
 
-.archive-icon-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.archive-icon-btn.archive-view:hover .archive-icon {
+  color: #D4AF37;
+}
+
+.archive-icon-btn.archive-download:hover .archive-icon {
+  color: #1e73ff;
+}
+
+.archive-icon-btn.archive-reactivate:hover .archive-icon {
+  color: #16a34a;
+}
+
+.archive-icon-btn.archive-delete:hover .archive-icon {
+  color: #dc2626;
 }
 
 .archive-table::-webkit-scrollbar {
@@ -518,11 +535,10 @@
   background: var(--archive-primary);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 6px 18px rgba(139,31,45,0.12);
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.12);
 }
 
 /* Report Generator */
-/* Report Generator - Updated to match activeAgreement.css */
 .archive-report-generator-card {
   background: #fff;
   border-radius: 12px;
@@ -691,12 +707,12 @@
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .archive-report-actions {
     margin-left: 0;
     justify-content: flex-start;
   }
-  
+
   .archive-report-select select {
     width: 100%;
     min-width: 0;
@@ -707,16 +723,16 @@
   .archive-report-generator-card {
     padding: 16px;
   }
-  
+
   .archive-report-controls {
     gap: 10px;
   }
-  
+
   .archive-report-actions {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .archive-btn {
     width: 100%;
     justify-content: center;
@@ -727,7 +743,7 @@
 .archive-agreement-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(20,20,20,0.45);
+  background: rgba(20, 20, 20, 0.45);
   z-index: 2200;
   display: flex;
   align-items: center;
@@ -741,7 +757,7 @@
   max-height: 86vh;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 18px 60px rgba(4,12,28,0.35);
+  box-shadow: 0 18px 60px rgba(4, 12, 28, 0.35);
   overflow-y: auto;
   padding: 20px;
   position: relative;
@@ -783,7 +799,7 @@
 }
 
 .archive-modal-close:hover {
-  background: rgba(0,0,0,0.04);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .archive-agreement-modal-body {
@@ -877,14 +893,14 @@
   border-radius: 8px;
   background: #fff;
   border: 1px solid #f0f0f0;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
 }
 
 .archive-partner-fallback {
   width: 84px;
   height: 84px;
   border-radius: 10px;
-  background: linear-gradient(180deg,#eef4ff,#f7fbff);
+  background: linear-gradient(180deg, #eef4ff, #f7fbff);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -892,7 +908,7 @@
   color: #1e3a8a;
   font-size: 22px;
   border: 1px solid #eef2ff;
-  box-shadow: 0 6px 18px rgba(16,24,40,0.04);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
 }
 
 .archive-partner-details {
@@ -910,7 +926,7 @@
   padding: 16px;
   border-radius: 10px;
   flex: 1;
-  box-shadow: 0 4px 12px rgba(6,24,60,0.03);
+  box-shadow: 0 4px 12px rgba(6, 24, 60, 0.03);
 }
 
 .archive-contact-card.archive-alt {

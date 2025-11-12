@@ -76,6 +76,19 @@
   flex-wrap: wrap;
 }
 
+/* When table controls are split into two rows (search row + tabs row) */
+.table-controls-top {
+  width: 100%;
+}
+.table-controls-bottom {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+.table-controls-bottom .filter-tabs {
+  justify-content: flex-end;
+}
+
 .table-search-wrapper {
   display: flex;
   gap: 12px;
@@ -87,8 +100,8 @@
   display: inline-flex;
   align-items: center;
   gap: 150p !important;
-  flex: 1 1 680px; /* allow the search area to grow wider than filter/generate controls */
-  max-width: 860px; /* expand maximum width so search looks noticeably longer */
+  flex: 1 1 680px; 
+  max-width: 860px; 
 }
 
 .table-search input[type="search"] {
@@ -96,7 +109,7 @@
   border-radius: 10px;
   border: 1px solid #e6e6e6;
   width: 100%;
-  height: var(--ga-control-height, 44px); /* keep inputs same height as buttons */
+  height: var(--ga-control-height, 44px); 
   font-size: 14px;
   outline: none;
   transition: box-shadow 0.12s ease;
@@ -115,7 +128,7 @@
   padding: 18px;
   border-radius: 10px;
   box-shadow: 0 6px 18px rgba(16, 20, 30, 0.06);
-  min-width: 680px; /* ensure it feels wide like the mock */
+  min-width: 680px; 
   max-width: 980px;
   width: 100%;
   box-sizing: border-box;
@@ -128,7 +141,7 @@
 }
 .filter-panel label {
   color: #666;
-  font-weight: 400; /* not bold */
+  font-weight: 400; 
   font-size: 14px;
   display: block;
   margin-bottom: 8px;
@@ -165,7 +178,7 @@
   border: none;
   font-weight: 700;
   box-shadow: 0 6px 18px rgba(139, 31, 45, 0.08);
-  height: var(--ga-control-height, 44px); /* match control heights */
+  height: var(--ga-control-height, 44px); 
 }
 
 /* Make the Filters button neutral by default; show pale-pink/red when active */
@@ -177,9 +190,6 @@
   border-radius: 8px;
   font-weight: 600;
   transition: all 0.12s ease;
-  height: var(--ga-control-height, 44px);
-  display: inline-flex;
-  align-items: center;
 }
 
 .table-search .btn:hover {
@@ -205,6 +215,7 @@
 .table-actions {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
 }
 .table-actions .filter-tabs {
   margin-left: auto;
@@ -671,12 +682,15 @@
   display: flex;
   gap: 18px;
   margin-bottom: 22px;
-  flex-wrap: wrap;
+  /* keep all summary cards on one row on desktop; allow horizontal scroll if container is narrow */
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 .activeAgreement-card {
-  flex: 1 1 220px;
-  min-width: 220px;
+  /* slightly smaller min-width so four cards fit better on typical desktop widths */
+  flex: 1 1 200px;
+  min-width: 200px;
   background: #ffffff;
   border-radius: 12px;
   padding: 20px 20px 22px 20px;
@@ -1294,7 +1308,6 @@
   --ga-accent: #d14f3b;
   --ga-surface: #fff;
   --ga-card-border: #f0eaea;
-  --ga-control-height: 44px; /* unified height for inputs and buttons */
 }
 
 .activeAgreement-container,
@@ -1581,10 +1594,10 @@
 
 /* ensure tabs take remaining space and align to right when there's extra room */
 .activeAgreement-tabs {
-  flex: 0 0 auto; /* size to content */
+  flex: 0 0 auto; 
   display: flex;
-  gap: 10px; /* 8-12px gap between filter buttons */
-  margin-left: auto; /* push tabs to the right of the search on the same line */
+  gap: 10px; 
+  margin-left: auto; 
   justify-content: flex-end;
 }
 
