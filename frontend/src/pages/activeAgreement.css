@@ -355,6 +355,17 @@
   flex-shrink: 0;
 }
 
+/* Filter panel icons: use app maroon to match overview styling */
+.overview1-filter-panel .inline-icon,
+.overview1-filter-header .inline-icon,
+.overview1-panel-field .inline-icon {
+  color: #8b1f2d;
+  opacity: 1;
+  font-size: 15px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
 .activeAgreement-table tbody td:nth-child(4) .small {
   display: flex;
   align-items: center;

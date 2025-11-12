@@ -18,7 +18,6 @@ import {
   FiRefreshCw,
   FiTrash2,
   FiPrinter,
-  FiFileText,
 } from "react-icons/fi";
 import { TbFileText, TbLink, TbClockHour4 } from "react-icons/tb";
 
@@ -33,7 +32,33 @@ const Archive = () => {
   const [filterClassification, setFilterClassification] = useState("");
   const [allArchiveData, setAllArchiveData] = useState([]);
   const [withdrawnData, setWithdrawnData] = useState([]);
+  // removed unused state: selectedTab, selectedItems
   const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleMassDownload = async () => {
+    if (selectedIds.size === 0) {
+      alert("Please select agreements to download.");
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      for (const id of selectedIds) {
+        const item = filteredData.find((a) => a.agreement_id === id);
+        if (item && item.dts_number) {
+          await handleViewLatestFile(item.dts_number, true);
+          // small delay between downloads to prevent browser blocking
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    } catch (error) {
+      console.error("Error downloading documents:", error);
+      alert("Error downloading some documents. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const [displayData, setDisplayData] = useState([]);
   const [activeTab, setActiveTab] = useState("Expired");
   const [stats, setStats] = useState([]);
@@ -46,18 +71,8 @@ const Archive = () => {
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [reportType, setReportType] = useState("all");
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const navigate = useNavigate();
   const itemsPerPage = 10;
-
-  // Filter state
-  const [filters, setFilters] = useState({
-    documentType: "",
-    classification: "",
-    country: "",
-    region: "",
-  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,12 +117,6 @@ const Archive = () => {
     setFilterDocType("");
     setFilterClassification("");
     setSelectedIds(new Set());
-    setFilters({
-      documentType: "",
-      classification: "",
-      country: "",
-      region: "",
-    });
 
     const key = String(label || "").toLowerCase();
     if (key === "expired") {
@@ -143,33 +152,7 @@ const Archive = () => {
         typeMatch = true;
     }
 
-    // Advanced filters
-    const documentTypeMatch =
-      !filters.documentType ||
-      String(item.document_type).toLowerCase() ===
-        filters.documentType.toLowerCase();
-    const classificationMatch =
-      !filters.classification ||
-      String(item.partnership_type)
-        .toLowerCase()
-        .includes(filters.classification.toLowerCase());
-    const countryMatch =
-      !filters.country ||
-      String(item.country)
-        .toLowerCase()
-        .includes(filters.country.toLowerCase());
-    const regionMatch =
-      !filters.region ||
-      String(item.region).toLowerCase().includes(filters.region.toLowerCase());
-
-    return (
-      searchMatch &&
-      typeMatch &&
-      documentTypeMatch &&
-      classificationMatch &&
-      countryMatch &&
-      regionMatch
-    );
+    return searchMatch && typeMatch;
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -197,15 +180,18 @@ const Archive = () => {
       const url = window.URL.createObjectURL(blob);
 
       if (isDownload) {
+        // Force download the file
         const a = document.createElement("a");
         a.href = url;
-        a.download = latest.filename || `${dtsNumber}.pdf`;
+        a.download = latest.filename || `${dtsNumber}.pdf`; // Use original filename if available
         a.style.display = "none";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } else {
+        // View file in new tab
+        const newWindow = window.open(url, "_blank");
         window.open(url, "_blank");
         setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
       }
@@ -303,65 +289,41 @@ const Archive = () => {
     }
   };
 
-const handleMassDelete = async () => {
-  if (selectedIds.size === 0) {
-    alert("Please select agreements to delete.");
-    return;
-  }
-  if (
-    !window.confirm(
-      `WARNING: This action cannot be undone!\n\nAre you sure you want to permanently delete ${selectedIds.size} selected agreement(s)?`
+  const handleMassDelete = async () => {
+    if (selectedIds.size === 0) {
+      alert("Please select agreements to delete.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `WARNING: This action cannot be undone!\n\nAre you sure you want to permanently delete ${selectedIds.size} selected agreement(s)?`
+      )
     )
-  )
-    return;
+      return;
 
-  try {
-    const deletePromises = Array.from(selectedIds).map((id) =>
-      agreementService.deleteAgreement(id)
-    );
-    await Promise.all(deletePromises);
+    try {
+      const deletePromises = Array.from(selectedIds).map((id) =>
+        agreementService.deleteAgreement(id)
+      );
+      await Promise.all(deletePromises);
 
-    const removeData = (data) =>
-      data.filter((a) => !selectedIds.has(a.agreement_id));
+      const removeData = (data) =>
+        data.filter((a) => !selectedIds.has(a.agreement_id));
 
-    if (activeTab === "Withdrawn") {
-      setWithdrawnData(removeData);
-      setDisplayData(removeData);
-    } else {
-      setAllArchiveData(removeData);
-      setDisplayData(removeData);
-    }
-
-    setSelectedIds(new Set());
-    alert(`${selectedIds.size} agreement(s) deleted successfully.`);
-  } catch (err) {
-    alert("Mass delete failed: " + err.message);
-  }
-};
-
-const handleMassDownload = async () => {
-  if (selectedIds.size === 0) {
-    alert("Please select agreements to download.");
-    return;
-  }
-
-  setIsDownloading(true);
-  try {
-    for (const id of selectedIds) {
-      const item = filteredData.find((a) => a.agreement_id === id);
-      if (item && item.dts_number) {
-        await handleViewLatestFile(item.dts_number, true);
-        // small delay between downloads to prevent browser blocking
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      if (activeTab === "Withdrawn") {
+        setWithdrawnData(removeData);
+        setDisplayData(removeData);
+      } else {
+        setAllArchiveData(removeData);
+        setDisplayData(removeData);
       }
+
+      setSelectedIds(new Set());
+      alert(`${selectedIds.size} agreement(s) deleted successfully.`);
+    } catch (err) {
+      alert("Mass delete failed: " + err.message);
     }
-  } catch (error) {
-    console.error("Error downloading documents:", error);
-    alert("Error downloading some documents. Please try again.");
-  } finally {
-    setIsDownloading(false);
-  }
-};
+  };
 
   const handleReactivate = async (agreementId) => {
     if (activeTab !== "Withdrawn") {
@@ -372,7 +334,7 @@ const handleMassDownload = async () => {
     if (!window.confirm("Reactivate this agreement?")) return;
     try {
       await agreementService.updateAgreement(agreementId, {
-        agreement_status: "Initial Review",
+        agreement_status: "Initial Review", // Change status to Initial Review instead of Active
       });
 
       const removeData = (data) =>
@@ -405,29 +367,6 @@ const handleMassDownload = async () => {
   };
 
   const closeModal = () => setSelectedAgreement(null);
-  const closeReportModal = () => setShowReportModal(false);
-
-  const handleFilterChange = (field, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      documentType: "",
-      classification: "",
-      country: "",
-      region: "",
-    });
-    setShowFilterPanel(false);
-  };
-
-  const applyFilters = () => {
-    setCurrentPage(1);
-    setShowFilterPanel(false);
-  };
 
   const getInitials = (name = "") => {
     return name
@@ -764,219 +703,39 @@ const handleMassDownload = async () => {
                       </div>
                     </div>
 
-<div className="archive-table-controls">
-  <div className="archive-table-search-wrapper">
-    <div className="archive-table-search">
-      <input
-        type="search"
-        placeholder="Search DTS, partner, type..."
-        value={searchTerm}
-        onChange={(e) => {
-          setSearchTerm(e.target.value);
-          setCurrentPage(1);
-        }}
-      />
-      {searchTerm && (
-        <button
-          className="archive-clear-search"
-          onClick={() => setSearchTerm("")}
-        >
-          <FiX />
-        </button>
-      )}
-    </div>
+                    <div className="archive-table-actions">
+                      {selectedIds.size > 0 && (
+                        <>
+                          <button
+                            className="archive-mass-download-btn"
+                            onClick={handleMassDownload}
+                            disabled={isDownloading}
+                          >
+                            <FiDownload />
+                            Download Selected ({selectedIds.size})
+                          </button>
 
-    <div className="archive-filter-tabs">
-      <button
-        className={
-          selectedFilter === "all" ? "archive-active" : ""
-        }
-        onClick={() => setSelectedFilter("all")}
-      >
-        All {activeTab} Agreements
-      </button>
-      <button
-        className={
-          selectedFilter === "moa" ? "archive-active" : ""
-        }
-        onClick={() => setSelectedFilter("moa")}
-      >
-        MOA
-      </button>
-      <button
-        className={
-          selectedFilter === "mou" ? "archive-active" : ""
-        }
-        onClick={() => setSelectedFilter("mou")}
-      >
-        MOU
-      </button>
-      <button
-        className={
-          selectedFilter === "linked" ? "archive-active" : ""
-        }
-        onClick={() => setSelectedFilter("linked")}
-      >
-        Linked Agreements
-      </button>
-    </div>
-  </div>
-
-  <div className="archive-table-actions">
-    <div className="overview1-controls-row">
-      <button
-        className={`overview1-filter-btn ${showFilterPanel ? 'open' : ''}`}
-        onClick={() => setShowFilterPanel(!showFilterPanel)}
-      >
-        <FiFilter className="filter-icon" />
-        Filters
-        {Object.values(filters).some((f) => f) && (
-          <span className="filter-badge"></span>
-        )}
-      </button>
-
-      <button
-        className={`btn generate ${showReportModal ? 'active' : ''}`}
-        onClick={() => setShowReportModal(true)}
-      >
-        <FiFileText />
-        Generate Report
-      </button>
-
-      {selectedIds.size > 0 && (
-        <>
-          <button
-            className="archive-mass-download-btn"
-            onClick={handleMassDownload}
-            disabled={isDownloading}
-          >
-            <FiDownload />
-            Download Selected ({selectedIds.size})
-          </button>
-
-          {currentUser?.user_role?.toLowerCase() ===
-            "admin" && (
-            <button
-              className="archive-mass-delete-btn archive-clean-btn"
-              onClick={handleMassDelete}
-            >
-              <FiTrash2
-                style={{
-                  marginRight: 6,
-                  verticalAlign: "middle",
-                }}
-              />
-              <span style={{ verticalAlign: "middle" }}>
-                Delete Selected ({selectedIds.size})
-              </span>
-            </button>
-          )}
-        </>
-      )}
-    </div>
-  </div>
-</div>
-                  </div>
-
-                  {/* Filter Panel */}
-                  {showFilterPanel && (
-                    <div className="overview1-filter-panel">
-                      <div className="overview1-panel-header">
-                        <FiFilter className="panel-header-icon" />
-                        <h4>Filter Agreements</h4>
-                        <button
-                          className="panel-close-btn"
-                          onClick={() => setShowFilterPanel(false)}
-                        >
-                          <FiX />
-                        </button>
-                      </div>
-                      <div className="overview1-panel-row">
-                        <div className="overview1-panel-field">
-                          <div className="filter-label">
-                            <span>Document Type</span>
-                          </div>
-                          <div className="filter-select-wrapper">
-                            <select
-                              value={filters.documentType}
-                              onChange={(e) =>
-                                handleFilterChange(
-                                  "documentType",
-                                  e.target.value
-                                )
-                              }
-                              className="filter-select"
+                          {currentUser?.user_role?.toLowerCase() ===
+                            "admin" && (
+                            <button
+                              className="archive-mass-delete-btn archive-clean-btn"
+                              onClick={handleMassDelete}
                             >
-                              <option value="">All Types</option>
-                              <option value="MOA">MOA</option>
-                              <option value="MOU">MOU</option>
-                            </select>
-                            <div className="select-chevron">▼</div>
-                          </div>
-                        </div>
-                        <div className="overview1-panel-field">
-                          <div className="filter-label">
-                            <span>Classification</span>
-                          </div>
-                          <div className="filter-select-wrapper">
-                            <select
-                              value={filters.classification}
-                              onChange={(e) =>
-                                handleFilterChange(
-                                  "classification",
-                                  e.target.value
-                                )
-                              }
-                              className="filter-select"
-                            >
-                              <option value="">All Classifications</option>
-                              <option value="Academic">Academic</option>
-                              <option value="Research">Research</option>
-                              <option value="Extension">Extension</option>
-                              <option value="Partnership">Partnership</option>
-                            </select>
-                            <div className="select-chevron">▼</div>
-                          </div>
-                        </div>
-                        <div className="overview1-panel-field">
-                          <div className="filter-label">
-                            <span>Country</span>
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Filter by country..."
-                            value={filters.country}
-                            onChange={(e) =>
-                              handleFilterChange("country", e.target.value)
-                            }
-                            className="filter-select"
-                          />
-                        </div>
-                        <div className="overview1-panel-field">
-                          <div className="filter-label">
-                            <span>Region</span>
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Filter by region..."
-                            value={filters.region}
-                            onChange={(e) =>
-                              handleFilterChange("region", e.target.value)
-                            }
-                            className="filter-select"
-                          />
-                        </div>
-                      </div>
-                      <div className="overview1-filter-actions">
-                        <button className="btn clear" onClick={clearFilters}>
-                          Clear Filters
-                        </button>
-                        <button className="btn apply" onClick={applyFilters}>
-                          Apply Filters
-                        </button>
-                      </div>
+                              <FiTrash2
+                                style={{
+                                  marginRight: 6,
+                                  verticalAlign: "middle",
+                                }}
+                              />
+                              <span style={{ verticalAlign: "middle" }}>
+                                Delete Selected ({selectedIds.size})
+                              </span>
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   <div className="archive-table">
                     <table>
@@ -1140,171 +899,72 @@ const handleMassDownload = async () => {
                     </div>
                   )}
                 </div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
 
-      {/* Report Generator Modal */}
-      {showReportModal && (
-        <div className="overview1-modal-backdrop" onClick={closeReportModal}>
-          <div
-            className="overview1-modal report-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className="overview1-modal-header">
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <FiFileText className="header-icon" />
-                <h3>Generate Archive Report</h3>
-              </div>
-              <button className="modal-close" onClick={closeReportModal}>
-                <FiX />
-              </button>
-            </header>
-
-            <div className="overview1-modal-body">
-              <div className="report-summary-card">
-                <div className="report-header">
-                  <div className="report-icon-container">
-                    <FiFileText className="report-main-icon" />
-                  </div>
-                  <div className="report-titles">
-                    <div className="report-title">Archive Report Generator</div>
-                    <div className="report-sub">
-                      Generate comprehensive reports for archived agreements
-                      with various export options
+                <div className="archive-report-generator-card">
+                  <div className="archive-report-header">
+                    <div className="archive-report-icon">
+                      <TbFileText size={24} />
                     </div>
-                  </div>
-                </div>
-
-                <div className="report-stats">
-                  <div className="stat-item">
-                    <div className="stat-label">Total Records</div>
-                    <div className="stat-number">{reportItems.length}</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Report Type</div>
-                    <div className="stat-value">
-                      {reportLabelMap[reportType]}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="report-configuration">
-                <div className="config-section">
-                  <div className="config-title">
-                    <FiFilter className="config-icon" />
-                    Report Configuration
-                  </div>
-                  <div className="config-rows">
-                    <div className="config-row">
-                      <div className="config-label">
-                        <span>Report Scope</span>
+                    <div>
+                      <h4>Report Generator</h4>
+                      <div className="archive-report-sub">
+                        Generate comprehensive reports for archived agreements
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="archive-report-controls">
+                    <div className="archive-report-select">
                       <select
                         value={reportType}
                         onChange={(e) => setReportType(e.target.value)}
-                        className="config-select"
                       >
                         <option value="all">All Archive</option>
                         <option value="expired">Expired Only</option>
                         <option value="withdrawn">Withdrawn Only</option>
                       </select>
                     </div>
-                  </div>
-                </div>
 
-                <div className="export-section">
-                  <div className="config-title">
-                    <FiDownload className="config-icon" />
-                    Export Options
-                  </div>
-                  <div className="export-options">
-                    <div className="export-option">
-                      <div className="option-header">
-                        <FiFileText className="option-icon excel" />
-                        <div className="option-info">
-                          <div className="option-title">Printable Report</div>
-                          <div className="option-desc">
-                            Generate a formatted report for printing with all
-                            agreement details
-                          </div>
-                        </div>
-                      </div>
+                    <div className="archive-report-actions">
                       <button
-                        className="export-btn excel-btn"
+                        className="archive-btn archive-btn-primary archive-btn-print"
                         onClick={generatePrintableReport}
                       >
-                        <FiPrinter className="btn-icon" />
-                        Generate
+                        <FiPrinter className="archive-btn-icon" />
+                        <span>Generate Report</span>
                       </button>
-                    </div>
-                    <div className="export-option">
-                      <div className="option-header">
-                        <FiFileText className="option-icon csv" />
-                        <div className="option-info">
-                          <div className="option-title">CSV Export</div>
-                          <div className="option-desc">
-                            Download data in CSV format for analysis in
-                            spreadsheet applications
-                          </div>
-                        </div>
-                      </div>
+
                       <button
-                        className="export-btn csv-btn"
+                        className="archive-btn archive-btn-outline archive-btn-csv"
                         onClick={downloadCSV}
                       >
-                        <FiDownload className="btn-icon" />
-                        Download CSV
+                        <FiDownload className="archive-btn-icon" />
+                        <span>Download CSV</span>
                       </button>
                     </div>
                   </div>
-                </div>
 
-                <div className="preview-section">
-                  <div className="config-title">
-                    <FiEye className="config-icon" />
-                    Preview
-                  </div>
-                  <div className="preview-info">
-                    <div className="preview-stats">
-                      <div className="preview-stat">
-                        <FiFileText className="stat-icon" />
-                        <span>{reportItems.length} records selected</span>
-                      </div>
-                      <div className="preview-stat">
-                        <FiFilter className="stat-icon" />
-                        <span>{reportLabelMap[reportType]}</span>
-                      </div>
+                  <div className="archive-report-meta">
+                    <div>
+                      <strong>Selected:</strong>{" "}
+                      <span className="archive-muted">
+                        {reportLabelMap[reportType]}
+                      </span>
                     </div>
-                    <div className="preview-note">
-                      <FiAlertCircle className="note-icon" />
-                      <span>
-                        Reports include all agreement details: document type,
-                        DTS number, partner information, classification, expiry
-                        dates, and current status.
+                    <div>
+                      <strong>Total records:</strong>{" "}
+                      <span className="archive-muted">
+                        {reportItems.length}
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <footer className="overview1-modal-footer">
-              <button className="btn cancel" onClick={closeReportModal}>
-                <FiX />
-                Close
-              </button>
-            </footer>
-          </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Existing Agreement Detail Modal */}
       {selectedAgreement && (
         <div className="archive-agreement-modal-backdrop" onClick={closeModal}>
           <div

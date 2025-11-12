@@ -2635,20 +2635,33 @@
 }
 
 .overview1-filter-actions .btn.apply {
-  background: linear-gradient(135deg, #a83a4a, #8b1f2d);
+  background: linear-gradient(135deg, #a04040, #802020) !important;
   color: #fff;
   border-color: transparent;
   box-shadow: 0 2px 6px rgba(139, 31, 45, 0.15);
 }
 
 .overview1-filter-actions .btn.apply:hover {
-  background: linear-gradient(135deg, #8b1f2d, #7a1f2f);
+  background: linear-gradient(135deg, #6b0000, #4b0000) !important;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(139, 31, 45, 0.25);
 }
 
 .btn-icon {
   font-size: 14px;
+}
+
+.btn.active, 
+.overview1-filter-btn.open,
+.btn.generate.active {
+  background-color: #ff6b6b;
+  color: white;
+  border-color: #ff6b6b;
+}
+
+.btn.generate.active:hover {
+  background-color: #ff5252;
+  border-color: #ff5252;
 }
 
 /* Responsive Design */

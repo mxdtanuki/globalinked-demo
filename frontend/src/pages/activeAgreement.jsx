@@ -16,13 +16,17 @@ import {
   FiX,
   FiEdit,
   FiAlertCircle,
+  FiTag,
   FiGlobe,
   FiCalendar,
   FiFilter,
+  FiMapPin,
   FiMoreVertical,
   FiFileText,
   FiArchive,
   FiPlusCircle,
+  FiCheck,
+  FiChevronDown,
 } from "react-icons/fi";
 import { TbFileText } from "react-icons/tb";
 import { agreementService } from "../services/agreementService";
@@ -1275,7 +1279,7 @@ const ActiveAgreement = () => {
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <button
                       type="button"
-                      className={`btn overview1-filter-btn ${showFilterPanel ? "active" : ""}`}
+                      className="btn generate"
                       onClick={() => setShowFilterPanel((v) => !v)}
                       aria-expanded={showFilterPanel}
                     >
@@ -1283,12 +1287,12 @@ const ActiveAgreement = () => {
                       Filters
                     </button>
 
-                    {/* Generate Report button placed next to Filters to match overviewDash */}
+                    {/* Generate Report */}
                     <button
                       type="button"
                       className="btn generate"
                       onClick={() => {
-                        navigate("/overview");
+                        setShowGenerateModal(true);
                       }}
                     >
                       <FiPrinter className="icon" />
@@ -1300,16 +1304,40 @@ const ActiveAgreement = () => {
 
               {/* Inline filter panel (rendered below search + tabs when open) */}
               {showFilterPanel && (
-                <div
-                  className="overview1-filter-panel"
-                  style={{ marginTop: 12 }}
-                >
-                  <div className="overview1-panel-row">
+                <div className="overview1-filter-panel" style={{ marginTop: 12 }}>
+                  {/* Header: Filter Agreements + close */}
+                  <div
+                    className="overview1-filter-header"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "12px 16px",
+                      borderBottom: "1px solid #f0e9e9",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <FiFilter style={{ color: "#8b1f2d" }} />
+                      <strong>Filter Agreements</strong>
+                    </div>
+                    <button
+                      className="icon-btn"
+                      onClick={() => setShowFilterPanel(false)}
+                      aria-label="Close filter panel"
+                      title="Close"
+                    >
+                      <FiX className="icon" />
+                    </button>
+                  </div>
+
+                  <div className="overview1-panel-row" style={{ padding: 16 }}>
                     <div className="overview1-panel-field">
-                      <label>Partnership Classification</label>
+                      <label>
+                        <FiTag className="inline-icon" /> Partnership Classification
+                      </label>
                       <SearchableSelect
                         options={[
-                          { value: "", label: "Select Classification" },
+                          { value: "", label: "All Classifications" },
                           ...classificationOptions.map((c) => ({ value: c, label: c })),
                         ]}
                         value={filterClassification}
@@ -1317,16 +1345,18 @@ const ActiveAgreement = () => {
                           setFilterClassification(v || "");
                           setCurrentPage(1);
                         }}
-                        placeholder="Select Classification"
+                        placeholder="All Classifications"
                         allowClear={false}
                       />
                     </div>
 
                     <div className="overview1-panel-field">
-                      <label>Validity Period</label>
+                      <label>
+                        <FiCalendar className="inline-icon" /> Validity Period
+                      </label>
                       <SearchableSelect
                         options={[
-                          { value: "", label: "Select Validity" },
+                          { value: "", label: "All Periods" },
                           ...validityOptions.map((v) => ({ value: v, label: v })),
                         ]}
                         value={filterValidityPeriod}
@@ -1334,13 +1364,15 @@ const ActiveAgreement = () => {
                           setFilterValidityPeriod(v || "");
                           setCurrentPage(1);
                         }}
-                        placeholder="Select Validity"
+                        placeholder="All Periods"
                         allowClear={false}
                       />
                     </div>
 
                     <div className="overview1-panel-field">
-                      <label>Country</label>
+                      <label>
+                        <FiMapPin className="inline-icon" /> Country
+                      </label>
                       <SearchableSelect
                         options={[
                           { value: "all", label: "All Countries" },
@@ -1348,17 +1380,19 @@ const ActiveAgreement = () => {
                         ]}
                         value={filterCountryScope}
                         onChange={(v) => {
-                          // treat 'all' as no filter
                           setFilterCountryScope(v || "all");
                           setCurrentPage(1);
                         }}
-                        placeholder="Select Country"
+                        placeholder="All Countries"
                         allowClear={false}
                       />
                     </div>
                   </div>
 
-                  <div className="overview1-filter-actions">
+                  <div
+                    className="overview1-filter-actions"
+                    style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "0 16px 16px" }}
+                  >
                     <button
                       className="btn clear"
                       onClick={() => {
@@ -1368,14 +1402,18 @@ const ActiveAgreement = () => {
                         setShowFilterPanel(false);
                         setCurrentPage(1);
                       }}
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
                     >
-                      Clear
+                      <FiX />
+                      Clear All
                     </button>
                     <button
                       className="btn apply"
                       onClick={() => setShowFilterPanel(false)}
+                      style={{ background: "#8b1f2d", color: "#fff", display: "flex", alignItems: "center", gap: 8, border: "none", padding: "10px 18px", borderRadius: 8 }}
                     >
-                      Apply
+                      <FiCheck />
+                      Apply Filters
                     </button>
                   </div>
                 </div>

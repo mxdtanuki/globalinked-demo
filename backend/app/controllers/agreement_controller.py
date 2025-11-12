@@ -656,16 +656,21 @@ async def update_agreement(
             if 'signatories_list' in up:
                 agreement.signatories_list = up['signatories_list']
             if 'agreement_status' in up:
-                agreement.agreement_status = up['agreement_status']
-                timer = db.query(Timer).filter(Timer.agreement_id == agreement.agreement_id).first()
-                if timer:
-                    timer.last_status_change = datetime.utcnow()
+                # Only update last_status_change if the status actually changed
+                if up['agreement_status'] != agreement.agreement_status:
+                    agreement.agreement_status = up['agreement_status']
+                    timer = db.query(Timer).filter(Timer.agreement_id == agreement.agreement_id).first()
+                    if timer:
+                        timer.last_status_change = datetime.utcnow()
+                    else:
+                        timer = Timer(
+                            agreement_id=agreement.agreement_id,
+                            last_status_change=datetime.utcnow()
+                        )
+                        db.add(timer)
                 else:
-                    timer = Timer(
-                        agreement_id=agreement.agreement_id,
-                        last_status_change=datetime.utcnow()
-                    )
-                    db.add(timer)
+                    # Status did not change, just update the field (if needed)
+                    agreement.agreement_status = up['agreement_status']
 
             if 'hardcopy_location' in up:
                 agreement.hardcopy_location = up['hardcopy_location']
