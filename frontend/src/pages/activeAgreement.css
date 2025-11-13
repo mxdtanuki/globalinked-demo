@@ -1333,6 +1333,200 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+
+/* === ActiveAgreement: Overview-styled modal exact-match overrides ===
+   Scoped to the ActiveAgreement page so other modals remain unchanged. */
+.dashboard-container.active-agreements-page .overview1-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 36px 20px;
+  z-index: 3000;
+}
+
+.dashboard-container.active-agreements-page .overview1-modal {
+  width: 96%;
+  max-width: 1160px;
+  max-height: calc(100vh - 72px);
+  overflow: auto;
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+  background: transparent; /* header+body handle colouring */
+}
+
+.dashboard-container.active-agreements-page .overview1-modal.force-overview {
+  overflow: visible;
+}
+
+.dashboard-container.active-agreements-page .overview1-modal-header {
+  background: linear-gradient(180deg, #7b141d 0%, #5a0c12 100%);
+  color: #fff;
+  padding: 18px 22px;
+  border-radius: 10px 10px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.dashboard-container.active-agreements-page .overview1-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dashboard-container.active-agreements-page .overview1-header-icon .badge,
+.dashboard-container.active-agreements-page .modal-badge-row .badge {
+  background: #b12b33;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.dashboard-container.active-agreements-page .overview1-header-titles .modal-title {
+  font-family: Poppins, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-size: 20px;
+  line-height: 1.1;
+  color: #fff;
+  margin: 0;
+}
+
+.dashboard-container.active-agreements-page .overview1-header-sub {
+  color: rgba(255,255,255,0.92);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.dashboard-container.active-agreements-page .modal-close {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-container.active-agreements-page .overview1-modal-body.agreement-modal-body {
+  background: #fff;
+  border-radius: 0 0 10px 10px;
+  padding: 20px 22px 26px;
+  margin-top: 0;
+  border: 1px solid #f3e8e8;
+}
+
+/* Section header pill (pale pink background with maroon text + icon centered) */
+.dashboard-container.active-agreements-page .modal-section {
+  background: #fff;
+  border: 1px solid #f3e8e8;
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.dashboard-container.active-agreements-page .modal-section h4 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: -28px auto 12px auto;
+  background: #fff6f6;
+  color: #7b141d;
+  padding: 10px 18px;
+  border-radius: 22px;
+  border: 1px solid #f4e2e2;
+  width: fit-content;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+/* Partner logo and fallback sizing */
+.dashboard-container.active-agreements-page .partner-logo img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #f0e6e6;
+}
+.dashboard-container.active-agreements-page .partner-fallback {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f6f0f0;
+  color: #7b141d;
+  font-weight: 700;
+  border-radius: 8px;
+}
+
+/* Top action buttons (View File / Older Files) */
+.dashboard-container.active-agreements-page .agreement-modal .btn.action {
+  background: #fff;
+  border: 1px solid #f0e6e6;
+  color: #3b1b1c;
+  padding: 10px 14px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+/* Footer buttons: keep Right-aligned, white Cancel and subtle Edit */
+.dashboard-container.active-agreements-page .overview1-modal-footer,
+.dashboard-container.active-agreements-page .agreement-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 22px 22px;
+  background: transparent;
+}
+
+.dashboard-container.active-agreements-page .overview1-modal-footer .btn.cancel,
+.dashboard-container.active-agreements-page .agreement-modal-footer .btn.cancel {
+  background: #fff;
+  color: #222;
+  border: 1px solid #e6e2e2;
+  padding: 10px 16px;
+  border-radius: 10px;
+}
+
+.dashboard-container.active-agreements-page .overview1-modal-footer .btn.edit,
+.dashboard-container.active-agreements-page .agreement-modal-footer .btn.edit {
+  background: #fff;
+  color: #222;
+  border: 1px solid #e6e2e2;
+  padding: 10px 16px;
+  border-radius: 10px;
+}
+
+/* Small responsive tweaks for narrow screens */
+@media (max-width: 880px) {
+  .dashboard-container.active-agreements-page .overview1-modal {
+    width: 98%;
+    max-width: 980px;
+    padding: 0;
+  }
+
+  .dashboard-container.active-agreements-page .overview1-modal-header {
+    padding: 14px 16px;
+  }
+
+  .dashboard-container.active-agreements-page .overview1-modal-body.agreement-modal-body {
+    padding: 14px 16px 20px;
+  }
+}
 }
 .label {
   color: #99a0a7;

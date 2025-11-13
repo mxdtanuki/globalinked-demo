@@ -68,7 +68,11 @@ const SearchableSelect = ({
     normalized.find((o) => String(o.value) === String(value))?.label || "";
 
   return (
-    <div className="searchable-select" ref={ref} style={{ position: "relative" }}>
+    <div
+      className="searchable-select"
+      ref={ref}
+      style={{ position: "relative" }}
+    >
       <button
         type="button"
         className="ss-toggle"
@@ -246,7 +250,10 @@ const ActiveAgreement = () => {
   const goToExpiringSection = () => {
     try {
       if (expiringRef && expiringRef.current) {
-        expiringRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        expiringRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
         // also focus for keyboard users
         if (typeof expiringRef.current.focus === "function")
           expiringRef.current.focus();
@@ -358,13 +365,24 @@ const ActiveAgreement = () => {
     // Fallback: try documentService to find latest/signed URL or download blob (like overviewDash)
     try {
       // 1) Try service helper to get latest version by DTS number (preferred)
-      if (dts && documentService && typeof documentService.getLatestVersion === "function") {
+      if (
+        dts &&
+        documentService &&
+        typeof documentService.getLatestVersion === "function"
+      ) {
         const latest = await documentService.getLatestVersion(dts);
-        const downloadUrl = latest?.download_url || latest?.url || latest?.signedUrl || latest?.downloadUrl;
+        const downloadUrl =
+          latest?.download_url ||
+          latest?.url ||
+          latest?.signedUrl ||
+          latest?.downloadUrl;
         if (downloadUrl) {
           // fetch as blob and open (better cross-origin support & consistent behavior)
-          const resp = await fetch(downloadUrl, { headers: { Accept: "application/pdf" } });
-          if (!resp.ok) throw new Error(`Failed to fetch file (${resp.status})`);
+          const resp = await fetch(downloadUrl, {
+            headers: { Accept: "application/pdf" },
+          });
+          if (!resp.ok)
+            throw new Error(`Failed to fetch file (${resp.status})`);
           const blob = await resp.blob();
           const blobUrl = window.URL.createObjectURL(blob);
           window.open(blobUrl, "_blank");
@@ -372,8 +390,14 @@ const ActiveAgreement = () => {
           return;
         }
         // if service returned an id instead of URL, try getDownloadUrl
-        if (latest && (latest.id || latest.version_id) && typeof documentService.getDownloadUrl === "function") {
-          const signed = await documentService.getDownloadUrl(latest.id || latest.version_id);
+        if (
+          latest &&
+          (latest.id || latest.version_id) &&
+          typeof documentService.getDownloadUrl === "function"
+        ) {
+          const signed = await documentService.getDownloadUrl(
+            latest.id || latest.version_id
+          );
           const dl = signed?.download_url || signed?.url || signed;
           if (dl) {
             window.open(dl, "_blank");
@@ -391,7 +415,10 @@ const ActiveAgreement = () => {
           agreement?.file_id ||
           (Array.isArray(attachments) &&
             (() => {
-              const a = which === "latest" ? attachments[0] : attachments[1] || attachments[0];
+              const a =
+                which === "latest"
+                  ? attachments[0]
+                  : attachments[1] || attachments[0];
               return a?.version_id || a?.id || a?.file_id || a?.versionId;
             })())
         );
@@ -754,16 +781,16 @@ const ActiveAgreement = () => {
     return Array.from(s).sort();
   }, [activeAgreements]);
 
-    // derived options for country (from activeAgreements)
-    const countryOptions = useMemo(() => {
-      const s = new Set();
-      for (const a of activeAgreements) {
-        const c =
-          a.country || a.country_name || a.countryName || a.location || "";
-        if (c != null && String(c).trim() !== "") s.add(String(c).trim());
-      }
-      return Array.from(s).sort((x, y) => x.localeCompare(y));
-    }, [activeAgreements]);
+  // derived options for country (from activeAgreements)
+  const countryOptions = useMemo(() => {
+    const s = new Set();
+    for (const a of activeAgreements) {
+      const c =
+        a.country || a.country_name || a.countryName || a.location || "";
+      if (c != null && String(c).trim() !== "") s.add(String(c).trim());
+    }
+    return Array.from(s).sort((x, y) => x.localeCompare(y));
+  }, [activeAgreements]);
   // recompute filteredAgreements with the additional filters (validity period and country scope)
   const filteredAgreementsWithFilters = useMemo(() => {
     return activeAgreements
@@ -819,7 +846,9 @@ const ActiveAgreement = () => {
         // apply country filter: when not 'all', match selected country string
         if (filterCountryScope && filterCountryScope !== "all") {
           const selected = String(filterCountryScope).trim().toLowerCase();
-          const country = String(a.country || "").trim().toLowerCase();
+          const country = String(a.country || "")
+            .trim()
+            .toLowerCase();
           if (!country || country !== selected) return false;
         }
         return true;
@@ -982,6 +1011,78 @@ const ActiveAgreement = () => {
     return String(v);
   };
 
+  // Helper: return a brief profile string from an agreement object
+  // Checks multiple common field names and handles possible shapes (string, array, object)
+  const getBriefProfileFromAgreement = (a) => {
+    if (!a) return null;
+    const keys = [
+      "brief_profile",
+      "briefProfile",
+      "brief",
+      "summary",
+      "description",
+      "overview",
+      "abstract",
+      "profile",
+      "short_profile",
+      "shortProfile",
+      "partner_profile",
+      "organization_profile",
+      "org_profile",
+    ];
+
+    for (const k of keys) {
+      const val = a[k];
+      if (val == null) continue;
+      // If array, join text pieces
+      if (Array.isArray(val)) {
+        const joined = val
+          .map((x) =>
+            typeof x === "object"
+              ? x.text || x.remark_text || x.remark || ""
+              : String(x)
+          )
+          .map((s) => String(s || "").trim())
+          .filter(Boolean)
+          .join(" \n\n");
+        if (joined) return joined;
+        continue;
+      }
+
+      // If object, try to locate likely text fields
+      if (typeof val === "object") {
+        const candidates = [
+          "text",
+          "value",
+          "brief",
+          "summary",
+          "description",
+          "remark_text",
+          "remark",
+        ];
+        for (const c of candidates) {
+          if (val[c]) {
+            const s = String(val[c]).trim();
+            if (s) return s;
+          }
+        }
+        // Fallback to JSON string if it looks useful
+        try {
+          const s = JSON.stringify(val);
+          if (s && s !== "{}") return s;
+        } catch (e) {}
+        continue;
+      }
+
+      // If string, return trimmed text
+      if (typeof val === "string") {
+        const s = val.trim();
+        if (s) return s;
+      }
+    }
+    return null;
+  };
+
   // Prepare contact email values from several possible shapes on the selectedAgreement
   const pupEmailRaw = selectedAgreement
     ? selectedAgreement.point_persons_email ??
@@ -1053,9 +1154,11 @@ const ActiveAgreement = () => {
   // Normalize reportType for comparisons (select options may use mixed case)
   // Prefer the modal's generateDocType when present so the modal preview/count
   // updates when the user changes the Document Type select inside the modal.
-  const reportKey = String((typeof generateDocType !== "undefined" && generateDocType)
-    ? generateDocType
-    : reportType || "").toLowerCase();
+  const reportKey = String(
+    typeof generateDocType !== "undefined" && generateDocType
+      ? generateDocType
+      : reportType || ""
+  ).toLowerCase();
 
   const reportItems = (() => {
     // Start from all agreements and apply document-type filter first
@@ -1063,11 +1166,15 @@ const ActiveAgreement = () => {
 
     if (reportKey === "mou") {
       items = items.filter(
-        (a) => String(a.document_type || a.documentType || "").toUpperCase() === "MOU"
+        (a) =>
+          String(a.document_type || a.documentType || "").toUpperCase() ===
+          "MOU"
       );
     } else if (reportKey === "moa") {
       items = items.filter(
-        (a) => String(a.document_type || a.documentType || "").toUpperCase() === "MOA"
+        (a) =>
+          String(a.document_type || a.documentType || "").toUpperCase() ===
+          "MOA"
       );
     } else if (reportKey === "linked") {
       items = items.filter((a) => Boolean(getLinkedId(a)));
@@ -1076,12 +1183,19 @@ const ActiveAgreement = () => {
     // Apply status filter from the modal (if set). generateStatus is kept for
     // backward compatibility even if the UI control was removed.
     try {
-      const statusKey = String(generateStatus || "").trim().toLowerCase();
+      const statusKey = String(generateStatus || "")
+        .trim()
+        .toLowerCase();
       if (statusKey && statusKey !== "all") {
         items = items.filter((a) => {
-          const s = String(a.agreement_status || a.status || "").trim().toLowerCase();
+          const s = String(a.agreement_status || a.status || "")
+            .trim()
+            .toLowerCase();
           // allow partial matches for flexible status naming
-          return s === statusKey || s.replace(/\s+/g, "").includes(statusKey.replace(/\s+/g, ""));
+          return (
+            s === statusKey ||
+            s.replace(/\s+/g, "").includes(statusKey.replace(/\s+/g, ""))
+          );
         });
       }
     } catch (e) {
@@ -1205,7 +1319,7 @@ const ActiveAgreement = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-  a.download = `${reportKey || 'all'}-agreements-report.csv`;
+    a.download = `${reportKey || "all"}-agreements-report.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -1214,7 +1328,7 @@ const ActiveAgreement = () => {
     return <div className="overview-container">Error: {error}</div>;
   }
 
-   if (loading) {
+  if (loading) {
     return (
       <div className="dashboard-container active-agreements-page">
         <TopBar toggleSidebar={toggleMobileSidebar} />
@@ -1243,7 +1357,7 @@ const ActiveAgreement = () => {
         </div>
       </div>
     );
-  } 
+  }
 
   return (
     <div className="dashboard-container active-agreements-page">
@@ -1297,7 +1411,15 @@ const ActiveAgreement = () => {
             <div className="activeAgreement-table-section">
               <div className="table-controls">
                 {/* Top row: filter tabs (All / MOA / MOU / Linked) */}
-                <div className="table-controls-top" style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end' }}>
+                <div
+                  className="table-controls-top"
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                  }}
+                >
                   <div className="table-actions">
                     <div className="filter-tabs">
                       <button
@@ -1329,9 +1451,24 @@ const ActiveAgreement = () => {
                 </div>
 
                 {/* Bottom row: search, filters button and generate */}
-                <div className="table-controls-bottom" style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div className="table-search-wrapper" style={{ position: "relative", flex: 1 }}>
-                    <div className="table-search" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  className="table-controls-bottom"
+                  style={{
+                    marginTop: 12,
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div
+                    className="table-search-wrapper"
+                    style={{ position: "relative", flex: 1 }}
+                  >
+                    <div
+                      className="table-search"
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                    >
                       <input
                         type="search"
                         placeholder="Search DTS, partner, type..."
@@ -1355,7 +1492,9 @@ const ActiveAgreement = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div
+                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                  >
                     <button
                       type="button"
                       className="btn generate"
@@ -1383,7 +1522,10 @@ const ActiveAgreement = () => {
 
               {/* Inline filter panel (rendered below search + tabs when open) */}
               {showFilterPanel && (
-                <div className="overview1-filter-panel" style={{ marginTop: 12 }}>
+                <div
+                  className="overview1-filter-panel"
+                  style={{ marginTop: 12 }}
+                >
                   {/* Header: Filter Agreements + close */}
                   <div
                     className="overview1-filter-header"
@@ -1395,7 +1537,9 @@ const ActiveAgreement = () => {
                       borderBottom: "1px solid #f0e9e9",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
+                    >
                       <FiFilter style={{ color: "#8b1f2d" }} />
                       <strong>Filter Agreements</strong>
                     </div>
@@ -1412,12 +1556,16 @@ const ActiveAgreement = () => {
                   <div className="overview1-panel-row" style={{ padding: 16 }}>
                     <div className="overview1-panel-field">
                       <label>
-                        <FiTag className="inline-icon" /> Partnership Classification
+                        <FiTag className="inline-icon" /> Partnership
+                        Classification
                       </label>
                       <SearchableSelect
                         options={[
                           { value: "", label: "All Classifications" },
-                          ...classificationOptions.map((c) => ({ value: c, label: c })),
+                          ...classificationOptions.map((c) => ({
+                            value: c,
+                            label: c,
+                          })),
                         ]}
                         value={filterClassification}
                         onChange={(v) => {
@@ -1436,7 +1584,10 @@ const ActiveAgreement = () => {
                       <SearchableSelect
                         options={[
                           { value: "", label: "All Periods" },
-                          ...validityOptions.map((v) => ({ value: v, label: v })),
+                          ...validityOptions.map((v) => ({
+                            value: v,
+                            label: v,
+                          })),
                         ]}
                         value={filterValidityPeriod}
                         onChange={(v) => {
@@ -1455,7 +1606,10 @@ const ActiveAgreement = () => {
                       <SearchableSelect
                         options={[
                           { value: "all", label: "All Countries" },
-                          ...countryOptions.map((c) => ({ value: c, label: c })),
+                          ...countryOptions.map((c) => ({
+                            value: c,
+                            label: c,
+                          })),
                         ]}
                         value={filterCountryScope}
                         onChange={(v) => {
@@ -1470,7 +1624,12 @@ const ActiveAgreement = () => {
 
                   <div
                     className="overview1-filter-actions"
-                    style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "0 16px 16px" }}
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: 12,
+                      padding: "0 16px 16px",
+                    }}
                   >
                     <button
                       className="btn clear"
@@ -1489,7 +1648,16 @@ const ActiveAgreement = () => {
                     <button
                       className="btn apply"
                       onClick={() => setShowFilterPanel(false)}
-                      style={{ background: "#8b1f2d", color: "#fff", display: "flex", alignItems: "center", gap: 8, border: "none", padding: "10px 18px", borderRadius: 8 }}
+                      style={{
+                        background: "#8b1f2d",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        border: "none",
+                        padding: "10px 18px",
+                        borderRadius: 8,
+                      }}
                     >
                       <FiCheck />
                       Apply Filters
@@ -1517,7 +1685,7 @@ const ActiveAgreement = () => {
                       const children = activeAgreements.filter(
                         (c) =>
                           String(
-                            (c.document_type || c.documentType || "")
+                            c.document_type || c.documentType || ""
                           ).toUpperCase() === "MOA" &&
                           (getLinkedId(c) === mid || c.linkedMouId === mid)
                       );
@@ -1930,7 +2098,9 @@ const ActiveAgreement = () => {
                                             setMenuOpenId(null);
                                           }}
                                         >
-                                          <FiFileText style={{ marginRight: 4 }} />{" "}
+                                          <FiFileText
+                                            style={{ marginRight: 4 }}
+                                          />{" "}
                                           View latest file
                                         </button>
 
@@ -1951,8 +2121,10 @@ const ActiveAgreement = () => {
                                             setMenuOpenId(null);
                                           }}
                                         >
-                                          <FiArchive style={{ marginRight: 4 }} /> View
-                                          Older Files
+                                          <FiArchive
+                                            style={{ marginRight: 4 }}
+                                          />{" "}
+                                          View Older Files
                                         </button>
                                       </div>,
                                       document.body
@@ -1966,44 +2138,43 @@ const ActiveAgreement = () => {
                     </tbody>
                   </table>
                 </div>
+              )}
 
-                )}
+              {/* Pagination controls (rendered below the table) */}
+              {filter !== "linked" && totalPages > 1 && (
+                <div className="pagination" style={{ marginTop: 12 }}>
+                  <button
+                    className="page-btn"
+                    onClick={prevPage}
+                    disabled={currentPage === 1}
+                  >
+                    Prev
+                  </button>
 
-                {/* Pagination controls (rendered below the table) */}
-                {filter !== "linked" && totalPages > 1 && (
-                  <div className="pagination" style={{ marginTop: 12 }}>
-                    <button
-                      className="page-btn"
-                      onClick={prevPage}
-                      disabled={currentPage === 1}
-                    >
-                      Prev
-                    </button>
+                  {Array.from({ length: totalPages }, (_, idx) => {
+                    const page = idx + 1;
+                    return (
+                      <button
+                        key={page}
+                        className={`page-btn ${
+                          page === currentPage ? "active" : ""
+                        }`}
+                        onClick={() => gotoPage(page)}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
 
-                    {Array.from({ length: totalPages }, (_, idx) => {
-                      const page = idx + 1;
-                      return (
-                        <button
-                          key={page}
-                          className={`page-btn ${
-                            page === currentPage ? "active" : ""
-                          }`}
-                          onClick={() => gotoPage(page)}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
-
-                    <button
-                      className="page-btn"
-                      onClick={nextPage}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
+                  <button
+                    className="page-btn"
+                    onClick={nextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Nearing Expiration Section */}
@@ -2096,35 +2267,79 @@ const ActiveAgreement = () => {
 
       {/* Details modal */}
       {selectedAgreement && (
-        <div className="agreement-modal-backdrop" onClick={closeModal}>
+        <div
+          className="overview1-modal-backdrop agreement-modal-backdrop"
+          onClick={closeModal}
+        >
+          {/* OLD BLOCK (kept as comment for reference) */}
+          {/*
           <div className="agreement-modal" onClick={(e) => e.stopPropagation()}>
             <header className="agreement-modal-header">
               <div className="modal-badge-row">
-                <span
-                  className={`badge ${String(
-                    selectedAgreement.document_type ||
-                      selectedAgreement.documentType ||
-                      ""
-                  ).toLowerCase()}`}
-                >
-                  {selectedAgreement.document_type ||
-                    selectedAgreement.documentType}
-                </span>
-                <h2 className="modal-title">
-                  {selectedAgreement.event_title ||
-                    selectedAgreement.eventTitle}
-                </h2>
+                <span className={`badge ${String(selectedAgreement.document_type || selectedAgreement.documentType || "").toLowerCase()}`}> {selectedAgreement.document_type || selectedAgreement.documentType} </span>
+                <h2 className="modal-title">{selectedAgreement.event_title || selectedAgreement.eventTitle}</h2>
               </div>
-              <button
-                className="modal-close"
-                onClick={closeModal}
-                aria-label="Close"
-              >
-                <FiX className="icon" />
-              </button>
+              <button className="modal-close" onClick={closeModal} aria-label="Close"><FiX className="icon" /></button>
             </header>
-
             <div className="agreement-modal-body">
+          */}
+
+          {/* NEW: Overview-styled modal to match OverviewDash design */}
+          <div
+            className="overview1-modal agreement-modal force-overview"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Agreement details for ${
+              selectedAgreement.name || selectedAgreement.partnerName || selectedAgreement.event_title || "agreement"
+            }`}
+          >
+            <div className="overview1-modal-header">
+              <div className="overview1-header-left" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div className="overview1-header-icon" aria-hidden>
+                  <span className={`badge ${String(
+                    selectedAgreement.document_type || selectedAgreement.documentType || ""
+                  ).toLowerCase()}`}>
+                    {selectedAgreement.document_type || selectedAgreement.documentType}
+                  </span>
+                </div>
+
+                <div className="overview1-header-titles">
+                  <div className="modal-title" style={{ fontSize: 20, fontWeight: 700 }}>
+                    {selectedAgreement.name || selectedAgreement.partnerName || selectedAgreement.event_title || selectedAgreement.eventTitle}
+                  </div>
+                  <div className="overview1-header-sub" style={{ color: "#6b3740" }}>
+                    {selectedAgreement.event_title && selectedAgreement.event_title !== (selectedAgreement.name || selectedAgreement.partnerName)
+                      ? selectedAgreement.event_title
+                      : ""}
+                    {selectedAgreement.agreement_status || selectedAgreement.status ? (
+                      <span style={{ marginLeft: 10, color: "#555" }}>
+                        • {(selectedAgreement.agreement_status || selectedAgreement.status) || ""}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ textAlign: "right", marginRight: 8 }} className="modal-meta">
+                  <div style={{ fontSize: 12, color: "#8b1f2d" }}>DTS No.</div>
+                  <div style={{ fontWeight: 700 }}>{selectedAgreement.dts_number || selectedAgreement.dtsNumber || "—"}</div>
+                  <div style={{ fontSize: 12, color: "#8b1f2d", marginTop: 6 }}>Date Received</div>
+                  <div>{selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_received || selectedAgreement.date_signed ? new Date(selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed).toLocaleDateString() : "—"}</div>
+                </div>
+
+                <button
+                  className="modal-close"
+                  onClick={closeModal}
+                  aria-label="Close"
+                >
+                  <FiX className="icon" />
+                </button>
+              </div>
+            </div>
+
+            <div className="overview1-modal-body agreement-modal-body">
               {/* Document Information */}
               <section className="modal-section docinfo">
                 <h4>Document Information</h4>
@@ -2160,8 +2375,7 @@ const ActiveAgreement = () => {
 
                 <div className="label">Brief Profile</div>
                 <div className="brief">
-                  {selectedAgreement.brief_profile ||
-                    selectedAgreement.briefProfile}
+                  {getBriefProfileFromAgreement(selectedAgreement) || "—"}
                 </div>
               </section>
 
@@ -2222,11 +2436,16 @@ const ActiveAgreement = () => {
                         <div className="label">Website</div>
                         <div className="value">
                           {(() => {
-                            const raw = getWebsiteFromAgreement(selectedAgreement);
+                            const raw =
+                              getWebsiteFromAgreement(selectedAgreement);
                             const href = normalizeHref(raw);
                             if (!raw) return "—";
                             return (
-                              <a href={href} target="_blank" rel="noopener noreferrer">
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
                                 {raw}
                               </a>
                             );
@@ -2275,7 +2494,10 @@ const ActiveAgreement = () => {
                       {selectedAgreement.name || selectedAgreement.partnerName}
                     </div>
                     {partnerEmail ? (
-                      <a className="contact-email" href={`mailto:${partnerEmail}`}>
+                      <a
+                        className="contact-email"
+                        href={`mailto:${partnerEmail}`}
+                      >
                         {partnerEmail}
                       </a>
                     ) : null}
@@ -2386,7 +2608,7 @@ const ActiveAgreement = () => {
               </section>
             </div>
 
-            <footer className="agreement-modal-footer">
+            <div className="overview1-modal-footer agreement-modal-footer">
               {!isModalEdit ? (
                 <>
                   {/** Show Edit only to admins */}
@@ -2432,7 +2654,6 @@ const ActiveAgreement = () => {
               ) : (
                 <div style={{ width: "100%" }} className="modal-edit-panel">
                   <div
-
                     className="row two-col"
                     style={{ gap: 12, alignItems: "flex-start" }}
                   >
@@ -2452,8 +2673,8 @@ const ActiveAgreement = () => {
                     </div>
 
                     <div>
-                        <div className="label">Remarks</div>
-                        <div style={{ background: "#fff", padding: "5px" }}>
+                      <div className="label">Remarks</div>
+                      <div style={{ background: "#fff", padding: "5px" }}>
                         {Array.isArray(editForm.remarks) &&
                         editForm.remarks.length > 0 ? (
                           editForm.remarks.map((rm, idx) => (
@@ -2518,7 +2739,7 @@ const ActiveAgreement = () => {
                   </div>
                 </div>
               )}
-            </footer>
+            </div>
           </div>
         </div>
       )}
@@ -2554,8 +2775,13 @@ const ActiveAgreement = () => {
                     <FiBarChart className="report-main-icon" />
                   </div>
                   <div className="report-titles">
-                    <div className="report-title">Agreement Report Generator</div>
-                    <div className="report-sub">Generate comprehensive reports for agreements in Excel, CSV or PDF</div>
+                    <div className="report-title">
+                      Agreement Report Generator
+                    </div>
+                    <div className="report-sub">
+                      Generate comprehensive reports for agreements in Excel,
+                      CSV or PDF
+                    </div>
                   </div>
                 </div>
 
@@ -2567,7 +2793,9 @@ const ActiveAgreement = () => {
                   <div className="stat-item">
                     <div className="stat-label">Document Type</div>
                     <div className="stat-value">
-                      {generateDocType === "All" ? "All Agreements" : generateDocType + " only"}
+                      {generateDocType === "All"
+                        ? "All Agreements"
+                        : generateDocType + " only"}
                     </div>
                   </div>
                 </div>
@@ -2620,13 +2848,17 @@ const ActiveAgreement = () => {
                       <div className="preview-stat">
                         <FiCalendar className="stat-icon" />
                         <span>
-                          Generated: <strong>{new Date().toLocaleDateString()}</strong>
+                          Generated:{" "}
+                          <strong>{new Date().toLocaleDateString()}</strong>
                         </span>
                       </div>
                     </div>
                     <div className="preview-note">
                       <FiInfo className="note-icon" />
-                      <span style={{ marginLeft: 8 }}>The report will include all agreement details, contact information, and timeline data.</span>
+                      <span style={{ marginLeft: 8 }}>
+                        The report will include all agreement details, contact
+                        information, and timeline data.
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2644,7 +2876,10 @@ const ActiveAgreement = () => {
                         <FiFile className="option-icon excel" />
                         <div className="option-info">
                           <div className="option-title">Excel Report</div>
-                          <div className="option-desc">Comprehensive spreadsheet with all agreement details and formatting</div>
+                          <div className="option-desc">
+                            Comprehensive spreadsheet with all agreement details
+                            and formatting
+                          </div>
                         </div>
                       </div>
                       <button
@@ -2655,7 +2890,10 @@ const ActiveAgreement = () => {
                             downloadCSV();
                           } catch (e) {
                             console.error(e);
-                            alert("Failed to download Excel/CSV: " + (e?.message || e));
+                            alert(
+                              "Failed to download Excel/CSV: " +
+                                (e?.message || e)
+                            );
                           }
                           setShowGenerateModal(false);
                         }}
@@ -2670,7 +2908,9 @@ const ActiveAgreement = () => {
                         <FiFileText className="option-icon csv" />
                         <div className="option-info">
                           <div className="option-title">PDF Report</div>
-                          <div className="option-desc">Printable PDF formatted report</div>
+                          <div className="option-desc">
+                            Printable PDF formatted report
+                          </div>
                         </div>
                       </div>
                       <button
@@ -2680,7 +2920,9 @@ const ActiveAgreement = () => {
                             await generatePrintableReport();
                           } catch (e) {
                             console.error(e);
-                            alert("PDF generation failed: " + (e?.message || e));
+                            alert(
+                              "PDF generation failed: " + (e?.message || e)
+                            );
                           }
                           setShowGenerateModal(false);
                         }}

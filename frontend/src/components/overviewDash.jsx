@@ -20,11 +20,13 @@ import {
   FiTag,
   FiCalendar,
   FiMapPin,
+  FiUsers,
   FiChevronDown,
   FiCheck,
   FiBarChart,
   FiSettings,
   FiDownload,
+  FiHash,
 } from "react-icons/fi";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -150,12 +152,14 @@ const formatSignatories = (list) => {
   if (!Array.isArray(list) || list.length === 0) return "—";
   return list
     .map((s) => {
-      const name = s.signatory_name || s.name || s.person || "";
-      const pos = s.signatory_position || s.position || "";
+      const isStr = typeof s === "string";
+      const name = isStr ? s : s.signatory_name || s.name || s.person || "";
+      const pos = !isStr ? s.signatory_position || s.position || "" : "";
       return [name && name.trim(), pos && `(${pos.trim()})`]
         .filter(Boolean)
         .join(" ");
     })
+    .filter((x) => x && x.trim())
     .join("; ");
 };
 
@@ -214,17 +218,26 @@ const mapAgreement = (a = {}) => {
     a.signatory_names ||
     a.signatories_names ||
     "";
-  const signatories_list = Array.isArray(a.signatories_list)
-    ? a.signatories_list
-    : Array.isArray(a.signatories)
-    ? a.signatories
-    : typeof sigString === "string"
-    ? sigString
+  const signatories_list = (() => {
+    const raw = Array.isArray(a.signatories_list)
+      ? a.signatories_list
+      : Array.isArray(a.signatories)
+      ? a.signatories
+      : null;
+    if (Array.isArray(raw)) {
+      return raw
+        .map((x) => (typeof x === "string" ? { name: x } : x))
+        .filter(Boolean);
+    }
+    if (typeof sigString === "string") {
+      return sigString
         .split(/[,;\n]+/)
         .map((n) => n.trim())
         .filter(Boolean)
-        .map((name) => ({ name }))
-    : [];
+        .map((name) => ({ name }));
+    }
+    return [];
+  })();
   const signatoriesText = formatSignatories(signatories_list);
 
   const _parsed_days = (() => {
@@ -300,7 +313,7 @@ const mapAgreement = (a = {}) => {
     brief_profile: a.brief_profile || a.description || "",
     hardcopy_locator: a.hardcopy_locator || a.hardcopy_location || "",
     logo: asDataUrl(a.logo_url) || asDataUrl(a.logo_path) || asDataUrl(a.logo),
-    remarks: normalizeRemarks(a.remarks_list || a.remarks),
+    remarks: normalizeRemarks(a.remarks_list || a.remarks || a.initial_remarks),
 
     _stage_start_at: stageStartRaw || null,
   };
@@ -794,6 +807,8 @@ const OverviewMerged = () => {
   const containerRef = useRef();
   const filterPanelRef = useRef();
   const modalFirstFieldRef = useRef(null);
+  // request token to avoid race conditions when multiple detail loads happen
+  const loadRequestRef = useRef(0);
 
   const itemsPerPage = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -1048,41 +1063,27 @@ const OverviewMerged = () => {
 
   const loadAgreementDetails = async (rowOrId) => {
     const row = typeof rowOrId === "object" ? rowOrId : null;
-    // Prefer canonical PK using helper (agreement_id, _pk, id, or dts_no)
-    const byId = row ? getPk(row) : rowOrId;
+    const byId = row ? row.agreement_id ?? row._pk ?? null : rowOrId;
     const byDts = row ? row.dts_no || row.id || null : null;
+    // mark this load with a unique token so late responses don't overwrite
+    const req = ++loadRequestRef.current;
     setModalLoading(true);
     setModalError("");
     try {
       let full = null;
       // Debug: log what we're trying to fetch
       // console.debug('loadAgreementDetails: byId=', byId, 'byDts=', byDts, 'row=', row);
-      if (byId) {
-        // try primary id route first
+      const hasNumericId = byId != null && /^\d+$/.test(String(byId));
+      if (hasNumericId) {
         try {
-          full = await agreementService.getAgreementById(byId);
+          full = await agreementService.getAgreementById(Number(byId));
         } catch (err) {
-          // If getAgreementById fails (404 or other), try sensible fallbacks:
-          // 1) if row has a displayed DTS (row.id or row.dts_no) try getAgreementByDts
-          // 2) if not, try getAgreementByDts using the byId value as a last resort
-          const tryDts = (row && (row.dts_no || row.id)) || null;
+          const dtsCandidate = row?.dts_no || row?.id || String(byId);
           if (
-            tryDts &&
+            dtsCandidate &&
             typeof agreementService.getAgreementByDts === "function"
           ) {
-            try {
-              full = await agreementService.getAgreementByDts(tryDts);
-            } catch (e2) {
-              // second fallback: if byId might actually be a DTS string, try it
-              if (typeof agreementService.getAgreementByDts === "function") {
-                full = await agreementService.getAgreementByDts(String(byId));
-              } else {
-                throw err;
-              }
-            }
-          } else if (typeof agreementService.getAgreementByDts === "function") {
-            // try using byId as a DTS when nothing else available
-            full = await agreementService.getAgreementByDts(String(byId));
+            full = await agreementService.getAgreementByDts(dtsCandidate);
           } else {
             throw err;
           }
@@ -1091,31 +1092,57 @@ const OverviewMerged = () => {
         if (typeof agreementService.getAgreementByDts === "function") {
           full = await agreementService.getAgreementByDts(byDts);
         } else {
-          full = await agreementService.getAgreementById(byDts);
+          full = await agreementService.getAgreementById(byId);
+        }
+      } else if (byId) {
+        try {
+          full = await agreementService.getAgreementById(byId);
+        } catch (err) {
+          if (typeof agreementService.getAgreementByDts === "function") {
+            full = await agreementService.getAgreementByDts(String(byId));
+          } else {
+            throw err;
+          }
         }
       }
 
+      if (full && typeof full === "object") {
+        if (full.agreement) full = full.agreement;
+        else if (full.data) full = full.data;
+      }
       let mapped = applyBackendStageData(mapAgreement(full));
+      if (row) {
+        mapped = {
+          ...mapped,
+          id: row.id ?? row.dts_no ?? mapped.id,
+          dts_no: row.dts_no ?? mapped.dts_no,
+        };
+      }
       // try to resolve related MOU id -> DTS number using the current agreements list
       mapped = RelatedMou(mapped, agreements);
-      setSelected(mapped);
-      if (!isEditing) originalRef.current = mapped;
+      // Only apply the result if this is the latest outstanding request
+      if (loadRequestRef.current === req) {
+        setSelected(mapped);
+        if (!isEditing) originalRef.current = mapped;
+      } else {
+        // stale response - ignore
+        return;
+      }
     } catch (e) {
       console.error("Failed to load details:", e);
-      setModalError(e.detail || e.message || "Failed to load details");
+      // only set modal error for the active request
+      if (loadRequestRef.current === req)
+        setModalError(e.detail || e.message || "Failed to load details");
     } finally {
-      setModalLoading(false);
+      // only clear loading state for the active request
+      if (loadRequestRef.current === req) setModalLoading(false);
     }
   };
 
-  // Open details for a row. Immediately show the overview row (fast) like ActiveAgreement.
-  // Also launch a background fetch to enrich the modal with full details when available.
-  const openDetails = (row) => {
+  const openDetails = async (row) => {
     if (!row) return;
-    // create a mapped shallow copy of the row so modal fields render consistently
     try {
       const mapped = applyBackendStageData(mapAgreement(row));
-      // attempt to resolve related MOU from in-memory lists
       const resolved = RelatedMou(mapped, agreements);
       setSelected(resolved);
     } catch (e) {
@@ -1124,12 +1151,7 @@ const OverviewMerged = () => {
     }
     setIsEditing(false);
     setModalError("");
-    // open modal immediately (same UX as ActiveAgreement)
     setDetailOpen(true);
-    // NOTE: intentionally do NOT fetch full details from the server here.
-    // We keep the modal data strictly tied to the overview row that was clicked
-    // to avoid the UI jumping to different records when a background fetch completes.
-    // If you later want to fetch richer data on demand, add an explicit "Load details" button.
   };
 
   const closeDetails = () => {
@@ -1211,6 +1233,25 @@ const OverviewMerged = () => {
       return undefined;
     };
 
+    const toSignatoryObjects = (arr) => {
+      const list = Array.isArray(arr) ? arr : [];
+      return list.map((item) => {
+        if (typeof item === "object") {
+          return {
+            signatory_name:
+              item.signatory_name || item.name || item.person || "",
+            signatory_position: item.signatory_position || item.position || "",
+          };
+        }
+        const str = String(item);
+        const m = str.match(/^\s*(.*?)\s*(?:\((.*?)\))?\s*$/);
+        return {
+          signatory_name: (m && m[1]) || str,
+          signatory_position: (m && m[2]) || "",
+        };
+      });
+    };
+
     const payload = {
       dts_number: s.dts_no || s.id || undefined,
       agreement_status: s.status || undefined,
@@ -1243,10 +1284,13 @@ const OverviewMerged = () => {
         nameKey: "contact_name",
         emailKey: "contact_email",
       }),
-      // signatories as list
+      // signatories for compatibility: send string list and object list
       signatories_list: normalizeSignatoriesList(
         s.signatories,
         s.signatories_list
+      ),
+      signatories: toSignatoryObjects(
+        normalizeSignatoriesList(s.signatories, s.signatories_list) || []
       ),
       // partner metadata
       website_url: s.website_link || s.website_url || undefined,
@@ -1271,28 +1315,39 @@ const OverviewMerged = () => {
     }
     try {
       const payload = buildPayloadFromSelected(selected);
-      const updated = await agreementService.updateAgreement(
+      const updated = await agreementService.updateAgreementSmart(
         getPk(selected),
         payload
       );
-let mapped = applyBackendStageData(mapAgreement(updated));
-mapped = RelatedMou(mapped, agreements);
-try {
-  const origStatus = originalRef.current?.status;
-  if (origStatus && mapped.status && origStatus !== mapped.status) {
-    // Status changed: reset stage start
-    mapped._stage_start_at = new Date().toISOString();
-    mapped = applyBackendStageData(mapped);
-  } else if (originalRef.current?._stage_start_at) {
-    // Status did NOT change: always preserve original stage start, ignore backend value
-    mapped._stage_start_at = originalRef.current._stage_start_at;
-    mapped = applyBackendStageData(mapped);
-  }
-} catch (e) {
-  /* ignore */
-}
-setSelected(mapped);
-originalRef.current = mapped;
+      let mapped = applyBackendStageData(mapAgreement(updated));
+      mapped = RelatedMou(mapped, agreements);
+      try {
+        const hasServerSigs =
+          Array.isArray(mapped.signatories_list) &&
+          mapped.signatories_list.length > 0;
+        const sentSigs = Array.isArray(payload.signatories_list)
+          ? payload.signatories_list
+          : [];
+        if (!hasServerSigs && sentSigs.length) {
+          mapped.signatories_list = sentSigs;
+        }
+      } catch (e) {}
+      try {
+        const origStatus = originalRef.current?.status;
+        if (origStatus && mapped.status && origStatus !== mapped.status) {
+          // Status changed: reset stage start
+          mapped._stage_start_at = new Date().toISOString();
+          mapped = applyBackendStageData(mapped);
+        } else if (originalRef.current?._stage_start_at) {
+          // Status did NOT change: always preserve original stage start, ignore backend value
+          mapped._stage_start_at = originalRef.current._stage_start_at;
+          mapped = applyBackendStageData(mapped);
+        }
+      } catch (e) {
+        /* ignore */
+      }
+      setSelected(mapped);
+      originalRef.current = mapped;
       setIsEditing(false);
       // ensure overview list excludes Active after save (but keep Withdrawn)
       queryClient.invalidateQueries(["agreements"]);
@@ -2123,10 +2178,9 @@ originalRef.current = mapped;
                               <button
                                 type="button"
                                 className="linked-mou-btn"
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   // prevent row click bubbling
-                                  if (e && e.stopPropagation)
-                                    e.stopPropagation();
+                                  if (e && e.stopPropagation) e.stopPropagation();
                                   const raw = row.related_mou;
                                   const key = String(raw);
                                   // Try to find the related agreement in-memory first
@@ -2140,30 +2194,52 @@ originalRef.current = mapped;
                                         String(a.id) === key
                                     );
                                     if (found) {
-                                      openDetails(found);
+                                      // load the full details (may hit network if needed)
+                                      await loadAgreementDetails(found);
+                                      setDetailOpen(true);
                                       return;
                                     }
-                                    // not found locally -> load by id
-                                    loadAgreementDetails(Number(key));
-                                    setDetailOpen(true);
+                                    // not found locally -> fetch by id
+                                    try {
+                                      await loadAgreementDetails(key);
+                                      setDetailOpen(true);
+                                    } catch (err) {
+                                      // fallback: show minimal info when fetch fails
+                                      setSelected({
+                                        id: key,
+                                        dts_no: key,
+                                        partner_name: String(key),
+                                      });
+                                      setDetailOpen(true);
+                                    }
                                     return;
                                   }
 
                                   // treat as a DTS string
                                   found = agreements.find(
                                     (a) =>
-                                      (a.dts_no &&
-                                        String(a.dts_no) === String(raw)) ||
+                                      (a.dts_no && String(a.dts_no) === String(raw)) ||
                                       (a.id && String(a.id) === String(raw)) ||
                                       (a._pk && String(a._pk) === String(raw))
                                   );
                                   if (found) {
-                                    openDetails(found);
+                                    await loadAgreementDetails(found);
+                                    setDetailOpen(true);
                                     return;
                                   }
-                                  // fallback: try to load by DTS or id
-                                  loadAgreementDetails(raw);
-                                  setDetailOpen(true);
+                                  // fallback: try to fetch by DTS string
+                                  try {
+                                    await loadAgreementDetails(raw);
+                                    setDetailOpen(true);
+                                  } catch (err) {
+                                    // fallback: open modal with minimal info (no network fetch)
+                                    setSelected({
+                                      id: raw,
+                                      dts_no: raw,
+                                      partner_name: String(raw),
+                                    });
+                                    setDetailOpen(true);
+                                  }
                                 }}
                                 title={`View linked MOU ${
                                   relatedDtsMap[String(row.related_mou)] ||
@@ -2454,14 +2530,16 @@ originalRef.current = mapped;
                     aria-labelledby="modal-title"
                   >
                     <div className="modal-badge-row">
+                      {/* Updated Agreement Type Badge */}
                       <span
-                        className={`badge ${String(
+                        className={`header-badge doc ${String(
                           selected.document_type || ""
                         ).toLowerCase()}`}
                       >
+                        <FiFileText className="badge-icon" />
                         {selected.document_type || "—"}
                       </span>
-                      <h3 id="modal-title" className="modal-title">
+                      <h3 id="modal-title" className="modal-title white-title">
                         {selected.partner_name ||
                           selected.name ||
                           "Agreement Details"}
@@ -2500,7 +2578,7 @@ originalRef.current = mapped;
                     </div>
                   </div>
 
-                  <div className="overview1-modal-body">
+                  <div className="overview1-modal-body details-modal-body">
                     {modalError && (
                       <div style={{ color: "#b00020", margin: "8px 0" }}>
                         {modalError}
@@ -2513,27 +2591,112 @@ originalRef.current = mapped;
                     )}
 
                     {!isEditing ? (
-                      /* === VIEW MODE - Match ActiveAgreement === */
                       <>
+                        <div className="details-summary-card">
+                          <div className="details-header">
+                            <div className="details-icon-container">
+                              <FiFileText className="details-main-icon" />
+                            </div>
+                            <div className="details-titles">
+                              <div className="details-title">
+                                {selected.partner_name ||
+                                  selected.name ||
+                                  "Agreement Details"}
+                              </div>
+                              <div className="details-sub">
+                                {selected.document_type || "—"} •{" "}
+                                {LIFECYCLE_OPTIONS.find(
+                                  (o) => o.value === selected.status
+                                )?.label ||
+                                  selected.status ||
+                                  "—"}
+                              </div>
+                            </div>
+                            <div className="details-meta">
+                              <div className="details-meta-item">
+                                <span className="label">DTS No.</span>
+                                <span className="value mono value-with-icon">
+                                  <FiHash className="value-icon" />
+                                  {selected.dts_no || selected.id || "—"}
+                                </span>
+                              </div>
+                              <div className="details-meta-item">
+                                <span className="label">Date Received</span>
+                                <span className="value value-with-icon">
+                                  <FiCalendar className="value-icon" />
+                                  {selected.date_received
+                                    ? new Date(
+                                        selected.date_received
+                                      ).toLocaleDateString()
+                                    : "—"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="file-actions">
+                            <button
+                              className="btn action view-file"
+                              onClick={() =>
+                                handleViewLatestFile(
+                                  selected.dts_no || selected.id
+                                )
+                              }
+                              title="View Latest File"
+                              aria-label="View Latest File"
+                            >
+                              <FiEye className="icon" />
+                              View File
+                            </button>
+                            <button
+                              className="btn action older-files"
+                              onClick={() =>
+                                navigate(
+                                  `/docVer?dts_number=${
+                                    selected.dts_no || selected.id
+                                  }`
+                                )
+                              }
+                              title="View Older Files"
+                              aria-label="View Older Files"
+                            >
+                              <FiArchive className="icon" />
+                              Older Files
+                            </button>
+                          </div>
+                        </div>
                         {/* Document Information */}
                         <section className="modal-section docinfo">
-                          <h4>Document Information</h4>
+                          <div className="section-header">
+                            <FiInfo className="header-icon" />
+                            <h4>Document Information</h4>
+                          </div>
                           <div className="row two-col">
                             <div>
-                              <div className="label">DTS Number</div>
-                              <div className="value mono">
+                              <div className="label">
+                                <FiTag className="label-icon" />
+                                DTS Number
+                              </div>
+                              <div className="value mono value-with-icon">
+                                <FiHash className="value-icon" />
                                 {selected.dts_no || selected.id || "—"}
                               </div>
                             </div>
                             <div>
-                              <div className="label">Document Type</div>
+                              <div className="label">
+                                <FiFileText className="label-icon" />
+                                Document Type
+                              </div>
                               <div className="value">
                                 {selected.document_type || "—"}
                               </div>
                             </div>
                             <div>
-                              <div className="label">Date Received</div>
-                              <div className="value">
+                              <div className="label">
+                                <FiCalendar className="label-icon" />
+                                Date Received
+                              </div>
+                              <div className="value value-with-icon">
+                                <FiCalendar className="value-icon" />
                                 {selected.date_received
                                   ? new Date(
                                       selected.date_received
@@ -2542,19 +2705,28 @@ originalRef.current = mapped;
                               </div>
                             </div>
                             <div>
-                              <div className="label">Source Unit</div>
+                              <div className="label">
+                                <FiMapPin className="label-icon" />
+                                Source Unit
+                              </div>
                               <div className="value">
                                 {selected.source_unit || "—"}
                               </div>
                             </div>
                             <div>
-                              <div className="label">Hardcopy Locator</div>
+                              <div className="label">
+                                <FiMapPin className="label-icon" />
+                                Hardcopy Locator
+                              </div>
                               <div className="value">
                                 {selected.hardcopy_locator || "—"}
                               </div>
                             </div>
                             <div>
-                              <div className="label">Current Status</div>
+                              <div className="label">
+                                <FiCheckCircle className="label-icon" />
+                                Current Status
+                              </div>
                               <div className="value">
                                 <span
                                   className={`status-badge status-${slugifyStatus(
@@ -2571,6 +2743,7 @@ originalRef.current = mapped;
                             </div>
                           </div>
                           <div className="label" style={{ marginTop: 12 }}>
+                            <FiInfo className="label-icon" />
                             Brief Profile
                           </div>
                           <div className="brief">
@@ -2582,7 +2755,10 @@ originalRef.current = mapped;
 
                         {/* Partner Information */}
                         <section className="modal-section partner">
-                          <h4>Partner Information</h4>
+                          <div className="section-header">
+                            <FiTag className="header-icon" />
+                            <h4>Partner Information</h4>
+                          </div>
                           <div className="partner-top">
                             <div className="partner-logo">
                               {LogoSrc(selected.logo_path || selected.logo) ? (
@@ -2613,7 +2789,10 @@ originalRef.current = mapped;
                             <div className="partner-details">
                               <div className="row two-col">
                                 <div>
-                                  <div className="label">Organization</div>
+                                  <div className="label">
+                                    <FiTag className="label-icon" />
+                                    Organization
+                                  </div>
                                   <div className="value">
                                     {selected.partner_name ||
                                       selected.name ||
@@ -2621,31 +2800,46 @@ originalRef.current = mapped;
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="label">Entity Type</div>
+                                  <div className="label">
+                                    <FiSettings className="label-icon" />
+                                    Entity Type
+                                  </div>
                                   <div className="value">
                                     {selected.entity_type || "—"}
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="label">Country</div>
+                                  <div className="label">
+                                    <FiMapPin className="label-icon" />
+                                    Country
+                                  </div>
                                   <div className="value">
                                     {selected.country || "—"}
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="label">Region</div>
+                                  <div className="label">
+                                    <FiMapPin className="label-icon" />
+                                    Region
+                                  </div>
                                   <div className="value">
                                     {selected.region || "—"}
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="label">Address</div>
+                                  <div className="label">
+                                    <FiMapPin className="label-icon" />
+                                    Address
+                                  </div>
                                   <div className="value">
                                     {selected.address || "—"}
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="label">Website</div>
+                                  <div className="label">
+                                    <FiLink className="label-icon" />
+                                    Website
+                                  </div>
                                   <div className="value">
                                     {selected.website_link ? (
                                       <a
@@ -2671,11 +2865,15 @@ originalRef.current = mapped;
 
                         {/* Contact Persons */}
                         <section className="modal-section contacts">
-                          <h4>Contact Persons</h4>
+                          <div className="section-header">
+                            <FiUsers className="header-icon" />
+                            <h4>Contact Persons</h4>
+                          </div>
                           <div className="contacts-grid">
                             <div className="contact-card">
                               <div className="contact-role">
-                                PUP Point Person
+                                <FiUsers className="inline-icon" /> PUP Point
+                                Person
                               </div>
                               <div className="contact-name">
                                 {formatContactPersons(
@@ -2701,6 +2899,7 @@ originalRef.current = mapped;
                                       selected.point_email
                                   )}`}
                                 >
+                                  <FiMessageCircle className="inline-icon" />{" "}
                                   {formatContactEmails(
                                     selected.point_people ||
                                       selected.point_persons ||
@@ -2712,7 +2911,8 @@ originalRef.current = mapped;
 
                             <div className="contact-card alt">
                               <div className="contact-role">
-                                Partner Contact Person
+                                <FiUsers className="inline-icon" /> Partner
+                                Contact Person
                               </div>
                               <div className="contact-name">
                                 {formatContactPersons(
@@ -2738,6 +2938,7 @@ originalRef.current = mapped;
                                       selected.contact_email
                                   )}`}
                                 >
+                                  <FiMessageCircle className="inline-icon" />{" "}
                                   {formatContactEmails(
                                     selected.contact_people ||
                                       selected.contact_persons ||
@@ -2763,13 +2964,10 @@ originalRef.current = mapped;
                           if (!linkedAgreement) return null;
                           return (
                             <section className="modal-section linked-mou">
-                              <h4>
-                                <FiLink
-                                  style={{ marginRight: 8 }}
-                                  className="inline-icon"
-                                />
-                                Linked MOU
-                              </h4>
+                              <div className="section-header">
+                                <FiLink className="header-icon" />
+                                <h4>Linked MOU</h4>
+                              </div>
                               <div
                                 className="linked-mou-card"
                                 onClick={() => openDetails(linkedAgreement)}
@@ -2809,10 +3007,16 @@ originalRef.current = mapped;
 
                         {/* Agreement Timeline */}
                         <section className="modal-section timeline">
-                          <h4>Agreement Timeline</h4>
+                          <div className="section-header">
+                            <FiCalendar className="header-icon" />
+                            <h4>Agreement Timeline</h4>
+                          </div>
                           <div className="row two-col">
                             <div>
-                              <div className="label">Date of Signing</div>
+                              <div className="label">
+                                <FiCalendar className="label-icon" />
+                                Date of Signing
+                              </div>
                               <div className="value">
                                 {selected.date_of_signing
                                   ? new Date(
@@ -2822,7 +3026,10 @@ originalRef.current = mapped;
                               </div>
                             </div>
                             <div>
-                              <div className="label">Expiry Date</div>
+                              <div className="label">
+                                <FiCalendar className="label-icon" />
+                                Expiry Date
+                              </div>
                               <div className="value">
                                 {selected.expiry
                                   ? new Date(
@@ -2832,7 +3039,10 @@ originalRef.current = mapped;
                               </div>
                             </div>
                             <div>
-                              <div className="label">Date Endorsed to ULCO</div>
+                              <div className="label">
+                                <FiCalendar className="label-icon" />
+                                Date Endorsed to ULCO
+                              </div>
                               <div className="value">
                                 {selected.date_endorsed_ulco
                                   ? new Date(
@@ -2842,7 +3052,10 @@ originalRef.current = mapped;
                               </div>
                             </div>
                             <div>
-                              <div className="label">ULCO's Approval</div>
+                              <div className="label">
+                                <FiCheck className="label-icon" />
+                                ULCO's Approval
+                              </div>
                               <div className="value">
                                 {selected.ulco_approval
                                   ? new Date(
@@ -2853,6 +3066,7 @@ originalRef.current = mapped;
                             </div>
                             <div>
                               <div className="label">
+                                <FiEdit className="label-icon" />
                                 PUP Officials' Signature
                               </div>
                               <div className="value">
@@ -2864,7 +3078,10 @@ originalRef.current = mapped;
                               </div>
                             </div>
                             <div>
-                              <div className="label">Validity Period</div>
+                              <div className="label">
+                                <FiTag className="label-icon" />
+                                Validity Period
+                              </div>
                               <div className="value">
                                 {selected.validity_period
                                   ? `${selected.validity_period} years`
@@ -2873,6 +3090,7 @@ originalRef.current = mapped;
                             </div>
                             <div>
                               <div className="label">
+                                <FiTag className="label-icon" />
                                 Partnership Classification
                               </div>
                               <div className="value">
@@ -2882,7 +3100,10 @@ originalRef.current = mapped;
                               </div>
                             </div>
                             <div>
-                              <div className="label">Event Title</div>
+                              <div className="label">
+                                <FiTag className="label-icon" />
+                                Event Title
+                              </div>
                               <div className="value">
                                 {selected.event_title || "—"}
                               </div>
@@ -2892,32 +3113,108 @@ originalRef.current = mapped;
 
                         {/* Signatories */}
                         <section className="modal-section">
-                          <h4>Signatories</h4>
-                          <div className="value">
-                            {selected.signatories_list
-                              ? formatSignatories(selected.signatories_list)
-                              : selected.signatories || "—"}
+                          <div className="section-header">
+                            <FiEdit className="header-icon" />
+                            <h4>Signatories</h4>
                           </div>
+                          {(() => {
+                            // Try multiple possible shapes: array on signatories_list,
+                            // array on signatories, or a string in signatories/signatories_text
+                            const maybeArray =
+                              Array.isArray(selected.signatories_list) &&
+                              selected.signatories_list.length
+                                ? selected.signatories_list
+                                : Array.isArray(selected.signatories) &&
+                                  selected.signatories.length
+                                ? selected.signatories
+                                : null;
+
+                            let text = "";
+                            if (maybeArray) {
+                              text = formatSignatories(maybeArray);
+                            } else if (
+                              typeof selected.signatories === "string" &&
+                              selected.signatories.trim()
+                            ) {
+                              // plain string - use it directly
+                              text = selected.signatories.trim();
+                            } else if (
+                              typeof selected.signatories_text === "string" &&
+                              selected.signatories_text.trim()
+                            ) {
+                              text = selected.signatories_text.trim();
+                            }
+
+                            // Debug: if you need to inspect what's present, uncomment:
+                            // console.debug('Signatories debug for', selected.id, { maybeArray, signatories: selected.signatories, signatories_text: selected.signatories_text });
+
+                            if (text) {
+                              return <div className="value">{text}</div>;
+                            }
+                            return (
+                              <div className="empty-state">
+                                <FiEdit className="empty-icon" />
+                                <div className="empty-content">
+                                  <div className="empty-title">
+                                    No signatories recorded
+                                  </div>
+                                  <div className="empty-sub">
+                                    Add signatories using Edit
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </section>
 
                         {/* Remarks */}
                         <section className="modal-section remarks">
-                          <h4>Remarks</h4>
-                          <div className="brief">
-                            {Array.isArray(selected.remarks) ? (
-                              selected.remarks.map((r, idx) => (
-                                <div key={idx} style={{ marginBottom: 6 }}>
-                                  {typeof r === "object"
-                                    ? r.remark_text || r.text || r.remark || ""
-                                    : r}
-                                </div>
-                              ))
-                            ) : selected.remarks ? (
-                              <div>{selected.remarks}</div>
-                            ) : (
-                              "—"
-                            )}
+                          <div className="section-header">
+                            <FiMessageCircle className="header-icon" />
+                            <h4>Remarks</h4>
                           </div>
+                          {Array.isArray(selected.remarks) ? (
+                            selected.remarks.length ? (
+                              <div className="brief">
+                                {selected.remarks.map((r, idx) => (
+                                  <div key={idx} style={{ marginBottom: 6 }}>
+                                    {typeof r === "object"
+                                      ? r.remark_text ||
+                                        r.text ||
+                                        r.remark ||
+                                        ""
+                                      : r}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="empty-state">
+                                <FiMessageCircle className="empty-icon" />
+                                <div className="empty-content">
+                                  <div className="empty-title">
+                                    No remarks added
+                                  </div>
+                                  <div className="empty-sub">
+                                    Add remarks using Edit
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          ) : selected.remarks ? (
+                            <div className="brief">{selected.remarks}</div>
+                          ) : (
+                            <div className="empty-state">
+                              <FiMessageCircle className="empty-icon" />
+                              <div className="empty-content">
+                                <div className="empty-title">
+                                  No remarks added
+                                </div>
+                                <div className="empty-sub">
+                                  Add remarks using Edit
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </section>
                       </>
                     ) : (

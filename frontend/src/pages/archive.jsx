@@ -4,9 +4,8 @@ import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import "./archive.css";
 import { documentService } from "../services/documentService";
-import { useNavigate } from "react-router-dom";
-import useDebounce from "../hooks/useDebounce";
-import { renderDocumentTypeBadge } from "../utils/documentTypeUtils";
+import /* useNavigate */ "react-router-dom";
+
 import {
   FiAlertCircle,
   FiArchive,
@@ -34,7 +33,7 @@ const Archive = () => {
   const [mobileShow, setMobileShow] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [filterDocType, setFilterDocType] = useState("");
   const [filterClassification, setFilterClassification] = useState("");
@@ -50,8 +49,7 @@ const Archive = () => {
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingRow, setEditingRow] = useState(null);
-  const [editedData, setEditedData] = useState({});
-  const [savingRows, setSavingRows] = useState(new Set());
+
   const [deletingRows, setDeletingRows] = useState(new Set());
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedAgreement, setSelectedAgreement] = useState(null);
@@ -59,7 +57,7 @@ const Archive = () => {
   const [reportType, setReportType] = useState("all");
 
   const filterPanelRef = useRef();
-  const navigate = useNavigate();
+  const modalRequestRef = useRef(0);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -79,27 +77,84 @@ const Archive = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const expiredData = await agreementService.getArchivedAgreements();
+        // Expired rows come from the dedicated archive endpoint which
+        // returns fully populated agreement objects (contacts, remarks, website).
+        // Withdrawn rows still come from the list endpoint using a status filter.
+        const expiredAgreements =
+          await agreementService.getArchivedAgreements();
         const withdrawnAgreements = await agreementService.getAgreements({
           status_filter: "WITHDRAWN",
         });
 
-        const expiredList = Array.isArray(expiredData)
-          ? expiredData
-          : expiredData?.items || [];
+        const expiredList = Array.isArray(expiredAgreements)
+          ? expiredAgreements
+          : expiredAgreements?.items || [];
+
+        // Ensure we only keep truly expired items: either explicit status or
+        // a past expiry date. This guarantees the Expired tab contains only
+        // expired agreements even if the backend returns a broader set.
+        const parseDateOnly = (v) => {
+          if (!v) return null;
+          if (v instanceof Date) return v;
+          if (typeof v !== "string") return null;
+          // Prefer YYYY-MM-DD parsing (avoid timezone shifts)
+          const iso = v.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+          if (iso)
+            return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+          const d = new Date(v);
+          return isNaN(d.getTime()) ? null : d;
+        };
+
+        const isExpiredItem = (a) => {
+          if (!a) return false;
+          const status = String(a?.agreement_status ?? a?.status ?? "")
+            .trim()
+            .toLowerCase();
+          if (status && status.includes("expir")) return true; // matches 'expired' and variants
+
+          const raw = a?.date_expiry ?? a?.expiry_date ?? a?.dateExpiry ?? null;
+          const d = parseDateOnly(raw);
+          if (d) {
+            const today = new Date();
+            const startOfToday = new Date(
+              today.getFullYear(),
+              today.getMonth(),
+              today.getDate()
+            );
+            // treat expiry on or before today as expired
+            if (d <= startOfToday) return true;
+          }
+          return false;
+        };
+
+        const expiredListFiltered = expiredList.filter(isExpiredItem);
         const withdrawnList = Array.isArray(withdrawnAgreements)
           ? withdrawnAgreements
           : withdrawnAgreements?.items || [];
 
-        console.log("Expired agreements (normalized):", expiredList);
-        console.log("Withdrawn agreements (normalized):", withdrawnList);
+        console.log(
+          "Expired agreements: original=",
+          expiredList.length,
+          "filtered=",
+          expiredListFiltered.length
+        );
+        console.log(
+          "Expired sample (filtered, up to 5):",
+          expiredListFiltered.slice(0, 5).map((x) => ({
+            agreement_id: x?.agreement_id ?? x?.id,
+            dts: x?.dts_number,
+            status: x?.agreement_status ?? x?.status,
+            date_expiry: x?.date_expiry,
+          }))
+        );
+        console.log("Withdrawn agreements (normalized):", withdrawnList.length);
 
-        setAllArchiveData(expiredList);
+        setAllArchiveData(expiredListFiltered);
         setWithdrawnData(withdrawnList);
-        setDisplayData(expiredList);
+        setDisplayData(expiredListFiltered);
 
         setStats([
-          { label: "Expired", count: expiredList.length },
+          { label: "Expired", count: expiredListFiltered.length },
           { label: "Withdrawn", count: withdrawnList.length },
         ]);
       } catch (err) {
@@ -246,48 +301,20 @@ const Archive = () => {
     }
   }, []);
 
-  const startEditing = (row) => {
-    setEditingRow(row.agreement_id);
-    setEditedData({ ...row });
-  };
+  // Mirror activeAgreement behaviour: lock document scrolling while modal is open
+  useEffect(() => {
+    if (selectedAgreement) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selectedAgreement]);
 
   const cancelEditing = () => {
     setEditingRow(null);
-    setEditedData({});
-  };
-
-  const handleInputChange = (field, value) => {
-    setEditedData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const saveRow = async (agreementId) => {
-    try {
-      setSavingRows((prev) => new Set(prev).add(agreementId));
-      await agreementService.updateAgreement(agreementId, editedData);
-
-      const updateData = (data) =>
-        data.map((a) => (a.agreement_id === agreementId ? editedData : a));
-
-      if (activeTab === "Withdrawn") {
-        setWithdrawnData(updateData);
-        setDisplayData(updateData);
-      } else {
-        setAllArchiveData(updateData);
-        setDisplayData(updateData);
-      }
-
-      setEditingRow(null);
-      setEditedData({});
-      alert("Agreement updated successfully!");
-    } catch (err) {
-      alert("Failed to save: " + err.message);
-    } finally {
-      setSavingRows((prev) => {
-        const s = new Set(prev);
-        s.delete(agreementId);
-        return s;
-      });
-    }
   };
 
   const deleteRow = async (agreementId) => {
@@ -399,6 +426,351 @@ const Archive = () => {
 
   const closeModal = () => setSelectedAgreement(null);
 
+  // Open agreement modal: prefer the simple activeAgreement behaviour of
+  // displaying the passed item immediately and letting modal effects
+  // normalize or enrich it. This mirrors `activeAgreement`'s approach which
+  // sets the selected agreement directly.
+  const openAgreementModal = async (item) => {
+    try {
+      // guard: increment request id to allow ignoring stale responses
+      modalRequestRef.current += 1;
+      const requestId = modalRequestRef.current;
+
+      if (!item) {
+        setSelectedAgreement(null);
+        return;
+      }
+
+      // Immediately show a shallow clone so the user sees the row right away
+      const shallow = { ...(item || {}) };
+      try {
+        const pp =
+          shallow.point_persons ??
+          shallow.pointPerson ??
+          shallow.point_persons_display ??
+          shallow.pointPersonDisplay ??
+          shallow.point_person;
+        shallow.point_persons_display =
+          shallow.point_persons_display || formatContactPersons(pp);
+
+        const cp =
+          shallow.contact_persons ??
+          shallow.contactPerson ??
+          shallow.partner_contact_persons ??
+          shallow.partnerContactPersons ??
+          shallow.contact_persons_display ??
+          shallow.contactPersonDisplay ??
+          shallow.contact_person;
+        shallow.contact_persons_display =
+          shallow.contact_persons_display || formatContactPersons(cp);
+
+        shallow.website_url =
+          shallow.website_url ||
+          getWebsiteFromAgreement(shallow) ||
+          shallow.website ||
+          (shallow.partner && shallow.partner.website) ||
+          (shallow.organization && shallow.organization.website);
+
+        const rawRemarks =
+          shallow.remarks ?? shallow.remark ?? shallow.notes ?? null;
+        const norm = normalizeRemarks(rawRemarks ?? shallow.remarks);
+        if (Array.isArray(norm) && norm.length > 0) shallow.remarks = norm;
+      } catch (e) {
+        /* ignore normalization errors for shallow display */
+      }
+
+      setSelectedAgreement(shallow);
+
+      // Helpers to extract canonical identifiers
+      const getCanonicalId = (a) =>
+        a?.agreement_id ??
+        a?.id ??
+        a?.agreementId ??
+        a?.agreementID ??
+        a?.pk ??
+        null;
+      const getCanonicalDts = (a) =>
+        a?.dts_number ??
+        a?.dts_no ??
+        a?.dtsNumber ??
+        a?.document_no ??
+        a?.doc_no ??
+        a?.reference_no ??
+        a?.ref_no ??
+        a?.dts ??
+        null;
+
+      // keep a copy of original identifiers to match results from list-style responses
+      const requestedId = getCanonicalId(item);
+      const requestedDts = getCanonicalDts(item);
+
+      // Helper to normalize various API shapes into a single agreement object
+      const normalize = (resp) => {
+        if (!resp) return null;
+
+        const matchItem = (r) =>
+          String(r?.agreement_id ?? r?.id) === String(requestedId) ||
+          String(r?.dts_number ?? r?.dts_no) === String(requestedDts);
+
+        // Unwrap common envelopes first
+        try {
+          if (resp && typeof resp === "object") {
+            if (resp.agreement && typeof resp.agreement === "object") {
+              resp = resp.agreement;
+            } else if (
+              resp.data &&
+              typeof resp.data === "object" &&
+              resp.data.agreement &&
+              typeof resp.data.agreement === "object"
+            ) {
+              resp = resp.data.agreement;
+            } else if (resp.result && typeof resp.result === "object") {
+              resp = resp.result;
+            } else if (resp.payload && typeof resp.payload === "object") {
+              resp = resp.payload;
+            }
+          }
+        } catch (_e) {}
+
+        if (Array.isArray(resp)) {
+          const found = resp.find(matchItem);
+          if (found) return found;
+          return null;
+        }
+
+        if (resp.items && Array.isArray(resp.items)) {
+          const found = resp.items.find(matchItem);
+          if (found) return found;
+          return null;
+        }
+
+        if (resp.item && typeof resp.item === "object") return resp.item;
+
+        if (resp.data) {
+          if (Array.isArray(resp.data)) {
+            const found = resp.data.find(matchItem);
+            if (found) return found;
+            if (!requestedId && !requestedDts) return resp.data[0] || null;
+            return null;
+          }
+          if (typeof resp.data === "object") return resp.data;
+        }
+
+        if (typeof resp === "object") {
+          const looksLikeAgreement = Boolean(
+            resp.agreement_id || resp.id || resp.dts_number || resp.dts_no
+          );
+          if (looksLikeAgreement) {
+            if (requestedId || requestedDts) {
+              if (matchItem(resp)) return resp;
+              return null;
+            }
+            return resp;
+          }
+          return null;
+        }
+
+        return null;
+      };
+
+      // Attempt DTS-based fetch first (some backends expose read endpoints by dts)
+      let details = item;
+      const dts = requestedDts;
+      const id = requestedId;
+
+      if (dts && typeof agreementService.getAgreementByDts === "function") {
+        try {
+          const resp = await agreementService.getAgreementByDts(dts);
+          const norm = normalize(resp);
+          if (norm) details = norm;
+        } catch (e) {
+          console.warn("getAgreementByDts failed for dts", dts, e);
+        }
+      }
+
+      // Try id-based endpoint if available
+      if (
+        (details === item || !details?.agreement_id) &&
+        id &&
+        typeof agreementService.getAgreementById === "function"
+      ) {
+        try {
+          const resp = await agreementService.getAgreementById(id);
+          const norm = normalize(resp);
+          if (norm) details = norm;
+        } catch (e) {
+          const status = e?.response?.status || e?.status || null;
+          if (status === 405) {
+            console.warn(
+              "getAgreementById returned 405 — treating as non-readable endpoint",
+              id,
+              e
+            );
+          } else {
+            console.warn("getAgreementById failed for id", id, e);
+          }
+        }
+      }
+
+      // legacy getAgreement
+      if (
+        (details === item || !details?.agreement_id) &&
+        typeof agreementService.getAgreement === "function"
+      ) {
+        try {
+          const resp = await agreementService.getAgreement(id || dts);
+          const norm = normalize(resp);
+          if (norm) details = norm;
+        } catch (e) {
+          console.warn("legacy getAgreement failed", e);
+        }
+      }
+
+      // list-based lookup as last resort
+      if (
+        (details === item || !details?.agreement_id) &&
+        typeof agreementService.getAgreements === "function" &&
+        (requestedDts || requestedId)
+      ) {
+        try {
+          const query = {};
+          if (dts) query.dts_number = dts;
+          if (id) query.agreement_id = id;
+          const listResp = await agreementService.getAgreements(query);
+          const norm = normalize(listResp);
+          if (norm) details = norm;
+        } catch (e) {
+          console.warn("list-based lookup via getAgreements failed", e);
+        }
+      }
+
+      // Merge fetched details into modal only if this is still the latest request
+      if (modalRequestRef.current === requestId) {
+        setSelectedAgreement((prev) => {
+          const merged = { ...(prev || {}), ...(details || {}) };
+          // preserve identifiers from the visible row if the fetched payload omits them
+          merged.agreement_id = getCanonicalId(merged) ?? getCanonicalId(item);
+          merged.dts_number = getCanonicalDts(merged) ?? getCanonicalDts(item);
+          try {
+            const pp =
+              merged.point_persons ??
+              merged.pointPerson ??
+              merged.point_persons_display ??
+              merged.pointPersonDisplay ??
+              merged.point_person;
+            merged.point_persons_display =
+              merged.point_persons_display || formatContactPersons(pp);
+
+            const cp =
+              merged.contact_persons ??
+              merged.contactPerson ??
+              merged.partner_contact_persons ??
+              merged.partnerContactPersons ??
+              merged.contact_persons_display ??
+              merged.contactPersonDisplay ??
+              merged.contact_person;
+            merged.contact_persons_display =
+              merged.contact_persons_display || formatContactPersons(cp);
+
+            merged.point_persons_email =
+              merged.point_persons_email || merged.pointPersonEmail || null;
+            merged.contact_persons_email =
+              merged.contact_persons_email || merged.contactPersonEmail || null;
+
+            merged.website_url =
+              merged.website_url ||
+              getWebsiteFromAgreement(merged) ||
+              merged.website ||
+              (merged.partner && merged.partner.website) ||
+              (merged.organization && merged.organization.website);
+
+            merged.date_signed =
+              merged.date_signed ||
+              merged.date_of_signing ||
+              merged.dateSigning ||
+              merged.signed_date ||
+              merged.signing_date;
+
+            merged.date_expiry =
+              merged.date_expiry ||
+              merged.expiry_date ||
+              merged.dateExpiry ||
+              merged.expiration_date;
+
+            merged.brief_profile =
+              merged.brief_profile ||
+              merged.partner_profile ||
+              merged.profile ||
+              (merged.partner && merged.partner.profile) ||
+              (merged.organization && merged.organization.profile) ||
+              merged.description;
+
+            merged.country =
+              merged.country ||
+              merged.partner_country ||
+              merged.organization_country ||
+              merged.country_name ||
+              (merged.partner &&
+                (merged.partner.country || merged.partner.country_name)) ||
+              (merged.organization &&
+                (merged.organization.country ||
+                  merged.organization.country_name));
+
+            merged.region =
+              merged.region ||
+              merged.partner_region ||
+              merged.organization_region ||
+              merged.region_name ||
+              merged.province ||
+              (merged.partner &&
+                (merged.partner.region ||
+                  merged.partner.region_name ||
+                  merged.partner.province)) ||
+              (merged.organization &&
+                (merged.organization.region ||
+                  merged.organization.region_name ||
+                  merged.organization.province));
+
+            merged.address =
+              merged.address ||
+              merged.partner_address ||
+              merged.organization_address ||
+              merged.location ||
+              (merged.partner &&
+                (merged.partner.address || merged.partner.location)) ||
+              (merged.organization &&
+                (merged.organization.address || merged.organization.location));
+
+            merged.hardcopy_location =
+              merged.hardcopy_location ||
+              merged.hardcopy_locator ||
+              merged.hardcopyShelf ||
+              merged.storage_location;
+
+            const rawRemarks =
+              merged.remarks ?? merged.remark ?? merged.notes ?? null;
+            const norm = normalizeRemarks(rawRemarks ?? merged.remarks);
+            if (Array.isArray(norm) && norm.length > 0) merged.remarks = norm;
+          } catch (e) {
+            console.warn("Failed to normalize merged agreement for modal:", e);
+          }
+          return merged;
+        });
+      } else {
+        console.debug("openAgreementModal: ignoring stale response", {
+          requestId,
+          current: modalRequestRef.current,
+        });
+      }
+    } catch (err) {
+      console.error(
+        "Failed to load agreement details, falling back to passed item:",
+        err
+      );
+      setSelectedAgreement({ ...(item || {}) });
+    }
+  };
+
   const getInitials = (name = "") => {
     return name
       .split(" ")
@@ -424,6 +796,117 @@ const Archive = () => {
       }
     } catch (err) {
       console.warn("LogoSrc error:", err, lp);
+    }
+    return null;
+  };
+
+  // normalize remarks into an array of plain strings (compatible with activeAgreement)
+  const normalizeRemarks = (r) => {
+    if (!r) return [];
+    if (Array.isArray(r))
+      return r.map((item) =>
+        typeof item === "object"
+          ? item.remark_text || item.text || item.remark || ""
+          : String(item)
+      );
+    if (typeof r === "string")
+      return r
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return [];
+  };
+
+  // Helpers to safely format contact person fields for rendering
+  const formatContactPersons = (v) => {
+    if (!v) return "N/A";
+    if (Array.isArray(v)) {
+      return v
+        .map((item) => {
+          if (!item) return "";
+          if (typeof item === "string") return item;
+          return (
+            item.point_person_name ||
+            item.contact_person_name ||
+            item.name ||
+            item.full_name ||
+            item.displayName ||
+            item.person_name ||
+            ""
+          );
+        })
+        .filter(Boolean)
+        .join(", ");
+    }
+    if (typeof v === "object") {
+      return (
+        v.point_person_name ||
+        v.contact_person_name ||
+        v.name ||
+        v.full_name ||
+        v.displayName ||
+        JSON.stringify(v)
+      );
+    }
+    return String(v);
+  };
+
+  // Helpers to format contact email fields
+  const formatContactEmails = (v) => {
+    if (!v) return "";
+    if (Array.isArray(v)) {
+      return v
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : item.point_person_email ||
+              item.email ||
+              item.contact_person_email ||
+              ""
+        )
+        .filter(Boolean)
+        .join(", ");
+    }
+    if (typeof v === "object")
+      return v.point_person_email || v.email || v.contact_person_email || "";
+    return String(v);
+  };
+
+  // Prepare contact email values from several possible shapes on the selectedAgreement
+  const pupEmailRaw = selectedAgreement
+    ? selectedAgreement.point_persons_email ??
+      selectedAgreement.pointPersonEmail ??
+      selectedAgreement.point_persons ??
+      selectedAgreement.pointPerson ??
+      null
+    : null;
+  const pupEmail = formatContactEmails(pupEmailRaw);
+
+  const partnerEmailRaw = selectedAgreement
+    ? selectedAgreement.contact_persons_email ??
+      selectedAgreement.contactPersonEmail ??
+      selectedAgreement.contact_persons ??
+      selectedAgreement.contactPerson ??
+      null
+    : null;
+  const partnerEmail = formatContactEmails(partnerEmailRaw);
+
+  // Helper: find website string on agreement using common field names
+  const getWebsiteFromAgreement = (a) => {
+    if (!a) return null;
+    const keys = [
+      "website",
+      "website_link",
+      "websiteLink",
+      "website_url",
+      "websiteUrl",
+      "url",
+      "website_link_url",
+      "websiteLinkUrl",
+    ];
+    for (const k of keys) {
+      const v = a[k];
+      if (v) return String(v).trim();
     }
     return null;
   };
@@ -534,86 +1017,6 @@ const Archive = () => {
     URL.revokeObjectURL(url);
   };
 
-  const renderEditableCell = (item, field, value) => {
-    const isEditing = editingRow === item.agreement_id;
-    const editableFields = [
-      "source_unit",
-      "dts_number",
-      "name",
-      "entity_type",
-      "country",
-      "region",
-      "address",
-      "document_type",
-      "partnership_type",
-      "event_info",
-      "validity_period",
-      "date_signed",
-      "date_expiry",
-      "date_received",
-      "date_endorsed_to_ulco",
-      "date_ulco_approved",
-      "date_signed_by_pup",
-      "agreement_status",
-      "website_url",
-      "description",
-      "hardcopy_location",
-    ];
-
-    if (field === "document_type" && !isEditing) {
-      return renderDocumentTypeBadge(value);
-    }
-
-    if (!isEditing || !editableFields.includes(field)) return value || "—";
-
-    if (field === "agreement_status") {
-      return (
-        <select
-          value={editedData[field] || ""}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          style={{ width: "160px" }}
-        >
-          <option value="">Select Status</option>
-          <option value="InitialReview">Initial Review</option>
-          <option value="Endorse">
-            Endorse to ULCO for Review and Approval
-          </option>
-          <option value="Revert">Revert To Initiator with Comments</option>
-          <option value="Consultation">For Consultation </option>
-          <option value="Replication">Replication of Copies (8 sets)</option>
-          <option value="SignituresPUP">For Signatures of PUP Officials</option>
-          <option value="SignedPUP">Signed by PUP Officials</option>
-          <option value="SignituresPartner">For Signatures of Partner</option>
-          <option value="SignedPartner">Signed by Partner Institution</option>
-          <option value="Complete">Completely Signed</option>
-          <option value="Notary">For Notary</option>
-          <option value="FFUPCopy">FFUP Copy From College/Campus</option>
-          <option value="Active">Active</option>
-          <option value="Withdrawn">Withdrawn</option>
-        </select>
-      );
-    }
-
-    if (field.includes("date")) {
-      return (
-        <input
-          type="date"
-          value={editedData[field] || ""}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          style={{ width: "120px" }}
-        />
-      );
-    }
-    return (
-      <input
-        type="text"
-        value={editedData[field] || ""}
-        onChange={(e) => handleInputChange(field, e.target.value)}
-        style={{ width: "120px" }}
-      />
-    );
-  };
-
   return (
     <div className="dashboard-container">
       <TopBar toggleSidebar={() => setMobileShow(!mobileShow)} />
@@ -673,27 +1076,38 @@ const Archive = () => {
 
                 <div className="archive-table-section">
                   {/* First row: filter tabs */}
-                  <div className="archive-filter-tabs" style={{ marginBottom: 12 }}>
+                  <div
+                    className="archive-filter-tabs"
+                    style={{ marginBottom: 12 }}
+                  >
                     <button
-                      className={selectedFilter === "all" ? "archive-active" : ""}
+                      className={
+                        selectedFilter === "all" ? "archive-active" : ""
+                      }
                       onClick={() => setSelectedFilter("all")}
                     >
                       All {activeTab} Agreements
                     </button>
                     <button
-                      className={selectedFilter === "moa" ? "archive-active" : ""}
+                      className={
+                        selectedFilter === "moa" ? "archive-active" : ""
+                      }
                       onClick={() => setSelectedFilter("moa")}
                     >
                       MOA
                     </button>
                     <button
-                      className={selectedFilter === "mou" ? "archive-active" : ""}
+                      className={
+                        selectedFilter === "mou" ? "archive-active" : ""
+                      }
                       onClick={() => setSelectedFilter("mou")}
                     >
                       MOU
                     </button>
                     <button
-                      className={selectedFilter === "linked" ? "archive-active" : ""}
+                      className={
+                        selectedFilter === "linked" ? "archive-active" : ""
+                      }
                       onClick={() => setSelectedFilter("linked")}
                     >
                       Linked Agreements
@@ -724,7 +1138,9 @@ const Archive = () => {
                       </div>
 
                       <button
-                        className={`archive-filter-btn ${showFilterPanel ? "open" : ""}`}
+                        className={`archive-filter-btn ${
+                          showFilterPanel ? "open" : ""
+                        }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowFilterPanel((v) => {
@@ -744,7 +1160,9 @@ const Archive = () => {
                       </button>
 
                       <button
-                        className={`btn archive-generate ${showGenerateModal ? "active" : ""}`}
+                        className={`btn archive-generate ${
+                          showGenerateModal ? "active" : ""
+                        }`}
                         onClick={() => {
                           setReportType("all");
                           setShowGenerateModal(true);
@@ -803,7 +1221,9 @@ const Archive = () => {
                             <div className="filter-select-wrapper">
                               <select
                                 value={tmpClassification}
-                                onChange={(e) => setTmpClassification(e.target.value)}
+                                onChange={(e) =>
+                                  setTmpClassification(e.target.value)
+                                }
                                 className="filter-select"
                               >
                                 <option value="">All Classifications</option>
@@ -856,7 +1276,8 @@ const Archive = () => {
                             Download Selected ({selectedIds.size})
                           </button>
 
-                          {currentUser?.user_role?.toLowerCase() === "admin" && (
+                          {currentUser?.user_role?.toLowerCase() ===
+                            "admin" && (
                             <button
                               className="archive-mass-delete-btn archive-clean-btn"
                               onClick={handleMassDelete}
@@ -906,7 +1327,14 @@ const Archive = () => {
                       <tbody>
                         {currentData.length > 0 ? (
                           currentData.map((item, index) => (
-                            <tr key={index}>
+                            <tr
+                              key={
+                                item.agreement_id ||
+                                item.id ||
+                                item.dts_number ||
+                                index
+                              }
+                            >
                               {currentUser?.user_role?.toLowerCase() ===
                                 "admin" && (
                                 <td>
@@ -941,7 +1369,7 @@ const Archive = () => {
                                 <div style={{ display: "flex", gap: "4px" }}>
                                   <button
                                     className="archive-icon-btn archive-view"
-                                    onClick={() => setSelectedAgreement(item)}
+                                    onClick={() => openAgreementModal(item)}
                                     title="View Details"
                                   >
                                     <FiEye className="archive-icon" />
@@ -1212,6 +1640,13 @@ const Archive = () => {
                     <div className="archive-contact-name">
                       {selectedAgreement?.point_persons_display || "N/A"}
                     </div>
+                    <div className="archive-contact-email">
+                      {pupEmail ? (
+                        <a href={`mailto:${pupEmail}`}>{pupEmail}</a>
+                      ) : (
+                        "—"
+                      )}
+                    </div>
                     <div className="archive-contact-org">
                       {selectedAgreement?.source_unit ||
                         selectedAgreement?.source ||
@@ -1225,6 +1660,13 @@ const Archive = () => {
                     </div>
                     <div className="archive-contact-name">
                       {selectedAgreement?.contact_persons_display || "N/A"}
+                    </div>
+                    <div className="archive-contact-email">
+                      {partnerEmail ? (
+                        <a href={`mailto:${partnerEmail}`}>{partnerEmail}</a>
+                      ) : (
+                        "—"
+                      )}
                     </div>
                     <div className="archive-contact-org">
                       {selectedAgreement?.partner_name ||

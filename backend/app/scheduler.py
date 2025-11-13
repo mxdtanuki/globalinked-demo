@@ -311,11 +311,11 @@ def agreement_notification_job():
                     # Determine days pending
                     if a.timer and a.timer.last_status_change:
                         last_status_change = a.timer.last_status_change
-                        last_change_date = (
-                            last_status_change.date() 
-                            if hasattr(last_status_change, 'date') 
-                            else last_status_change
-                        )
+                        # Ensure last_change_date is always a date object
+                        if isinstance(last_status_change, datetime):
+                            last_change_date = last_status_change.date()
+                        else:
+                            last_change_date = last_status_change
                         days_pending = (today - last_change_date).days
                         last_change_info = f"since {last_change_date}"
                     elif a.entry_date:
