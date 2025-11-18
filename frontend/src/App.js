@@ -1,4 +1,5 @@
 import React from 'react';
+import ProtectedRoute from './ProtectedRoute';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -81,32 +82,66 @@ function AppRoutes() {
         {/* admin login */}
         <Route path="/faculty-login" element={<FacultyLoginPage />} />
 
-
-        {/* admin routes */}
-        <Route path="/overview" element={<Overview />} />
-        <Route path="/active-agreements" element={<ActiveAgreements />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/docUpload" element={< MOAUpload />} />
-        <Route path="/pointPerson" element={<PointPerson />} />
-        <Route path="/contactPerson" element={<ContactPerson />} />
-        <Route path="/mobility" element={<Mobility />} />
-        <Route path="/docVer" element={<DocumentVersion />} />
-        <Route path="/email" element={<Email />} />
-        <Route path="/notification" element={<Notification />} />
-        <Route path="/archive" element={<Archive />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/userManagement" element={<UserManagement />} />
-        <Route path="/audit-logs" element={<AuditLogsPage />} />
+        {/* protected routes */}
+        <Route path="/overview" element={
+          <ProtectedRoute><Overview /></ProtectedRoute>
+        } />
+        <Route path="/active-agreements" element={
+          <ProtectedRoute><ActiveAgreements /></ProtectedRoute>
+        } />
+        <Route path="/analytics" element={
+          <ProtectedRoute><Analytics /></ProtectedRoute>
+        } />
+        <Route path="/docUpload" element={
+          <ProtectedRoute><MOAUpload /></ProtectedRoute>
+        } />
+        <Route path="/pointPerson" element={
+          <ProtectedRoute><PointPerson /></ProtectedRoute>
+        } />
+        <Route path="/contactPerson" element={
+          <ProtectedRoute><ContactPerson /></ProtectedRoute>
+        } />
+        <Route path="/mobility" element={
+          <ProtectedRoute><Mobility /></ProtectedRoute>
+        } />
+        <Route path="/docVer" element={
+          <ProtectedRoute><DocumentVersion /></ProtectedRoute>
+        } />
+        <Route path="/email" element={
+          <ProtectedRoute><Email /></ProtectedRoute>
+        } />
+        <Route path="/notification" element={
+          <ProtectedRoute><Notification /></ProtectedRoute>
+        } />
+        <Route path="/archive" element={
+          <ProtectedRoute><Archive /></ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute><Profile /></ProtectedRoute>
+        } />
+        <Route path="/userManagement" element={
+          <ProtectedRoute><UserManagement /></ProtectedRoute>
+        } />
+        <Route path="/audit-logs" element={
+          <ProtectedRoute><AuditLogsPage /></ProtectedRoute>
+        } />
 
         {/* Upload Document Routes */}
-        <Route path="/document-upload/mou" element={<MOUUpload />} />
-        <Route path="/document-upload/moa" element={<MOAUpload />} />
-        <Route path="/upload/manualEntryMOA" element={<ManualEntryMoa />} />
-        <Route path="/upload/extractedEntryMOA" element={<ExtractedEntryMOA />} />
+        <Route path="/document-upload/mou" element={
+          <ProtectedRoute><MOUUpload /></ProtectedRoute>
+        } />
+        <Route path="/document-upload/moa" element={
+          <ProtectedRoute><MOAUpload /></ProtectedRoute>
+        } />
+        <Route path="/upload/manualEntryMOA" element={
+          <ProtectedRoute><ManualEntryMoa /></ProtectedRoute>
+        } />
+        <Route path="/upload/extractedEntryMOA" element={
+          <ProtectedRoute><ExtractedEntryMOA /></ProtectedRoute>
+        } />
 
         {/* Existing MOUMOAPage route */}
         <Route path="/mou-moa" element={<MOUMOAPublicPage />} />
-
       </Routes>
     </>
   );
