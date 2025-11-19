@@ -346,25 +346,110 @@ const applyBackendStageData = (agreement) => {
   };
 };
 
-const RelatedMou = (row, all = []) => {
+// Helper: prefer querying by `agreement_id` (many backends expose this)
+// and fall back to the service's getAgreementById/getAgreementByDts when needed.
+// Placed at top-level so other top-level helpers (RelatedMou) can call it.
+const fetchAgreementPreferQuery = async (key) => {
+  if (key == null) return null;
+  const k = String(key);
+  // try query-by-agreement_id first (backend may not expose detail route)
+  try {
+    if (agreementService && typeof agreementService.getAgreements === 'function') {
+      const res = await agreementService.getAgreements({ agreement_id: k });
+      const list = Array.isArray(res) ? res : res?.items || res?.data || [];
+      if (Array.isArray(list) && list.length > 0) return list[0];
+    }
+  } catch (e) {
+    // ignore and fall back
+  }
+
+  // fallback to service detail methods
+  try {
+    if (agreementService && typeof agreementService.getAgreementById === 'function') {
+      return await agreementService.getAgreementById(k);
+    }
+  } catch (e) {
+    // ignore and try next fallback
+  }
+  try {
+    if (agreementService && typeof agreementService.getAgreementByDts === 'function') {
+      return await agreementService.getAgreementByDts(k);
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null;
+};
+
+// Resolve related MOU to a DTS number when possible. This helper prefers
+// calling the `agreementService` first (by id or by DTS) and falls back
+// to the provided `all` list when the service lookup fails or returns no DTS.
+// It's async — callers should `await` it.
+const RelatedMou = async (row, all = []) => {
   if (!row) return row;
   const rel = row.related_mou;
   if (!rel) return row;
-  // if it's already a string that looks like a DTS number, keep it
-  if (typeof rel === "string" && rel.trim() && !/^\d+$/.test(rel.trim()))
-    return row;
-  // build lookup from agreement_id -> dts_no
+
+  const key = String(rel).trim();
+
+  // Attempt service-based resolution first
   try {
-    const lookup = (Array.isArray(all) ? all : []).reduce((acc, r) => {
-      if (r && r.agreement_id != null)
-        acc[String(r.agreement_id)] = r.dts_no || r.id || r._pk || "";
+    // If the key is numeric, try getAgreementById
+    if (/^\d+$/.test(key) && agreementService && typeof agreementService.getAgreementById === "function") {
+      try {
+                  const resp = await fetchAgreementPreferQuery(Number(key));
+                  const full = resp && resp.agreement ? resp.agreement : resp && resp.data ? resp.data : resp;
+        if (full) {
+          const dts = full.dts_number || full.dts_no || full.dtsNumber || null;
+          if (dts) return { ...row, related_mou: String(dts) };
+        }
+      } catch (e) {
+        // ignore and fall back to other resolution methods
+      }
+    }
+
+    // Try DTS lookup via service (covers non-numeric keys and id-as-DTS cases)
+    if (agreementService && typeof agreementService.getAgreementByDts === "function") {
+      try {
+        const resp2 = await agreementService.getAgreementByDts(key);
+        const full2 = resp2 && resp2.agreement ? resp2.agreement : resp2 && resp2.data ? resp2.data : resp2;
+        if (full2) {
+          const dts2 = full2.dts_number || full2.dts_no || full2.dtsNumber || null;
+          if (dts2) return { ...row, related_mou: String(dts2) };
+        }
+      } catch (e) {
+        // ignore and fall back to local lookup
+      }
+    }
+  } catch (e) {
+    // ignore unexpected service errors and proceed to local lookup
+  }
+
+  // Local lookup fallback: try to resolve using the provided `all` list.
+  try {
+    const list = Array.isArray(all) ? all : [];
+    const lookup = list.reduce((acc, r) => {
+      const keyCandidates = [r?.agreement_id, r?._pk, r?.id, r?.partner_id].filter((x) => x != null);
+      const val = r && (r.dts_no || r.dts_number || r.id || r._pk || r.agreement_id || r.partner_id)
+        ? String(r.dts_no || r.dts_number || r.id || r._pk || r.agreement_id || r.partner_id)
+        : null;
+      if (!val) return acc;
+      for (const k of keyCandidates) {
+        const kk = String(k);
+        if (kk && !acc[kk]) acc[kk] = val;
+      }
       return acc;
     }, {});
-    const key = String(rel);
+
     if (lookup[key]) return { ...row, related_mou: lookup[key] };
+
+    // Fallback: try to find an agreement whose dts_no (or dts_number) equals the key
+    const foundByDts = list.find((r) => r && String(r.dts_no || r.dts_number || r.id || r._pk) === key);
+    if (foundByDts) return { ...row, related_mou: String(foundByDts.dts_no || foundByDts.dts_number || foundByDts.id || foundByDts._pk) };
   } catch (e) {
-    // ignore resolution errors and return original row
+    // ignore local lookup errors
   }
+
   return row;
 };
 
@@ -763,6 +848,15 @@ const OverviewMerged = () => {
   // upload & docs
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [selectedAgreement, setSelectedAgreement] = useState(null);
+  // canonical identifier used throughout the UI (DTS or agreement_id fallback).
+  // Mirrors `ActiveAgreement` behavior so related MOU resolution uses the same ids.
+  const selectedDts =
+    selectedAgreement?.dts_number ||
+    selectedAgreement?.dtsNumber ||
+    selectedAgreement?.dts_no ||
+    selectedAgreement?.id ||
+    selectedAgreement?.agreement_id ||
+    null;
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadComment, setUploadComment] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -839,15 +933,100 @@ const OverviewMerged = () => {
       let mapped = filtered.map(mapAgreement).map(applyBackendStageData);
       // Replace related_mou ids with the related agreement's DTS number when available
       try {
-        const lookup = Object.fromEntries(
-          mapped.map((m) => [String(m.agreement_id), m.dts_no || m.id || ""])
-        );
+        // build lookup from all fetched agreements so related_mou numeric ids
+        // can be resolved to DTS numbers immediately. Some backends don't mark
+        // parents as 'MOU' consistently, so restricting to document_type ===
+        // 'MOU' causes misses. We still avoid overwriting existing keys.
+        // Accept multiple possible DTS/id fields (dts_number, dts_no, id, _pk,
+        // partner_id) because different backends may name the column differently.
+        // Build a lookup that maps various id candidates (agreement_id, _pk, id)
+        // to the DTS value so related_mou fields that reference a numeric id
+        // (or different id field) can be resolved immediately. Some backends
+        // use different id properties, so include several possibilities.
+        const lookup = mapped.reduce((acc, m) => {
+          const val = m && (m.dts_no || m.dts_number || m.dtsNumber)
+            ? String(m.dts_no || m.dts_number || m.dtsNumber)
+            : null;
+          if (!val) return acc;
+          const keyCandidates = [m?.agreement_id, m?._pk, m?.id, m?.partner_id];
+          for (const k of keyCandidates) {
+            if (k == null) continue;
+            const kk = String(k);
+            if (kk && !acc[kk]) acc[kk] = val;
+          }
+          return acc;
+        }, {});
+        // TEMP LOG: inspect the initial lookup built from MOU parents
+        try {
+          console.debug && console.debug("related_mou: initial lookup:", lookup);
+        } catch (e) {}
         mapped = mapped.map((m) => {
           if (!m?.related_mou) return m;
           const k = String(m.related_mou);
           if (lookup[k]) return { ...m, related_mou: lookup[k] };
           return m;
         });
+
+        // For any remaining numeric related_mou ids that weren't resolved by the
+        // local lookup, call the agreementService during the initial fetch so
+        // DTS numbers are available immediately (not resolved later in a
+        // background useEffect). Limit concurrency by resolving a capped set.
+        try {
+          const keysToResolve = new Set();
+          for (const m of mapped) {
+            const rel = m?.related_mou;
+            if (!rel) continue;
+            const k = String(rel);
+            if (/^\d+$/.test(k) && !lookup[k]) keysToResolve.add(k);
+          }
+          if (keysToResolve.size > 0) {
+            const toResolve = Array.from(keysToResolve).slice(0, 20); // cap to 20
+            const promises = toResolve.map(async (k) => {
+              try {
+                if (agreementService && typeof agreementService.getAgreementById === "function") {
+                  const resp = await fetchAgreementPreferQuery(Number(k));
+                  const full = resp && resp.agreement ? resp.agreement : resp && resp.data ? resp.data : resp;
+                  if (full) {
+                    const dts = full.dts_number || full.dts_no || full.dtsNumber || null;
+                    if (dts) return [k, String(dts)];
+                  }
+                }
+              } catch (e) {
+                // ignore and try DTS lookup below
+              }
+              try {
+                if (agreementService && typeof agreementService.getAgreementByDts === "function") {
+                  const resp2 = await agreementService.getAgreementByDts(k);
+                  const full2 = resp2 && resp2.agreement ? resp2.agreement : resp2 && resp2.data ? resp2.data : resp2;
+                  if (full2) {
+                    const dts2 = full2.dts_number || full2.dts_no || full2.dtsNumber || null;
+                    if (dts2) return [k, String(dts2)];
+                  }
+                }
+              } catch (e) {
+                // ignore
+              }
+              return null;
+            });
+            const results = await Promise.all(promises);
+            const newMap = results.filter(Boolean).reduce((acc, pair) => {
+              acc[pair[0]] = pair[1];
+              return acc;
+            }, {});
+            // TEMP LOG: show resolved mappings from service during initial fetch
+            try { console.debug && console.debug("related_mou: initial fetched newMap:", newMap); } catch (e) {}
+            if (Object.keys(newMap).length) {
+              mapped = mapped.map((m) => {
+                if (!m?.related_mou) return m;
+                const k = String(m.related_mou);
+                if (newMap[k]) return { ...m, related_mou: newMap[k] };
+                return m;
+              });
+            }
+          }
+        } catch (e) {
+          // ignore any failures here and return what we have
+        }
       } catch (e) {
         // ignore resolution errors
       }
@@ -859,9 +1038,130 @@ const OverviewMerged = () => {
 
   const agreements = rawAgreements || [];
 
+  // TEMP LOG: when the overview is opened or the fetched agreements change,
+  // print a snapshot of the fetched data to help debugging mapping/resolution.
+  useEffect(() => {
+    try {
+      console.log && console.log("Overview opened - fetched agreements:", {
+        count: Array.isArray(agreements) ? agreements.length : 0,
+        sample: Array.isArray(agreements) ? agreements.slice(0, 5) : agreements,
+      });
+    } catch (e) {
+      // ignore
+    }
+  }, [agreements]);
+
+
   // map of related agreement id -> dts_no (populated on-demand when related agreement
   // isn't already present in the fetched agreements list)
   const [relatedDtsMap, setRelatedDtsMap] = useState({});
+
+  // Populate relatedDtsMap from the fetched agreements so numeric related_mou
+  // ids can be shown as DTS numbers in the UI. This mirrors the resolution
+  // logic used by ActiveAgreement (which looks up by id/agreement_id).
+  useEffect(() => {
+    try {
+      const map = {};
+      for (const a of agreements) {
+        if (!a) continue;
+        // prefer explicit DTS fields; avoid using id/_pk as they may contain numeric ids
+        const val = a.dts_no || a.dts_number || a.dtsNumber || null;
+        if (!val) continue;
+        const keys = [a.agreement_id, a._pk, a.id].filter((k) => k != null);
+        for (const k of keys) {
+          const kk = String(k);
+          if (kk && !map[kk]) map[kk] = String(val);
+        }
+      }
+      // TEMP LOG: show the local map that will be merged into relatedDtsMap
+      try { console.debug && console.debug('relatedDtsMap: local map built from agreements:', map); } catch (e) {}
+      if (Object.keys(map).length) {
+        // Merge into existing map while preserving previously-resolved keys.
+        // Use prev first so new map entries don't accidentally overwrite
+        // existing entries with the same key (safeguard for inconsistent backends).
+        setRelatedDtsMap((prev) => {
+          try { console.debug && console.debug('relatedDtsMap: merging prev -> new', prev, map); } catch (e) {}
+          return { ...prev, ...map };
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [agreements]);
+
+  // Background-resolve any numeric related_mou ids that weren't present in the
+  // fetched `agreements` list by calling the API. This handles cases where the
+  // linked MOU is an Active agreement (and therefore excluded from the overview
+  // list) so we can still show its DTS number in the Related MOU column.
+  useEffect(() => {
+    if (!Array.isArray(agreements)) return;
+    const keysToResolve = new Set();
+    for (const r of agreements) {
+      const rel = r?.related_mou;
+      if (!rel) continue;
+      const k = String(rel);
+      if (/^\d+$/.test(k) && !relatedDtsMap[k]) keysToResolve.add(k);
+    }
+    if (keysToResolve.size === 0) return;
+
+    // resolve up to 20 keys to avoid flooding but be more helpful than the old cap
+    const toResolve = Array.from(keysToResolve).slice(0, 20);
+    let cancelled = false;
+    (async () => {
+      const newMap = {};
+      for (const k of toResolve) {
+        if (cancelled) break;
+        try {
+          // Prefer the shared helper which tries multiple detail routes and
+          // fallbacks (agreement_id, id, DTS) so we stand a better chance of
+          // finding parents that live in the Active/ActiveAgreement API.
+          const resp = await fetchAgreementPreferQuery(Number(k));
+          const full = resp && resp.agreement ? resp.agreement : resp && resp.data ? resp.data : resp;
+          if (full) {
+            const dts = full.dts_number || full.dts_no || full.dtsNumber || null;
+            if (dts) {
+              newMap[k] = String(dts);
+              continue;
+            }
+          }
+        } catch (e) {
+          // ignore and try fallback below
+        }
+
+        try {
+          // Fallback: treat k as a DTS and ask the service directly
+          if (agreementService && typeof agreementService.getAgreementByDts === "function") {
+            const resp2 = await agreementService.getAgreementByDts(k);
+            const full2 = resp2 && resp2.agreement ? resp2.agreement : resp2 && resp2.data ? resp2.data : resp2;
+            if (full2) {
+              const dts2 = full2.dts_number || full2.dts_no || full2.dtsNumber || null;
+              if (dts2) newMap[k] = String(dts2);
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // TEMP LOG: show background-resolved keys before merging
+      try { console.debug && console.debug('relatedDtsMap: background resolved newMap', newMap); } catch (e) {}
+      if (Object.keys(newMap).length) {
+        // Merge without overwriting any existing resolved keys to avoid
+        // race conditions where a previous mapping (or a mapping built from
+        // the fetched agreements) should take precedence.
+        setRelatedDtsMap((prev) => {
+          const merged = { ...prev };
+          for (const kk of Object.keys(newMap)) {
+            if (!merged[kk]) merged[kk] = newMap[kk];
+          }
+          return merged;
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [agreements, relatedDtsMap]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -876,41 +1176,14 @@ const OverviewMerged = () => {
   ]);
 
   // Resolve any numeric related_mou ids that weren't matched when mapping.
+  // NOTE: automatic background resolution of numeric related_mou -> DTS was
+  // disabled per request because it caused multiple rows to display the same
+  // DTS value after the async resolution completed in certain scenarios.
+  // Keeping the resolution disabled avoids overwriting/mapping surprises.
   useEffect(() => {
-    // collect numeric ids that need resolution
-    const needs = new Set();
-    const presentLookup = Object.fromEntries(
-      agreements.map((a) => [String(a.agreement_id), a.dts_no || a.id || ""])
-    );
-    for (const a of agreements) {
-      const rel = a?.related_mou;
-      if (!rel) continue;
-      const key = String(rel);
-      // if it's numeric and not already resolved in the present lookup and not already fetched
-      if (/^\d+$/.test(key) && !presentLookup[key] && !relatedDtsMap[key])
-        needs.add(key);
-    }
-    if (needs.size === 0) return;
-
-    // fetch each missing related agreement by id
-    const fetches = Array.from(needs).map(async (id) => {
-      try {
-        if (typeof agreementService.getAgreementById === "function") {
-          const full = await agreementService.getAgreementById(Number(id));
-          const dts = full?.dts_number || full?.dts_no || full?.id || "";
-          // set either the found dts or empty string to mark attempted resolution
-          setRelatedDtsMap((prev) => ({ ...prev, [id]: dts || "" }));
-        } else {
-          setRelatedDtsMap((prev) => ({ ...prev, [id]: "" }));
-        }
-      } catch (e) {
-        // mark as attempted (empty) so we don't retry forever
-        setRelatedDtsMap((prev) => ({ ...prev, [id]: "" }));
-      }
-    });
-    // run fetches, no need to await here
-    Promise.all(fetches).catch(() => {});
-  }, [agreements, relatedDtsMap]);
+    // intentionally no-op: related DTS resolution removed
+    return () => {};
+  }, [agreements]);
 
   const STAGE_LIST = useMemo(
     () => LIFECYCLE_OPTIONS.filter((o) => o.value),
@@ -995,6 +1268,19 @@ const OverviewMerged = () => {
 
   const getPk = (row) =>
     row?.agreement_id ?? row?._pk ?? row?.id ?? row?.dts_no;
+
+  // helper: find the linked MOU id/key on an agreement object (mirror ActiveAgreement)
+  const getLinkedId = (a) => {
+    if (!a) return undefined;
+    return (
+      a.related_mou ||
+      a.MOU_to_MOA_id ||
+      a.mou_number ||
+      a.linked_mou ||
+      a.linked_mou_id ||
+      a.linkedMouId
+    );
+  };
 
   // counts for summary and stage cards (Overview1-style)
   // pendingCount should represent the total pending agreements (ignoring the
@@ -1119,7 +1405,7 @@ const OverviewMerged = () => {
         };
       }
       // try to resolve related MOU id -> DTS number using the current agreements list
-      mapped = RelatedMou(mapped, agreements);
+      mapped = await RelatedMou(mapped, agreements);
       // Only apply the result if this is the latest outstanding request
       if (loadRequestRef.current === req) {
         setSelected(mapped);
@@ -1143,7 +1429,7 @@ const OverviewMerged = () => {
     if (!row) return;
     try {
       const mapped = applyBackendStageData(mapAgreement(row));
-      const resolved = RelatedMou(mapped, agreements);
+      const resolved = await RelatedMou(mapped, agreements);
       setSelected(resolved);
     } catch (e) {
       // fallback: set the raw row
@@ -1315,12 +1601,39 @@ const OverviewMerged = () => {
     }
     try {
       const payload = buildPayloadFromSelected(selected);
-      const updated = await agreementService.updateAgreementSmart(
-        getPk(selected),
-        payload
-      );
-      let mapped = applyBackendStageData(mapAgreement(updated));
-      mapped = RelatedMou(mapped, agreements);
+
+      // Local smart-update: try multiple id candidates against the existing
+      // `agreementService.updateAgreement` method. This mirrors the service
+      // flexibility without editing the service file.
+      const idCandidates = Array.from(
+        new Set([
+          getPk(selected),
+          selected?.agreement_id,
+          selected?._pk,
+          selected?.id,
+          selected?.dts_no,
+          selected?.dts_number,
+        ])
+      ).filter((x) => x != null && x !== "");
+
+      let updated = null;
+      let lastErr = null;
+      for (const candidate of idCandidates) {
+        try {
+          updated = await agreementService.updateAgreement(candidate, payload);
+          // stop on first successful update
+          break;
+        } catch (err) {
+          lastErr = err;
+          // continue to next candidate
+        }
+      }
+      if (!updated) {
+        // If none of the candidates worked, surface the last error
+        throw lastErr || new Error('Failed to update agreement');
+      }
+  let mapped = applyBackendStageData(mapAgreement(updated));
+  mapped = await RelatedMou(mapped, agreements);
       try {
         const hasServerSigs =
           Array.isArray(mapped.signatories_list) &&
@@ -1623,7 +1936,7 @@ const OverviewMerged = () => {
           payload
         );
         let mapped = applyBackendStageData(mapAgreement(updated));
-        mapped = RelatedMou(mapped, agreements);
+  mapped = await RelatedMou(mapped, agreements);
         // Ensure stage start/time is reset when switching to Active so days show from now
         try {
           mapped._stage_start_at = new Date().toISOString();
@@ -1659,7 +1972,7 @@ const OverviewMerged = () => {
           payload
         );
         let mapped = applyBackendStageData(mapAgreement(updated));
-        mapped = RelatedMou(mapped, agreements);
+  mapped = await RelatedMou(mapped, agreements);
         // ensure stage start reset so days show from now if needed
         try {
           mapped._stage_start_at = new Date().toISOString();
@@ -2172,100 +2485,111 @@ const OverviewMerged = () => {
                       </td>
                       {/* Related MOU */}
                       <td>
-                        {row.related_mou ? (
-                          <span className="related-mou">
-                            <div className="req">
-                              <button
-                                type="button"
-                                className="linked-mou-btn"
-                                onClick={async (e) => {
-                                  // prevent row click bubbling
-                                  if (e && e.stopPropagation) e.stopPropagation();
-                                  const raw = row.related_mou;
-                                  const key = String(raw);
-                                  // Try to find the related agreement in-memory first
-                                  let found = null;
-                                  if (/^\d+$/.test(key)) {
-                                    // numeric id
-                                    found = agreements.find(
-                                      (a) =>
-                                        String(a.agreement_id) === key ||
-                                        String(a._pk) === key ||
-                                        String(a.id) === key
-                                    );
-                                    if (found) {
-                                      // load the full details (may hit network if needed)
-                                      await loadAgreementDetails(found);
-                                      setDetailOpen(true);
-                                      return;
-                                    }
-                                    // not found locally -> fetch by id
-                                    try {
-                                      await loadAgreementDetails(key);
-                                      setDetailOpen(true);
-                                    } catch (err) {
-                                      // fallback: show minimal info when fetch fails
-                                      setSelected({
-                                        id: key,
-                                        dts_no: key,
-                                        partner_name: String(key),
-                                      });
-                                      setDetailOpen(true);
-                                    }
-                                    return;
-                                  }
+                        {(() => {
+                          // Use helper to accept multiple linked-id field names
+                          const raw = getLinkedId(row) ?? row.related_mou ?? null;
+                          if (!raw) return "—";
+                          const key = String(raw);
 
-                                  // treat as a DTS string
-                                  found = agreements.find(
-                                    (a) =>
-                                      (a.dts_no && String(a.dts_no) === String(raw)) ||
-                                      (a.id && String(a.id) === String(raw)) ||
-                                      (a._pk && String(a._pk) === String(raw))
-                                  );
-                                  if (found) {
-                                    await loadAgreementDetails(found);
-                                    setDetailOpen(true);
-                                    return;
-                                  }
-                                  // fallback: try to fetch by DTS string
-                                  try {
-                                    await loadAgreementDetails(raw);
-                                    setDetailOpen(true);
-                                  } catch (err) {
-                                    // fallback: open modal with minimal info (no network fetch)
-                                    setSelected({
-                                      id: raw,
-                                      dts_no: raw,
-                                      partner_name: String(raw),
-                                    });
-                                    setDetailOpen(true);
-                                  }
-                                }}
-                                title={`View linked MOU ${
-                                  relatedDtsMap[String(row.related_mou)] ||
-                                  String(row.related_mou)
-                                }`}
-                                aria-label={`View linked MOU ${
-                                  relatedDtsMap[String(row.related_mou)] ||
-                                  String(row.related_mou)
-                                }`}
-                                style={{
-                                  background: "transparent",
-                                  border: "none",
-                                  color: "#5a1522",
-                                  cursor: "pointer",
-                                  padding: 0,
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {relatedDtsMap[String(row.related_mou)] ||
-                                  String(row.related_mou)}
-                              </button>
-                            </div>
-                          </span>
-                        ) : (
-                          "—"
-                        )}
+                                        const renderLabel = () => {
+                                          // If the key already looks like a DTS number (e.g. "DT123456"),
+                                          // prefer showing it directly. This avoids accidental mapping
+                                          // or overwriting when the backend already stored the DTS string.
+                                          if (/^DT\d+/i.test(key)) {
+                                            try { console.debug && console.debug('related_mou renderLabel - raw DTS key', { key }); } catch (e) {}
+                                            return key;
+                                          }
+
+                                          // Prefer showing an explicit DTS value from the matched
+                                          // agreement object. Only fall back to relatedDtsMap when
+                                          // no direct DTS fields are present.
+                                          const found = agreements.find((a) => {
+                                            try {
+                                              return (
+                                                String(a.agreement_id) === key ||
+                                                String(a._pk) === key ||
+                                                String(a.id) === key ||
+                                                (a.dts_no && String(a.dts_no) === key) ||
+                                                (a.dts_number && String(a.dts_number) === key) ||
+                                                (a.dtsNumber && String(a.dtsNumber) === key)
+                                              );
+                                            } catch (e) {
+                                              return false;
+                                            }
+                                          });
+                                          let out;
+                                          if (found) {
+                                            const dts = found.dts_no || found.dts_number || found.dtsNumber || null;
+                                            out = dts ? String(dts) : relatedDtsMap[key] || key;
+                                          } else {
+                                            out = relatedDtsMap[key] || key;
+                                          }
+                                          // TEMP LOG: show what label we render for this related key
+                                          try { console.debug && console.debug('related_mou renderLabel', { key, label: out, found: !!found, relatedDtsMapVal: relatedDtsMap[key] }); } catch (e) {}
+                                          return out;
+                                        };
+
+                          const handleOpen = async (e) => {
+                            if (e && e.stopPropagation) e.stopPropagation();
+                            const found = agreements.find(
+                              (a) =>
+                                String(a.agreement_id) === key ||
+                                String(a._pk) === key ||
+                                String(a.id) === key ||
+                                (a.dts_no && String(a.dts_no) === key) ||
+                                (a.dts_number && String(a.dts_number) === key)
+                            );
+                            if (found) {
+                              await loadAgreementDetails(found);
+                              setDetailOpen(true);
+                              return;
+                            }
+
+                            if (/^\d+$/.test(key)) {
+                              try {
+                                await loadAgreementDetails(Number(key));
+                                setDetailOpen(true);
+                                return;
+                              } catch (err) {
+                                // fall through to DTS lookup
+                              }
+                            }
+
+                            try {
+                              await loadAgreementDetails(key);
+                              setDetailOpen(true);
+                              return;
+                            } catch (err) {
+                              setSelected({ id: key, dts_no: key, partner_name: String(key) });
+                              setDetailOpen(true);
+                              return;
+                            }
+                          };
+
+                          return (
+                            <span className="related-mou">
+                              <div className="req">
+                                <button
+                                  type="button"
+                                  className="linked-mou-btn"
+                                  onClick={handleOpen}
+                                  title={`View linked MOU ${renderLabel()}`}
+                                  aria-label={`View linked MOU ${renderLabel()}`}
+                                  style={{
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "#5a1522",
+                                    cursor: "pointer",
+                                    padding: 0,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {renderLabel()}
+                                </button>
+                              </div>
+                            </span>
+                          );
+                        })()}
                       </td>
                       {/* Current Status */}
                       <td>
@@ -2752,7 +3076,97 @@ const OverviewMerged = () => {
                               "—"}
                           </div>
                         </section>
+                        
+                        {/* ===== Linked MOU (placed below Signatories) ===== */}
+                        {(() => {
+                          // Normalize & resolve linked id using the same helper as ActiveAgreement
+                          const lid =
+                            getLinkedId(selected) ||
+                            selected.linkedMouId ||
+                            selected.linked_mou ||
+                            selected.MOU_to_MOA_id;
+                          if (!lid) return null;
 
+                          const lidStr = String(lid).trim();
+
+                          // Try to find a matching agreement in-memory with a number of candidate fields
+                          let target = agreements.find((a) => {
+                            if (!a) return false;
+                            const candidates = [
+                              a.id,
+                              a.agreement_id,
+                              a.dts_no,
+                              a.dts_number,
+                              a.linkedMouId,
+                              a.linked_mou,
+                              a.mou_number,
+                            ];
+                            return candidates.some(
+                              (c) => c != null && String(c).trim() === lidStr
+                            );
+                          });
+
+                          // If not found, try relatedDtsMap -> mapped DTS value
+                          if (!target && relatedDtsMap && relatedDtsMap[lidStr]) {
+                            const mapped = String(relatedDtsMap[lidStr]).trim();
+                            target = agreements.find(
+                              (a) =>
+                                (a.dts_no && String(a.dts_no).trim() === mapped) ||
+                                (a.dts_number && String(a.dts_number).trim() === mapped) ||
+                                (a.id && String(a.id).trim() === mapped)
+                            );
+                          }
+
+                          if (!target) return null;
+
+                          return (
+                            <section className="modal-section linked-mou">
+                              <div className="section-header">
+                                <FiLink className="header-icon" />
+                                <h4>Linked MOU</h4>
+                              </div>
+
+                              <div
+                                className="linked-mou-card"
+                                onClick={() => openDetails(target)}
+                                style={{ cursor: "pointer" }}
+                              >
+                                <div className="linked-mou-left">
+                                  <span className="badge mou">MOU</span>
+                                </div>
+                                <div className="linked-mou-body">
+                                  <strong className="linked-mou-title">
+                                    {target.partner_name ||
+                                      target.name ||
+                                      target.event_title ||
+                                      target.eventTitle ||
+                                      "—"}
+                                  </strong>
+                                  <div className="linked-mou-sub">
+                                    {target.partnership_classification ||
+                                      target.partnership_type ||
+                                      target.partnershipClassification ||
+                                      "—"}
+                                  </div>
+                                  <div className="linked-mou-valid">
+                                    Valid until:{" "}
+                                    {target.expiry || target.date_expiry
+                                      ? new Date(
+                                          target.expiry || target.date_expiry
+                                        ).toLocaleDateString()
+                                      : "—"}
+                                  </div>
+                                  <div className="linked-mou-dts">
+                                    {target.dts_no ||
+                                      target.dts_number ||
+                                      target.id ||
+                                      "—"}
+                                  </div>
+                                </div>
+                              </div>
+                            </section>
+                          );
+                        })()}
                         {/* Partner Information */}
                         <section className="modal-section partner">
                           <div className="section-header">
@@ -2950,60 +3364,9 @@ const OverviewMerged = () => {
                           </div>
                         </section>
 
-                        {/* Linked MOU */}
-                        {(() => {
-                          const relatedId =
-                            selected.related_mou || selected.MOU_to_MOA_id;
-                          if (!relatedId) return null;
-                          const linkedAgreement = agreements.find(
-                            (a) =>
-                              a.id === relatedId ||
-                              a.agreement_id === relatedId ||
-                              a.dts_no === relatedId
-                          );
-                          if (!linkedAgreement) return null;
-                          return (
-                            <section className="modal-section linked-mou">
-                              <div className="section-header">
-                                <FiLink className="header-icon" />
-                                <h4>Linked MOU</h4>
-                              </div>
-                              <div
-                                className="linked-mou-card"
-                                onClick={() => openDetails(linkedAgreement)}
-                              >
-                                <div className="linked-mou-left">
-                                  <span className="badge mou">MOU</span>
-                                </div>
-                                <div className="linked-mou-body">
-                                  <strong className="linked-mou-title">
-                                    {linkedAgreement.partner_name ||
-                                      linkedAgreement.name ||
-                                      "—"}
-                                  </strong>
-                                  <div className="linked-mou-sub">
-                                    {linkedAgreement.partnership_classification ||
-                                      linkedAgreement.partnership_type ||
-                                      "—"}
-                                  </div>
-                                  <div className="linked-mou-valid">
-                                    Valid until:{" "}
-                                    {linkedAgreement.expiry
-                                      ? new Date(
-                                          linkedAgreement.expiry
-                                        ).toLocaleDateString()
-                                      : "—"}
-                                  </div>
-                                  <div className="linked-mou-dts">
-                                    {linkedAgreement.dts_no ||
-                                      linkedAgreement.id ||
-                                      "—"}
-                                  </div>
-                                </div>
-                              </div>
-                            </section>
-                          );
-                        })()}
+                        {/* Linked MOU: moved below Signatories (see below).
+                            Old/early render removed so we only show the linked
+                            MOU after Signatories to match ActiveAgreement view. */}
 
                         {/* Agreement Timeline */}
                         <section className="modal-section timeline">

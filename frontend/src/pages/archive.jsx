@@ -1041,7 +1041,6 @@ const Archive = () => {
           ) : (
             <>
               <div className="archive-main">
-                <h2 className="archive-title">Archives</h2>
 
                 <div className="archive-stats-row-full">
                   {stats.map((s, i) => (

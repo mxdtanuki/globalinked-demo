@@ -31,6 +31,9 @@ import {
   FiPlusCircle,
   FiCheck,
   FiChevronDown,
+  FiUsers,
+  FiMessageCircle,
+  FiHash,
 } from "react-icons/fi";
 import { TbFileText } from "react-icons/tb";
 import { agreementService } from "../services/agreementService";
@@ -183,6 +186,14 @@ const ActiveAgreement = () => {
       console.error("Failed to create audit log:", err);
     }
   };
+
+  const selectedDts =
+    selectedAgreement?.dts_number ||
+    selectedAgreement?.dtsNumber ||
+    selectedAgreement?.dts_no ||
+    selectedAgreement?.id ||
+    selectedAgreement?.agreement_id ||
+    null;
 
   const fetchAgreements = async () => {
     try {
@@ -539,6 +550,19 @@ const ActiveAgreement = () => {
         "",
       remarks: normalizeRemarks(selectedAgreement?.remarks),
     });
+  };
+
+  // small helper used by header to decide whether to show admin controls
+  const headerIsAdmin = (user = currentUser) => {
+    const u = user || currentUser;
+    if (!u) return false;
+    if (u.is_admin || u.isAdmin) return true;
+    if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
+    if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
+    if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
+    if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
+    if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+    return false;
   };
 
   const cancelModalEdit = () => {
@@ -1497,7 +1521,7 @@ const ActiveAgreement = () => {
                   >
                     <button
                       type="button"
-                      className="btn generate"
+                      className={`btn generate ${showFilterPanel ? "active" : ""}`}
                       onClick={() => setShowFilterPanel((v) => !v)}
                       aria-expanded={showFilterPanel}
                     >
@@ -1508,7 +1532,7 @@ const ActiveAgreement = () => {
                     {/* Generate Report */}
                     <button
                       type="button"
-                      className="btn generate"
+                      className={`btn generate ${showGenerateModal ? "active" : ""}`}
                       onClick={() => {
                         setShowGenerateModal(true);
                       }}
@@ -2271,20 +2295,7 @@ const ActiveAgreement = () => {
           className="overview1-modal-backdrop agreement-modal-backdrop"
           onClick={closeModal}
         >
-          {/* OLD BLOCK (kept as comment for reference) */}
-          {/*
-          <div className="agreement-modal" onClick={(e) => e.stopPropagation()}>
-            <header className="agreement-modal-header">
-              <div className="modal-badge-row">
-                <span className={`badge ${String(selectedAgreement.document_type || selectedAgreement.documentType || "").toLowerCase()}`}> {selectedAgreement.document_type || selectedAgreement.documentType} </span>
-                <h2 className="modal-title">{selectedAgreement.event_title || selectedAgreement.eventTitle}</h2>
-              </div>
-              <button className="modal-close" onClick={closeModal} aria-label="Close"><FiX className="icon" /></button>
-            </header>
-            <div className="agreement-modal-body">
-          */}
-
-          {/* NEW: Overview-styled modal to match OverviewDash design */}
+          {/* Overview-styled modal to match OverviewDash design */}
           <div
             className="overview1-modal agreement-modal force-overview"
             onClick={(e) => e.stopPropagation()}
@@ -2294,41 +2305,30 @@ const ActiveAgreement = () => {
               selectedAgreement.name || selectedAgreement.partnerName || selectedAgreement.event_title || "agreement"
             }`}
           >
-            <div className="overview1-modal-header">
-              <div className="overview1-header-left" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div className="overview1-header-icon" aria-hidden>
-                  <span className={`badge ${String(
+            <div
+              className="overview1-modal-header"
+              role="dialog"
+              aria-labelledby="modal-title"
+            >
+              <div className="modal-badge-row">
+                {/* Updated Agreement Type Badge */}
+                <span
+                  className={`header-badge doc ${String(
                     selectedAgreement.document_type || selectedAgreement.documentType || ""
-                  ).toLowerCase()}`}>
-                    {selectedAgreement.document_type || selectedAgreement.documentType}
-                  </span>
-                </div>
-
-                <div className="overview1-header-titles">
-                  <div className="modal-title" style={{ fontSize: 20, fontWeight: 700 }}>
-                    {selectedAgreement.name || selectedAgreement.partnerName || selectedAgreement.event_title || selectedAgreement.eventTitle}
-                  </div>
-                  <div className="overview1-header-sub" style={{ color: "#6b3740" }}>
-                    {selectedAgreement.event_title && selectedAgreement.event_title !== (selectedAgreement.name || selectedAgreement.partnerName)
-                      ? selectedAgreement.event_title
-                      : ""}
-                    {selectedAgreement.agreement_status || selectedAgreement.status ? (
-                      <span style={{ marginLeft: 10, color: "#555" }}>
-                        • {(selectedAgreement.agreement_status || selectedAgreement.status) || ""}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
+                  ).toLowerCase()}`}
+                >
+                  <FiFileText className="badge-icon" />
+                  {selectedAgreement.document_type || selectedAgreement.documentType || "—"}
+                </span>
+                <h3 id="modal-title" className="modal-title white-title">
+                  {selectedAgreement.name ||
+                    selectedAgreement.partnerName ||
+                    "Agreement Details"}
+                </h3>
               </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ textAlign: "right", marginRight: 8 }} className="modal-meta">
-                  <div style={{ fontSize: 12, color: "#8b1f2d" }}>DTS No.</div>
-                  <div style={{ fontWeight: 700 }}>{selectedAgreement.dts_number || selectedAgreement.dtsNumber || "—"}</div>
-                  <div style={{ fontSize: 12, color: "#8b1f2d", marginTop: 6 }}>Date Received</div>
-                  <div>{selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_received || selectedAgreement.date_signed ? new Date(selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed).toLocaleDateString() : "—"}</div>
-                </div>
-
+              <div
+                style={{ display: "flex", gap: 8, alignItems: "center" }}
+              >
                 <button
                   className="modal-close"
                   onClick={closeModal}
@@ -2340,49 +2340,135 @@ const ActiveAgreement = () => {
             </div>
 
             <div className="overview1-modal-body agreement-modal-body">
-              {/* Document Information */}
-              <section className="modal-section docinfo">
-                <h4>Document Information</h4>
-                <div className="row two-col">
-                  <div>
-                    <div className="label">DTS Number</div>
-                    <div className="value mono">
-                      {selectedAgreement.dts_number ||
-                        selectedAgreement.dtsNumber}
+              {!isModalEdit ? (
+                <>
+                  {/* Details Summary Card with View File Actions */}
+                  <div className="details-summary-card">
+                    <div className="details-header">
+                      <div className="details-icon-container">
+                        <FiFileText className="details-main-icon" />
+                      </div>
+                      <div className="details-titles">
+                        <div className="details-title">
+                          {selectedAgreement.name ||
+                            selectedAgreement.partnerName ||
+                            "Agreement Details"}
+                        </div>
+                        <div className="details-sub">
+                          {selectedAgreement.document_type || selectedAgreement.documentType || "—"} •{" "}
+                          {selectedAgreement.agreement_status || selectedAgreement.status || "Active"}
+                        </div>
+                      </div>
+                      <div className="details-meta">
+                        <div className="details-meta-item">
+                          <span className="label">DTS No.</span>
+                          <span className="value mono value-with-icon">
+                            <FiHash className="value-icon" />
+                            {selectedAgreement.dts_number || selectedAgreement.dtsNumber || "—"}
+                          </span>
+                        </div>
+                        <div className="details-meta-item">
+                          <span className="label">Date Received</span>
+                          <span className="value value-with-icon">
+                            <FiCalendar className="value-icon" />
+                            {selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed
+                              ? new Date(
+                                  selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed
+                                ).toLocaleDateString()
+                              : "—"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="file-actions">
+                      <button
+                        className="btn action view-file"
+                        onClick={() => handleViewLatestFile(selectedDts)}
+                        title="View Latest File"
+                        aria-label="View Latest File"
+                      >
+                        <FiEye className="icon" />
+                        View File
+                      </button>
+                      <button
+                        className="btn action older-files"
+                        onClick={() => {
+                          if (selectedDts) navigate(`/docVer?dts_number=${encodeURIComponent(selectedDts)}`);
+                          else alert("No DTS number available for this agreement.");
+                        }}
+                        title="View Older Files"
+                        aria-label="View Older Files"
+                      >
+                        <FiArchive className="icon" />
+                        Older Files
+                      </button>
                     </div>
                   </div>
-
-                  <div>
-                    <div className="label">Hardcopy Locator</div>
-                    <div className="value">
-                      {selectedAgreement.hardcopy_location ||
-                        selectedAgreement.hardcopyLocator ||
-                        "—"}
+                  {/* Document Information */}
+                  <section className="modal-section docinfo">
+                    <div className="section-header">
+                      <FiInfo className="header-icon" />
+                      <h4>Document Information</h4>
                     </div>
-                  </div>
+                    <div className="row two-col">
+                      <div>
+                        <div className="label">
+                          <FiTag className="label-icon" />
+                          DTS Number
+                        </div>
+                        <div className="value mono value-with-icon">
+                          <FiHash className="value-icon" />
+                          {selectedAgreement.dts_number || selectedAgreement.dtsNumber}
+                        </div>
+                      </div>
 
-                  <div>
-                    <div className="label">Entry Date</div>
-                    <div className="value">
-                      {new Date(
-                        selectedAgreement.date ||
-                          selectedAgreement.date_signed ||
-                          selectedAgreement.dateOfSigning
-                      ).toLocaleDateString()}
+                      <div>
+                        <div className="label">
+                          <FiFileText className="label-icon" />
+                          Document Type
+                        </div>
+                        <div className="value">
+                          {selectedAgreement.document_type || selectedAgreement.documentType || "—"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="label">
+                          <FiCalendar className="label-icon" />
+                          Date Received
+                        </div>
+                        <div className="value value-with-icon">
+                          <FiCalendar className="value-icon" />
+                          {selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed ? new Date(selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed).toLocaleDateString() : "—"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="label">
+                          <FiMapPin className="label-icon" />
+                          Source Unit
+                        </div>
+                        <div className="value">
+                          {selectedAgreement.source_unit || selectedAgreement.source || selectedAgreement.initiating_unit || "—"}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <div className="label">Brief Profile</div>
-                <div className="brief">
-                  {getBriefProfileFromAgreement(selectedAgreement) || "—"}
-                </div>
-              </section>
+                    <div className="label">
+                      <FiInfo className="label-icon" />
+                      Brief Profile
+                    </div>
+                    <div className="brief">
+                      {getBriefProfileFromAgreement(selectedAgreement) || "—"}
+                    </div>
+                  </section>
 
-              <section className="modal-section partner">
-                <h4>Partner Information</h4>
-
-                <div className="partner-top">
+                  <section className="modal-section partner">
+                    <div className="section-header">
+                      <FiTag className="header-icon" />
+                      <h4>Partner Information</h4>
+                    </div>
+                    <div className="partner-top">
                   <div className="partner-logo">
                     {LogoSrc(
                       selectedAgreement.logo_path || selectedAgreement.logo
@@ -2411,245 +2497,367 @@ const ActiveAgreement = () => {
                     )}
                   </div>
 
-                  <div className="partner-details">
+                    <div className="partner-details">
+                      <div className="row two-col">
+                        <div>
+                          <div className="label">
+                            <FiTag className="label-icon" />
+                            Organization
+                          </div>
+                          <div className="value">
+                            {selectedAgreement.name ||
+                              selectedAgreement.partnerName}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="label">
+                            <FiSettings className="label-icon" />
+                            Entity Type
+                          </div>
+                          <div className="value">
+                            {selectedAgreement.entity_type || "—"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="label">
+                            <FiMapPin className="label-icon" />
+                            Country
+                          </div>
+                          <div className="value">{selectedAgreement.country || "—"}</div>
+                        </div>
+                        <div>
+                          <div className="label">
+                            <FiMapPin className="label-icon" />
+                            Region
+                          </div>
+                          <div className="value">{selectedAgreement.region || "—"}</div>
+                        </div>
+                        <div>
+                          <div className="label">
+                            <FiMapPin className="label-icon" />
+                            Address
+                          </div>
+                          <div className="value">{selectedAgreement.address || "—"}</div>
+                        </div>
+                        <div>
+                          <div className="label">
+                            <FiLink className="label-icon" />
+                            Website
+                          </div>
+                          <div className="value">
+                            {(() => {
+                              const raw =
+                                getWebsiteFromAgreement(selectedAgreement);
+                              const href = normalizeHref(raw);
+                              if (!raw) return "—";
+                              return (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    color: "#3b82f6",
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  {raw}
+                                </a>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  </section>
+
+                  <section className="modal-section contacts">
+                    <div className="section-header">
+                      <FiUsers className="header-icon" />
+                      <h4>Contact Persons</h4>
+                    </div>
+                    <div className="contacts-grid">
+                      <div className="contact-card">
+                        <div className="contact-role">
+                          <FiUsers className="inline-icon" /> PUP Point Person
+                        </div>
+                        <div className="contact-name">
+                          {formatContactPersons(
+                            selectedAgreement.point_persons_display ||
+                              selectedAgreement.pointPerson ||
+                              selectedAgreement.point_persons
+                          )}
+                        </div>
+                        <div className="contact-org">
+                          {selectedAgreement.source_unit ||
+                            selectedAgreement.source ||
+                            selectedAgreement.initiating_unit ||
+                            "—"}
+                        </div>
+                        {pupEmail ? (
+                          <a className="contact-email" href={`mailto:${pupEmail}`}>
+                            <FiMessageCircle className="inline-icon" /> {pupEmail}
+                          </a>
+                        ) : null}
+                      </div>
+
+                      <div className="contact-card alt">
+                        <div className="contact-role">
+                          <FiUsers className="inline-icon" /> Partner Contact Person
+                        </div>
+                        <div className="contact-name">
+                          {formatContactPersons(
+                            selectedAgreement.contact_persons_display ||
+                              selectedAgreement.contactPerson ||
+                              selectedAgreement.contact_persons
+                          )}
+                        </div>
+                        <div className="contact-org">
+                          {selectedAgreement.name || selectedAgreement.partnerName || "—"}
+                        </div>
+                        {partnerEmail ? (
+                          <a
+                            className="contact-email"
+                            href={`mailto:${partnerEmail}`}
+                          >
+                            <FiMessageCircle className="inline-icon" /> {partnerEmail}
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* ===== Linked MOU ===== */}
+                  {linkedAgreement && (
+                    <section className="modal-section linked-mou">
+                      <div className="section-header">
+                        <FiLink className="header-icon" />
+                        <h4>Linked MOU</h4>
+                      </div>
+
+                      <div className="linked-mou-card">
+                        <div className="linked-mou-left">
+                          <span className="badge mou">MOU</span>
+                        </div>
+
+                        <div className="linked-mou-body">
+                          <strong className="linked-mou-title">
+                            {linkedAgreement.event_title ||
+                              linkedAgreement.eventTitle ||
+                              linkedAgreement.partner_name ||
+                              linkedAgreement.name ||
+                              "—"}
+                          </strong>
+                          <div className="linked-mou-sub">
+                            {linkedAgreement.partnership_type ||
+                              linkedAgreement.partnership_classification ||
+                              linkedAgreement.partnershipClassification ||
+                              "—"}
+                          </div>
+                          <div className="linked-mou-valid">
+                            Valid until:{" "}
+                            {linkedAgreement.date_expiry || linkedAgreement.expiry || linkedAgreement.expiryDate
+                              ? new Date(
+                                  linkedAgreement.date_expiry || linkedAgreement.expiry || linkedAgreement.expiryDate
+                                ).toLocaleDateString()
+                              : "—"}
+                          </div>
+                          <div className="linked-mou-dts">
+                            {linkedAgreement.dts_number ||
+                              linkedAgreement.dts_no ||
+                              linkedAgreement.dtsNumber ||
+                              linkedAgreement.id ||
+                              "—"}
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Agreement Timeline */}
+                  <section className="modal-section timeline">
+                    <div className="section-header">
+                      <FiCalendar className="header-icon" />
+                      <h4>Agreement Timeline</h4>
+                    </div>
                     <div className="row two-col">
                       <div>
-                        <div className="label">Organization</div>
+                        <div className="label">
+                          <FiCalendar className="label-icon" />
+                          Date of Signing
+                        </div>
                         <div className="value">
-                          {selectedAgreement.name ||
-                            selectedAgreement.partnerName}
+                          {selectedAgreement.date_signed || selectedAgreement.date_of_signing || selectedAgreement.dateOfSigning
+                            ? new Date(
+                                selectedAgreement.date_signed ||
+                                  selectedAgreement.date_of_signing ||
+                                  selectedAgreement.dateOfSigning
+                              ).toLocaleDateString()
+                            : "—"}
                         </div>
                       </div>
                       <div>
-                        <div className="label">Country</div>
-                        <div className="value">{selectedAgreement.country}</div>
-                      </div>
-                      <div>
-                        <div className="label">Region</div>
-                        <div className="value">{selectedAgreement.region}</div>
-                      </div>
-                      <div>
-                        <div className="label">Address</div>
-                        <div className="value">{selectedAgreement.address}</div>
-                      </div>
-                      <div>
-                        <div className="label">Website</div>
+                        <div className="label">
+                          <FiCalendar className="label-icon" />
+                          Expiry Date
+                        </div>
                         <div className="value">
-                          {(() => {
-                            const raw =
-                              getWebsiteFromAgreement(selectedAgreement);
-                            const href = normalizeHref(raw);
-                            if (!raw) return "—";
-                            return (
-                              <a
-                                href={href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                {raw}
-                              </a>
-                            );
-                          })()}
+                          {selectedAgreement.date_expiry || selectedAgreement.expiry || selectedAgreement.expiryDate
+                            ? new Date(
+                                selectedAgreement.date_expiry ||
+                                  selectedAgreement.expiry ||
+                                  selectedAgreement.expiryDate
+                              ).toLocaleDateString()
+                            : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="label">
+                          <FiCalendar className="label-icon" />
+                          Date Endorsed to ULCO
+                        </div>
+                        <div className="value">
+                          {selectedAgreement.date_endorsed_ulco || selectedAgreement.date_endorsed_to_ulco
+                            ? new Date(
+                                selectedAgreement.date_endorsed_ulco || selectedAgreement.date_endorsed_to_ulco
+                              ).toLocaleDateString()
+                            : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="label">
+                          <FiCheck className="label-icon" />
+                          ULCO's Approval
+                        </div>
+                        <div className="value">
+                          {selectedAgreement.ulco_approval || selectedAgreement.date_ulco_approved
+                            ? new Date(
+                                selectedAgreement.ulco_approval || selectedAgreement.date_ulco_approved
+                              ).toLocaleDateString()
+                            : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="label">
+                          <FiEdit className="label-icon" />
+                          PUP Officials' Signature
+                        </div>
+                        <div className="value">
+                          {selectedAgreement.pup_official_sign || selectedAgreement.date_signed_by_pup
+                            ? new Date(
+                                selectedAgreement.pup_official_sign || selectedAgreement.date_signed_by_pup
+                              ).toLocaleDateString()
+                            : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="label">
+                          <FiTag className="label-icon" />
+                          Validity Period
+                        </div>
+                        <div className="value">
+                          {selectedAgreement.validity_period ||
+                            selectedAgreement.validityPeriod
+                            ? `${selectedAgreement.validity_period || selectedAgreement.validityPeriod} years`
+                            : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="label">
+                          <FiTag className="label-icon" />
+                          Partnership Classification
+                        </div>
+                        <div className="value">
+                          {selectedAgreement.partnership_classification ||
+                            selectedAgreement.partnership_type ||
+                            selectedAgreement.partnershipClassification ||
+                            "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="label">
+                          <FiTag className="label-icon" />
+                          Event Title
+                        </div>
+                        <div className="value">
+                          {selectedAgreement.event_title || selectedAgreement.eventTitle || "—"}
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </section>
+                  </section>
 
-              <section className="modal-section contacts">
-                <h4>Contact Persons</h4>
-                <div className="contacts-grid">
-                  <div className="contact-card">
-                    <div className="contact-role">PUP Point Person</div>
-                    <div className="contact-name">
-                      {formatContactPersons(
-                        selectedAgreement.point_persons_display ||
-                          selectedAgreement.pointPerson ||
-                          selectedAgreement.point_persons
-                      )}
+                  {/* Signatories */}
+                  <section className="modal-section">
+                    <div className="section-header">
+                      <FiEdit className="header-icon" />
+                      <h4>Signatories</h4>
                     </div>
-                    <div className="contact-org">
-                      {selectedAgreement.source_unit ||
-                        selectedAgreement.source ||
-                        selectedAgreement.initiating_unit}
-                    </div>
-                    {pupEmail ? (
-                      <a className="contact-email" href={`mailto:${pupEmail}`}>
-                        {pupEmail}
-                      </a>
-                    ) : null}
-                  </div>
+                    {(() => {
+                      const signatories = selectedAgreement.signatories || selectedAgreement.signatories_text || "";
+                      if (signatories) {
+                        return <div className="value">{signatories}</div>;
+                      }
+                      return (
+                        <div className="empty-state">
+                          <FiEdit className="empty-icon" />
+                          <div className="empty-content">
+                            <div className="empty-title">
+                              No signatories recorded
+                            </div>
+                            <div className="empty-sub">
+                              Add signatories using Edit
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </section>
 
-                  <div className="contact-card alt">
-                    <div className="contact-role">Partner Contact Person</div>
-                    <div className="contact-name">
-                      {formatContactPersons(
-                        selectedAgreement.contact_persons_display ||
-                          selectedAgreement.contactPerson ||
-                          selectedAgreement.contact_persons
-                      )}
+                  {/* Remarks */}
+                  <section className="modal-section remarks">
+                    <div className="section-header">
+                      <FiMessageCircle className="header-icon" />
+                      <h4>Remarks</h4>
                     </div>
-                    <div className="contact-org">
-                      {selectedAgreement.name || selectedAgreement.partnerName}
-                    </div>
-                    {partnerEmail ? (
-                      <a
-                        className="contact-email"
-                        href={`mailto:${partnerEmail}`}
-                      >
-                        {partnerEmail}
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-              </section>
+                    {(() => {
+                      const remarks = selectedAgreement.remarks;
+                      if (Array.isArray(remarks) && remarks.length > 0) {
+                        return (
+                          <div className="value">
+                            {remarks.map((r, idx) => (
+                              <div key={idx}>
+                                {typeof r === "object"
+                                  ? r.remark_text || r.text || r.remark || ""
+                                  : r}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      } else if (typeof remarks === "string" && remarks.trim()) {
+                        return <div className="value">{remarks}</div>;
+                      }
+                      return (
+                        <div className="empty-state">
+                          <FiMessageCircle className="empty-icon" />
+                          <div className="empty-content">
+                            <div className="empty-title">No remarks</div>
+                            <div className="empty-sub">
+                              Add remarks using Edit
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </section>
 
-              {/* ===== Linked MOU ===== */}
-              {linkedAgreement && (
-                <section className="modal-section linked-mou">
-                  <h4>
-                    <FiLink
-                      style={{ marginRight: 8 }}
-                      className="inline-icon"
-                    />{" "}
-                    Linked MOU
-                  </h4>
-
-                  <div className="linked-mou-card">
-                    <div className="linked-mou-left">
-                      <span className="badge mou">MOU</span>
-                    </div>
-
-                    <div className="linked-mou-body">
-                      <strong className="linked-mou-title">
-                        {linkedAgreement.event_title ||
-                          linkedAgreement.eventTitle}
-                      </strong>
-                      <div className="small linked-mou-sub">
-                        {linkedAgreement.partnership_type ||
-                          linkedAgreement.partnershipClassification}
-                      </div>
-                      <div className="small linked-mou-valid">
-                        Valid until:{" "}
-                        {new Date(
-                          linkedAgreement.date_expiry ||
-                            linkedAgreement.expiryDate
-                        ).toLocaleDateString()}
-                      </div>
-                      <div className="linked-mou-dts small">
-                        {linkedAgreement.dts_number ||
-                          linkedAgreement.dtsNumber}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Agreement Timeline */}
-              <section className="modal-section timeline">
-                <h4>Agreement Timeline</h4>
-                <div className="row two-col">
-                  <div>
-                    <div className="label">Date of Signing</div>
-                    <div className="value">
-                      {new Date(
-                        selectedAgreement.date_signed ||
-                          selectedAgreement.dateOfSigning
-                      ).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="label">Expiry Date</div>
-                    <div className="value">
-                      {new Date(
-                        selectedAgreement.date_expiry ||
-                          selectedAgreement.expiryDate
-                      ).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="label">Validity Period</div>
-                    <div className="value">
-                      {selectedAgreement.validity_period ||
-                        selectedAgreement.validityPeriod}{" "}
-                      years
-                    </div>
-                  </div>
-                  <div>
-                    <div className="label">Status</div>
-                    <div className="value status-pill">
-                      {(selectedAgreement.agreement_status ||
-                        selectedAgreement.status) === "expiring-soon"
-                        ? "Expiring soon"
-                        : "Active"}
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="modal-section remarks">
-                <div className="label">Remarks</div>
-                <div className="brief">
-                  {Array.isArray(selectedAgreement.remarks) ? (
-                    selectedAgreement.remarks.map((r, idx) => (
-                      <div key={idx}>
-                        {typeof r === "object"
-                          ? r.remark_text || r.text || r.remark || ""
-                          : r}
-                      </div>
-                    ))
-                  ) : selectedAgreement.remarks ? (
-                    <div>{selectedAgreement.remarks}</div>
-                  ) : (
-                    "—"
-                  )}
-                </div>
-              </section>
-            </div>
-
-            <div className="overview1-modal-footer agreement-modal-footer">
-              {!isModalEdit ? (
-                <>
-                  {/** Show Edit only to admins */}
-                  {(() => {
-                    const isAdminUser = (user = currentUser) => {
-                      const u = user || currentUser;
-                      if (!u) return false;
-                      if (u.is_admin || u.isAdmin) return true;
-                      if (
-                        typeof u.role === "string" &&
-                        /admin|administrator/i.test(u.role)
-                      )
-                        return true;
-                      if (
-                        typeof u.user_role === "string" &&
-                        /admin|administrator/i.test(u.user_role)
-                      )
-                        return true;
-                      if (
-                        typeof u.role_name === "string" &&
-                        /admin|administrator/i.test(u.role_name)
-                      )
-                        return true;
-                      if (
-                        Array.isArray(u.roles) &&
-                        u.roles.some((r) => /admin/i.test(String(r)))
-                      )
-                        return true;
-                      if (
-                        Array.isArray(u.permissions) &&
-                        u.permissions.includes("admin")
-                      )
-                        return true;
-                      return false;
-                    };
-                    return isAdminUser() ? (
-                      <button className="btn edit" onClick={startModalEdit}>
+                  {/* Admin Edit Button */}
+                  {headerIsAdmin() && (
+                    <div className="modal-edit-actions" style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}>
+                      <button className="btn action edit" onClick={startModalEdit}>
                         <FiEdit className="icon" /> Edit
                       </button>
-                    ) : null;
-                  })()}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div style={{ width: "100%" }} className="modal-edit-panel">
