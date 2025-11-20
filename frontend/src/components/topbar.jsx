@@ -16,7 +16,8 @@ const TopBar = ({ toggleSidebar }) => {
   const unreadNotifications = notifications.filter((n) => !n.read);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('token_type');
     sessionStorage.clear();
     navigate('/');
   };

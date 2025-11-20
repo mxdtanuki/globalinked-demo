@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, s
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime
+from app.utils.audit_utils import log_file_upload
 from typing import List, Optional
 from storage3.exceptions import StorageApiError
 import traceback
@@ -33,6 +34,7 @@ async def upload_version(
     version_comment: Optional[str] = Form(None),
     status_at_upload: Optional[str] = Form(None),
     db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user), 
 ):
     print(f"UPLOAD VERSION HIT: dts_number={dts_number}, file={file.filename}, version_comment={version_comment}, status_at_upload={status_at_upload}")
 
@@ -71,6 +73,7 @@ async def upload_version(
     db.add(new_version)
     try:
         db.commit()
+        log_file_upload(db, current_user, dts_number, new_version.version_number)
     except Exception as e:
         print(f"DB COMMIT FAILED: {e}")
         raise

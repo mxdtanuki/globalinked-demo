@@ -239,6 +239,11 @@ async def get_agreements_list(
                 detail=f"Error fetching agreements: {str(e)}"
             )
 
+@router.get("/agreements/public")
+async def get_public_agreements():
+    # Return only public data (filter as needed)
+    return await get_agreements(public_only=True)
+
 @router.get("/archive", response_model=List[ArchiveAgreementResponse])
 async def get_archived_agreements(
     current_user: Users = Depends(get_current_user)

@@ -30,7 +30,7 @@ const MOUMOAPublicPage = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const agreements = await agreementService.getAgreements();
+        const agreements = await agreementService.getPublicAgreements();
         const activeAgreements = agreements.filter(
           (ag) => ag.agreement_status === "Active"
         );

@@ -259,23 +259,26 @@ def agreement_notification_job():
                     partner = a.partner
                     category = "expiring_soon"
                     days_until = (a.date_expiry - today).days if a.date_expiry else None
-                    time_until = _format_days_until(days_until)
-                    msg = f"{a.document_type} '{a.dts_number}' with partner '{partner.name}' expires in {time_until}."
-                    actions = _recommended_actions_for_category(category, None)
-                    
-                    notif = create_notification_if_new(
-                        db, 
-                        a.agreement_id, 
-                        category, 
-                        msg, 
-                        "\n".join(actions)
-                    )
-                    
-                    if notif:
-                        logger.info(f"[Scheduler] ✅ Created expiring notification: {a.dts_number}")
-                    else:
-                        logger.debug(f"[Scheduler] ⚠️ Notification already exists: {a.dts_number}")
+                    if days_until is not None and (
+                        days_until % 5 == 0 or days_until in [3, 2, 1]
+                    ):
+                        time_until = _format_days_until(days_until)
+                        msg = f"{a.document_type} '{a.dts_number}' with partner '{partner.name}' expires in {time_until}."
+                        actions = _recommended_actions_for_category(category, None)
                         
+                        notif = create_notification_if_new(
+                            db, 
+                            a.agreement_id, 
+                            category, 
+                            msg, 
+                            "\n".join(actions)
+                        )
+                        
+                        if notif:
+                            logger.info(f"[Scheduler] ✅ Created expiring notification: {a.dts_number}")
+                        else:
+                            logger.debug(f"[Scheduler] ⚠️ Notification already exists: {a.dts_number}")
+                            
                 except Exception as e:
                     logger.error(f"[Scheduler] Error processing expiring agreement {a.agreement_id}: {e}")
                     continue
@@ -316,7 +319,12 @@ def agreement_notification_job():
                             last_change_date = last_status_change.date()
                         else:
                             last_change_date = last_status_change
-                        days_pending = (today - last_change_date).days
+                        # Ensure today is also a date
+                        if isinstance(today, datetime):
+                            today_date = today.date()
+                        else:
+                            today_date = today
+                        days_pending = (today_date - last_change_date).days
                         last_change_info = f"since {last_change_date}"
                     elif a.entry_date:
                         entry_date = (
@@ -392,23 +400,24 @@ def agreement_notification_job():
                     partner = a.partner
                     category = "renewal_needed"
                     days_expired = (today - a.date_expiry).days if a.date_expiry else None
-                    time_ago = _format_days_ago(days_expired)
-                    msg = f"{a.document_type} of {partner.name} - '{a.dts_number}' expired on {a.date_expiry} ({time_ago})."
-                    actions = _recommended_actions_for_category(category, None)
-                    
-                    notif = create_notification_if_new(
-                        db, 
-                        a.agreement_id, 
-                        category, 
-                        msg, 
-                        "\n".join(actions)
-                    )
-                    
-                    if notif:
-                        logger.info(f"[Scheduler] ✅ Created renewal notification: {a.dts_number}")
-                    else:
-                        logger.debug(f"[Scheduler] ⚠️ Notification exists: {a.dts_number}")
+                    if days_expired == 0 or days_expired == (today - a.entry_date).days:
+                        time_ago = _format_days_ago(days_expired)
+                        msg = f"{a.document_type} of {partner.name} - '{a.dts_number}' expired on {a.date_expiry} ({time_ago})."
+                        actions = _recommended_actions_for_category(category, None)
                         
+                        notif = create_notification_if_new(
+                            db, 
+                            a.agreement_id, 
+                            category, 
+                            msg, 
+                            "\n".join(actions)
+                        )
+                        
+                        if notif:
+                            logger.info(f"[Scheduler] ✅ Created renewal notification: {a.dts_number}")
+                        else:
+                            logger.debug(f"[Scheduler] ⚠️ Notification exists: {a.dts_number}")
+                            
                 except Exception as e:
                     logger.error(f"[Scheduler] Error processing renewal agreement {a.agreement_id}: {e}")
                     continue

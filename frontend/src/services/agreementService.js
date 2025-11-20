@@ -87,29 +87,44 @@ async createAgreement(formData) {
     return response.json();
   },
 
-    // NEW: Get withdrawn agreements with server-side filtering
+   async getPublicAgreements(filters = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+
+    const response = await fetch(`${API_BASE_URL}/agreements/public?${queryParams.toString()}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch public agreements');
+    }
+    return response.json();
+  },
+
+    // Get withdrawn agreements with server-side filtering
   async getWithdrawnAgreements() {
     return this.getAgreements({ status_filter: 'WITHDRAWN' });
   },
   
-  // NEW: Get only active agreements
+  // Get only active agreements
   async getActiveAgreements() {
     return this.getAgreements({ status_filter: 'ACTIVE' });
   },
 
-  // NEW: Get only open agreements  
+  // Get only open agreements  
   async getOpenAgreements() {
     return this.getAgreements({ status_filter: 'OPEN' });
   },
 
-  // NEW: Get mobility agreements with specific partnership types
+  // Get mobility agreements with specific partnership types
   async getMobilityAgreements() {
     return this.getAgreements({ 
       status_filter: 'ACTIVE',
       partnership_type: 'MOA on Student Competition,MOA on Internship,MOA on Faculty Exchange,MOA on Student Exchange,MOA on Faculty and Student Exchange'
     });
   },
-  // NEW: Lightweight summary for dashboard
+  // Lightweight summary for dashboard
   async getAgreementsSummary() {
     const token = localStorage.getItem('access_token');
     
