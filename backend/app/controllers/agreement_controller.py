@@ -239,10 +239,28 @@ async def get_agreements_list(
                 detail=f"Error fetching agreements: {str(e)}"
             )
 
-@router.get("/agreements/public")
-async def get_public_agreements():
-    # Return only public data (filter as needed)
-    return await get_agreements(public_only=True)
+@router.get("/public")
+def get_public_agreements(db: Session = Depends(get_db)):
+    results = (
+        db.query(Agreements, Partners)
+        .join(Partners, Agreements.partner_id == Partners.partner_id)
+        .filter(Agreements.agreement_status == "Active")
+        .all()
+    )
+    return [
+        {
+            "agreement_status": agreement.agreement_status,
+            "document_type": agreement.document_type,
+            "dts_number": agreement.dts_number,
+            "partner_name": partner.name,
+            "country": partner.country,
+            "region": partner.region,
+            "logo_path": partner.logo_path,
+            "date_signed": agreement.date_signed,
+            "date_expiry": agreement.date_expiry,
+        }
+        for agreement, partner in results
+    ]
 
 @router.get("/archive", response_model=List[ArchiveAgreementResponse])
 async def get_archived_agreements(
