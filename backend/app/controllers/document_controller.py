@@ -8,6 +8,8 @@ from storage3.exceptions import StorageApiError
 import traceback
 from app.database import get_db
 from app.models.agreements import Agreements
+from app.models.users import Users
+from app.utils.utils import get_current_user
 from app.models.document_versions import DocumentVersions
 from app.schemas.document_schemas import DocumentVersionResponse
 from app.models.partners import Partners
@@ -34,7 +36,7 @@ async def upload_version(
     version_comment: Optional[str] = Form(None),
     status_at_upload: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    current_user: Users = Depends(get_current_user), 
+    current_user: Users = Depends(get_current_user),
 ):
     print(f"UPLOAD VERSION HIT: dts_number={dts_number}, file={file.filename}, version_comment={version_comment}, status_at_upload={status_at_upload}")
 
