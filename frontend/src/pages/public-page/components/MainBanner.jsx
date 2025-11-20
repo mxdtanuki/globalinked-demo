@@ -56,7 +56,7 @@ export default function MainBanner() {
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const agreements = await agreementService.getAgreements();
+            const agreements = await agreementService.getPublicAgreements();
 
             console.log("📦 All Agreements:", agreements);
 

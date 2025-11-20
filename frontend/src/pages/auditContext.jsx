@@ -7,6 +7,8 @@ export function AuditProvider({ children }) {
   const [logs, setLogs] = useState([]);
 
   const refresh = async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return; // Don't fetch if not logged in
     try {
       const serverLogs = await fetchAuditLogs();
       setLogs(serverLogs);

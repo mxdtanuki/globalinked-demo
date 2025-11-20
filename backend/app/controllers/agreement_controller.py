@@ -249,6 +249,7 @@ def get_public_agreements(db: Session = Depends(get_db)):
     )
     return [
         {
+            "agreement_id": agreement.agreement_id,
             "agreement_status": agreement.agreement_status,
             "document_type": agreement.document_type,
             "dts_number": agreement.dts_number,
@@ -258,6 +259,11 @@ def get_public_agreements(db: Session = Depends(get_db)):
             "logo_path": partner.logo_path,
             "date_signed": agreement.date_signed,
             "date_expiry": agreement.date_expiry,
+            "partnership_type": agreement.partnership_type,
+            "entity_type": partner.entity_type,
+            "address": partner.address,
+            "website_url": partner.website_url,
+            "description": partner.description,
         }
         for agreement, partner in results
     ]

@@ -46,6 +46,8 @@ const refresh = async () => {
   refresh();
 
   const interval = setInterval(async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
     try {
       const server = await notificationService.fetchNotifications();
       const ui = mapServerToUi(server);
