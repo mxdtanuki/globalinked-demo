@@ -28,6 +28,124 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 
+/* Reusable searchable select */
+const SearchableSelect = ({
+  options = [],
+  value,
+  onChange,
+  placeholder = "Select...",
+  allowClear = true,
+}) => {
+  const normalized = options.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : o
+  );
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef();
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!ref.current) return;
+      // Don't close if clicking inside the searchable select component
+      if (ref.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const filtered = normalized.filter((o) =>
+    o.label.toLowerCase().includes(query.toLowerCase())
+  );
+  const selectedLabel =
+    normalized.find((o) => String(o.value) === String(value))?.label || "";
+
+  return (
+    <div
+      className="searchable-select"
+      ref={ref}
+      style={{ position: "relative" }}
+    >
+      <button
+        type="button"
+        className="ss-toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className={`ss-value ${selectedLabel ? "" : "placeholder"}`}>
+          {selectedLabel || placeholder}
+        </span>
+        <span className="ss-caret">▾</span>
+      </button>
+      {allowClear && selectedLabel && (
+        <button
+          className="ss-clear"
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange && onChange("");
+          }}
+          aria-label="Clear selection"
+        >
+          ×
+        </button>
+      )}
+      {open && (
+        <div
+          className="ss-panel"
+          role="dialog"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            zIndex: 40,
+            background: "#fff",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            marginTop: 6,
+            width: 320,
+            maxHeight: 260,
+            overflow: "auto",
+          }}
+        >
+          <div style={{ padding: 8 }}>
+            <input
+              autoFocus
+              className="ss-search"
+              placeholder="Type to search..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <ul
+            className="ss-list"
+            role="listbox"
+            aria-label="options"
+            style={{ listStyle: "none", margin: 0, padding: 0 }}
+          >
+            {filtered.length === 0 && (
+              <li style={{ padding: 8, color: "#666" }}>No results</li>
+            )}
+            {filtered.map((o) => (
+              <li
+                key={o.value}
+                className="ss-item"
+                style={{ padding: 8, cursor: "pointer" }}
+                onClick={() => {
+                  onChange && onChange(o.value);
+                  setOpen(false);
+                }}
+              >
+                {o.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Archive = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileShow, setMobileShow] = useState(false);
@@ -1198,18 +1316,17 @@ const Archive = () => {
                               <FiTag className="filter-icon" />
                               Document Type
                             </label>
-                            <div className="filter-select-wrapper">
-                              <select
-                                value={tmpDocType}
-                                onChange={(e) => setTmpDocType(e.target.value)}
-                                className="filter-select"
-                              >
-                                <option value="">All Types</option>
-                                <option value="MOA">MOA</option>
-                                <option value="MOU">MOU</option>
-                              </select>
-                              <FiChevronDown className="select-chevron" />
-                            </div>
+                            <SearchableSelect
+                              options={[
+                                { value: "", label: "All Types" },
+                                { value: "MOA", label: "MOA" },
+                                { value: "MOU", label: "MOU" },
+                              ]}
+                              value={tmpDocType}
+                              onChange={(v) => setTmpDocType(v || "")}
+                              placeholder="All Types"
+                              allowClear={false}
+                            />
                           </div>
 
                           <div className="archive-panel-field">
@@ -1217,23 +1334,19 @@ const Archive = () => {
                               <FiTag className="filter-icon" />
                               Partnership Classification
                             </label>
-                            <div className="filter-select-wrapper">
-                              <select
-                                value={tmpClassification}
-                                onChange={(e) =>
-                                  setTmpClassification(e.target.value)
-                                }
-                                className="filter-select"
-                              >
-                                <option value="">All Classifications</option>
-                                {classificationOptions.map((c) => (
-                                  <option key={c} value={c}>
-                                    {c}
-                                  </option>
-                                ))}
-                              </select>
-                              <FiChevronDown className="select-chevron" />
-                            </div>
+                            <SearchableSelect
+                              options={[
+                                { value: "", label: "All Classifications" },
+                                ...classificationOptions.map((c) => ({
+                                  value: c,
+                                  label: c,
+                                })),
+                              ]}
+                              value={tmpClassification}
+                              onChange={(v) => setTmpClassification(v || "")}
+                              placeholder="All Classifications"
+                              allowClear={false}
+                            />
                           </div>
                         </div>
 
@@ -1243,6 +1356,9 @@ const Archive = () => {
                             onClick={() => {
                               setTmpDocType("");
                               setTmpClassification("");
+                              setFilterDocType("");
+                              setFilterClassification("");
+                              setShowFilterPanel(false);
                             }}
                           >
                             <FiXCircle className="btn-icon" />

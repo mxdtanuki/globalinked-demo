@@ -1323,9 +1323,13 @@
   animation: stage-card-alert 1.1s ease-in-out infinite !important;
 }
 
-/* Keep the delayed indicator dot visible on active cards */
+/* Replace the small red dot with a numeric attention badge.
+   The badge displays the value of the `data-attention-count` attribute
+   on the `.stage-card`. If the attribute is missing or zero the badge
+   is hidden. This keeps the pulsing/animation behavior but shows a
+   clear count of items needing attention. */
 .stage-card.active.delayed::after {
-  background: #ff3b30 !important;
+  /* visual emphasis for active+delayed cards - badge styling handled below */
   box-shadow: 0 0 14px rgba(255, 59, 48, 0.7) !important;
 }
 
@@ -1343,15 +1347,42 @@
 }
 
 .stage-card.delayed::after {
-  content: "";
+  /* show the numeric count from data-attention-count; hide if not set or zero */
+  content: attr(data-attention-count);
   position: absolute;
   right: 8px;
   top: 8px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  min-width: 18px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 12px;
   background: #ff3b30;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
   box-shadow: 0 0 14px rgba(255, 59, 48, 0.7);
+  transform-origin: center;
+}
+
+/* hide badge when count is zero or attribute missing */
+.stage-card.delayed:not([data-attention-count])::after,
+.stage-card.delayed[data-attention-count="0"]::after {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .stage-card.delayed::after {
+    right: 6px;
+    top: 6px;
+    min-width: 16px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 11px;
+  }
 }
 
 @keyframes stage-card-alert {
@@ -1638,6 +1669,7 @@
   transform: translateY(-1px);
 }
 
+/* apply filter button */
 .overview1-filter-panel .btn.apply {
   background: linear-gradient(180deg, #ffe8e5, #ffd9d4);
   color: #800020;
@@ -2780,17 +2812,25 @@
   transform: translateY(-1px);
 }
 
-.overview1-filter-actions .btn.apply {
+.overview1-filter-actions .btn.apply,
+.overview1-filter-panel .overview1-filter-actions .btn.apply {
   background: linear-gradient(135deg, #ffe8e5, #ffd9d4) !important;
-  color: #800020;
-  border-color: rgba(139, 31, 45, 0.25);
-  box-shadow: 0 4px 12px rgba(139, 31, 45, 0.1);
+  color: #800020 !important;
+  border: 1px solid rgba(139, 31, 45, 0.25) !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  min-width: 100px !important;
+  height: 36px !important;
+  box-shadow: 0 4px 12px rgba(139, 31, 45, 0.1) !important;
 }
 
-.overview1-filter-actions .btn.apply:hover {
+.overview1-filter-actions .btn.apply:hover,
+.overview1-filter-panel .overview1-filter-actions .btn.apply:hover {
   background: linear-gradient(135deg, #ffd9d4, #ffcac4) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.15);
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.15) !important;
 }
 
 .btn-icon {

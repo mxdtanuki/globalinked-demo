@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from dateutil import parser
 from typing import Dict, Any, List, Optional
+import spacy
 
 from difflib import get_close_matches
 
@@ -39,6 +40,9 @@ class NLPLegalExtractionService:
         qa_confidence_threshold: Optional[float] = None,
         document_processing_service: Optional[DocumentProcessingService] = None,
     ):
+        self.spacy_nlp = spacy.load("en_core_web_trf")
+   
+
         # --- Regex patterns as fallback ---
         self.date_pattern = re.compile(
             r"(\b\d{1,2}(st|nd|rd|th)?\s+"
@@ -153,7 +157,7 @@ class NLPLegalExtractionService:
             "Uzbekistan": "Central Asia", "Vanuatu": "Oceania", "Vatican City": "Southern Europe", "Venezuela": "South America",
             "Vietnam": "South-Eastern Asia", "Yemen": "Western Asia", "Zambia": "Eastern Africa", "Zimbabwe": "Eastern Africa",
             "HongKong": "Eastern Asia", "Macao": "Eastern Asia"
-        }
+        }    
 
         # Initialize document processor
         self.doc_processor = document_processing_service if document_processing_service else DocumentProcessingService()
@@ -283,6 +287,17 @@ class NLPLegalExtractionService:
             "Date PUP signed"
             ]
         }
+
+    def _extract_entities_spacy(self, text: str) -> Dict[str, list]:
+        """
+        Use spaCy NER to extract entities from text.
+        Returns a dict of entity types to list of strings.
+        """
+        doc = self.spacy_nlp(text)
+        entities = {}
+        for ent in doc.ents:
+            entities.setdefault(ent.label_, []).append(ent.text)
+        return entities
 
     def _ensure_qa(self) -> bool:
         """

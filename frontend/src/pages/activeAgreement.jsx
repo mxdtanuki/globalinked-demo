@@ -11,6 +11,7 @@ import {
   FiEye,
   FiLink,
   FiArrowRight,
+  FiClock,
   FiPrinter,
   FiDownload,
   FiX,
@@ -34,6 +35,10 @@ import {
   FiUsers,
   FiMessageCircle,
   FiHash,
+  FiXCircle,
+  FiHome,
+  FiAlignLeft,
+  FiBookOpen,
 } from "react-icons/fi";
 import { TbFileText } from "react-icons/tb";
 import { agreementService } from "../services/agreementService";
@@ -168,6 +173,7 @@ const ActiveAgreement = () => {
   const [filterValidityPeriod, setFilterValidityPeriod] = useState("");
   const [filterClassification, setFilterClassification] = useState("");
   const [filterCountryScope, setFilterCountryScope] = useState("all"); // all | local | international
+  const [filterSource, setFilterSource] = useState("");
 
   const API_BASE_URL =
     process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
@@ -815,6 +821,16 @@ const ActiveAgreement = () => {
     }
     return Array.from(s).sort((x, y) => x.localeCompare(y));
   }, [activeAgreements]);
+
+  // derived options for source (from activeAgreements)
+  const sourceOptions = useMemo(() => {
+    const s = new Set();
+    for (const a of activeAgreements) {
+      const source = a.source_unit || a.source || a.initiating_unit || "";
+      if (source && String(source).trim() !== "") s.add(String(source).trim());
+    }
+    return Array.from(s).sort();
+  }, [activeAgreements]);
   // recompute filteredAgreements with the additional filters (validity period and country scope)
   const filteredAgreementsWithFilters = useMemo(() => {
     return activeAgreements
@@ -875,6 +891,11 @@ const ActiveAgreement = () => {
             .toLowerCase();
           if (!country || country !== selected) return false;
         }
+        // apply source filter if set
+        if (filterSource) {
+          const source = a.source_unit || a.source || a.initiating_unit || "";
+          if (String(source) !== String(filterSource)) return false;
+        }
         return true;
       });
   }, [
@@ -884,6 +905,7 @@ const ActiveAgreement = () => {
     filterClassification,
     filterValidityPeriod,
     filterCountryScope,
+    filterSource,
   ]);
 
   const totalPages = Math.max(
@@ -1441,7 +1463,7 @@ const ActiveAgreement = () => {
                     display: "flex",
                     gap: 12,
                     alignItems: "center",
-                    justifyContent: "flex-end",
+                    justifyContent: "flex-start",
                   }}
                 >
                   <div className="table-actions">
@@ -1577,15 +1599,21 @@ const ActiveAgreement = () => {
                     </button>
                   </div>
 
-                  <div className="overview1-panel-row" style={{ padding: 16 }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, 1fr)",
+                      gap: "12px",
+                      padding: "16px",
+                    }}
+                  >
                     <div className="overview1-panel-field">
-                      <label>
-                        <FiTag className="inline-icon" /> Partnership
-                        Classification
+                      <label className="filter-label">
+                        <FiTag className="filter-icon" /> Classification
                       </label>
                       <SearchableSelect
                         options={[
-                          { value: "", label: "All Classifications" },
+                          { value: "", label: "All" },
                           ...classificationOptions.map((c) => ({
                             value: c,
                             label: c,
@@ -1596,21 +1624,21 @@ const ActiveAgreement = () => {
                           setFilterClassification(v || "");
                           setCurrentPage(1);
                         }}
-                        placeholder="All Classifications"
+                        placeholder="All"
                         allowClear={false}
                       />
                     </div>
 
                     <div className="overview1-panel-field">
-                      <label>
-                        <FiCalendar className="inline-icon" /> Validity Period
+                      <label className="filter-label">
+                        <FiClock className="filter-icon" /> Validity Period
                       </label>
                       <SearchableSelect
                         options={[
-                          { value: "", label: "All Periods" },
+                          { value: "", label: "All" },
                           ...validityOptions.map((v) => ({
                             value: v,
-                            label: v,
+                            label: v ? `${v} ${parseInt(v) === 1 ? 'Year' : 'Years'}` : v,
                           })),
                         ]}
                         value={filterValidityPeriod}
@@ -1618,18 +1646,18 @@ const ActiveAgreement = () => {
                           setFilterValidityPeriod(v || "");
                           setCurrentPage(1);
                         }}
-                        placeholder="All Periods"
+                        placeholder="All"
                         allowClear={false}
                       />
                     </div>
 
                     <div className="overview1-panel-field">
-                      <label>
-                        <FiMapPin className="inline-icon" /> Country
+                      <label className="filter-label">
+                        <FiMapPin className="filter-icon" /> Country
                       </label>
                       <SearchableSelect
                         options={[
-                          { value: "all", label: "All Countries" },
+                          { value: "all", label: "All" },
                           ...countryOptions.map((c) => ({
                             value: c,
                             label: c,
@@ -1640,50 +1668,54 @@ const ActiveAgreement = () => {
                           setFilterCountryScope(v || "all");
                           setCurrentPage(1);
                         }}
-                        placeholder="All Countries"
+                        placeholder="All"
+                        allowClear={false}
+                      />
+                    </div>
+
+                    <div className="overview1-panel-field">
+                      <label className="filter-label">
+                        <FiHome className="filter-icon" /> Source
+                      </label>
+                      <SearchableSelect
+                        options={[
+                          { value: "", label: "All" },
+                          ...sourceOptions.map((s) => ({
+                            value: s,
+                            label: s,
+                          })),
+                        ]}
+                        value={filterSource}
+                        onChange={(v) => {
+                          setFilterSource(v || "");
+                          setCurrentPage(1);
+                        }}
+                        placeholder="All"
                         allowClear={false}
                       />
                     </div>
                   </div>
 
-                  <div
-                    className="overview1-filter-actions"
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: 12,
-                      padding: "0 16px 16px",
-                    }}
-                  >
+                  <div className="overview1-filter-actions">
                     <button
                       className="btn clear"
                       onClick={() => {
                         setFilterClassification("");
                         setFilterValidityPeriod("");
                         setFilterCountryScope("all");
+                        setFilterSource("");
                         setShowFilterPanel(false);
                         setCurrentPage(1);
                       }}
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
                     >
-                      <FiX />
+                      <FiXCircle className="btn-icon" />
                       Clear All
                     </button>
                     <button
                       className="btn apply"
                       onClick={() => setShowFilterPanel(false)}
-                      style={{
-                        background: "#8b1f2d",
-                        color: "#fff",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        border: "none",
-                        padding: "10px 18px",
-                        borderRadius: 8,
-                      }}
                     >
-                      <FiCheck />
+                      <FiCheck className="btn-icon" />
                       Apply Filters
                     </button>
                   </div>
@@ -2359,49 +2391,29 @@ const ActiveAgreement = () => {
                           {selectedAgreement.agreement_status || selectedAgreement.status || "Active"}
                         </div>
                       </div>
-                      <div className="details-meta">
-                        <div className="details-meta-item">
-                          <span className="label">DTS No.</span>
-                          <span className="value mono value-with-icon">
-                            <FiHash className="value-icon" />
-                            {selectedAgreement.dts_number || selectedAgreement.dtsNumber || "—"}
-                          </span>
-                        </div>
-                        <div className="details-meta-item">
-                          <span className="label">Date Received</span>
-                          <span className="value value-with-icon">
-                            <FiCalendar className="value-icon" />
-                            {selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed
-                              ? new Date(
-                                  selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed
-                                ).toLocaleDateString()
-                              : "—"}
-                          </span>
-                        </div>
+                      <div className="file-actions" style={{ marginLeft: "auto" }}>
+                        <button
+                          className="btn action view-file"
+                          onClick={() => handleViewLatestFile(selectedDts)}
+                          title="View Latest File"
+                          aria-label="View Latest File"
+                        >
+                          <FiEye className="icon" />
+                          View File
+                        </button>
+                        <button
+                          className="btn action older-files"
+                          onClick={() => {
+                            if (selectedDts) navigate(`/docVer?dts_number=${encodeURIComponent(selectedDts)}`);
+                            else alert("No DTS number available for this agreement.");
+                          }}
+                          title="View Older Files"
+                          aria-label="View Older Files"
+                        >
+                          <FiArchive className="icon" />
+                          Older Files
+                        </button>
                       </div>
-                    </div>
-                    <div className="file-actions">
-                      <button
-                        className="btn action view-file"
-                        onClick={() => handleViewLatestFile(selectedDts)}
-                        title="View Latest File"
-                        aria-label="View Latest File"
-                      >
-                        <FiEye className="icon" />
-                        View File
-                      </button>
-                      <button
-                        className="btn action older-files"
-                        onClick={() => {
-                          if (selectedDts) navigate(`/docVer?dts_number=${encodeURIComponent(selectedDts)}`);
-                          else alert("No DTS number available for this agreement.");
-                        }}
-                        title="View Older Files"
-                        aria-label="View Older Files"
-                      >
-                        <FiArchive className="icon" />
-                        Older Files
-                      </button>
                     </div>
                   </div>
                   {/* Document Information */}
@@ -2413,11 +2425,10 @@ const ActiveAgreement = () => {
                     <div className="row two-col">
                       <div>
                         <div className="label">
-                          <FiTag className="label-icon" />
+                          <FiHash className="label-icon" />
                           DTS Number
                         </div>
-                        <div className="value mono value-with-icon">
-                          <FiHash className="value-icon" />
+                        <div className="value mono">
                           {selectedAgreement.dts_number || selectedAgreement.dtsNumber}
                         </div>
                       </div>
@@ -2437,15 +2448,14 @@ const ActiveAgreement = () => {
                           <FiCalendar className="label-icon" />
                           Date Received
                         </div>
-                        <div className="value value-with-icon">
-                          <FiCalendar className="value-icon" />
+                        <div className="value">
                           {selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed ? new Date(selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed).toLocaleDateString() : "—"}
                         </div>
                       </div>
 
                       <div>
                         <div className="label">
-                          <FiMapPin className="label-icon" />
+                          <FiHome className="label-icon" />
                           Source Unit
                         </div>
                         <div className="value">
@@ -2454,11 +2464,11 @@ const ActiveAgreement = () => {
                       </div>
                     </div>
 
-                    <div className="label">
-                      <FiInfo className="label-icon" />
+                    <div className="label" style={{ marginTop: 20 }}>
+                      <FiBookOpen className="label-icon" />
                       Brief Profile
                     </div>
-                    <div className="brief">
+                    <div className="brief" style={{ marginTop: 8, lineHeight: 1.6 }}>
                       {getBriefProfileFromAgreement(selectedAgreement) || "—"}
                     </div>
                   </section>
@@ -2698,7 +2708,7 @@ const ActiveAgreement = () => {
                       </div>
                       <div>
                         <div className="label">
-                          <FiCalendar className="label-icon" />
+                          <FiClock className="label-icon" />
                           Expiry Date
                         </div>
                         <div className="value">
@@ -2752,7 +2762,7 @@ const ActiveAgreement = () => {
                       </div>
                       <div>
                         <div className="label">
-                          <FiTag className="label-icon" />
+                          <FiClock className="label-icon" />
                           Validity Period
                         </div>
                         <div className="value">
@@ -2793,20 +2803,51 @@ const ActiveAgreement = () => {
                       <h4>Signatories</h4>
                     </div>
                     {(() => {
-                      const signatories = selectedAgreement.signatories || selectedAgreement.signatories_text || "";
-                      if (signatories) {
-                        return <div className="value">{signatories}</div>;
+                      // Accept multiple possible shapes from the API:
+                      // - selectedAgreement.signatories_list (array or string)
+                      // - selectedAgreement.signatories (array or string)
+                      // - selectedAgreement.signatories_text (string)
+                      const raw =
+                        selectedAgreement.signatories_list ??
+                        selectedAgreement.signatories ??
+                        selectedAgreement.signatories_text ??
+                        selectedAgreement.signatoriesList ??
+                        "";
+
+                      let signatoriesText = "";
+                      if (Array.isArray(raw)) {
+                        // Map array items to readable strings (handle objects)
+                        signatoriesText = raw
+                          .map((it) => {
+                            if (!it && it !== 0) return "";
+                            if (typeof it === "string") return it;
+                            if (typeof it === "object")
+                              return (
+                                it.signatory_name ||
+                                it.name ||
+                                it.text ||
+                                it.signatory ||
+                                it.remark_text ||
+                                JSON.stringify(it)
+                              );
+                            return String(it);
+                          })
+                          .filter(Boolean)
+                          .join("; ");
+                      } else if (typeof raw === "string" && raw.trim()) {
+                        signatoriesText = raw.trim();
                       }
+
+                      if (signatoriesText) {
+                        return <div className="value">{signatoriesText}</div>;
+                      }
+
                       return (
                         <div className="empty-state">
                           <FiEdit className="empty-icon" />
                           <div className="empty-content">
-                            <div className="empty-title">
-                              No signatories recorded
-                            </div>
-                            <div className="empty-sub">
-                              Add signatories using Edit
-                            </div>
+                            <div className="empty-title">No signatories recorded</div>
+                            <div className="empty-sub">Add signatories using Edit</div>
                           </div>
                         </div>
                       );

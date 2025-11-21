@@ -54,8 +54,7 @@
   display: flex;
   gap: 10px;
   margin-bottom: -1.5px;
-  margin-left: auto;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .archive-filter-tabs button {
@@ -233,6 +232,7 @@
 }
 
 .archive-table-search-wrapper {
+  margin-top: 8px !important;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -1061,7 +1061,7 @@
 @media (max-width: 880px) {
   .archive-filter-tabs {
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: -1.5px;
   }
   .archive-filter-tabs button {
     padding: 7px 12px;
@@ -1292,16 +1292,16 @@
 }
 
 .archive-filter-actions .btn.apply {
-  background: linear-gradient(135deg, #a04040, #802020) !important;
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 2px 6px rgba(139, 31, 45, 0.15);
+  background: linear-gradient(135deg, #ffe8e5, #ffd9d4);
+  color: #800020;
+  border-color: rgba(139, 31, 45, 0.25);
+  box-shadow: 0 4px 12px rgba(139, 31, 45, 0.1);
 }
 
 .archive-filter-actions .btn.apply:hover {
-  background: linear-gradient(135deg, #6b0000, #4b0000) !important;
+  background: linear-gradient(135deg, #ffd9d4, #ffcac4);
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(139, 31, 45, 0.25);
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.15);
 }
 
 .btn-icon {

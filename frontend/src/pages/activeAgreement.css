@@ -173,26 +173,65 @@
   border-radius: 8px;
   font-weight: 600;
 }
-.filter-panel .btn-apply {
-  background: linear-gradient(180deg, #ffe8e5, #ffd9d4);
-  color: #800020;
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: 1px solid rgba(139, 31, 45, 0.25);
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgba(139, 31, 45, 0.1);
-  height: var(--ga-control-height, 44px);
+
+/* Filter actions buttons - matching archive design exactly */
+.overview1-filter-actions .btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  justify-content: center;
+  height: 36px;
+  border: 1px solid;
 }
 
-.filter-panel .btn-apply:hover {
-  background: linear-gradient(180deg, #ffd9d4, #ffcac4);
-  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.15);
+.overview1-filter-actions .btn.clear {
+  background: transparent;
+  color: #718096;
+  border-color: #e2e8f0;
+}
+
+.overview1-filter-actions .btn.clear:hover {
+  background: #fff;
+  color: #7a1f2f;
+  border-color: #7a1f2f;
   transform: translateY(-1px);
 }
 
+.overview1-filter-actions .btn.apply,
+.overview1-filter-panel .overview1-filter-actions .btn.apply {
+  background: linear-gradient(135deg, #ffe8e5, #ffd9d4) !important;
+  color: #800020 !important;
+  border: 1px solid rgba(139, 31, 45, 0.25) !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  min-width: 100px !important;
+  height: 36px !important;
+  box-shadow: 0 4px 12px rgba(139, 31, 45, 0.1) !important;
+}
+
+.overview1-filter-actions .btn.apply:hover,
+.overview1-filter-panel .overview1-filter-actions .btn.apply:hover {
+  background: linear-gradient(135deg, #ffd9d4, #ffcac4) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.15) !important;
+}
+
+.btn-icon {
+  font-size: 14px;
+}
+
 /* Make the Filters button neutral by default; show pale-pink/red when active */
-.table-search .btn,
-.btn.generate {
+.table-search .btn:not(.btn-apply),
+.btn.generate:not(.btn-apply) {
   background: #fff;
   border: 1px solid #e6e6e6;
   color: #333;
@@ -209,26 +248,26 @@
   cursor: pointer;
 }
 
-.table-search .btn:hover,
-.btn.generate:hover {
+.table-search .btn:not(.btn-apply):hover,
+.btn.generate:not(.btn-apply):hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
-.table-search .btn.active,
-.table-search .btn:active,
-.table-search .btn:focus,
-.btn.generate.active {
+.table-search .btn.active:not(.btn-apply),
+.table-search .btn:active:not(.btn-apply),
+.table-search .btn:focus:not(.btn-apply),
+.btn.generate.active:not(.btn-apply) {
   background: linear-gradient(180deg, #fff6f4, #fff0ee);
   border: 1px solid rgba(139, 31, 45, 0.18);
   color: #800020 !important;
   box-shadow: 0 6px 18px rgba(139, 31, 45, 0.06);
 }
 
-.table-search .btn.active .filter-icon,
-.table-search .btn:active .filter-icon,
-.table-search .btn:focus .filter-icon,
-.btn.generate.active .icon {
+.table-search .btn.active:not(.btn-apply) .filter-icon,
+.table-search .btn:active:not(.btn-apply) .filter-icon,
+.table-search .btn:focus:not(.btn-apply) .filter-icon,
+.btn.generate.active:not(.btn-apply) .icon {
   color: #800020 !important;
 }
 
@@ -1764,9 +1803,20 @@
   text-decoration: none;
 }
 
+/* Brief description styling */
 .brief {
   color: #4a4f55;
   padding: 10px 0 0 0;
+}
+
+.agreement-modal .modal-section.docinfo .brief {
+  margin-top: 4px !important;
+  padding-top: 4px !important;
+  padding-bottom: 0 !important;
+}
+
+.agreement-modal-body .modal-section.docinfo .label + .brief {
+  margin-top: -10px !important;
 }
 
 .agreement-modal-footer {
@@ -2107,8 +2157,7 @@
   flex: 0 0 auto; 
   display: flex;
   gap: 10px; 
-  margin-left: auto; 
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 /* Linked MOU card inside modal */

@@ -7,7 +7,6 @@ import {
   FiArchive,
   FiUpload,
   FiCheckCircle,
-  FiXCircle,
   FiFilter,
   FiX,
   FiLink,
@@ -27,6 +26,10 @@ import {
   FiSettings,
   FiDownload,
   FiHash,
+  FiXCircle,
+  FiArrowRight,
+  FiHome,
+  FiAlignLeft,
 } from "react-icons/fi";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -44,11 +47,128 @@ import {
 } from "@tanstack/react-query";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import TopBar from "./topbar";
+import Sidebar from "./sidebar";
 
 /* ---------- Constants & helpers (copied/adapted from uploaded files) ---------- */
 
-import TopBar from "./topbar";
-import Sidebar from "./sidebar";
+/* Reusable searchable select */
+const SearchableSelect = ({
+  options = [],
+  value,
+  onChange,
+  placeholder = "Select...",
+  allowClear = true,
+}) => {
+  const normalized = options.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : o
+  );
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef();
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!ref.current) return;
+      // Don't close if clicking inside the searchable select component
+      if (ref.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const filtered = normalized.filter((o) =>
+    o.label.toLowerCase().includes(query.toLowerCase())
+  );
+  const selectedLabel =
+    normalized.find((o) => String(o.value) === String(value))?.label || "";
+
+  return (
+    <div
+      className="searchable-select"
+      ref={ref}
+      style={{ position: "relative" }}
+    >
+      <button
+        type="button"
+        className="ss-toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className={`ss-value ${selectedLabel ? "" : "placeholder"}`}>
+          {selectedLabel || placeholder}
+        </span>
+        <span className="ss-caret">▾</span>
+      </button>
+      {allowClear && selectedLabel && (
+        <button
+          className="ss-clear"
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange && onChange("");
+          }}
+          aria-label="Clear selection"
+        >
+          ×
+        </button>
+      )}
+      {open && (
+        <div
+          className="ss-panel"
+          role="dialog"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            zIndex: 40,
+            background: "#fff",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            marginTop: 6,
+            width: 320,
+            maxHeight: 260,
+            overflow: "auto",
+          }}
+        >
+          <div style={{ padding: 8 }}>
+            <input
+              autoFocus
+              className="ss-search"
+              placeholder="Type to search..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <ul
+            className="ss-list"
+            role="listbox"
+            aria-label="options"
+            style={{ listStyle: "none", margin: 0, padding: 0 }}
+          >
+            {filtered.length === 0 && (
+              <li style={{ padding: 8, color: "#666" }}>No results</li>
+            )}
+            {filtered.map((o) => (
+              <li
+                key={o.value}
+                className="ss-item"
+                style={{ padding: 8, cursor: "pointer" }}
+                onClick={() => {
+                  onChange && onChange(o.value);
+                  setOpen(false);
+                }}
+              >
+                {o.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const LIFECYCLE_OPTIONS = [
   { value: "", label: "Select Status" },
@@ -218,24 +338,49 @@ const mapAgreement = (a = {}) => {
     a.signatory_names ||
     a.signatories_names ||
     "";
+
   const signatories_list = (() => {
-    const raw = Array.isArray(a.signatories_list)
-      ? a.signatories_list
-      : Array.isArray(a.signatories)
-      ? a.signatories
-      : null;
-    if (Array.isArray(raw)) {
-      return raw
-        .map((x) => (typeof x === "string" ? { name: x } : x))
-        .filter(Boolean);
-    }
-    if (typeof sigString === "string") {
-      return sigString
-        .split(/[,;\n]+/)
-        .map((n) => n.trim())
-        .filter(Boolean)
-        .map((name) => ({ name }));
-    }
+    // Helper to coerce various input shapes into an array of objects
+    const makeListFromArray = (arr) =>
+      Array.isArray(arr)
+        ? arr
+            .map((x) => {
+              if (!x) return null;
+              if (typeof x === "string") return { name: x };
+              // handle objects that already have signatory_name/name fields
+              return x;
+            })
+            .filter(Boolean)
+        : [];
+
+    // 1) Try explicit array fields (may be actual arrays or JSON-encoded strings)
+    if (Array.isArray(a.signatories_list)) return makeListFromArray(a.signatories_list);
+    if (Array.isArray(a.signatories)) return makeListFromArray(a.signatories);
+
+    // 2) If fields are strings, try parsing JSON; otherwise fall back to using the raw string
+    const tryParse = (val) => {
+      if (typeof val !== "string" || !val.trim()) return null;
+      const trimmed = val.trim();
+      // ignore em-dash placeholder
+      if (trimmed === "—" || trimmed === "-" || /^\u2014+$/.test(trimmed)) return null;
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return makeListFromArray(parsed);
+      } catch (e) {
+        // not JSON, continue
+      }
+      return trimmed.split(/[,;\n]+/).map((n) => n.trim()).filter(Boolean).map((name) => ({ name }));
+    };
+
+    const fromSignatoriesListStr = tryParse(a.signatories_list);
+    if (fromSignatoriesListStr && fromSignatoriesListStr.length) return fromSignatoriesListStr;
+
+    const fromSignatoriesStr = tryParse(a.signatories);
+    if (fromSignatoriesStr && fromSignatoriesStr.length) return fromSignatoriesStr;
+
+    const fromSigString = tryParse(sigString);
+    if (fromSigString && fromSigString.length) return fromSigString;
+
     return [];
   })();
   const signatoriesText = formatSignatories(signatories_list);
@@ -304,8 +449,11 @@ const mapAgreement = (a = {}) => {
     days_in_stage: _parsed_days,
     delayed: _parsed_days >= DEFAULT_THRESHOLD_DAYS,
 
-    // related documents
-    related_mou: a.related_mou || a.MOU_to_MOA_id || a.mou_number || null,
+    // related documents (store parent id under MOU_to_MOA_id)
+    // Accept legacy `related_mou` as a fallback so older payloads still resolve
+    MOU_to_MOA_id: a.MOU_to_MOA_id ?? a.related_mou ?? a.mou_number ?? null,
+    // preserve original mou_number when present
+    mou_number: a.mou_number ?? null,
     signatories: signatoriesText,
     signatories_list,
     website_link: a.website_link || a.website_url || "",
@@ -346,13 +494,10 @@ const applyBackendStageData = (agreement) => {
   };
 };
 
-// Helper: prefer querying by `agreement_id` (many backends expose this)
-// and fall back to the service's getAgreementById/getAgreementByDts when needed.
-// Placed at top-level so other top-level helpers (RelatedMou) can call it.
+
 const fetchAgreementPreferQuery = async (key) => {
   if (key == null) return null;
   const k = String(key);
-  // try query-by-agreement_id first (backend may not expose detail route)
   try {
     if (agreementService && typeof agreementService.getAgreements === 'function') {
       const res = await agreementService.getAgreements({ agreement_id: k });
@@ -360,16 +505,13 @@ const fetchAgreementPreferQuery = async (key) => {
       if (Array.isArray(list) && list.length > 0) return list[0];
     }
   } catch (e) {
-    // ignore and fall back
   }
 
-  // fallback to service detail methods
   try {
     if (agreementService && typeof agreementService.getAgreementById === 'function') {
       return await agreementService.getAgreementById(k);
     }
   } catch (e) {
-    // ignore and try next fallback
   }
   try {
     if (agreementService && typeof agreementService.getAgreementByDts === 'function') {
@@ -378,76 +520,86 @@ const fetchAgreementPreferQuery = async (key) => {
   } catch (e) {
     // ignore
   }
+  
+  try {
+    if (agreementService && typeof agreementService.getAgreements === 'function') {
+      try {
+        const res = await agreementService.getAgreements({ agreement_id: k, status_filter: 'ACTIVE' });
+        const list = Array.isArray(res) ? res : res?.items || res?.data || [];
+        if (Array.isArray(list) && list.length > 0) return list[0];
+      } catch (e) {}
+      try {
+        const res2 = await agreementService.getAgreements({ dts_number: k, status_filter: 'ACTIVE' });
+        const list2 = Array.isArray(res2) ? res2 : res2?.items || res2?.data || [];
+        if (Array.isArray(list2) && list2.length > 0) return list2[0];
+      } catch (e) {}
+      try {
+        if (typeof agreementService.getActiveAgreements === 'function') {
+          const act = await agreementService.getActiveAgreements();
+          const list3 = Array.isArray(act) ? act : act?.items || act?.data || [];
+          if (Array.isArray(list3) && list3.length > 0) {
+            const found = list3.find((it) => {
+              if (!it) return false;
+              const candidates = [it.agreement_id, it._pk, it.id, it.dts_no, it.dts_number];
+              return candidates.some((c) => String(c) === k);
+            });
+            if (found) return found;
+          }
+        }
+      } catch (e) {}
+    }
+  } catch (e) {
+    // ignore
+  }
   return null;
 };
 
-// Resolve related MOU to a DTS number when possible. This helper prefers
-// calling the `agreementService` first (by id or by DTS) and falls back
-// to the provided `all` list when the service lookup fails or returns no DTS.
-// It's async — callers should `await` it.
 const RelatedMou = async (row, all = []) => {
   if (!row) return row;
-  const rel = row.related_mou;
+  const rel = row.MOU_to_MOA_id;
   if (!rel) return row;
 
   const key = String(rel).trim();
 
-  // Attempt service-based resolution first
   try {
-    // If the key is numeric, try getAgreementById
-    if (/^\d+$/.test(key) && agreementService && typeof agreementService.getAgreementById === "function") {
-      try {
-                  const resp = await fetchAgreementPreferQuery(Number(key));
-                  const full = resp && resp.agreement ? resp.agreement : resp && resp.data ? resp.data : resp;
-        if (full) {
-          const dts = full.dts_number || full.dts_no || full.dtsNumber || null;
-          if (dts) return { ...row, related_mou: String(dts) };
-        }
-      } catch (e) {
-        // ignore and fall back to other resolution methods
-      }
-    }
+    console.debug && console.debug('RelatedMou (local-only): resolving', { rowId: row.id || row._pk || row.agreement_id, key });
 
-    // Try DTS lookup via service (covers non-numeric keys and id-as-DTS cases)
-    if (agreementService && typeof agreementService.getAgreementByDts === "function") {
-      try {
-        const resp2 = await agreementService.getAgreementByDts(key);
-        const full2 = resp2 && resp2.agreement ? resp2.agreement : resp2 && resp2.data ? resp2.data : resp2;
-        if (full2) {
-          const dts2 = full2.dts_number || full2.dts_no || full2.dtsNumber || null;
-          if (dts2) return { ...row, related_mou: String(dts2) };
-        }
-      } catch (e) {
-        // ignore and fall back to local lookup
-      }
-    }
-  } catch (e) {
-    // ignore unexpected service errors and proceed to local lookup
-  }
-
-  // Local lookup fallback: try to resolve using the provided `all` list.
-  try {
+    // Build quick lookup maps from the provided `all` list (agreements)
     const list = Array.isArray(all) ? all : [];
-    const lookup = list.reduce((acc, r) => {
-      const keyCandidates = [r?.agreement_id, r?._pk, r?.id, r?.partner_id].filter((x) => x != null);
-      const val = r && (r.dts_no || r.dts_number || r.id || r._pk || r.agreement_id || r.partner_id)
-        ? String(r.dts_no || r.dts_number || r.id || r._pk || r.agreement_id || r.partner_id)
-        : null;
-      if (!val) return acc;
-      for (const k of keyCandidates) {
-        const kk = String(k);
-        if (kk && !acc[kk]) acc[kk] = val;
+    const byId = new Map();
+    const byDts = new Map();
+    for (const r of list) {
+      if (!r) continue;
+      const aid = r.agreement_id ?? r._pk ?? r.id;
+      if (aid != null) byId.set(String(aid), r);
+      const d = r.dts_no || r.dts_number || r.dtsNumber || r.id;
+      if (d) byDts.set(String(d), r);
+    }
+
+    // If key is numeric, it should be the agreement_id of the parent MOU.
+    if (/^\d+$/.test(key)) {
+      const found = byId.get(key);
+      if (found) {
+        console.debug && console.debug('RelatedMou: resolved numeric parent from local', { key, agreement_id: found.agreement_id });
+        // Normalize MOU_to_MOA_id to the numeric agreement_id
+        return { ...row, MOU_to_MOA_id: found.agreement_id };
       }
-      return acc;
-    }, {});
+      console.debug && console.debug('RelatedMou: numeric key not found locally', key);
+      return row;
+    }
 
-    if (lookup[key]) return { ...row, related_mou: lookup[key] };
-
-    // Fallback: try to find an agreement whose dts_no (or dts_number) equals the key
-    const foundByDts = list.find((r) => r && String(r.dts_no || r.dts_number || r.id || r._pk) === key);
-    if (foundByDts) return { ...row, related_mou: String(foundByDts.dts_no || foundByDts.dts_number || foundByDts.id || foundByDts._pk) };
+    // If key looks like a DTS (e.g., starts with DT), try to find the agreement by DTS
+    if (/^DT/i.test(key) || /[^0-9]/.test(key)) {
+      const foundByDts = byDts.get(key);
+      if (foundByDts && (foundByDts.agreement_id != null)) {
+        console.debug && console.debug('RelatedMou: resolved parent by DTS -> agreement_id', { key, agreement_id: foundByDts.agreement_id });
+        return { ...row, MOU_to_MOA_id: foundByDts.agreement_id };
+      }
+      console.debug && console.debug('RelatedMou: DTS key not found locally', key);
+      return row;
+    }
   } catch (e) {
-    // ignore local lookup errors
+    console.error('RelatedMou (local-only) resolution error', e);
   }
 
   return row;
@@ -537,10 +689,6 @@ const formatContactEmails = (v) => {
   return String(v);
 };
 
-// REMOVED THE DUPLICATE formatSignatories function that was here
-
-// Helper to remove agreements that should not appear in the overview
-// NOTE: exclude only 'Active' status from the overview; keep 'Withdrawn' visible
 const excludeActive = (list = []) => {
   if (!Array.isArray(list)) return [];
   return list.filter((a) => {
@@ -550,120 +698,6 @@ const excludeActive = (list = []) => {
 };
 
 /* ---------- Small UI helpers reused from overview1 ---------- */
-
-const SearchableSelect = ({
-  options = [],
-  value,
-  onChange,
-  placeholder = "Select...",
-  allowClear = true,
-}) => {
-  const normalized = options.map((o) =>
-    typeof o === "string" ? { value: o, label: o } : o
-  );
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const ref = useRef();
-
-  useEffect(() => {
-    function onDoc(e) {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-        setQuery("");
-      }
-    }
-    document.addEventListener("click", onDoc);
-    return () => document.removeEventListener("click", onDoc);
-  }, []);
-
-  const filtered = normalized.filter((o) =>
-    o.label.toLowerCase().includes(query.toLowerCase())
-  );
-  const selectedLabel =
-    normalized.find((o) => String(o.value) === String(value))?.label || "";
-
-  return (
-    <div
-      className="searchable-select"
-      ref={ref}
-      style={{ position: "relative" }}
-    >
-      <button
-        type="button"
-        className="ss-toggle"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span className={`ss-value ${selectedLabel ? "" : "placeholder"}`}>
-          {selectedLabel || placeholder}
-        </span>
-        <span className="ss-caret">▾</span>
-      </button>
-      {allowClear && selectedLabel && (
-        <button
-          className="ss-clear"
-          onClick={(e) => {
-            e.stopPropagation();
-            onChange("");
-            setQuery("");
-          }}
-        >
-          ×
-        </button>
-      )}
-      {open && (
-        <div
-          className="ss-panel"
-          role="dialog"
-          style={{
-            position: "absolute",
-            zIndex: 40,
-            background: "#fff",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-            marginTop: 6,
-            width: 320,
-            maxHeight: 260,
-            overflow: "auto",
-          }}
-        >
-          <div style={{ padding: 8 }}>
-            <input
-              autoFocus
-              className="ss-search"
-              placeholder="Type to search..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </div>
-          <ul
-            className="ss-list"
-            role="listbox"
-            aria-label="options"
-            style={{ listStyle: "none", margin: 0, padding: 0 }}
-          >
-            {filtered.length === 0 && (
-              <li style={{ padding: 8, color: "#666" }}>No results</li>
-            )}
-            {filtered.map((o) => (
-              <li
-                key={o.value}
-                className="ss-item"
-                style={{ padding: 8, cursor: "pointer" }}
-                onClick={() => {
-                  onChange(o.value);
-                  setOpen(false);
-                  setQuery("");
-                }}
-              >
-                {o.label}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-};
 
 /* Minimal MultiPersonField and MultiRemarkField compatible with overview1 modal */
 
@@ -741,7 +775,7 @@ const MultiPersonField = ({
             onClick={() => remove(idx)}
             disabled={disabled}
           >
-            🗑️
+            <FiTrash2 />
           </button>
         </div>
       ))}
@@ -820,6 +854,7 @@ const OverviewMerged = () => {
   const [filterClassification, setFilterClassification] = useState("");
   const [filterValidity, setFilterValidity] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
+  const [filterSource, setFilterSource] = useState("");
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [filterDelayed, setFilterDelayed] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -830,6 +865,7 @@ const OverviewMerged = () => {
   const [tmpClassification, setTmpClassification] = useState("");
   const [tmpValidity, setTmpValidity] = useState("");
   const [tmpCountry, setTmpCountry] = useState("");
+  const [tmpSource, setTmpSource] = useState("");
 
   // modal / detail
   const [detailOpen, setDetailOpen] = useState(false);
@@ -862,10 +898,6 @@ const OverviewMerged = () => {
   const [uploading, setUploading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Helper to check admin privileges. Accepts an optional user object, defaults
-  // to the currentUser state. This is intentionally permissive in what it
-  // recognizes as an "admin" flag to support different backends (is_admin,
-  // isAdmin, role string, roles array, permissions array).
   const isAdminUser = (user = currentUser) => {
     const u = user || currentUser;
     if (!u) return false;
@@ -901,7 +933,6 @@ const OverviewMerged = () => {
   const containerRef = useRef();
   const filterPanelRef = useRef();
   const modalFirstFieldRef = useRef(null);
-  // request token to avoid race conditions when multiple detail loads happen
   const loadRequestRef = useRef(0);
 
   const itemsPerPage = 10;
@@ -931,105 +962,13 @@ const OverviewMerged = () => {
         return s !== "active" && s !== "withdrawn";
       });
       let mapped = filtered.map(mapAgreement).map(applyBackendStageData);
-      // Replace related_mou ids with the related agreement's DTS number when available
-      try {
-        // build lookup from all fetched agreements so related_mou numeric ids
-        // can be resolved to DTS numbers immediately. Some backends don't mark
-        // parents as 'MOU' consistently, so restricting to document_type ===
-        // 'MOU' causes misses. We still avoid overwriting existing keys.
-        // Accept multiple possible DTS/id fields (dts_number, dts_no, id, _pk,
-        // partner_id) because different backends may name the column differently.
-        // Build a lookup that maps various id candidates (agreement_id, _pk, id)
-        // to the DTS value so related_mou fields that reference a numeric id
-        // (or different id field) can be resolved immediately. Some backends
-        // use different id properties, so include several possibilities.
-        const lookup = mapped.reduce((acc, m) => {
-          const val = m && (m.dts_no || m.dts_number || m.dtsNumber)
-            ? String(m.dts_no || m.dts_number || m.dtsNumber)
-            : null;
-          if (!val) return acc;
-          const keyCandidates = [m?.agreement_id, m?._pk, m?.id, m?.partner_id];
-          for (const k of keyCandidates) {
-            if (k == null) continue;
-            const kk = String(k);
-            if (kk && !acc[kk]) acc[kk] = val;
-          }
-          return acc;
-        }, {});
-        // TEMP LOG: inspect the initial lookup built from MOU parents
-        try {
-          console.debug && console.debug("related_mou: initial lookup:", lookup);
-        } catch (e) {}
-        mapped = mapped.map((m) => {
-          if (!m?.related_mou) return m;
-          const k = String(m.related_mou);
-          if (lookup[k]) return { ...m, related_mou: lookup[k] };
-          return m;
-        });
-
-        // For any remaining numeric related_mou ids that weren't resolved by the
-        // local lookup, call the agreementService during the initial fetch so
-        // DTS numbers are available immediately (not resolved later in a
-        // background useEffect). Limit concurrency by resolving a capped set.
-        try {
-          const keysToResolve = new Set();
-          for (const m of mapped) {
-            const rel = m?.related_mou;
-            if (!rel) continue;
-            const k = String(rel);
-            if (/^\d+$/.test(k) && !lookup[k]) keysToResolve.add(k);
-          }
-          if (keysToResolve.size > 0) {
-            const toResolve = Array.from(keysToResolve).slice(0, 20); // cap to 20
-            const promises = toResolve.map(async (k) => {
-              try {
-                if (agreementService && typeof agreementService.getAgreementById === "function") {
-                  const resp = await fetchAgreementPreferQuery(Number(k));
-                  const full = resp && resp.agreement ? resp.agreement : resp && resp.data ? resp.data : resp;
-                  if (full) {
-                    const dts = full.dts_number || full.dts_no || full.dtsNumber || null;
-                    if (dts) return [k, String(dts)];
-                  }
-                }
-              } catch (e) {
-                // ignore and try DTS lookup below
-              }
-              try {
-                if (agreementService && typeof agreementService.getAgreementByDts === "function") {
-                  const resp2 = await agreementService.getAgreementByDts(k);
-                  const full2 = resp2 && resp2.agreement ? resp2.agreement : resp2 && resp2.data ? resp2.data : resp2;
-                  if (full2) {
-                    const dts2 = full2.dts_number || full2.dts_no || full2.dtsNumber || null;
-                    if (dts2) return [k, String(dts2)];
-                  }
-                }
-              } catch (e) {
-                // ignore
-              }
-              return null;
-            });
-            const results = await Promise.all(promises);
-            const newMap = results.filter(Boolean).reduce((acc, pair) => {
-              acc[pair[0]] = pair[1];
-              return acc;
-            }, {});
-            // TEMP LOG: show resolved mappings from service during initial fetch
-            try { console.debug && console.debug("related_mou: initial fetched newMap:", newMap); } catch (e) {}
-            if (Object.keys(newMap).length) {
-              mapped = mapped.map((m) => {
-                if (!m?.related_mou) return m;
-                const k = String(m.related_mou);
-                if (newMap[k]) return { ...m, related_mou: newMap[k] };
-                return m;
-              });
-            }
-          }
-        } catch (e) {
-          // ignore any failures here and return what we have
-        }
-      } catch (e) {
-        // ignore resolution errors
-      }
+      // Keep `MOU_to_MOA_id` numeric as provided by the backend.
+      // Previously this code attempted to replace numeric parent ids with
+      // related DTS numbers during the initial fetch, which caused the
+      // parent id to be displayed as a DTS string in the UI. That mapping
+      // has been removed so `MOU_to_MOA_id` remains the canonical numeric
+      // parent `agreement_id` and resolution to DTS for display is done
+      // only when needed (e.g. via `relatedDtsMap` lookups elsewhere).
       return mapped;
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes to prevent refetches
@@ -1056,7 +995,7 @@ const OverviewMerged = () => {
   // isn't already present in the fetched agreements list)
   const [relatedDtsMap, setRelatedDtsMap] = useState({});
 
-  // Populate relatedDtsMap from the fetched agreements so numeric related_mou
+  // Populate relatedDtsMap from the fetched agreements so numeric MOU_to_MOA_id
   // ids can be shown as DTS numbers in the UI. This mirrors the resolution
   // logic used by ActiveAgreement (which looks up by id/agreement_id).
   useEffect(() => {
@@ -1089,79 +1028,6 @@ const OverviewMerged = () => {
     }
   }, [agreements]);
 
-  // Background-resolve any numeric related_mou ids that weren't present in the
-  // fetched `agreements` list by calling the API. This handles cases where the
-  // linked MOU is an Active agreement (and therefore excluded from the overview
-  // list) so we can still show its DTS number in the Related MOU column.
-  useEffect(() => {
-    if (!Array.isArray(agreements)) return;
-    const keysToResolve = new Set();
-    for (const r of agreements) {
-      const rel = r?.related_mou;
-      if (!rel) continue;
-      const k = String(rel);
-      if (/^\d+$/.test(k) && !relatedDtsMap[k]) keysToResolve.add(k);
-    }
-    if (keysToResolve.size === 0) return;
-
-    // resolve up to 20 keys to avoid flooding but be more helpful than the old cap
-    const toResolve = Array.from(keysToResolve).slice(0, 20);
-    let cancelled = false;
-    (async () => {
-      const newMap = {};
-      for (const k of toResolve) {
-        if (cancelled) break;
-        try {
-          // Prefer the shared helper which tries multiple detail routes and
-          // fallbacks (agreement_id, id, DTS) so we stand a better chance of
-          // finding parents that live in the Active/ActiveAgreement API.
-          const resp = await fetchAgreementPreferQuery(Number(k));
-          const full = resp && resp.agreement ? resp.agreement : resp && resp.data ? resp.data : resp;
-          if (full) {
-            const dts = full.dts_number || full.dts_no || full.dtsNumber || null;
-            if (dts) {
-              newMap[k] = String(dts);
-              continue;
-            }
-          }
-        } catch (e) {
-          // ignore and try fallback below
-        }
-
-        try {
-          // Fallback: treat k as a DTS and ask the service directly
-          if (agreementService && typeof agreementService.getAgreementByDts === "function") {
-            const resp2 = await agreementService.getAgreementByDts(k);
-            const full2 = resp2 && resp2.agreement ? resp2.agreement : resp2 && resp2.data ? resp2.data : resp2;
-            if (full2) {
-              const dts2 = full2.dts_number || full2.dts_no || full2.dtsNumber || null;
-              if (dts2) newMap[k] = String(dts2);
-            }
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      // TEMP LOG: show background-resolved keys before merging
-      try { console.debug && console.debug('relatedDtsMap: background resolved newMap', newMap); } catch (e) {}
-      if (Object.keys(newMap).length) {
-        // Merge without overwriting any existing resolved keys to avoid
-        // race conditions where a previous mapping (or a mapping built from
-        // the fetched agreements) should take precedence.
-        setRelatedDtsMap((prev) => {
-          const merged = { ...prev };
-          for (const kk of Object.keys(newMap)) {
-            if (!merged[kk]) merged[kk] = newMap[kk];
-          }
-          return merged;
-        });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [agreements, relatedDtsMap]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -1175,8 +1041,8 @@ const OverviewMerged = () => {
     agreements,
   ]);
 
-  // Resolve any numeric related_mou ids that weren't matched when mapping.
-  // NOTE: automatic background resolution of numeric related_mou -> DTS was
+  // Resolve any numeric MOU_to_MOA_id ids that weren't matched when mapping.
+  // NOTE: automatic background resolution of numeric MOU_to_MOA_id -> DTS was
   // disabled per request because it caused multiple rows to display the same
   // DTS value after the async resolution completed in certain scenarios.
   // Keeping the resolution disabled avoids overwriting/mapping surprises.
@@ -1202,11 +1068,18 @@ const OverviewMerged = () => {
     () =>
       Array.from(
         new Set(agreements.map((a) => a.validity_period).filter(Boolean))
-      ),
+      ).sort((a, b) => parseInt(a) - parseInt(b)),
     [agreements]
   );
   const countryOptions = useMemo(
     () => Array.from(new Set(agreements.map((a) => a.country).filter(Boolean))),
+    [agreements]
+  );
+  const sourceOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(agreements.map((a) => a.source_unit).filter(Boolean))
+      ).sort(),
     [agreements]
   );
 
@@ -1224,6 +1097,7 @@ const OverviewMerged = () => {
         if (filterCountry && a.country !== filterCountry) return false;
         if (filterValidity && a.validity_period !== filterValidity)
           return false;
+        if (filterSource && a.source_unit !== filterSource) return false;
         if (debouncedSearchText) {
           // Use debounced value
           const s = debouncedSearchText.toLowerCase();
@@ -1247,6 +1121,7 @@ const OverviewMerged = () => {
       filterClassification,
       filterCountry,
       filterValidity,
+      filterSource,
       debouncedSearchText,
       filterDelayed,
     ]
@@ -1266,27 +1141,223 @@ const OverviewMerged = () => {
     currentPage * itemsPerPage
   );
 
+  useEffect(() => {
+    if (!Array.isArray(paged)) return;
+    const keys = [];
+    for (const r of paged) {
+      const rel = getLinkedId(r) ?? r.MOU_to_MOA_id ?? null;
+      if (!rel) continue;
+      const k = String(rel).trim();
+      if (/^\d+$/.test(k) && !relatedDtsMap[k]) keys.push(k);
+    }
+    if (keys.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      for (const k of keys) {
+        if (cancelled) break;
+        try {
+          const resp = await fetchAgreementPreferQuery(Number(k));
+          const full = resp && resp.agreement ? resp.agreement : resp && resp.data ? resp.data : resp;
+          const dts = full && (full.dts_number || full.dts_no || full.dtsNumber) ? String(full.dts_number || full.dts_no || full.dtsNumber) : null;
+          if (dts) {
+            setRelatedDtsMap((prev) => ({ ...prev, [k]: dts }));
+            continue;
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        try {
+          if (agreementService && typeof agreementService.getAgreementByDts === "function") {
+            const resp2 = await agreementService.getAgreementByDts(k);
+            const full2 = resp2 && resp2.agreement ? resp2.agreement : resp2 && resp2.data ? resp2.data : resp2;
+            const dts2 = full2 && (full2.dts_number || full2.dts_no || full2.dtsNumber) ? String(full2.dts_number || full2.dts_no || full2.dtsNumber) : null;
+            if (dts2) setRelatedDtsMap((prev) => ({ ...prev, [k]: dts2 }));
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [paged]);
+
+  const RelatedMouLabel = ({ row }) => {
+    const rel = getLinkedId(row) ?? row.MOU_to_MOA_id ?? null;
+    const key = rel != null ? String(rel).trim() : null;
+
+    // Prefer showing the numeric MOU_to_MOA_id. If the stored value is a DTS
+    // string, attempt to resolve it to the local agreement's numeric id.
+    const computeNumericParentId = () => {
+      if (!key) return null;
+      // If the stored value is already numeric, show it directly
+      if (/^\d+$/.test(key)) return key;
+
+      // If it looks like a DTS (DT... or contains letters), try to find the agreement by DTS
+      try {
+        const foundByDts = agreements.find((a) => {
+          try {
+            return (
+              equalsKey(a.dts_no, key) ||
+              equalsKey(a.dts_number, key) ||
+              equalsKey(a.id, key)
+            );
+          } catch (e) {
+            return false;
+          }
+        });
+        if (foundByDts && (foundByDts.agreement_id != null)) return String(foundByDts.agreement_id);
+      } catch (e) {
+        // ignore
+      }
+
+      // As a last resort return the raw key so user can still click it
+      return key;
+    };
+
+    const label = computeNumericParentId();
+
+      const handleOpen = async (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+
+        // If key is a DTS, try to find agreement by DTS and use its numeric agreement_id
+        if (/^DT/i.test(key)) {
+          const byDts = agreements.find((a) => {
+            try {
+              return equalsKey(a.dts_no, key) || equalsKey(a.dts_number, key) || equalsKey(a.id, key);
+            } catch (e) {
+              return false;
+            }
+          });
+          if (byDts) {
+            setSelected(byDts);
+            setDetailOpen(true);
+            return;
+          }
+        }
+
+        // Treat key as numeric agreement_id when possible
+        const found = agreements.find((a) => {
+          try {
+            return (
+              equalsKey(a.agreement_id, key) ||
+              equalsKey(a._pk, key) ||
+              equalsKey(a.id, key)
+            );
+          } catch (e) {
+            return false;
+          }
+        });
+        if (found) {
+          setSelected(found);
+          setDetailOpen(true);
+          return;
+        }
+
+        try { console.debug && console.debug('RelatedMouLabel.handleOpen: parent not found in agreements (no local parent).', { key, row }); } catch(e) {}
+
+        // Fallback: open a minimal stub so the modal still appears with the key
+        setSelected({ id: key, dts_no: key, partner_name: String(key) });
+        setDetailOpen(true);
+        return;
+      };
+
+    return (
+      <span className="related-mou">
+        <div className="req">
+          <button
+            type="button"
+            className="linked-mou-btn"
+            onClick={handleOpen}
+            title={`View linked MOU ${label}`}
+            aria-label={`View linked MOU ${label}`}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#5a1522",
+              cursor: "pointer",
+              padding: 0,
+              fontWeight: 700,
+            }}
+          >
+            {label}
+          </button>
+        </div>
+      </span>
+    );
+  };
+
   const getPk = (row) =>
     row?.agreement_id ?? row?._pk ?? row?.id ?? row?.dts_no;
+
+    // robust key equality: coerce to trimmed strings before comparing
+    const equalsKey = (a, b) => {
+      try {
+        const sa = a == null ? "" : String(a).trim();
+        const sb = b == null ? "" : String(b).trim();
+        return sa !== "" && sb !== "" && sa === sb;
+      } catch (e) {
+        return false;
+      }
+    };
 
   // helper: find the linked MOU id/key on an agreement object (mirror ActiveAgreement)
   const getLinkedId = (a) => {
     if (!a) return undefined;
-    return (
-      a.related_mou ||
-      a.MOU_to_MOA_id ||
-      a.mou_number ||
-      a.linked_mou ||
-      a.linked_mou_id ||
-      a.linkedMouId
-    );
+    const candidates = [
+      a.MOU_to_MOA_id,
+      a.related_mou,
+      a.mou_number,
+      a.linked_mou,
+      a.linked_mou_id,
+      a.linkedMouId,
+    ];
+    try {
+      console.debug &&
+        console.debug("getLinkedId called", {
+          id: a?.id || a?.dts_no || a?.agreement_id,
+          candidates,
+        });
+    } catch (e) {}
+    // return first non-null/undefined candidate
+    for (const c of candidates) if (c != null) return c;
+    return undefined;
   };
 
-  // counts for summary and stage cards (Overview1-style)
-  // pendingCount should represent the total pending agreements (ignoring the
-  // "filterDelayed" toggle) so it doesn't change when the user clicks
-  // the "Needs Attention" summary card. We still respect other filters like
-  // activeTab / classification / country / validity / search text.
+  // Build list of MOU parents and their MOA children (mirrors ActiveAgreement behaviour)
+  const buildMouWithChildren = (agreementsList = agreements) => {
+    try {
+      const mouList = (agreementsList || []).filter(
+        (a) => String((a.document_type || a.documentType || "")).toUpperCase() === "MOU"
+      );
+      const mouWithChildren = mouList
+        .map((mou) => {
+          const mid = mou.id || mou.agreement_id;
+          const children = (agreementsList || []).filter((c) => {
+            if (String((c.document_type || c.documentType || "")).toUpperCase() !== "MOA") return false;
+            const linked = getLinkedId(c) ?? c.linkedMouId ?? c.MOU_to_MOA_id ?? c.linked_mou ?? c.linked_mou_id;
+            // compare against multiple possible parent identifiers (agreement_id, id, dts fields)
+            if (equalsKey(linked, mid)) return true;
+            if (equalsKey(c.MOU_to_MOA_id, mid)) return true;
+            if (equalsKey(c.linkedMouId, mid)) return true;
+            if (equalsKey(c.linked_mou, mid)) return true;
+            if (equalsKey(c.linked_mou_id, mid)) return true;
+            // also consider matching against parent's DTS number
+            if (equalsKey(linked, mou.dts_no) || equalsKey(linked, mou.dts_number)) return true;
+            return false;
+          });
+          return { mou, children };
+        })
+        .filter((item) => item.children && item.children.length > 0);
+      return mouWithChildren;
+    } catch (e) {
+      return [];
+    }
+  };
+
   const pendingCount = useMemo(
     () =>
       agreements.filter((a) => {
@@ -1336,6 +1407,16 @@ const OverviewMerged = () => {
     }
     return map;
   }, [baseList, STAGE_LIST]);
+  // number of delayed / "needs attention" items per stage
+  const stageAttentionCounts = useMemo(() => {
+    const map = {};
+    for (const s of STAGE_LIST) map[s.value] = 0;
+    for (const a of baseList) {
+      if (a.status && a.delayed && map[a.status] !== undefined)
+        map[a.status] += 1;
+    }
+    return map;
+  }, [baseList, STAGE_LIST]);
   const stageHasDelayed = useMemo(() => {
     const map = {};
     for (const s of STAGE_LIST) map[s.value] = false;
@@ -1357,39 +1438,74 @@ const OverviewMerged = () => {
     setModalError("");
     try {
       let full = null;
-      // Debug: log what we're trying to fetch
-      // console.debug('loadAgreementDetails: byId=', byId, 'byDts=', byDts, 'row=', row);
-      const hasNumericId = byId != null && /^\d+$/.test(String(byId));
-      if (hasNumericId) {
-        try {
-          full = await agreementService.getAgreementById(Number(byId));
-        } catch (err) {
-          const dtsCandidate = row?.dts_no || row?.id || String(byId);
-          if (
-            dtsCandidate &&
-            typeof agreementService.getAgreementByDts === "function"
-          ) {
-            full = await agreementService.getAgreementByDts(dtsCandidate);
-          } else {
-            throw err;
+      // If a row object was provided (from the in-memory list), prefer using it
+      // rather than issuing a detail GET. This mirrors ActiveAgreement's
+      // behavior which avoids calling a missing detail endpoint.
+      if (row && typeof row === "object") {
+        full = row;
+      } else {
+          // Debug: log what we're trying to fetch
+          // console.debug('loadAgreementDetails: byId=', byId, 'byDts=', byDts, 'row=', row);
+          // Prefer a local in-memory lookup from `agreements` before making network calls.
+          const lookupKey = byId != null ? String(byId) : byDts ? String(byDts) : null;
+          if (lookupKey) {
+            try {
+              const foundLocal = agreements.find((a) => {
+                try {
+                  return (
+                    equalsKey(a.agreement_id, lookupKey) ||
+                    equalsKey(a._pk, lookupKey) ||
+                    equalsKey(a.id, lookupKey) ||
+                    equalsKey(a.dts_no, lookupKey) ||
+                    equalsKey(a.dts_number, lookupKey)
+                  );
+                } catch (e) {
+                  return false;
+                }
+              });
+              if (foundLocal) {
+                full = foundLocal;
+              }
+            } catch (e) {
+              // ignore and fall back to remote fetch
+            }
           }
-        }
-      } else if (byDts) {
-        if (typeof agreementService.getAgreementByDts === "function") {
-          full = await agreementService.getAgreementByDts(byDts);
-        } else {
-          full = await agreementService.getAgreementById(byId);
-        }
-      } else if (byId) {
-        try {
-          full = await agreementService.getAgreementById(byId);
-        } catch (err) {
-          if (typeof agreementService.getAgreementByDts === "function") {
-            full = await agreementService.getAgreementByDts(String(byId));
-          } else {
-            throw err;
+
+          // If not available locally, fall back to fetching from the service
+          if (!full) {
+            const hasNumericId = byId != null && /^\d+$/.test(String(byId));
+            if (hasNumericId) {
+              try {
+                full = await agreementService.getAgreementById(Number(byId));
+              } catch (err) {
+                const dtsCandidate = String(byId) || null;
+                if (
+                  dtsCandidate &&
+                  typeof agreementService.getAgreementByDts === "function"
+                ) {
+                  full = await agreementService.getAgreementByDts(dtsCandidate);
+                } else {
+                  throw err;
+                }
+              }
+            } else if (byDts) {
+              if (typeof agreementService.getAgreementByDts === "function") {
+                full = await agreementService.getAgreementByDts(byDts);
+              } else {
+                full = await agreementService.getAgreementById(byId);
+              }
+            } else if (byId) {
+              try {
+                full = await agreementService.getAgreementById(byId);
+              } catch (err) {
+                if (typeof agreementService.getAgreementByDts === "function") {
+                  full = await agreementService.getAgreementByDts(String(byId));
+                } else {
+                  throw err;
+                }
+              }
+            }
           }
-        }
       }
 
       if (full && typeof full === "object") {
@@ -1428,12 +1544,27 @@ const OverviewMerged = () => {
   const openDetails = async (row) => {
     if (!row) return;
     try {
-      const mapped = applyBackendStageData(mapAgreement(row));
-      const resolved = await RelatedMou(mapped, agreements);
-      setSelected(resolved);
+      // Prefer loading the authoritative full agreement from the server
+      // which includes fields like signatories that may be absent
+      // on the summary/list row. `loadAgreementDetails` will set
+      // `selected` when successful.
+      await loadAgreementDetails(row);
+      // If loadAgreementDetails succeeded it already set `selected`.
+      if (!selected) {
+        // defensive: if selected wasn't set for some reason, fall back
+        const mapped = applyBackendStageData(mapAgreement(row));
+        const resolved = await RelatedMou(mapped, agreements);
+        setSelected(resolved);
+      }
     } catch (e) {
-      // fallback: set the raw row
-      setSelected(row);
+      // fallback: map the provided row and use that
+      try {
+        const mapped = applyBackendStageData(mapAgreement(row));
+        const resolved = await RelatedMou(mapped, agreements);
+        setSelected(resolved);
+      } catch (e2) {
+        setSelected(row);
+      }
     }
     setIsEditing(false);
     setModalError("");
@@ -1510,9 +1641,11 @@ const OverviewMerged = () => {
     // signatories_list: backend stores this as a list; convert simple string into array when needed
     const normalizeSignatoriesList = (sigs, list) => {
       if (Array.isArray(list) && list.length) return list;
-      if (Array.isArray(sigs)) return sigs;
-      if (typeof sigs === "string" && sigs.trim())
-        return sigs
+      if (Array.isArray(sigs) && sigs.length) return sigs;
+      // Accept a string in either 'list' or 'sigs' and split into array
+      const maybeStr = typeof list === "string" && list.trim() ? list : typeof sigs === "string" && sigs.trim() ? sigs : null;
+      if (maybeStr)
+        return String(maybeStr)
           .split(/[,;\n]+/)
           .map((x) => x.trim())
           .filter(Boolean);
@@ -1557,8 +1690,8 @@ const OverviewMerged = () => {
       address: s.address || undefined,
       country: s.country || undefined,
       region: s.region || undefined,
-      // related agreement id
-      MOU_to_MOA_id: s.related_mou || undefined,
+      // related agreement id - prefer explicit numeric parent id when present
+      MOU_to_MOA_id: s.MOU_to_MOA_id ?? undefined,
       // persons transformed to backend keys
       point_persons: transformPointPersons(s.point_people, {
         positionKey: "point_position",
@@ -1662,8 +1795,36 @@ const OverviewMerged = () => {
       setSelected(mapped);
       originalRef.current = mapped;
       setIsEditing(false);
-      // ensure overview list excludes Active after save (but keep Withdrawn)
-      queryClient.invalidateQueries(["agreements"]);
+      // Update the cached agreements list so the overview updates immediately
+      try {
+        queryClient.setQueryData(["agreements"], (old) => {
+          try {
+            if (!Array.isArray(old)) return old;
+            const key = getPk(mapped) || mapped._pk || mapped.id || mapped.dts_no;
+            let found = false;
+            const updated = old.map((it) => {
+              const itKey = getPk(it) || it._pk || it.id || it.dts_no;
+              if (String(itKey) === String(key)) {
+                found = true;
+                return mapped;
+              }
+              return it;
+            });
+            if (!found) {
+              // If this agreement isn't in the current list (e.g. newly created), add it to the front
+              updated.unshift(mapped);
+            }
+            return updated;
+          } catch (e) {
+            return old;
+          }
+        });
+      } catch (e) {}
+
+      // Ensure queries are refreshed from the server; await so UI reflects latest data
+      try {
+        await queryClient.invalidateQueries(["agreements"]);
+      } catch (e) {}
     } catch (e) {
       console.error("Failed to save details:", e);
       alert("Failed to save changes: " + (e.detail || e.message || e));
@@ -1695,8 +1856,24 @@ const OverviewMerged = () => {
     }
     try {
       setSavingRows((prev) => new Set(prev).add(agreementId));
-      await agreementService.updateAgreement(agreementId, editedData);
-      queryClient.invalidateQueries(["agreements"]);
+      const updated = await agreementService.updateAgreement(
+        agreementId,
+        editedData
+      );
+      // update cache immediately if possible
+      try {
+        const mapped = applyBackendStageData(mapAgreement(updated));
+        const pk = agreementId;
+        queryClient.setQueryData(["agreements"], (old) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((it) => {
+            const itKey = getPk(it) || it._pk || it.id || it.dts_no;
+            if (String(itKey) === String(pk)) return mapped;
+            return it;
+          });
+        });
+      } catch (e) {}
+      await queryClient.invalidateQueries(["agreements"]);
       setEditingRow(null);
       setEditedData({});
       alert("Agreement updated successfully!");
@@ -1725,7 +1902,22 @@ const OverviewMerged = () => {
     try {
       setDeletingRows((prev) => new Set(prev).add(agreementId));
       await agreementService.deleteAgreement(agreementId);
-      queryClient.invalidateQueries(["agreements"]);
+      // Optimistically remove the deleted agreement from the local cache
+      try {
+        queryClient.setQueryData(["agreements"], (old) => {
+          if (!Array.isArray(old)) return old;
+          return old.filter((it) => {
+            const itKey = getPk(it) || it._pk || it.id || it.dts_no;
+            return String(itKey) !== String(agreementId);
+          });
+        });
+      } catch (e) {
+        // ignore cache update failures
+      }
+      // Ensure server-side state is reconciled
+      try {
+        await queryClient.invalidateQueries(["agreements"]);
+      } catch (e) {}
       setEditingRow((prev) => (prev === agreementId ? null : prev));
       alert("Agreement deleted successfully.");
     } catch (err) {
@@ -2096,9 +2288,36 @@ const OverviewMerged = () => {
       );
       alert("Upload successful!");
       setShowUploadForm(false);
+      // Optimistically mark the agreement as having a recent upload in cache
+      try {
+        queryClient.setQueryData(["agreements"], (old) => {
+          if (!Array.isArray(old)) return old;
+          const pk =
+            selectedAgreement._pk ?? selectedAgreement.id ?? selectedAgreement.dts_no;
+          return old.map((it) => {
+            const itKey = getPk(it) || it._pk || it.id || it.dts_no;
+            if (String(itKey) === String(pk)) {
+              try {
+                // Add a lightweight marker so UI can react immediately
+                const updated = { ...it, _last_upload_at: new Date().toISOString() };
+                return applyBackendStageData(mapAgreement(updated));
+              } catch (e) {
+                return { ...it, _last_upload_at: new Date().toISOString() };
+              }
+            }
+            return it;
+          });
+        });
+      } catch (e) {
+        // ignore cache update failures
+      }
       setSelectedAgreement(null);
       setUploadFile(null);
       setUploadComment("");
+      // Reconcile with server state
+      try {
+        await queryClient.invalidateQueries(["agreements"]);
+      } catch (e) {}
     } catch (err) {
       console.error(err);
       alert("Upload failed: " + (err.message || err));
@@ -2240,6 +2459,7 @@ const OverviewMerged = () => {
                   className={`stage-card ${
                     filterStage === s.value ? "active" : ""
                   } ${stageHasDelayed[s.value] ? "delayed" : ""}`}
+                  data-attention-count={stageAttentionCounts[s.value] || 0}
                   onClick={() =>
                     setFilterStage((prev) => (prev === s.value ? "" : s.value))
                   }
@@ -2270,6 +2490,7 @@ const OverviewMerged = () => {
                       setTmpClassification(filterClassification);
                       setTmpValidity(filterValidity);
                       setTmpCountry(filterCountry);
+                      setTmpSource(filterSource);
                     }
                     return !v;
                   });
@@ -2314,27 +2535,25 @@ const OverviewMerged = () => {
                   </button>
                 </div>
 
-                <div className="overview1-panel-row">
+                <div className="overview1-panel-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                   <div className="overview1-panel-field">
                     <label className="filter-label">
                       <FiTag className="filter-icon" />
-                      Partnership Classification
+                      Classification
                     </label>
-                    <div className="filter-select-wrapper">
-                      <select
-                        value={tmpClassification}
-                        onChange={(e) => setTmpClassification(e.target.value)}
-                        className="filter-select"
-                      >
-                        <option value="">All Classifications</option>
-                        {classificationOptions.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                      <FiChevronDown className="select-chevron" />
-                    </div>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "All" },
+                        ...classificationOptions.map((c) => ({
+                          value: c,
+                          label: c,
+                        })),
+                      ]}
+                      value={tmpClassification}
+                      onChange={(v) => setTmpClassification(v || "")}
+                      placeholder="All"
+                      allowClear={false}
+                    />
                   </div>
 
                   <div className="overview1-panel-field">
@@ -2342,21 +2561,19 @@ const OverviewMerged = () => {
                       <FiCalendar className="filter-icon" />
                       Validity Period
                     </label>
-                    <div className="filter-select-wrapper">
-                      <select
-                        value={tmpValidity}
-                        onChange={(e) => setTmpValidity(e.target.value)}
-                        className="filter-select"
-                      >
-                        <option value="">All Periods</option>
-                        {validityOptions.map((v) => (
-                          <option key={v} value={v}>
-                            {v} {v ? "years" : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <FiChevronDown className="select-chevron" />
-                    </div>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "All" },
+                        ...validityOptions.map((v) => ({
+                          value: v,
+                          label: v ? `${v} ${parseInt(v) === 1 ? 'Year' : 'Years'}` : v,
+                        })),
+                      ]}
+                      value={tmpValidity}
+                      onChange={(v) => setTmpValidity(v || "")}
+                      placeholder="All"
+                      allowClear={false}
+                    />
                   </div>
 
                   <div className="overview1-panel-field">
@@ -2364,21 +2581,39 @@ const OverviewMerged = () => {
                       <FiMapPin className="filter-icon" />
                       Country
                     </label>
-                    <div className="filter-select-wrapper">
-                      <select
-                        value={tmpCountry}
-                        onChange={(e) => setTmpCountry(e.target.value)}
-                        className="filter-select"
-                      >
-                        <option value="">All Countries</option>
-                        {countryOptions.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                      <FiChevronDown className="select-chevron" />
-                    </div>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "All" },
+                        ...countryOptions.map((c) => ({
+                          value: c,
+                          label: c,
+                        })),
+                      ]}
+                      value={tmpCountry}
+                      onChange={(v) => setTmpCountry(v || "")}
+                      placeholder="All"
+                      allowClear={false}
+                    />
+                  </div>
+
+                  <div className="overview1-panel-field">
+                    <label className="filter-label">
+                      <FiHome className="filter-icon" />
+                      Source
+                    </label>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "All" },
+                        ...sourceOptions.map((s) => ({
+                          value: s,
+                          label: s,
+                        })),
+                      ]}
+                      value={tmpSource}
+                      onChange={(v) => setTmpSource(v || "")}
+                      placeholder="All"
+                      allowClear={false}
+                    />
                   </div>
                 </div>
 
@@ -2389,6 +2624,12 @@ const OverviewMerged = () => {
                       setTmpClassification("");
                       setTmpValidity("");
                       setTmpCountry("");
+                      setTmpSource("");
+                      setFilterClassification("");
+                      setFilterValidity("");
+                      setFilterCountry("");
+                      setFilterSource("");
+                      setShowFilterPanel(false);
                     }}
                   >
                     <FiXCircle className="btn-icon" />
@@ -2400,6 +2641,7 @@ const OverviewMerged = () => {
                       setFilterClassification(tmpClassification);
                       setFilterValidity(tmpValidity);
                       setFilterCountry(tmpCountry);
+                      setFilterSource(tmpSource);
                       setShowFilterPanel(false);
                     }}
                   >
@@ -2483,112 +2725,59 @@ const OverviewMerged = () => {
                           {row.document_type || "—"}
                         </span>
                       </td>
-                      {/* Related MOU */}
+                      {/* Related MOU (match ActiveAgreement 'Connection' column behavior) */}
                       <td>
                         {(() => {
-                          // Use helper to accept multiple linked-id field names
-                          const raw = getLinkedId(row) ?? row.related_mou ?? null;
-                          if (!raw) return "—";
-                          const key = String(raw);
-
-                                        const renderLabel = () => {
-                                          // If the key already looks like a DTS number (e.g. "DT123456"),
-                                          // prefer showing it directly. This avoids accidental mapping
-                                          // or overwriting when the backend already stored the DTS string.
-                                          if (/^DT\d+/i.test(key)) {
-                                            try { console.debug && console.debug('related_mou renderLabel - raw DTS key', { key }); } catch (e) {}
-                                            return key;
-                                          }
-
-                                          // Prefer showing an explicit DTS value from the matched
-                                          // agreement object. Only fall back to relatedDtsMap when
-                                          // no direct DTS fields are present.
-                                          const found = agreements.find((a) => {
-                                            try {
-                                              return (
-                                                String(a.agreement_id) === key ||
-                                                String(a._pk) === key ||
-                                                String(a.id) === key ||
-                                                (a.dts_no && String(a.dts_no) === key) ||
-                                                (a.dts_number && String(a.dts_number) === key) ||
-                                                (a.dtsNumber && String(a.dtsNumber) === key)
-                                              );
-                                            } catch (e) {
-                                              return false;
-                                            }
-                                          });
-                                          let out;
-                                          if (found) {
-                                            const dts = found.dts_no || found.dts_number || found.dtsNumber || null;
-                                            out = dts ? String(dts) : relatedDtsMap[key] || key;
-                                          } else {
-                                            out = relatedDtsMap[key] || key;
-                                          }
-                                          // TEMP LOG: show what label we render for this related key
-                                          try { console.debug && console.debug('related_mou renderLabel', { key, label: out, found: !!found, relatedDtsMapVal: relatedDtsMap[key] }); } catch (e) {}
-                                          return out;
-                                        };
-
-                          const handleOpen = async (e) => {
-                            if (e && e.stopPropagation) e.stopPropagation();
-                            const found = agreements.find(
-                              (a) =>
-                                String(a.agreement_id) === key ||
-                                String(a._pk) === key ||
-                                String(a.id) === key ||
-                                (a.dts_no && String(a.dts_no) === key) ||
-                                (a.dts_number && String(a.dts_number) === key)
+                          const parentId = getLinkedId(row);
+                          let parent = null;
+                          try {
+                            console.debug &&
+                              console.debug("overview: resolving parent", {
+                                rowId: row?.id || row?.dts_no || row?.agreement_id,
+                                parentId,
+                              });
+                          } catch (e) {}
+                          if (parentId) {
+                            parent = agreements.find(
+                              (x) =>
+                                String(x.id) === String(parentId) ||
+                                String(x.agreement_id) === String(parentId) ||
+                                String(x.linkedMouId) === String(parentId)
                             );
-                            if (found) {
-                              await loadAgreementDetails(found);
-                              setDetailOpen(true);
-                              return;
-                            }
-
-                            if (/^\d+$/.test(key)) {
-                              try {
-                                await loadAgreementDetails(Number(key));
-                                setDetailOpen(true);
-                                return;
-                              } catch (err) {
-                                // fall through to DTS lookup
-                              }
-                            }
-
                             try {
-                              await loadAgreementDetails(key);
-                              setDetailOpen(true);
-                              return;
-                            } catch (err) {
-                              setSelected({ id: key, dts_no: key, partner_name: String(key) });
-                              setDetailOpen(true);
-                              return;
-                            }
-                          };
+                              console.debug &&
+                                console.debug("overview: parent lookup result", {
+                                  parentId,
+                                  parent: parent
+                                    ? { id: parent.id, agreement_id: parent.agreement_id, dts_no: parent.dts_no }
+                                    : null,
+                                });
+                            } catch (e) {}
+                          }
 
-                          return (
-                            <span className="related-mou">
-                              <div className="req">
+                          if (parentId && parent) {
+                            return (
+                              <span className="agreement-tooltip">
                                 <button
                                   type="button"
-                                  className="linked-mou-btn"
-                                  onClick={handleOpen}
-                                  title={`View linked MOU ${renderLabel()}`}
-                                  aria-label={`View linked MOU ${renderLabel()}`}
-                                  style={{
-                                    background: "transparent",
-                                    border: "none",
-                                    color: "#5a1522",
-                                    cursor: "pointer",
-                                    padding: 0,
-                                    fontWeight: 700,
-                                  }}
+                                  className="linked linked-child parent-dts-button"
+                                  onClick={() => openDetails(parent)}
+                                  aria-label={`View linked MOU ${parent?.dts_no || parent?.dts_number || parentId}`}
+                                  title={parent?.dts_no || parent?.dts_number || parentId}
                                 >
-                                  {renderLabel()}
+                                  <FiLink className="link-icon" />
+                                  <span className="parent-dts">{parent?.dts_no || parent?.dts_number || parentId}</span>
                                 </button>
-                              </div>
-                            </span>
-                          );
+                              </span>
+                            );
+                          }
+
+                          // Do not render MOA children in the Related MOU column.
+                          if (String(row.document_type || "").toUpperCase() === "MOA") {
+                            return <span className="independent">Independent</span>;
+                          }
+
+                          return <span className="dash">—</span>;
                         })()}
                       </td>
                       {/* Current Status */}
@@ -2936,26 +3125,6 @@ const OverviewMerged = () => {
                                   "—"}
                               </div>
                             </div>
-                            <div className="details-meta">
-                              <div className="details-meta-item">
-                                <span className="label">DTS No.</span>
-                                <span className="value mono value-with-icon">
-                                  <FiHash className="value-icon" />
-                                  {selected.dts_no || selected.id || "—"}
-                                </span>
-                              </div>
-                              <div className="details-meta-item">
-                                <span className="label">Date Received</span>
-                                <span className="value value-with-icon">
-                                  <FiCalendar className="value-icon" />
-                                  {selected.date_received
-                                    ? new Date(
-                                        selected.date_received
-                                      ).toLocaleDateString()
-                                    : "—"}
-                                </span>
-                              </div>
-                            </div>
                           </div>
                           <div className="file-actions">
                             <button
@@ -2997,11 +3166,10 @@ const OverviewMerged = () => {
                           <div className="row two-col">
                             <div>
                               <div className="label">
-                                <FiTag className="label-icon" />
+                                <FiHash className="label-icon" />
                                 DTS Number
                               </div>
-                              <div className="value mono value-with-icon">
-                                <FiHash className="value-icon" />
+                              <div className="value mono">
                                 {selected.dts_no || selected.id || "—"}
                               </div>
                             </div>
@@ -3019,8 +3187,7 @@ const OverviewMerged = () => {
                                 <FiCalendar className="label-icon" />
                                 Date Received
                               </div>
-                              <div className="value value-with-icon">
-                                <FiCalendar className="value-icon" />
+                              <div className="value">
                                 {selected.date_received
                                   ? new Date(
                                       selected.date_received
@@ -3066,11 +3233,11 @@ const OverviewMerged = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="label" style={{ marginTop: 12 }}>
-                            <FiInfo className="label-icon" />
+                          <div className="label" style={{ marginTop: 20 }}>
+                            <FiAlignLeft className="label-icon" />
                             Brief Profile
                           </div>
-                          <div className="brief">
+                          <div className="brief" style={{ marginTop: 8, lineHeight: 1.6 }}>
                             {selected.brief_profile ||
                               selected.description ||
                               "—"}
@@ -3079,12 +3246,85 @@ const OverviewMerged = () => {
                         
                         {/* ===== Linked MOU (placed below Signatories) ===== */}
                         {(() => {
+                          // If the currently selected record is an MOU, render it with its MOA children
+                          if (String(selected.document_type || "").toUpperCase() === "MOU") {
+                            const mid = selected.id || selected.agreement_id;
+                            const children = Array.isArray(agreements)
+                              ? agreements.filter(
+                                  (c) =>
+                                    String((c.document_type || c.documentType || "")).toUpperCase() === "MOA" &&
+                                    (getLinkedId(c) === mid || c.linkedMouId === mid || c.MOU_to_MOA_id === mid)
+                                )
+                              : [];
+
+                            if (!children || children.length === 0) {
+                              // No linked MOAs for this MOU
+                              return null;
+                            }
+
+                            return (
+                              <section className="modal-section linked-mou">
+                                <div className="section-header">
+                                  <FiLink className="header-icon" />
+                                  <h4>Linked Agreements</h4>
+                                </div>
+
+                                <div className="linked-mou-card" onClick={() => openDetails(selected)} style={{ cursor: "pointer" }}>
+                                  <div className="linked-mou-left">
+                                    <span className="badge mou">MOU</span>
+                                  </div>
+                                  <div className="linked-mou-body">
+                                    <strong className="linked-mou-title">
+                                      {selected.partner_name || selected.name || selected.event_title || selected.eventTitle || "—"}
+                                    </strong>
+                                    <div className="linked-mou-sub">
+                                      {selected.partnership_classification || selected.partnership_type || selected.partnershipClassification || "—"}
+                                    </div>
+                                    <div className="linked-mou-valid">
+                                      Valid until: {" "}
+                                      {selected.expiry || selected.date_expiry ? new Date(selected.expiry || selected.date_expiry).toLocaleDateString() : "—"}
+                                    </div>
+                                    <div className="linked-mou-dts">
+                                      {selected.dts_no || selected.dts_number || selected.id || "—"}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="mou-based">
+                                  <div className="mou-based-title">
+                                    <FiLink className="link-inline" /> Agreements based on this MOU ({children.length})
+                                  </div>
+
+                                  <div className="mou-children">
+                                    {children.map((c) => (
+                                      <div className="moa-child-card" key={c.id || c.agreement_id}>
+                                        <div className="moa-left">
+                                          <FiArrowRight className="arrow-icon" />
+                                          <span className="badge moa">MOA</span>
+                                        </div>
+
+                                        <div className="moa-body">
+                                          <strong className="moa-title">{c.event_title || c.eventTitle}</strong>
+                                          <div className="moa-sub small">Partner: {c.name || c.partnerName} ({c.country})</div>
+                                          <div className="moa-sub small">Source: {c.source_unit || c.source || c.initiating_unit}</div>
+                                          <div className="moa-valid small">Valid: {c.date_signed || c.dateOfSigning ? new Date(c.date_signed || c.dateOfSigning).toLocaleDateString() : "—"} → {c.date_expiry || c.expiryDate ? new Date(c.date_expiry || c.expiryDate).toLocaleDateString() : "—"}</div>
+                                          <div className="moa-dts small">{c.dts_number || c.dtsNumber || c.dts_no || c.id}</div>
+                                        </div>
+
+                                        <button className="moa-view-btn" onClick={() => openDetails(c)} aria-label={`View details for ${c.dts_number || c.dtsNumber || c.event_title || 'agreement'}`}>
+                                          <FiEye className="icon" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </section>
+                            );
+                          }
+
+                          // Fallback: existing behavior for non-MOU records (show their linked MOU if present)
                           // Normalize & resolve linked id using the same helper as ActiveAgreement
-                          const lid =
-                            getLinkedId(selected) ||
-                            selected.linkedMouId ||
-                            selected.linked_mou ||
-                            selected.MOU_to_MOA_id;
+                          const lid = getLinkedId(selected) || selected.linkedMouId || selected.linked_mou || selected.MOU_to_MOA_id;
                           if (!lid) return null;
 
                           const lidStr = String(lid).trim();
@@ -3101,20 +3341,13 @@ const OverviewMerged = () => {
                               a.linked_mou,
                               a.mou_number,
                             ];
-                            return candidates.some(
-                              (c) => c != null && String(c).trim() === lidStr
-                            );
+                            return candidates.some((c) => c != null && String(c).trim() === lidStr);
                           });
 
                           // If not found, try relatedDtsMap -> mapped DTS value
                           if (!target && relatedDtsMap && relatedDtsMap[lidStr]) {
                             const mapped = String(relatedDtsMap[lidStr]).trim();
-                            target = agreements.find(
-                              (a) =>
-                                (a.dts_no && String(a.dts_no).trim() === mapped) ||
-                                (a.dts_number && String(a.dts_number).trim() === mapped) ||
-                                (a.id && String(a.id).trim() === mapped)
-                            );
+                            target = agreements.find((a) => (a.dts_no && String(a.dts_no).trim() === mapped) || (a.dts_number && String(a.dts_number).trim() === mapped) || (a.id && String(a.id).trim() === mapped));
                           }
 
                           if (!target) return null;
@@ -3126,42 +3359,15 @@ const OverviewMerged = () => {
                                 <h4>Linked MOU</h4>
                               </div>
 
-                              <div
-                                className="linked-mou-card"
-                                onClick={() => openDetails(target)}
-                                style={{ cursor: "pointer" }}
-                              >
+                              <div className="linked-mou-card" onClick={() => openDetails(target)} style={{ cursor: "pointer" }}>
                                 <div className="linked-mou-left">
                                   <span className="badge mou">MOU</span>
                                 </div>
                                 <div className="linked-mou-body">
-                                  <strong className="linked-mou-title">
-                                    {target.partner_name ||
-                                      target.name ||
-                                      target.event_title ||
-                                      target.eventTitle ||
-                                      "—"}
-                                  </strong>
-                                  <div className="linked-mou-sub">
-                                    {target.partnership_classification ||
-                                      target.partnership_type ||
-                                      target.partnershipClassification ||
-                                      "—"}
-                                  </div>
-                                  <div className="linked-mou-valid">
-                                    Valid until:{" "}
-                                    {target.expiry || target.date_expiry
-                                      ? new Date(
-                                          target.expiry || target.date_expiry
-                                        ).toLocaleDateString()
-                                      : "—"}
-                                  </div>
-                                  <div className="linked-mou-dts">
-                                    {target.dts_no ||
-                                      target.dts_number ||
-                                      target.id ||
-                                      "—"}
-                                  </div>
+                                  <strong className="linked-mou-title">{target.partner_name || target.name || target.event_title || target.eventTitle || "—"}</strong>
+                                  <div className="linked-mou-sub">{target.partnership_classification || target.partnership_type || target.partnershipClassification || "—"}</div>
+                                  <div className="linked-mou-valid">Valid until: {target.expiry || target.date_expiry ? new Date(target.expiry || target.date_expiry).toLocaleDateString() : "—"}</div>
+                                  <div className="linked-mou-dts">{target.dts_no || target.dts_number || target.id || "—"}</div>
                                 </div>
                               </div>
                             </section>
@@ -3442,7 +3648,7 @@ const OverviewMerged = () => {
                             </div>
                             <div>
                               <div className="label">
-                                <FiTag className="label-icon" />
+                                <FiCalendar className="label-icon" />
                                 Validity Period
                               </div>
                               <div className="value">
