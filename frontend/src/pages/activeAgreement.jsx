@@ -29,21 +29,27 @@ import {
   FiMoreVertical,
   FiFileText,
   FiArchive,
-  FiPlusCircle,
   FiCheck,
-  FiChevronDown,
+  FiCheckCircle,
   FiUsers,
   FiMessageCircle,
   FiHash,
   FiXCircle,
   FiHome,
-  FiAlignLeft,
   FiBookOpen,
+  FiAward,
+  FiSave,
+  FiTrash2,
+  FiPlus,
 } from "react-icons/fi";
-import { TbFileText } from "react-icons/tb";
 import { agreementService } from "../services/agreementService";
 import axios from "axios";
 import { documentService } from "../services/documentService";
+import {
+  generatePrintableReport as generatePrintableReportShared,
+  downloadCSV as downloadCSVShared,
+  downloadXLSX as downloadXLSXShared,
+} from "../components/reportGeneration";
 
 /* Reusable searchable select */
 const SearchableSelect = ({
@@ -259,7 +265,6 @@ const ActiveAgreement = () => {
   const [editValue, setEditValue] = useState("");
   // three-dot row menu
   const [menuOpenId, setMenuOpenId] = useState(null);
-
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef(null);
   // ref to the "Nearing Expiration" section so summary card can scroll to it
@@ -281,11 +286,16 @@ const ActiveAgreement = () => {
   };
   const navigate = useNavigate();
 
-  // close menu on outside click
+  // close menu on outside click or scroll
   useEffect(() => {
     const handler = () => setMenuOpenId(null);
+    const scrollHandler = () => setMenuOpenId(null);
     document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
+    window.addEventListener("scroll", scrollHandler, true);
+    return () => {
+      document.removeEventListener("click", handler);
+      window.removeEventListener("scroll", scrollHandler, true);
+    };
   }, []);
 
   const toggleRowMenu = (id, e) => {
@@ -296,11 +306,11 @@ const ActiveAgreement = () => {
       return;
     }
 
-    // Compute position based on button
+    // Calculate position relative to button
     try {
       const rect = e.currentTarget.getBoundingClientRect();
-      const top = rect.bottom + 8;
-      const left = rect.left;
+      const top = rect.bottom + 4;
+      const left = rect.right - 160; // align right edge of menu with button
       setMenuPos({ top, left });
     } catch (err) {
       setMenuPos({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
@@ -468,12 +478,18 @@ const ActiveAgreement = () => {
     hardcopy_location: "",
     remarks: [],
   });
+  const [initialEditForm, setInitialEditForm] = useState({
+    hardcopy_location: "",
+    remarks: [],
+  });
+  const [initialRemarksCount, setInitialRemarksCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   // Generate report modal state (behaves like OverviewDash)
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [generateDocType, setGenerateDocType] = useState("All");
   const [generateStatus, setGenerateStatus] = useState("All");
+  const [generateSource, setGenerateSource] = useState("All");
 
   useEffect(() => {
     if (selectedAgreement) {
@@ -516,6 +532,20 @@ const ActiveAgreement = () => {
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
   const closeModal = () => setSelectedAgreement(null);
 
+  const navigateAgreement = (dir) => {
+    if (!selectedAgreement) return;
+    const idx = filteredAgreementsWithFilters.findIndex(
+      (a) =>
+        (a.id || a.agreement_id || a.dts_number) ===
+        (selectedAgreement.id ||
+          selectedAgreement.agreement_id ||
+          selectedAgreement.dts_number)
+    );
+    if (idx === -1) return;
+    const next = filteredAgreementsWithFilters[idx + dir];
+    if (next) setSelectedAgreement(next);
+  };
+
   const startModalEdit = () => {
     // Only allow administrators to edit
     const isAdminUser = (user = currentUser) => {
@@ -549,13 +579,17 @@ const ActiveAgreement = () => {
     }
 
     setIsModalEdit(true);
-    setEditForm({
+    const initialRemarks = normalizeRemarks(selectedAgreement?.remarks);
+    const initialValues = {
       hardcopy_location:
         selectedAgreement?.hardcopy_location ||
         selectedAgreement?.hardcopyLocator ||
         "",
-      remarks: normalizeRemarks(selectedAgreement?.remarks),
-    });
+      remarks: initialRemarks,
+    };
+    setEditForm(initialValues);
+    setInitialEditForm(initialValues);
+    setInitialRemarksCount(initialRemarks.length);
   };
 
   // small helper used by header to decide whether to show admin controls
@@ -563,11 +597,22 @@ const ActiveAgreement = () => {
     const u = user || currentUser;
     if (!u) return false;
     if (u.is_admin || u.isAdmin) return true;
-    if (typeof u.role === "string" && /admin|administrator/i.test(u.role)) return true;
-    if (typeof u.user_role === "string" && /admin|administrator/i.test(u.user_role)) return true;
-    if (typeof u.role_name === "string" && /admin|administrator/i.test(u.role_name)) return true;
-    if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r)))) return true;
-    if (Array.isArray(u.permissions) && u.permissions.includes("admin")) return true;
+    if (typeof u.role === "string" && /admin|administrator/i.test(u.role))
+      return true;
+    if (
+      typeof u.user_role === "string" &&
+      /admin|administrator/i.test(u.user_role)
+    )
+      return true;
+    if (
+      typeof u.role_name === "string" &&
+      /admin|administrator/i.test(u.role_name)
+    )
+      return true;
+    if (Array.isArray(u.roles) && u.roles.some((r) => /admin/i.test(String(r))))
+      return true;
+    if (Array.isArray(u.permissions) && u.permissions.includes("admin"))
+      return true;
     return false;
   };
 
@@ -756,6 +801,28 @@ const ActiveAgreement = () => {
       }
 
       setIsModalEdit(false);
+
+      // Show confirmation messages for remark changes
+      const currentRemarksCount = editForm.remarks.filter(
+        (r) => r && r.trim()
+      ).length;
+      if (currentRemarksCount > initialRemarksCount) {
+        const added = currentRemarksCount - initialRemarksCount;
+        alert(
+          `Changes saved successfully. ${added} remark${
+            added > 1 ? "s" : ""
+          } added.`
+        );
+      } else if (currentRemarksCount < initialRemarksCount) {
+        const removed = initialRemarksCount - currentRemarksCount;
+        alert(
+          `Changes saved successfully. ${removed} remark${
+            removed > 1 ? "s" : ""
+          } removed.`
+        );
+      } else {
+        alert("Changes saved successfully.");
+      }
     } catch (err) {
       console.error("Failed to save agreement edits:", err);
       // surface error to the user (simple fallback)
@@ -1249,126 +1316,51 @@ const ActiveAgreement = () => {
       console.warn("report status filter error", e);
     }
 
+    // Apply Source Unit filter from the modal (if set)
+    try {
+      const sourceKey = String(generateSource || "").trim();
+      if (sourceKey && sourceKey !== "All") {
+        items = items.filter((a) => {
+          const s = String(
+            a.source_unit || a.source || a.initiating_unit || ""
+          ).trim();
+          return s === sourceKey;
+        });
+      }
+    } catch (e) {
+      console.warn("report source filter error", e);
+    }
+
     return items;
   })();
 
-  const escapeHtml = (str = "") =>
-    String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-  const safeCsv = (v = "") => {
-    const s = String(v ?? "").replace(/"/g, '""');
-    return `"${s}"`;
-  };
-
-  const generatePrintableReport = () => {
-    const rows = reportItems
-      .map((r) => {
-        const parentId = getLinkedId(r);
-        const parent = parentId
-          ? agreements.find(
-              (x) => x.id === parentId || x.agreement_id === parentId
-            )
-          : null;
-        return `<tr>
-            <td>${escapeHtml(r.document_type)}</td>
-            <td>${escapeHtml(r.dts_number)}</td>
-            <td>${escapeHtml(r.event_title || r.event || r.title || "")}</td>
-            <td>${escapeHtml(r.name || r.partnerName || "")}</td>
-            <td>${escapeHtml(
-              r.source_unit || r.source || r.initiating_unit || ""
-            )}</td>
-            <td>${escapeHtml(
-              r.date_signed ? new Date(r.date_signed).toLocaleDateString() : ""
-            )}</td>
-            <td>${escapeHtml(
-              r.date_expiry ? new Date(r.date_expiry).toLocaleDateString() : ""
-            )}</td>
-            <td>${
-              parent
-                ? escapeHtml(parent.event_title || parent.eventTitle || "")
-                : ""
-            }</td>
-          </tr>`;
-      })
-      .join("");
-
-    const html = `
-      <html>
-        <head>
-          <title>${reportLabelMap[reportKey] || reportLabelMap.all}</title>
-          <style>
-            body{font-family: Arial, Helvetica, sans-serif; padding:20px; color:#111}
-            h1{font-size:20px; margin-bottom:6px}
-            table{width:100%;border-collapse:collapse;margin-top:12px}
-            th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:13px}
-            th{background:#f7f7f7}
-          </style>
-        </head>
-        <body>
-          <h1>${reportLabelMap[reportKey] || reportLabelMap.all}</h1>
-          <div>Total records: ${reportItems.length}</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Type</th><th>DTS</th><th>Title</th><th>Partner</th><th>Source</th><th>Signing</th><th>Expiry</th><th>Linked MOU</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <script>window.onload = function(){ window.print(); }</script>
-        </body>
-      </html>`;
-
-    const w = window.open("", "_blank");
-    w.document.write(html);
-    w.document.close();
-  };
-
-  const downloadCSV = () => {
-    const headers = [
-      "Type",
-      "DTS Number",
-      "Title",
-      "Partner",
-      "Country",
-      "Source",
-      "DateOfSigning",
-      "ExpiryDate",
-      "LinkedMouId",
-      "Remarks",
-    ];
-    const csvRows = [headers.join(",")];
-
-    reportItems.forEach((r) => {
-      const row = [
-        safeCsv(r.document_type),
-        safeCsv(r.dts_number),
-        safeCsv(r.event_title || r.event || r.title || ""),
-        safeCsv(r.name || r.partnerName || ""),
-        safeCsv(r.country),
-        safeCsv(r.source_unit || r.source || r.initiating_unit),
-        safeCsv(r.date_signed || ""),
-        safeCsv(r.date_expiry || ""),
-        safeCsv(getLinkedId(r) || ""),
-        safeCsv(
-          Array.isArray(r.remarks) ? r.remarks.join(" | ") : r.remarks || ""
-        ),
-      ];
-      csvRows.push(row.join(","));
+  // Use shared report generation helpers
+  const generatePrintableReport = () =>
+    generatePrintableReportShared({
+      items: reportItems,
+      reportKey,
+      reportLabelMap,
+      allAgreements: agreements,
+      getLinkedId,
     });
 
-    const csvString = csvRows.join("\r\n");
-    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${reportKey || "all"}-agreements-report.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const downloadCSV = () =>
+    downloadCSVShared({
+      items: reportItems,
+      reportKey,
+      getLinkedId,
+      filenamePrefix: reportKey,
+      allAgreements: agreements,
+    });
+
+  const downloadXLSX = () =>
+    downloadXLSXShared({
+      items: reportItems,
+      reportKey,
+      getLinkedId,
+      filenamePrefix: reportKey,
+      allAgreements: agreements,
+    });
 
   if (error) {
     return <div className="overview-container">Error: {error}</div>;
@@ -1543,7 +1535,9 @@ const ActiveAgreement = () => {
                   >
                     <button
                       type="button"
-                      className={`btn generate ${showFilterPanel ? "active" : ""}`}
+                      className={`btn generate ${
+                        showFilterPanel ? "active" : ""
+                      }`}
                       onClick={() => setShowFilterPanel((v) => !v)}
                       aria-expanded={showFilterPanel}
                     >
@@ -1554,7 +1548,9 @@ const ActiveAgreement = () => {
                     {/* Generate Report */}
                     <button
                       type="button"
-                      className={`btn generate ${showGenerateModal ? "active" : ""}`}
+                      className={`btn generate ${
+                        showGenerateModal ? "active" : ""
+                      }`}
                       onClick={() => {
                         setShowGenerateModal(true);
                       }}
@@ -1573,27 +1569,13 @@ const ActiveAgreement = () => {
                   style={{ marginTop: 12 }}
                 >
                   {/* Header: Filter Agreements + close */}
-                  <div
-                    className="overview1-filter-header"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "12px 16px",
-                      borderBottom: "1px solid #f0e9e9",
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <FiFilter style={{ color: "#8b1f2d" }} />
-                      <strong>Filter Agreements</strong>
-                    </div>
+                  <div className="overview1-panel-header">
+                    <FiFilter className="panel-header-icon" />
+                    <h4>Filter Agreements</h4>
                     <button
-                      className="icon-btn"
+                      className="panel-close-btn"
                       onClick={() => setShowFilterPanel(false)}
                       aria-label="Close filter panel"
-                      title="Close"
                     >
                       <FiX className="icon" />
                     </button>
@@ -1638,7 +1620,9 @@ const ActiveAgreement = () => {
                           { value: "", label: "All" },
                           ...validityOptions.map((v) => ({
                             value: v,
-                            label: v ? `${v} ${parseInt(v) === 1 ? 'Year' : 'Years'}` : v,
+                            label: v
+                              ? `${v} ${parseInt(v) === 1 ? "Year" : "Years"}`
+                              : v,
                           })),
                         ]}
                         value={filterValidityPeriod}
@@ -1675,7 +1659,7 @@ const ActiveAgreement = () => {
 
                     <div className="overview1-panel-field">
                       <label className="filter-label">
-                        <FiHome className="filter-icon" /> Source
+                        <FiHome className="filter-icon" /> Source Unit
                       </label>
                       <SearchableSelect
                         options={[
@@ -2334,7 +2318,10 @@ const ActiveAgreement = () => {
             role="dialog"
             aria-modal="true"
             aria-label={`Agreement details for ${
-              selectedAgreement.name || selectedAgreement.partnerName || selectedAgreement.event_title || "agreement"
+              selectedAgreement.name ||
+              selectedAgreement.partnerName ||
+              selectedAgreement.event_title ||
+              "agreement"
             }`}
           >
             <div
@@ -2346,11 +2333,15 @@ const ActiveAgreement = () => {
                 {/* Updated Agreement Type Badge */}
                 <span
                   className={`header-badge doc ${String(
-                    selectedAgreement.document_type || selectedAgreement.documentType || ""
+                    selectedAgreement.document_type ||
+                      selectedAgreement.documentType ||
+                      ""
                   ).toLowerCase()}`}
                 >
                   <FiFileText className="badge-icon" />
-                  {selectedAgreement.document_type || selectedAgreement.documentType || "—"}
+                  {selectedAgreement.document_type ||
+                    selectedAgreement.documentType ||
+                    "—"}
                 </span>
                 <h3 id="modal-title" className="modal-title white-title">
                   {selectedAgreement.name ||
@@ -2358,9 +2349,27 @@ const ActiveAgreement = () => {
                     "Agreement Details"}
                 </h3>
               </div>
-              <div
-                style={{ display: "flex", gap: 8, alignItems: "center" }}
-              >
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {!isModalEdit && (
+                  <>
+                    <button
+                      className="nav-btn"
+                      onClick={() => navigateAgreement(-1)}
+                      title="Previous"
+                      aria-label="Previous agreement"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      className="nav-btn"
+                      onClick={() => navigateAgreement(1)}
+                      title="Next"
+                      aria-label="Next agreement"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
                 <button
                   className="modal-close"
                   onClick={closeModal}
@@ -2387,11 +2396,19 @@ const ActiveAgreement = () => {
                             "Agreement Details"}
                         </div>
                         <div className="details-sub">
-                          {selectedAgreement.document_type || selectedAgreement.documentType || "—"} •{" "}
-                          {selectedAgreement.agreement_status || selectedAgreement.status || "Active"}
+                          {selectedAgreement.document_type ||
+                            selectedAgreement.documentType ||
+                            "—"}{" "}
+                          •{" "}
+                          {selectedAgreement.agreement_status ||
+                            selectedAgreement.status ||
+                            "Active"}
                         </div>
                       </div>
-                      <div className="file-actions" style={{ marginLeft: "auto" }}>
+                      <div
+                        className="file-actions"
+                        style={{ marginLeft: "auto" }}
+                      >
                         <button
                           className="btn action view-file"
                           onClick={() => handleViewLatestFile(selectedDts)}
@@ -2404,8 +2421,16 @@ const ActiveAgreement = () => {
                         <button
                           className="btn action older-files"
                           onClick={() => {
-                            if (selectedDts) navigate(`/docVer?dts_number=${encodeURIComponent(selectedDts)}`);
-                            else alert("No DTS number available for this agreement.");
+                            if (selectedDts)
+                              navigate(
+                                `/docVer?dts_number=${encodeURIComponent(
+                                  selectedDts
+                                )}`
+                              );
+                            else
+                              alert(
+                                "No DTS number available for this agreement."
+                              );
                           }}
                           title="View Older Files"
                           aria-label="View Older Files"
@@ -2429,7 +2454,8 @@ const ActiveAgreement = () => {
                           DTS Number
                         </div>
                         <div className="value mono">
-                          {selectedAgreement.dts_number || selectedAgreement.dtsNumber}
+                          {selectedAgreement.dts_number ||
+                            selectedAgreement.dtsNumber}
                         </div>
                       </div>
 
@@ -2439,7 +2465,9 @@ const ActiveAgreement = () => {
                           Document Type
                         </div>
                         <div className="value">
-                          {selectedAgreement.document_type || selectedAgreement.documentType || "—"}
+                          {selectedAgreement.document_type ||
+                            selectedAgreement.documentType ||
+                            "—"}
                         </div>
                       </div>
 
@@ -2449,7 +2477,15 @@ const ActiveAgreement = () => {
                           Date Received
                         </div>
                         <div className="value">
-                          {selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed ? new Date(selectedAgreement.date || selectedAgreement.date_received || selectedAgreement.date_signed).toLocaleDateString() : "—"}
+                          {selectedAgreement.date ||
+                          selectedAgreement.date_received ||
+                          selectedAgreement.date_signed
+                            ? new Date(
+                                selectedAgreement.date ||
+                                  selectedAgreement.date_received ||
+                                  selectedAgreement.date_signed
+                              ).toLocaleDateString()
+                            : "—"}
                         </div>
                       </div>
 
@@ -2459,16 +2495,54 @@ const ActiveAgreement = () => {
                           Source Unit
                         </div>
                         <div className="value">
-                          {selectedAgreement.source_unit || selectedAgreement.source || selectedAgreement.initiating_unit || "—"}
+                          {selectedAgreement.source_unit ||
+                            selectedAgreement.source ||
+                            selectedAgreement.initiating_unit ||
+                            "—"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="label">
+                          <FiMapPin className="label-icon" />
+                          Hardcopy Locator
+                        </div>
+                        <div className="value">
+                          {selectedAgreement.hardcopy_location ||
+                            selectedAgreement.hardcopyLocation ||
+                            "—"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="label">
+                          <FiCheckCircle className="label-icon" />
+                          Current Status
+                        </div>
+                        <div className="value">
+                          <span
+                            className={`status-badge ${String(
+                              selectedAgreement.agreement_status ||
+                                selectedAgreement.status ||
+                                "Active"
+                            ).toLowerCase()}`}
+                          >
+                            {selectedAgreement.agreement_status ||
+                              selectedAgreement.status ||
+                              "Active"}
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     <div className="label" style={{ marginTop: 20 }}>
-                      <FiBookOpen className="label-icon" />
+                      <FiBookOpen className="label-icon brief-profile-icon" />
                       Brief Profile
                     </div>
-                    <div className="brief" style={{ marginTop: 8, lineHeight: 1.6 }}>
+                    <div
+                      className="brief"
+                      style={{ marginTop: 8, lineHeight: 1.6 }}
+                    >
                       {getBriefProfileFromAgreement(selectedAgreement) || "—"}
                     </div>
                   </section>
@@ -2479,106 +2553,116 @@ const ActiveAgreement = () => {
                       <h4>Partner Information</h4>
                     </div>
                     <div className="partner-top">
-                  <div className="partner-logo">
-                    {LogoSrc(
-                      selectedAgreement.logo_path || selectedAgreement.logo
-                    ) ? (
-                      <img
-                        src={LogoSrc(
+                      <div className="partner-logo">
+                        {LogoSrc(
                           selectedAgreement.logo_path || selectedAgreement.logo
-                        )}
-                        alt={`${
-                          selectedAgreement.name ||
-                          selectedAgreement.partnerName
-                        } logo`}
-                        onError={(e) => {
-                          console.warn("Logo failed to load:", e.target.src);
-                          e.target.onerror = null;
-                          e.target.style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <div className="partner-fallback">
-                        {getInitials(
-                          selectedAgreement.name ||
-                            selectedAgreement.partnerName
+                        ) ? (
+                          <img
+                            src={LogoSrc(
+                              selectedAgreement.logo_path ||
+                                selectedAgreement.logo
+                            )}
+                            alt={`${
+                              selectedAgreement.name ||
+                              selectedAgreement.partnerName
+                            } logo`}
+                            onError={(e) => {
+                              console.warn(
+                                "Logo failed to load:",
+                                e.target.src
+                              );
+                              e.target.onerror = null;
+                              e.target.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div className="partner-fallback">
+                            {getInitials(
+                              selectedAgreement.name ||
+                                selectedAgreement.partnerName
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                    <div className="partner-details">
-                      <div className="row two-col">
-                        <div>
-                          <div className="label">
-                            <FiTag className="label-icon" />
-                            Organization
+                      <div className="partner-details">
+                        <div className="row two-col">
+                          <div>
+                            <div className="label">
+                              <FiTag className="label-icon" />
+                              Organization
+                            </div>
+                            <div className="value">
+                              {selectedAgreement.name ||
+                                selectedAgreement.partnerName}
+                            </div>
                           </div>
-                          <div className="value">
-                            {selectedAgreement.name ||
-                              selectedAgreement.partnerName}
+                          <div>
+                            <div className="label">
+                              <FiSettings className="label-icon" />
+                              Entity Type
+                            </div>
+                            <div className="value">
+                              {selectedAgreement.entity_type || "—"}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <div className="label">
-                            <FiSettings className="label-icon" />
-                            Entity Type
+                          <div>
+                            <div className="label">
+                              <FiMapPin className="label-icon" />
+                              Country
+                            </div>
+                            <div className="value">
+                              {selectedAgreement.country || "—"}
+                            </div>
                           </div>
-                          <div className="value">
-                            {selectedAgreement.entity_type || "—"}
+                          <div>
+                            <div className="label">
+                              <FiMapPin className="label-icon" />
+                              Region
+                            </div>
+                            <div className="value">
+                              {selectedAgreement.region || "—"}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <div className="label">
-                            <FiMapPin className="label-icon" />
-                            Country
+                          <div>
+                            <div className="label">
+                              <FiMapPin className="label-icon" />
+                              Address
+                            </div>
+                            <div className="value">
+                              {selectedAgreement.address || "—"}
+                            </div>
                           </div>
-                          <div className="value">{selectedAgreement.country || "—"}</div>
-                        </div>
-                        <div>
-                          <div className="label">
-                            <FiMapPin className="label-icon" />
-                            Region
-                          </div>
-                          <div className="value">{selectedAgreement.region || "—"}</div>
-                        </div>
-                        <div>
-                          <div className="label">
-                            <FiMapPin className="label-icon" />
-                            Address
-                          </div>
-                          <div className="value">{selectedAgreement.address || "—"}</div>
-                        </div>
-                        <div>
-                          <div className="label">
-                            <FiLink className="label-icon" />
-                            Website
-                          </div>
-                          <div className="value">
-                            {(() => {
-                              const raw =
-                                getWebsiteFromAgreement(selectedAgreement);
-                              const href = normalizeHref(raw);
-                              if (!raw) return "—";
-                              return (
-                                <a
-                                  href={href}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{
-                                    color: "#3b82f6",
-                                    textDecoration: "none",
-                                  }}
-                                >
-                                  {raw}
-                                </a>
-                              );
-                            })()}
+                          <div>
+                            <div className="label">
+                              <FiLink className="label-icon" />
+                              Website
+                            </div>
+                            <div className="value">
+                              {(() => {
+                                const raw =
+                                  getWebsiteFromAgreement(selectedAgreement);
+                                const href = normalizeHref(raw);
+                                if (!raw) return "—";
+                                return (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      color: "#3b82f6",
+                                      textDecoration: "none",
+                                    }}
+                                  >
+                                    {raw}
+                                  </a>
+                                );
+                              })()}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
                   </section>
 
                   <section className="modal-section contacts">
@@ -2605,15 +2689,20 @@ const ActiveAgreement = () => {
                             "—"}
                         </div>
                         {pupEmail ? (
-                          <a className="contact-email" href={`mailto:${pupEmail}`}>
-                            <FiMessageCircle className="inline-icon" /> {pupEmail}
+                          <a
+                            className="contact-email"
+                            href={`mailto:${pupEmail}`}
+                          >
+                            <FiMessageCircle className="inline-icon" />{" "}
+                            {pupEmail}
                           </a>
                         ) : null}
                       </div>
 
                       <div className="contact-card alt">
                         <div className="contact-role">
-                          <FiUsers className="inline-icon" /> Partner Contact Person
+                          <FiUsers className="inline-icon" /> Partner Contact
+                          Person
                         </div>
                         <div className="contact-name">
                           {formatContactPersons(
@@ -2623,14 +2712,17 @@ const ActiveAgreement = () => {
                           )}
                         </div>
                         <div className="contact-org">
-                          {selectedAgreement.name || selectedAgreement.partnerName || "—"}
+                          {selectedAgreement.name ||
+                            selectedAgreement.partnerName ||
+                            "—"}
                         </div>
                         {partnerEmail ? (
                           <a
                             className="contact-email"
                             href={`mailto:${partnerEmail}`}
                           >
-                            <FiMessageCircle className="inline-icon" /> {partnerEmail}
+                            <FiMessageCircle className="inline-icon" />{" "}
+                            {partnerEmail}
                           </a>
                         ) : null}
                       </div>
@@ -2666,9 +2758,13 @@ const ActiveAgreement = () => {
                           </div>
                           <div className="linked-mou-valid">
                             Valid until:{" "}
-                            {linkedAgreement.date_expiry || linkedAgreement.expiry || linkedAgreement.expiryDate
+                            {linkedAgreement.date_expiry ||
+                            linkedAgreement.expiry ||
+                            linkedAgreement.expiryDate
                               ? new Date(
-                                  linkedAgreement.date_expiry || linkedAgreement.expiry || linkedAgreement.expiryDate
+                                  linkedAgreement.date_expiry ||
+                                    linkedAgreement.expiry ||
+                                    linkedAgreement.expiryDate
                                 ).toLocaleDateString()
                               : "—"}
                           </div>
@@ -2697,7 +2793,9 @@ const ActiveAgreement = () => {
                           Date of Signing
                         </div>
                         <div className="value">
-                          {selectedAgreement.date_signed || selectedAgreement.date_of_signing || selectedAgreement.dateOfSigning
+                          {selectedAgreement.date_signed ||
+                          selectedAgreement.date_of_signing ||
+                          selectedAgreement.dateOfSigning
                             ? new Date(
                                 selectedAgreement.date_signed ||
                                   selectedAgreement.date_of_signing ||
@@ -2712,7 +2810,9 @@ const ActiveAgreement = () => {
                           Expiry Date
                         </div>
                         <div className="value">
-                          {selectedAgreement.date_expiry || selectedAgreement.expiry || selectedAgreement.expiryDate
+                          {selectedAgreement.date_expiry ||
+                          selectedAgreement.expiry ||
+                          selectedAgreement.expiryDate
                             ? new Date(
                                 selectedAgreement.date_expiry ||
                                   selectedAgreement.expiry ||
@@ -2727,9 +2827,11 @@ const ActiveAgreement = () => {
                           Date Endorsed to ULCO
                         </div>
                         <div className="value">
-                          {selectedAgreement.date_endorsed_ulco || selectedAgreement.date_endorsed_to_ulco
+                          {selectedAgreement.date_endorsed_ulco ||
+                          selectedAgreement.date_endorsed_to_ulco
                             ? new Date(
-                                selectedAgreement.date_endorsed_ulco || selectedAgreement.date_endorsed_to_ulco
+                                selectedAgreement.date_endorsed_ulco ||
+                                  selectedAgreement.date_endorsed_to_ulco
                               ).toLocaleDateString()
                             : "—"}
                         </div>
@@ -2740,9 +2842,11 @@ const ActiveAgreement = () => {
                           ULCO's Approval
                         </div>
                         <div className="value">
-                          {selectedAgreement.ulco_approval || selectedAgreement.date_ulco_approved
+                          {selectedAgreement.ulco_approval ||
+                          selectedAgreement.date_ulco_approved
                             ? new Date(
-                                selectedAgreement.ulco_approval || selectedAgreement.date_ulco_approved
+                                selectedAgreement.ulco_approval ||
+                                  selectedAgreement.date_ulco_approved
                               ).toLocaleDateString()
                             : "—"}
                         </div>
@@ -2753,9 +2857,11 @@ const ActiveAgreement = () => {
                           PUP Officials' Signature
                         </div>
                         <div className="value">
-                          {selectedAgreement.pup_official_sign || selectedAgreement.date_signed_by_pup
+                          {selectedAgreement.pup_official_sign ||
+                          selectedAgreement.date_signed_by_pup
                             ? new Date(
-                                selectedAgreement.pup_official_sign || selectedAgreement.date_signed_by_pup
+                                selectedAgreement.pup_official_sign ||
+                                  selectedAgreement.date_signed_by_pup
                               ).toLocaleDateString()
                             : "—"}
                         </div>
@@ -2767,8 +2873,11 @@ const ActiveAgreement = () => {
                         </div>
                         <div className="value">
                           {selectedAgreement.validity_period ||
-                            selectedAgreement.validityPeriod
-                            ? `${selectedAgreement.validity_period || selectedAgreement.validityPeriod} years`
+                          selectedAgreement.validityPeriod
+                            ? `${
+                                selectedAgreement.validity_period ||
+                                selectedAgreement.validityPeriod
+                              } years`
                             : "—"}
                         </div>
                       </div>
@@ -2786,11 +2895,13 @@ const ActiveAgreement = () => {
                       </div>
                       <div>
                         <div className="label">
-                          <FiTag className="label-icon" />
+                          <FiAward className="label-icon" />
                           Event Title
                         </div>
                         <div className="value">
-                          {selectedAgreement.event_title || selectedAgreement.eventTitle || "—"}
+                          {selectedAgreement.event_title ||
+                            selectedAgreement.eventTitle ||
+                            "—"}
                         </div>
                       </div>
                     </div>
@@ -2846,8 +2957,12 @@ const ActiveAgreement = () => {
                         <div className="empty-state">
                           <FiEdit className="empty-icon" />
                           <div className="empty-content">
-                            <div className="empty-title">No signatories recorded</div>
-                            <div className="empty-sub">Add signatories using Edit</div>
+                            <div className="empty-title">
+                              No signatories recorded
+                            </div>
+                            <div className="empty-sub">
+                              Add signatories using Edit
+                            </div>
                           </div>
                         </div>
                       );
@@ -2874,7 +2989,10 @@ const ActiveAgreement = () => {
                             ))}
                           </div>
                         );
-                      } else if (typeof remarks === "string" && remarks.trim()) {
+                      } else if (
+                        typeof remarks === "string" &&
+                        remarks.trim()
+                      ) {
                         return <div className="value">{remarks}</div>;
                       }
                       return (
@@ -2893,23 +3011,39 @@ const ActiveAgreement = () => {
 
                   {/* Admin Edit Button */}
                   {headerIsAdmin() && (
-                    <div className="modal-edit-actions" style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}>
-                      <button className="btn action edit" onClick={startModalEdit}>
+                    <div
+                      className="modal-edit-actions"
+                      style={{
+                        marginTop: 24,
+                        display: "flex",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <button
+                        className="btn action edit"
+                        onClick={startModalEdit}
+                      >
                         <FiEdit className="icon" /> Edit
                       </button>
                     </div>
                   )}
                 </>
               ) : (
-                <div style={{ width: "100%" }} className="modal-edit-panel">
-                  <div
-                    className="row two-col"
-                    style={{ gap: 12, alignItems: "flex-start" }}
-                  >
-                    <div>
-                      <div className="label">Hardcopy Locator</div>
+                <div className="modal-edit-panel">
+                  <div className="edit-section-header">
+                    <FiEdit className="section-icon" />
+                    <h4>Edit Agreement Details</h4>
+                  </div>
+
+                  <div className="edit-form-grid">
+                    <div className="edit-field">
+                      <label className="edit-label">
+                        <FiMapPin className="label-icon" />
+                        Hardcopy Locator
+                      </label>
                       <input
                         className="edit-input"
+                        type="text"
                         value={editForm.hardcopy_location}
                         onChange={(e) =>
                           setEditForm({
@@ -2921,69 +3055,92 @@ const ActiveAgreement = () => {
                       />
                     </div>
 
-                    <div>
-                      <div className="label">Remarks</div>
-                      <div style={{ background: "#fff", padding: "5px" }}>
-                        {Array.isArray(editForm.remarks) &&
-                        editForm.remarks.length > 0 ? (
-                          editForm.remarks.map((rm, idx) => (
-                            <div
-                              key={idx}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                marginBottom: "5px",
-                              }}
-                            >
+                    <div className="edit-field full-width">
+                      <label className="edit-label">
+                        <FiMessageCircle className="label-icon" />
+                        Remarks
+                      </label>
+                      {Array.isArray(editForm.remarks) &&
+                      editForm.remarks.length > 0 ? (
+                        <>
+                          {editForm.remarks.map((rm, idx) => (
+                            <div key={idx} className="remark-item">
                               <input
                                 type="text"
+                                className="edit-input remark-input"
                                 value={rm}
                                 onChange={(e) =>
                                   updateEditRemark(idx, e.target.value)
                                 }
-                                style={{ flex: 1 }}
+                                placeholder="Enter remark"
                               />
                               <button
-                                onClick={() => removeEditRemark(idx)}
-                                style={{ marginLeft: 8 }}
+                                className="btn-icon add"
+                                onClick={addEditRemark}
+                                title="Add remark"
+                                type="button"
                               >
-                                x
+                                <FiPlus />
+                              </button>
+                              <button
+                                className="btn-icon remove"
+                                onClick={() => removeEditRemark(idx)}
+                                title="Remove remark"
+                                type="button"
+                              >
+                                <FiTrash2 />
                               </button>
                             </div>
-                          ))
-                        ) : (
-                          <div style={{ color: "#666", fontStyle: "italic" }}>
-                            No remarks
-                          </div>
-                        )}
-                        <div>
-                          <button onClick={addEditRemark}>+ Add</button>
+                          ))}
+                        </>
+                      ) : (
+                        <div className="remark-item empty">
+                          <button
+                            className="btn-icon add"
+                            onClick={addEditRemark}
+                            title="Add remark"
+                            type="button"
+                          >
+                            <FiPlus />
+                          </button>
+                          <span className="empty-text">
+                            No remarks yet - click + to add
+                          </span>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      marginTop: 12,
-                      gap: 8,
-                    }}
-                  >
-                    <button
-                      className="btn save"
-                      onClick={saveModalEdits}
-                      disabled={saving}
-                    >
-                      {saving ? "Saving..." : "Save"}
-                    </button>
+                  <div className="edit-actions">
                     <button
                       className="btn cancel"
                       onClick={cancelModalEdit}
                       disabled={saving}
+                      type="button"
                     >
+                      <FiX className="icon" />
                       Cancel
+                    </button>
+                    <button
+                      className="btn save"
+                      onClick={saveModalEdits}
+                      disabled={
+                        saving ||
+                        (editForm.hardcopy_location ===
+                          initialEditForm.hardcopy_location &&
+                          JSON.stringify(
+                            editForm.remarks.filter((r) => r && r.trim())
+                          ) ===
+                            JSON.stringify(
+                              initialEditForm.remarks.filter(
+                                (r) => r && r.trim()
+                              )
+                            ))
+                      }
+                      type="button"
+                    >
+                      <FiSave className="icon" />
+                      {saving ? "Saving..." : "Save Changes"}
                     </button>
                   </div>
                 </div>
@@ -3076,6 +3233,25 @@ const ActiveAgreement = () => {
                       </select>
                     </div>
 
+                    <div className="config-row">
+                      <label className="config-label">
+                        <FiHome className="label-icon" />
+                        Source Unit
+                      </label>
+                      <select
+                        value={generateSource}
+                        onChange={(e) => setGenerateSource(e.target.value)}
+                        className="config-select"
+                      >
+                        <option value="All">All Sources</option>
+                        {sourceOptions.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     {/* Status filter removed per request */}
                   </div>
                 </div>
@@ -3104,10 +3280,8 @@ const ActiveAgreement = () => {
                     </div>
                     <div className="preview-note">
                       <FiInfo className="note-icon" />
-                      <span style={{ marginLeft: 8 }}>
-                        The report will include all agreement details, contact
-                        information, and timeline data.
-                      </span>
+                      The report will include all agreement details, contact
+                      information, and timeline data.
                     </div>
                   </div>
                 </div>
@@ -3119,42 +3293,9 @@ const ActiveAgreement = () => {
                     Export Options
                   </h4>
 
-                  <div className="export-options">
-                    <div className="export-option">
+                                     <div className="export-option">
                       <div className="option-header">
-                        <FiFile className="option-icon excel" />
-                        <div className="option-info">
-                          <div className="option-title">Excel Report</div>
-                          <div className="option-desc">
-                            Comprehensive spreadsheet with all agreement details
-                            and formatting
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        className="btn export-btn excel-btn"
-                        onClick={async () => {
-                          // fallback: use CSV download helper for now
-                          try {
-                            downloadCSV();
-                          } catch (e) {
-                            console.error(e);
-                            alert(
-                              "Failed to download Excel/CSV: " +
-                                (e?.message || e)
-                            );
-                          }
-                          setShowGenerateModal(false);
-                        }}
-                      >
-                        <FiDownload className="icon" />
-                        Download Excel
-                      </button>
-                    </div>
-
-                    <div className="export-option">
-                      <div className="option-header">
-                        <FiFileText className="option-icon csv" />
+                        <FiFileText className="option-icon pdf" />
                         <div className="option-info">
                           <div className="option-title">PDF Report</div>
                           <div className="option-desc">
@@ -3178,6 +3319,38 @@ const ActiveAgreement = () => {
                       >
                         <FiPrinter className="icon" />
                         Download PDF
+                      </button>
+                    </div>
+
+                  <div className="export-options">
+                    <div className="export-option">
+                      <div className="option-header">
+                        <FiFile className="option-icon excel" />
+                        <div className="option-info">
+                          <div className="option-title">Excel Report</div>
+                          <div className="option-desc">
+                            Comprehensive spreadsheet with all agreement details
+                            and formatting
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        className="btn export-btn excel-btn"
+                        onClick={async () => {
+                          try {
+                            await downloadXLSX();
+                          } catch (e) {
+                            console.error(e);
+                            alert(
+                              "Failed to download Excel/CSV: " +
+                                (e?.message || e)
+                            );
+                          }
+                          setShowGenerateModal(false);
+                        }}
+                      >
+                        <FiDownload className="icon" />
+                        Download Excel
                       </button>
                     </div>
                   </div>

@@ -1,12 +1,20 @@
-/* ObjFunct Section */
-.objectives-functions {
+/* Main Section */
+.pup-io-objectives-functions {
   padding: 1.5rem 0 4.2rem;
   background: linear-gradient(135deg, #f7f2f2 0%, #fff 100%);
   scroll-margin-top: 50px;
 }
 
+/* Container */
+.pup-io-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
 /* Layout */
-.content-grid {
+.pup-io-content-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
@@ -14,22 +22,23 @@
 }
 
 /* Section Headers */
-.section-header {
+.pup-io-section-header {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   margin-bottom: 2rem;
+  position: relative;
 }
 
-.section-header h3 {
+.pup-io-section-title {
   font-size: 2rem;
   color: #4a1d1d;
   margin: 0;
   position: relative;
 }
 
-.section-header h3::after {
+.pup-io-section-title::after {
   content: "";
   position: absolute;
   bottom: -8px;
@@ -40,21 +49,23 @@
   background: #a63939;
 }
 
-.section-icon {
-  width: 36px;
-  height: 36px;
+.pup-io-section-icon {
+  width: 40px;
+  height: 40px;
+  color: #821616;
+  flex-shrink: 0;
 }
 
 /* Cards Container */
-.cards-container {
+.pup-io-cards-container {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
 /* Objective and Function Cards */
-.objective-card,
-.function-card {
+.pup-io-objective-card,
+.pup-io-function-card {
   background: white;
   padding: 1.5rem;
   border-radius: 16px;
@@ -66,28 +77,34 @@
   gap: 1rem;
   opacity: 0;
   transform: translateY(30px);
-  animation: slideInUp 0.6s ease forwards;
+  animation: pup-io-slideInUp 0.6s ease forwards;
 }
 
 /* Hover Effects */
-.objective-card,
-.function-card {
+.pup-io-objective-card:hover,
+.pup-io-function-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(74, 29, 29, 0.15);
+}
+
+.pup-io-objective-card,
+.pup-io-function-card {
   display: flex;
   align-items: center !important;
   gap: 1rem;
 }
 
 /* Icon in Cards */
-.objective-card .card-icon-img,
-.function-card .card-icon-img {
+.pup-io-objective-card .pup-io-card-icon-img,
+.pup-io-function-card .pup-io-card-icon-img {
   width: 30px !important;
   height: 30px !important;
   margin-top: 0 !important;
+  flex-shrink: 0;
 }
 
 /* Text inside Cards */
-.objective-card p,
-.function-card p {
+.pup-io-card-text {
   margin: 0;
   color: #333;
   line-height: 1.6;
@@ -95,99 +112,100 @@
 }
 
 /* Animation */
-@keyframes slideInUp {
+@keyframes pup-io-slideInUp {
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* delay animations */
-.objective-card:nth-child(1) {
+/* Delay animations */
+.pup-io-objective-card:nth-child(1) {
   animation-delay: 0s;
 }
-.objective-card:nth-child(2) {
+.pup-io-objective-card:nth-child(2) {
   animation-delay: 0.1s;
 }
-.objective-card:nth-child(3) {
+.pup-io-objective-card:nth-child(3) {
   animation-delay: 0.2s;
 }
-.objective-card:nth-child(4) {
+.pup-io-objective-card:nth-child(4) {
   animation-delay: 0.3s;
 }
-.objective-card:nth-child(5) {
+.pup-io-objective-card:nth-child(5) {
   animation-delay: 0.4s;
 }
-.objective-card:nth-child(6) {
+.pup-io-objective-card:nth-child(6) {
   animation-delay: 0.5s;
 }
-.objective-card:nth-child(7) {
+.pup-io-objective-card:nth-child(7) {
   animation-delay: 0.6s;
 }
-.objective-card:nth-child(8) {
+.pup-io-objective-card:nth-child(8) {
   animation-delay: 0.7s;
 }
 
-.function-card:nth-child(1) {
+.pup-io-function-card:nth-child(1) {
   animation-delay: 0s;
 }
-.function-card:nth-child(2) {
+.pup-io-function-card:nth-child(2) {
   animation-delay: 0.1s;
 }
-.function-card:nth-child(3) {
+.pup-io-function-card:nth-child(3) {
   animation-delay: 0.2s;
 }
-.function-card:nth-child(4) {
+.pup-io-function-card:nth-child(4) {
   animation-delay: 0.3s;
 }
-.function-card:nth-child(5) {
+.pup-io-function-card:nth-child(5) {
   animation-delay: 0.4s;
 }
-.function-card:nth-child(6) {
+.pup-io-function-card:nth-child(6) {
   animation-delay: 0.5s;
 }
-.function-card:nth-child(7) {
+.pup-io-function-card:nth-child(7) {
   animation-delay: 0.6s;
 }
-.function-card:nth-child(8) {
+.pup-io-function-card:nth-child(8) {
   animation-delay: 0.7s;
 }
 
+/* Responsive Design */
 @media (max-width: 968px) {
-  .content-grid {
+  .pup-io-content-grid {
     grid-template-columns: 1fr;
     gap: 3rem;
   }
 }
 
 @media (max-width: 768px) {
-  .objectives-functions {
+  .pup-io-objectives-functions {
     padding: 4rem 0;
   }
 
-  .section-header {
+  .pup-io-section-header {
     flex-direction: column;
   }
 
-  .section-header h3 {
+  .pup-io-section-title {
     font-size: 1.5rem;
     text-align: center;
   }
 
-  .section-icon {
+  .pup-io-section-icon {
     width: 32px;
     height: 32px;
   }
 
-  .objective-card,
-  .function-card {
+  .pup-io-objective-card,
+  .pup-io-function-card {
     padding: 1.2rem;
     flex-direction: column;
     text-align: center;
     align-items: center;
   }
 
-  .card-icon-img {
+  .pup-io-card-icon-img {
     margin-bottom: 0.75rem;
   }
 }

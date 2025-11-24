@@ -2,7 +2,7 @@
 .services {
   padding: 3rem 0 5.5rem;
   background: white;
-  scroll-margin-top: 50px; 
+  scroll-margin-top: 50px;
 }
 .services-grid {
   display: grid;
@@ -53,8 +53,8 @@
 .service-icon-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
   display: block;
+  color: #821616;
 }
 .service-header h3 {
   font-size: 1.2rem;
@@ -120,28 +120,18 @@
 
 /* icons */
 .services-grid .service-card:nth-child(1) .service-icon {
-  width: 25px;
-  padding: 2px;
-  height: 25px;
-}
-.services-grid .service-card:nth-child(1) .service-icon-img {
-  transform: translateY(-1.5px);
+  width: 28px;
+  height: 28px;
 }
 
 .services-grid .service-card:nth-child(2) .service-icon {
-  width: 26px;
-  height: 26px;
-}
-.services-grid .service-card:nth-child(2) .service-icon-img {
-  transform: translateY(-1px);
+  width: 28px;
+  height: 28px;
 }
 
 .services-grid .service-card:nth-child(3) .service-icon {
-  width: 30px;
-  height: 30px;
-}
-.services-grid .service-card:nth-child(3) .service-icon-img {
-  transform: translateY(-1px);
+  width: 28px;
+  height: 28px;
 }
 
 @media (max-width: 768px) {
@@ -162,20 +152,20 @@
     align-items: center;
   }
   .service-icon {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
   }
   .services-grid .service-card:nth-child(1) .service-icon {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
   }
   .services-grid .service-card:nth-child(2) .service-icon {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
   }
   .services-grid .service-card:nth-child(3) .service-icon {
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
   }
   .service-header h3 {
     font-size: 1.2rem;

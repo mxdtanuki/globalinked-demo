@@ -1,9 +1,8 @@
-import React from 'react';
-import './styles/ContactSection.css';
-
-import emailIcon from './assets/email.png';
-import locationIcon from './assets/location.png';
-import telephoneIcon from './assets/telephone.png';
+import React from "react";
+import "./styles/ContactSection.css";
+import { HiOutlineMail } from "react-icons/hi";
+import { HiOutlineLocationMarker } from "react-icons/hi";
+import { HiOutlinePhone } from "react-icons/hi";
 
 export default function ContactSection() {
   return (
@@ -11,34 +10,41 @@ export default function ContactSection() {
       <div className="contact-container">
         <div className="contact-info-centered">
           <h2>Contact Information</h2>
-          
+
           <div className="contact-items-row">
             <div className="contact-item">
-              <img src={emailIcon} alt="Email icon" />
+              <HiOutlineMail className="contact-icon" />
               <div>
-                <h3>Email</h3>  
+                <h3>Email</h3>
                 <p>internationalaffairs@pup.edu.ph</p>
               </div>
             </div>
 
             <div className="contact-item">
-              <img src={locationIcon} alt="Location icon" />
+              <HiOutlineLocationMarker className="contact-icon" />
               <div>
                 <h3>Postal Mail</h3>
-                <p><strong>Office of International Affairs</strong><br />
-                  3/F South Wing, Main Building<br />
-                  A. Mabini Campus, Anonas St., Sta. Mesa<br />
+                <p>
+                  <strong>Office of International Affairs</strong>
+                  <br />
+                  3/F South Wing, Main Building
+                  <br />
+                  A. Mabini Campus, Anonas St., Sta. Mesa
+                  <br />
                   Manila, Philippines 01016
                 </p>
               </div>
             </div>
 
             <div className="contact-item">
-              <img src={telephoneIcon} alt="Telephone icon" />
+              <HiOutlinePhone className="contact-icon" />
               <div>
                 <h3>Telephone</h3>
-                <p>(+63 2) 335-1PUP (335-1787) or<br />
-335-1777 local 622</p>
+                <p>
+                  (+63 2) 335-1PUP (335-1787) or
+                  <br />
+                  335-1777 local 622
+                </p>
               </div>
             </div>
           </div>

@@ -29,7 +29,12 @@ import {
   FiXCircle,
   FiArrowRight,
   FiHome,
-  FiAlignLeft,
+  FiBookOpen,
+  FiClock,
+  FiAward,
+  FiGrid,
+  FiPlus,
+  FiSave,
 } from "react-icons/fi";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -47,6 +52,7 @@ import {
 } from "@tanstack/react-query";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import ReportGen from "./reportGeneration";
 import TopBar from "./topbar";
 import Sidebar from "./sidebar";
 
@@ -354,7 +360,8 @@ const mapAgreement = (a = {}) => {
         : [];
 
     // 1) Try explicit array fields (may be actual arrays or JSON-encoded strings)
-    if (Array.isArray(a.signatories_list)) return makeListFromArray(a.signatories_list);
+    if (Array.isArray(a.signatories_list))
+      return makeListFromArray(a.signatories_list);
     if (Array.isArray(a.signatories)) return makeListFromArray(a.signatories);
 
     // 2) If fields are strings, try parsing JSON; otherwise fall back to using the raw string
@@ -362,21 +369,28 @@ const mapAgreement = (a = {}) => {
       if (typeof val !== "string" || !val.trim()) return null;
       const trimmed = val.trim();
       // ignore em-dash placeholder
-      if (trimmed === "—" || trimmed === "-" || /^\u2014+$/.test(trimmed)) return null;
+      if (trimmed === "—" || trimmed === "-" || /^\u2014+$/.test(trimmed))
+        return null;
       try {
         const parsed = JSON.parse(trimmed);
         if (Array.isArray(parsed)) return makeListFromArray(parsed);
       } catch (e) {
         // not JSON, continue
       }
-      return trimmed.split(/[,;\n]+/).map((n) => n.trim()).filter(Boolean).map((name) => ({ name }));
+      return trimmed
+        .split(/[,;\n]+/)
+        .map((n) => n.trim())
+        .filter(Boolean)
+        .map((name) => ({ name }));
     };
 
     const fromSignatoriesListStr = tryParse(a.signatories_list);
-    if (fromSignatoriesListStr && fromSignatoriesListStr.length) return fromSignatoriesListStr;
+    if (fromSignatoriesListStr && fromSignatoriesListStr.length)
+      return fromSignatoriesListStr;
 
     const fromSignatoriesStr = tryParse(a.signatories);
-    if (fromSignatoriesStr && fromSignatoriesStr.length) return fromSignatoriesStr;
+    if (fromSignatoriesStr && fromSignatoriesStr.length)
+      return fromSignatoriesStr;
 
     const fromSigString = tryParse(sigString);
     if (fromSigString && fromSigString.length) return fromSigString;
@@ -494,53 +508,78 @@ const applyBackendStageData = (agreement) => {
   };
 };
 
-
 const fetchAgreementPreferQuery = async (key) => {
   if (key == null) return null;
   const k = String(key);
   try {
-    if (agreementService && typeof agreementService.getAgreements === 'function') {
+    if (
+      agreementService &&
+      typeof agreementService.getAgreements === "function"
+    ) {
       const res = await agreementService.getAgreements({ agreement_id: k });
       const list = Array.isArray(res) ? res : res?.items || res?.data || [];
       if (Array.isArray(list) && list.length > 0) return list[0];
     }
-  } catch (e) {
-  }
+  } catch (e) {}
 
   try {
-    if (agreementService && typeof agreementService.getAgreementById === 'function') {
+    if (
+      agreementService &&
+      typeof agreementService.getAgreementById === "function"
+    ) {
       return await agreementService.getAgreementById(k);
     }
-  } catch (e) {
-  }
+  } catch (e) {}
   try {
-    if (agreementService && typeof agreementService.getAgreementByDts === 'function') {
+    if (
+      agreementService &&
+      typeof agreementService.getAgreementByDts === "function"
+    ) {
       return await agreementService.getAgreementByDts(k);
     }
   } catch (e) {
     // ignore
   }
-  
+
   try {
-    if (agreementService && typeof agreementService.getAgreements === 'function') {
+    if (
+      agreementService &&
+      typeof agreementService.getAgreements === "function"
+    ) {
       try {
-        const res = await agreementService.getAgreements({ agreement_id: k, status_filter: 'ACTIVE' });
+        const res = await agreementService.getAgreements({
+          agreement_id: k,
+          status_filter: "ACTIVE",
+        });
         const list = Array.isArray(res) ? res : res?.items || res?.data || [];
         if (Array.isArray(list) && list.length > 0) return list[0];
       } catch (e) {}
       try {
-        const res2 = await agreementService.getAgreements({ dts_number: k, status_filter: 'ACTIVE' });
-        const list2 = Array.isArray(res2) ? res2 : res2?.items || res2?.data || [];
+        const res2 = await agreementService.getAgreements({
+          dts_number: k,
+          status_filter: "ACTIVE",
+        });
+        const list2 = Array.isArray(res2)
+          ? res2
+          : res2?.items || res2?.data || [];
         if (Array.isArray(list2) && list2.length > 0) return list2[0];
       } catch (e) {}
       try {
-        if (typeof agreementService.getActiveAgreements === 'function') {
+        if (typeof agreementService.getActiveAgreements === "function") {
           const act = await agreementService.getActiveAgreements();
-          const list3 = Array.isArray(act) ? act : act?.items || act?.data || [];
+          const list3 = Array.isArray(act)
+            ? act
+            : act?.items || act?.data || [];
           if (Array.isArray(list3) && list3.length > 0) {
             const found = list3.find((it) => {
               if (!it) return false;
-              const candidates = [it.agreement_id, it._pk, it.id, it.dts_no, it.dts_number];
+              const candidates = [
+                it.agreement_id,
+                it._pk,
+                it.id,
+                it.dts_no,
+                it.dts_number,
+              ];
               return candidates.some((c) => String(c) === k);
             });
             if (found) return found;
@@ -562,7 +601,11 @@ const RelatedMou = async (row, all = []) => {
   const key = String(rel).trim();
 
   try {
-    console.debug && console.debug('RelatedMou (local-only): resolving', { rowId: row.id || row._pk || row.agreement_id, key });
+    console.debug &&
+      console.debug("RelatedMou (local-only): resolving", {
+        rowId: row.id || row._pk || row.agreement_id,
+        key,
+      });
 
     // Build quick lookup maps from the provided `all` list (agreements)
     const list = Array.isArray(all) ? all : [];
@@ -580,26 +623,36 @@ const RelatedMou = async (row, all = []) => {
     if (/^\d+$/.test(key)) {
       const found = byId.get(key);
       if (found) {
-        console.debug && console.debug('RelatedMou: resolved numeric parent from local', { key, agreement_id: found.agreement_id });
+        console.debug &&
+          console.debug("RelatedMou: resolved numeric parent from local", {
+            key,
+            agreement_id: found.agreement_id,
+          });
         // Normalize MOU_to_MOA_id to the numeric agreement_id
         return { ...row, MOU_to_MOA_id: found.agreement_id };
       }
-      console.debug && console.debug('RelatedMou: numeric key not found locally', key);
+      console.debug &&
+        console.debug("RelatedMou: numeric key not found locally", key);
       return row;
     }
 
     // If key looks like a DTS (e.g., starts with DT), try to find the agreement by DTS
     if (/^DT/i.test(key) || /[^0-9]/.test(key)) {
       const foundByDts = byDts.get(key);
-      if (foundByDts && (foundByDts.agreement_id != null)) {
-        console.debug && console.debug('RelatedMou: resolved parent by DTS -> agreement_id', { key, agreement_id: foundByDts.agreement_id });
+      if (foundByDts && foundByDts.agreement_id != null) {
+        console.debug &&
+          console.debug("RelatedMou: resolved parent by DTS -> agreement_id", {
+            key,
+            agreement_id: foundByDts.agreement_id,
+          });
         return { ...row, MOU_to_MOA_id: foundByDts.agreement_id };
       }
-      console.debug && console.debug('RelatedMou: DTS key not found locally', key);
+      console.debug &&
+        console.debug("RelatedMou: DTS key not found locally", key);
       return row;
     }
   } catch (e) {
-    console.error('RelatedMou (local-only) resolution error', e);
+    console.error("RelatedMou (local-only) resolution error", e);
   }
 
   return row;
@@ -816,29 +869,52 @@ const MultiRemarkField = ({
   };
   return (
     <div className="multi-list">
-      {list.map((r, i) => (
-        <div key={i} className="multi-row">
-          <input
-            value={
-              typeof r === "object" ? r.remark_text || r.text || "" : r || ""
-            }
-            onChange={(e) => updateAt(i, e.target.value)}
-            disabled={disabled}
-          />
+      {list.length > 0 ? (
+        list.map((r, i) => (
+          <div key={i} className="remark-item">
+            <input
+              className="edit-input remark-input"
+              value={
+                typeof r === "object" ? r.remark_text || r.text || "" : r || ""
+              }
+              onChange={(e) => updateAt(i, e.target.value)}
+              disabled={disabled}
+              placeholder="Enter remark"
+            />
+            <button
+              type="button"
+              className="btn-icon add"
+              title="Add remark"
+              onClick={add}
+              disabled={disabled}
+            >
+              <FiPlus />
+            </button>
+            <button
+              type="button"
+              className="btn-icon remove"
+              title="Remove remark"
+              onClick={() => remove(i)}
+              disabled={disabled}
+            >
+              <FiTrash2 />
+            </button>
+          </div>
+        ))
+      ) : (
+        <div className="remark-item empty">
           <button
             type="button"
-            className="icon-btn"
-            title="Remove"
-            onClick={() => remove(i)}
+            className="btn-icon add"
+            title="Add remark"
+            onClick={add}
             disabled={disabled}
           >
-            <FiX className="icon" />
+            <FiPlus />
           </button>
+          <span className="empty-text">No remarks yet - click + to add</span>
         </div>
-      ))}
-      <button type="button" className="btn" onClick={add} disabled={disabled}>
-        Add
-      </button>
+      )}
     </div>
   );
 };
@@ -981,15 +1057,17 @@ const OverviewMerged = () => {
   // print a snapshot of the fetched data to help debugging mapping/resolution.
   useEffect(() => {
     try {
-      console.log && console.log("Overview opened - fetched agreements:", {
-        count: Array.isArray(agreements) ? agreements.length : 0,
-        sample: Array.isArray(agreements) ? agreements.slice(0, 5) : agreements,
-      });
+      console.log &&
+        console.log("Overview opened - fetched agreements:", {
+          count: Array.isArray(agreements) ? agreements.length : 0,
+          sample: Array.isArray(agreements)
+            ? agreements.slice(0, 5)
+            : agreements,
+        });
     } catch (e) {
       // ignore
     }
   }, [agreements]);
-
 
   // map of related agreement id -> dts_no (populated on-demand when related agreement
   // isn't already present in the fetched agreements list)
@@ -1013,13 +1091,19 @@ const OverviewMerged = () => {
         }
       }
       // TEMP LOG: show the local map that will be merged into relatedDtsMap
-      try { console.debug && console.debug('relatedDtsMap: local map built from agreements:', map); } catch (e) {}
+      try {
+        console.debug &&
+          console.debug("relatedDtsMap: local map built from agreements:", map);
+      } catch (e) {}
       if (Object.keys(map).length) {
         // Merge into existing map while preserving previously-resolved keys.
         // Use prev first so new map entries don't accidentally overwrite
         // existing entries with the same key (safeguard for inconsistent backends).
         setRelatedDtsMap((prev) => {
-          try { console.debug && console.debug('relatedDtsMap: merging prev -> new', prev, map); } catch (e) {}
+          try {
+            console.debug &&
+              console.debug("relatedDtsMap: merging prev -> new", prev, map);
+          } catch (e) {}
           return { ...prev, ...map };
         });
       }
@@ -1027,7 +1111,6 @@ const OverviewMerged = () => {
       // ignore
     }
   }, [agreements]);
-
 
   useEffect(() => {
     setCurrentPage(1);
@@ -1158,8 +1241,16 @@ const OverviewMerged = () => {
         if (cancelled) break;
         try {
           const resp = await fetchAgreementPreferQuery(Number(k));
-          const full = resp && resp.agreement ? resp.agreement : resp && resp.data ? resp.data : resp;
-          const dts = full && (full.dts_number || full.dts_no || full.dtsNumber) ? String(full.dts_number || full.dts_no || full.dtsNumber) : null;
+          const full =
+            resp && resp.agreement
+              ? resp.agreement
+              : resp && resp.data
+              ? resp.data
+              : resp;
+          const dts =
+            full && (full.dts_number || full.dts_no || full.dtsNumber)
+              ? String(full.dts_number || full.dts_no || full.dtsNumber)
+              : null;
           if (dts) {
             setRelatedDtsMap((prev) => ({ ...prev, [k]: dts }));
             continue;
@@ -1169,10 +1260,21 @@ const OverviewMerged = () => {
         }
 
         try {
-          if (agreementService && typeof agreementService.getAgreementByDts === "function") {
+          if (
+            agreementService &&
+            typeof agreementService.getAgreementByDts === "function"
+          ) {
             const resp2 = await agreementService.getAgreementByDts(k);
-            const full2 = resp2 && resp2.agreement ? resp2.agreement : resp2 && resp2.data ? resp2.data : resp2;
-            const dts2 = full2 && (full2.dts_number || full2.dts_no || full2.dtsNumber) ? String(full2.dts_number || full2.dts_no || full2.dtsNumber) : null;
+            const full2 =
+              resp2 && resp2.agreement
+                ? resp2.agreement
+                : resp2 && resp2.data
+                ? resp2.data
+                : resp2;
+            const dts2 =
+              full2 && (full2.dts_number || full2.dts_no || full2.dtsNumber)
+                ? String(full2.dts_number || full2.dts_no || full2.dtsNumber)
+                : null;
             if (dts2) setRelatedDtsMap((prev) => ({ ...prev, [k]: dts2 }));
           }
         } catch (e) {
@@ -1209,7 +1311,8 @@ const OverviewMerged = () => {
             return false;
           }
         });
-        if (foundByDts && (foundByDts.agreement_id != null)) return String(foundByDts.agreement_id);
+        if (foundByDts && foundByDts.agreement_id != null)
+          return String(foundByDts.agreement_id);
       } catch (e) {
         // ignore
       }
@@ -1220,50 +1323,60 @@ const OverviewMerged = () => {
 
     const label = computeNumericParentId();
 
-      const handleOpen = async (e) => {
-        if (e && e.stopPropagation) e.stopPropagation();
+    const handleOpen = async (e) => {
+      if (e && e.stopPropagation) e.stopPropagation();
 
-        // If key is a DTS, try to find agreement by DTS and use its numeric agreement_id
-        if (/^DT/i.test(key)) {
-          const byDts = agreements.find((a) => {
-            try {
-              return equalsKey(a.dts_no, key) || equalsKey(a.dts_number, key) || equalsKey(a.id, key);
-            } catch (e) {
-              return false;
-            }
-          });
-          if (byDts) {
-            setSelected(byDts);
-            setDetailOpen(true);
-            return;
-          }
-        }
-
-        // Treat key as numeric agreement_id when possible
-        const found = agreements.find((a) => {
+      // If key is a DTS, try to find agreement by DTS and use its numeric agreement_id
+      if (/^DT/i.test(key)) {
+        const byDts = agreements.find((a) => {
           try {
             return (
-              equalsKey(a.agreement_id, key) ||
-              equalsKey(a._pk, key) ||
+              equalsKey(a.dts_no, key) ||
+              equalsKey(a.dts_number, key) ||
               equalsKey(a.id, key)
             );
           } catch (e) {
             return false;
           }
         });
-        if (found) {
-          setSelected(found);
+        if (byDts) {
+          setSelected(byDts);
           setDetailOpen(true);
           return;
         }
+      }
 
-        try { console.debug && console.debug('RelatedMouLabel.handleOpen: parent not found in agreements (no local parent).', { key, row }); } catch(e) {}
-
-        // Fallback: open a minimal stub so the modal still appears with the key
-        setSelected({ id: key, dts_no: key, partner_name: String(key) });
+      // Treat key as numeric agreement_id when possible
+      const found = agreements.find((a) => {
+        try {
+          return (
+            equalsKey(a.agreement_id, key) ||
+            equalsKey(a._pk, key) ||
+            equalsKey(a.id, key)
+          );
+        } catch (e) {
+          return false;
+        }
+      });
+      if (found) {
+        setSelected(found);
         setDetailOpen(true);
         return;
-      };
+      }
+
+      try {
+        console.debug &&
+          console.debug(
+            "RelatedMouLabel.handleOpen: parent not found in agreements (no local parent).",
+            { key, row }
+          );
+      } catch (e) {}
+
+      // Fallback: open a minimal stub so the modal still appears with the key
+      setSelected({ id: key, dts_no: key, partner_name: String(key) });
+      setDetailOpen(true);
+      return;
+    };
 
     return (
       <span className="related-mou">
@@ -1293,16 +1406,16 @@ const OverviewMerged = () => {
   const getPk = (row) =>
     row?.agreement_id ?? row?._pk ?? row?.id ?? row?.dts_no;
 
-    // robust key equality: coerce to trimmed strings before comparing
-    const equalsKey = (a, b) => {
-      try {
-        const sa = a == null ? "" : String(a).trim();
-        const sb = b == null ? "" : String(b).trim();
-        return sa !== "" && sb !== "" && sa === sb;
-      } catch (e) {
-        return false;
-      }
-    };
+  // robust key equality: coerce to trimmed strings before comparing
+  const equalsKey = (a, b) => {
+    try {
+      const sa = a == null ? "" : String(a).trim();
+      const sb = b == null ? "" : String(b).trim();
+      return sa !== "" && sb !== "" && sa === sb;
+    } catch (e) {
+      return false;
+    }
+  };
 
   // helper: find the linked MOU id/key on an agreement object (mirror ActiveAgreement)
   const getLinkedId = (a) => {
@@ -1331,14 +1444,25 @@ const OverviewMerged = () => {
   const buildMouWithChildren = (agreementsList = agreements) => {
     try {
       const mouList = (agreementsList || []).filter(
-        (a) => String((a.document_type || a.documentType || "")).toUpperCase() === "MOU"
+        (a) =>
+          String(a.document_type || a.documentType || "").toUpperCase() ===
+          "MOU"
       );
       const mouWithChildren = mouList
         .map((mou) => {
           const mid = mou.id || mou.agreement_id;
           const children = (agreementsList || []).filter((c) => {
-            if (String((c.document_type || c.documentType || "")).toUpperCase() !== "MOA") return false;
-            const linked = getLinkedId(c) ?? c.linkedMouId ?? c.MOU_to_MOA_id ?? c.linked_mou ?? c.linked_mou_id;
+            if (
+              String(c.document_type || c.documentType || "").toUpperCase() !==
+              "MOA"
+            )
+              return false;
+            const linked =
+              getLinkedId(c) ??
+              c.linkedMouId ??
+              c.MOU_to_MOA_id ??
+              c.linked_mou ??
+              c.linked_mou_id;
             // compare against multiple possible parent identifiers (agreement_id, id, dts fields)
             if (equalsKey(linked, mid)) return true;
             if (equalsKey(c.MOU_to_MOA_id, mid)) return true;
@@ -1346,7 +1470,11 @@ const OverviewMerged = () => {
             if (equalsKey(c.linked_mou, mid)) return true;
             if (equalsKey(c.linked_mou_id, mid)) return true;
             // also consider matching against parent's DTS number
-            if (equalsKey(linked, mou.dts_no) || equalsKey(linked, mou.dts_number)) return true;
+            if (
+              equalsKey(linked, mou.dts_no) ||
+              equalsKey(linked, mou.dts_number)
+            )
+              return true;
             return false;
           });
           return { mou, children };
@@ -1444,68 +1572,69 @@ const OverviewMerged = () => {
       if (row && typeof row === "object") {
         full = row;
       } else {
-          // Debug: log what we're trying to fetch
-          // console.debug('loadAgreementDetails: byId=', byId, 'byDts=', byDts, 'row=', row);
-          // Prefer a local in-memory lookup from `agreements` before making network calls.
-          const lookupKey = byId != null ? String(byId) : byDts ? String(byDts) : null;
-          if (lookupKey) {
-            try {
-              const foundLocal = agreements.find((a) => {
-                try {
-                  return (
-                    equalsKey(a.agreement_id, lookupKey) ||
-                    equalsKey(a._pk, lookupKey) ||
-                    equalsKey(a.id, lookupKey) ||
-                    equalsKey(a.dts_no, lookupKey) ||
-                    equalsKey(a.dts_number, lookupKey)
-                  );
-                } catch (e) {
-                  return false;
-                }
-              });
-              if (foundLocal) {
-                full = foundLocal;
+        // Debug: log what we're trying to fetch
+        // console.debug('loadAgreementDetails: byId=', byId, 'byDts=', byDts, 'row=', row);
+        // Prefer a local in-memory lookup from `agreements` before making network calls.
+        const lookupKey =
+          byId != null ? String(byId) : byDts ? String(byDts) : null;
+        if (lookupKey) {
+          try {
+            const foundLocal = agreements.find((a) => {
+              try {
+                return (
+                  equalsKey(a.agreement_id, lookupKey) ||
+                  equalsKey(a._pk, lookupKey) ||
+                  equalsKey(a.id, lookupKey) ||
+                  equalsKey(a.dts_no, lookupKey) ||
+                  equalsKey(a.dts_number, lookupKey)
+                );
+              } catch (e) {
+                return false;
               }
-            } catch (e) {
-              // ignore and fall back to remote fetch
+            });
+            if (foundLocal) {
+              full = foundLocal;
             }
+          } catch (e) {
+            // ignore and fall back to remote fetch
           }
+        }
 
-          // If not available locally, fall back to fetching from the service
-          if (!full) {
-            const hasNumericId = byId != null && /^\d+$/.test(String(byId));
-            if (hasNumericId) {
-              try {
-                full = await agreementService.getAgreementById(Number(byId));
-              } catch (err) {
-                const dtsCandidate = String(byId) || null;
-                if (
-                  dtsCandidate &&
-                  typeof agreementService.getAgreementByDts === "function"
-                ) {
-                  full = await agreementService.getAgreementByDts(dtsCandidate);
-                } else {
-                  throw err;
-                }
-              }
-            } else if (byDts) {
-              if (typeof agreementService.getAgreementByDts === "function") {
-                full = await agreementService.getAgreementByDts(byDts);
+        // If not available locally, fall back to fetching from the service
+        if (!full) {
+          const hasNumericId = byId != null && /^\d+$/.test(String(byId));
+          if (hasNumericId) {
+            try {
+              full = await agreementService.getAgreementById(Number(byId));
+            } catch (err) {
+              const dtsCandidate = String(byId) || null;
+              if (
+                dtsCandidate &&
+                typeof agreementService.getAgreementByDts === "function"
+              ) {
+                full = await agreementService.getAgreementByDts(dtsCandidate);
               } else {
-                full = await agreementService.getAgreementById(byId);
+                throw err;
               }
-            } else if (byId) {
-              try {
-                full = await agreementService.getAgreementById(byId);
-              } catch (err) {
-                if (typeof agreementService.getAgreementByDts === "function") {
-                  full = await agreementService.getAgreementByDts(String(byId));
-                } else {
-                  throw err;
-                }
+            }
+          } else if (byDts) {
+            if (typeof agreementService.getAgreementByDts === "function") {
+              full = await agreementService.getAgreementByDts(byDts);
+            } else {
+              full = await agreementService.getAgreementById(byId);
+            }
+          } else if (byId) {
+            try {
+              full = await agreementService.getAgreementById(byId);
+            } catch (err) {
+              if (typeof agreementService.getAgreementByDts === "function") {
+                full = await agreementService.getAgreementByDts(String(byId));
+              } else {
+                throw err;
               }
             }
           }
+        }
       }
 
       if (full && typeof full === "object") {
@@ -1643,7 +1772,12 @@ const OverviewMerged = () => {
       if (Array.isArray(list) && list.length) return list;
       if (Array.isArray(sigs) && sigs.length) return sigs;
       // Accept a string in either 'list' or 'sigs' and split into array
-      const maybeStr = typeof list === "string" && list.trim() ? list : typeof sigs === "string" && sigs.trim() ? sigs : null;
+      const maybeStr =
+        typeof list === "string" && list.trim()
+          ? list
+          : typeof sigs === "string" && sigs.trim()
+          ? sigs
+          : null;
       if (maybeStr)
         return String(maybeStr)
           .split(/[,;\n]+/)
@@ -1763,10 +1897,10 @@ const OverviewMerged = () => {
       }
       if (!updated) {
         // If none of the candidates worked, surface the last error
-        throw lastErr || new Error('Failed to update agreement');
+        throw lastErr || new Error("Failed to update agreement");
       }
-  let mapped = applyBackendStageData(mapAgreement(updated));
-  mapped = await RelatedMou(mapped, agreements);
+      let mapped = applyBackendStageData(mapAgreement(updated));
+      mapped = await RelatedMou(mapped, agreements);
       try {
         const hasServerSigs =
           Array.isArray(mapped.signatories_list) &&
@@ -1800,7 +1934,8 @@ const OverviewMerged = () => {
         queryClient.setQueryData(["agreements"], (old) => {
           try {
             if (!Array.isArray(old)) return old;
-            const key = getPk(mapped) || mapped._pk || mapped.id || mapped.dts_no;
+            const key =
+              getPk(mapped) || mapped._pk || mapped.id || mapped.dts_no;
             let found = false;
             const updated = old.map((it) => {
               const itKey = getPk(it) || it._pk || it.id || it.dts_no;
@@ -1979,40 +2114,8 @@ const OverviewMerged = () => {
 
   const exportToExcel = async (docFilter = "All", statusFilter = "All") => {
     try {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("Agreements");
-      const cols = [
-        "Date",
-        "DOCUMENT TYPE",
-        "STATUS",
-        "DTS NO.",
-        "DTS LOCATION",
-        "SOURCE",
-        "POINT PERSON / POSITION",
-        "PARTNER'S NAME",
-        "ENTITY TYPE",
-        "COUNTRY",
-        "REGION",
-        "ADDRESS",
-        "SIGNATORIES",
-        "CONTACT PERSON / DETAILS",
-        "PARTNERSHIP CLASSIFICATION",
-        "EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT",
-        "VALIDITY PERIOD",
-        "DATE / YEAR OF SIGNING",
-        "EXPIRY DATE / YEAR",
-        "DATE RECEIVED",
-        "DATE ENDORSED TO ULCO",
-        "ULCO'S APPROVAL",
-        "PUP OFFICIALS' SIGNATURE",
-        "WEBSITE LINK",
-        "Brief Profile",
-        "LOGO",
-        "HARDCOPY LOCATOR",
-        "REMARKS",
-      ];
-      worksheet.columns = cols.map((c) => ({ header: c, key: c, width: 30 }));
-      const overviewData = agreements.filter((a) => {
+      // Use the shared ReportGen helper to produce an XLSX in-browser
+      const items = agreements.filter((a) => {
         if (!a || String(a.status || "").toLowerCase() === "active")
           return false;
         if (
@@ -2025,82 +2128,35 @@ const OverviewMerged = () => {
           return false;
         return true;
       });
-      const formatPointPersons = (pps) => {
-        if (!Array.isArray(pps) || pps.length === 0) return "-";
-        return pps
-          .map((pp) =>
-            `${pp.position || pp.point_person_position || ""} ${
-              pp.name || pp.point_person_name || ""
-            } ${pp.email ? `(${pp.email})` : ""}`.trim()
-          )
-          .join("; ");
-      };
-      const formatContactPersons = (cps) => {
-        if (!Array.isArray(cps) || cps.length === 0) return "-";
-        return cps
-          .map((cp) =>
-            `${cp.position || cp.contact_person_position || ""} ${
-              cp.name || cp.contact_person_name || ""
-            } ${cp.email ? `(${cp.email})` : ""}`.trim()
-          )
-          .join("; ");
-      };
-      const formatRemarks = (rms) => {
-        if (!Array.isArray(rms) || rms.length === 0) return "-";
-        return rms.map((r) => r.remark_text || r.text || r).join("; ");
-      };
-
-      for (const a of overviewData) {
-        const row = {
-          Date: a.date_received || a.entry_date || "",
-          "DOCUMENT TYPE": a.document_type || "",
-          STATUS: a.status || "",
-          "DTS NO.": a.dts_no || a.id || "",
-          SOURCE: a.source_unit || "",
-          "POINT PERSON / POSITION": formatPointPersons(
-            a.point_people || a.point_persons
-          ),
-          "PARTNER'S NAME": a.partner_name || a.name || "",
-          "ENTITY TYPE": a.entity_type || "",
-          COUNTRY: a.country || "",
-          REGION: a.region || "",
-          ADDRESS: a.address || "",
-          SIGNATORIES: formatSignatories(a.signatories_list),
-          "CONTACT PERSON / DETAILS": formatContactPersons(
-            a.contact_people || a.contact_persons
-          ),
-          "PARTNERSHIP CLASSIFICATION":
-            a.partnership_classification || a.partnership_type || "",
-          "EVENT TITLE / OTHER IMPT INFO ABOUT AGREEMENT":
-            a.event_title || a.event_info || "",
-          "VALIDITY PERIOD": a.validity_period || "",
-          "DATE / YEAR OF SIGNING": a.date_of_signing || a.date_signed || "",
-          "EXPIRY DATE / YEAR": a.expiry || a.date_expiry || "",
-          "DATE RECEIVED": a.date_received || a.entry_date || "",
-          "DATE ENDORSED TO ULCO": a.date_endorsed_ulco || "",
-          "ULCO'S APPROVAL": a.ulco_approval || "",
-          "PUP OFFICIALS' SIGNATURE":
-            a.pup_official_sign || a.date_signed_by_pup || "",
-          "WEBSITE LINK": a.website_link || a.website_url || "",
-          "Brief Profile": a.brief_profile || a.description || "",
-          LOGO: a.logo ? "Has Logo" : "",
-          "HARDCOPY LOCATOR": a.hardcopy_locator || a.hardcopy_location || "",
-          REMARKS: formatRemarks(a.remarks),
-        };
-        worksheet.addRow(row);
-      }
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      saveAs(
-        new Blob([buffer]),
-        `agreements_overview${docFilter === "All" ? "" : "_" + docFilter}${
-          statusFilter === "All" ? "" : "_" + statusFilter
-        }.xlsx`
-      );
+      await ReportGen.downloadXLSX({
+        items,
+        reportKey: String(docFilter || "all").toLowerCase(),
+        filenamePrefix: `agreements_overview${
+          docFilter === "All" ? "" : "_" + docFilter
+        }${statusFilter === "All" ? "" : "_" + statusFilter}`,
+        getLinkedId,
+        allAgreements: agreements,
+      });
     } catch (err) {
       console.error("Export failed", err);
       alert("Export failed: " + (err.message || err));
     }
+  };
+
+  // Helper to build the items list used by the report generator modal
+  const getGenerateItems = (docFilter = "All", statusFilter = "All") => {
+    return agreements.filter((a) => {
+      if (!a || String(a.status || "").toLowerCase() === "active") return false;
+      if (
+        docFilter !== "All" &&
+        String(a.document_type || "").toUpperCase() !==
+          String(docFilter).toUpperCase()
+      )
+        return false;
+      if (statusFilter !== "All" && String(a.status) !== String(statusFilter))
+        return false;
+      return true;
+    });
   };
 
   /* ---------- UI handlers ---------- */
@@ -2128,7 +2184,7 @@ const OverviewMerged = () => {
           payload
         );
         let mapped = applyBackendStageData(mapAgreement(updated));
-  mapped = await RelatedMou(mapped, agreements);
+        mapped = await RelatedMou(mapped, agreements);
         // Ensure stage start/time is reset when switching to Active so days show from now
         try {
           mapped._stage_start_at = new Date().toISOString();
@@ -2164,7 +2220,7 @@ const OverviewMerged = () => {
           payload
         );
         let mapped = applyBackendStageData(mapAgreement(updated));
-  mapped = await RelatedMou(mapped, agreements);
+        mapped = await RelatedMou(mapped, agreements);
         // ensure stage start reset so days show from now if needed
         try {
           mapped._stage_start_at = new Date().toISOString();
@@ -2193,29 +2249,13 @@ const OverviewMerged = () => {
       setMenuOpenId(null);
       return;
     }
-    // compute a fixed position for the popup based on the button
+    // Calculate position relative to button
     try {
       const rect = evt.currentTarget.getBoundingClientRect();
-      let top = rect.bottom + 8;
-      let left = rect.left;
-
-      // Adjust if menu would go off-screen
-      const menuWidth = 160; // minWidth of menu
-      const menuHeight = 100; // approximate height
-
-      // Check right edge
-      if (left + menuWidth > window.innerWidth) {
-        left = rect.right - menuWidth;
-      }
-
-      // Check bottom edge
-      if (top + menuHeight > window.innerHeight) {
-        top = rect.top - menuHeight - 8; // show above button instead
-      }
-
+      const top = rect.bottom + 4;
+      const left = rect.right - 160; // align right edge of menu with button
       setMenuPos({ top, left });
     } catch (e) {
-      // fallback: center of viewport
       setMenuPos({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
     }
     setMenuOpenId(id);
@@ -2234,9 +2274,17 @@ const OverviewMerged = () => {
       )
         setShowFilterPanel(false);
     }
+    const handleScroll = () => {
+      // close menu when scrolling
+      if (menuOpenId) setMenuOpenId(null);
+    };
     document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [showFilterPanel]);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [showFilterPanel, menuOpenId]);
 
   const handleLogoUpload = (e) => {
     // only allow admins to upload/change the logo
@@ -2293,13 +2341,18 @@ const OverviewMerged = () => {
         queryClient.setQueryData(["agreements"], (old) => {
           if (!Array.isArray(old)) return old;
           const pk =
-            selectedAgreement._pk ?? selectedAgreement.id ?? selectedAgreement.dts_no;
+            selectedAgreement._pk ??
+            selectedAgreement.id ??
+            selectedAgreement.dts_no;
           return old.map((it) => {
             const itKey = getPk(it) || it._pk || it.id || it.dts_no;
             if (String(itKey) === String(pk)) {
               try {
                 // Add a lightweight marker so UI can react immediately
-                const updated = { ...it, _last_upload_at: new Date().toISOString() };
+                const updated = {
+                  ...it,
+                  _last_upload_at: new Date().toISOString(),
+                };
                 return applyBackendStageData(mapAgreement(updated));
               } catch (e) {
                 return { ...it, _last_upload_at: new Date().toISOString() };
@@ -2535,7 +2588,14 @@ const OverviewMerged = () => {
                   </button>
                 </div>
 
-                <div className="overview1-panel-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                <div
+                  className="overview1-panel-row"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "12px",
+                  }}
+                >
                   <div className="overview1-panel-field">
                     <label className="filter-label">
                       <FiTag className="filter-icon" />
@@ -2558,7 +2618,7 @@ const OverviewMerged = () => {
 
                   <div className="overview1-panel-field">
                     <label className="filter-label">
-                      <FiCalendar className="filter-icon" />
+                      <FiClock className="filter-icon" />
                       Validity Period
                     </label>
                     <SearchableSelect
@@ -2566,7 +2626,9 @@ const OverviewMerged = () => {
                         { value: "", label: "All" },
                         ...validityOptions.map((v) => ({
                           value: v,
-                          label: v ? `${v} ${parseInt(v) === 1 ? 'Year' : 'Years'}` : v,
+                          label: v
+                            ? `${v} ${parseInt(v) === 1 ? "Year" : "Years"}`
+                            : v,
                         })),
                       ]}
                       value={tmpValidity}
@@ -2599,7 +2661,7 @@ const OverviewMerged = () => {
                   <div className="overview1-panel-field">
                     <label className="filter-label">
                       <FiHome className="filter-icon" />
-                      Source
+                      Source Unit
                     </label>
                     <SearchableSelect
                       options={[
@@ -2733,7 +2795,8 @@ const OverviewMerged = () => {
                           try {
                             console.debug &&
                               console.debug("overview: resolving parent", {
-                                rowId: row?.id || row?.dts_no || row?.agreement_id,
+                                rowId:
+                                  row?.id || row?.dts_no || row?.agreement_id,
                                 parentId,
                               });
                           } catch (e) {}
@@ -2746,12 +2809,19 @@ const OverviewMerged = () => {
                             );
                             try {
                               console.debug &&
-                                console.debug("overview: parent lookup result", {
-                                  parentId,
-                                  parent: parent
-                                    ? { id: parent.id, agreement_id: parent.agreement_id, dts_no: parent.dts_no }
-                                    : null,
-                                });
+                                console.debug(
+                                  "overview: parent lookup result",
+                                  {
+                                    parentId,
+                                    parent: parent
+                                      ? {
+                                          id: parent.id,
+                                          agreement_id: parent.agreement_id,
+                                          dts_no: parent.dts_no,
+                                        }
+                                      : null,
+                                  }
+                                );
                             } catch (e) {}
                           }
 
@@ -2762,19 +2832,36 @@ const OverviewMerged = () => {
                                   type="button"
                                   className="linked linked-child parent-dts-button"
                                   onClick={() => openDetails(parent)}
-                                  aria-label={`View linked MOU ${parent?.dts_no || parent?.dts_number || parentId}`}
-                                  title={parent?.dts_no || parent?.dts_number || parentId}
+                                  aria-label={`View linked MOU ${
+                                    parent?.dts_no ||
+                                    parent?.dts_number ||
+                                    parentId
+                                  }`}
+                                  title={
+                                    parent?.dts_no ||
+                                    parent?.dts_number ||
+                                    parentId
+                                  }
                                 >
                                   <FiLink className="link-icon" />
-                                  <span className="parent-dts">{parent?.dts_no || parent?.dts_number || parentId}</span>
+                                  <span className="parent-dts">
+                                    {parent?.dts_no ||
+                                      parent?.dts_number ||
+                                      parentId}
+                                  </span>
                                 </button>
                               </span>
                             );
                           }
 
                           // Do not render MOA children in the Related MOU column.
-                          if (String(row.document_type || "").toUpperCase() === "MOA") {
-                            return <span className="independent">Independent</span>;
+                          if (
+                            String(row.document_type || "").toUpperCase() ===
+                            "MOA"
+                          ) {
+                            return (
+                              <span className="independent">Independent</span>
+                            );
                           }
 
                           return <span className="dash">—</span>;
@@ -2848,7 +2935,10 @@ const OverviewMerged = () => {
                           {/* More options menu */}
                           <div
                             className="dots-menu"
-                            style={{ display: "inline-block" }}
+                            style={{
+                              display: "inline-block",
+                              position: "relative",
+                            }}
                           >
                             <button
                               className="icon-btn dots"
@@ -2861,71 +2951,73 @@ const OverviewMerged = () => {
                             >
                               <FiMoreVertical className="icon" />
                             </button>
-                          </div>
 
-                          {menuOpenId === (row._pk ?? row.id) &&
-                            createPortal(
-                              <div
-                                ref={menuRef}
-                                className="menu-popup"
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  position: "fixed",
-                                  top: menuPos.top,
-                                  left: menuPos.left,
-                                  zIndex: 2000,
-                                  background: "#fff",
-                                  border: "1px solid #eee",
-                                  borderRadius: 6,
-                                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                                  padding: 6,
-                                  minWidth: 160,
-                                }}
-                              >
-                                {/* View Latest File - for all users */}
-                                <button
-                                  className="menu-item"
-                                  onClick={() => {
-                                    handleViewLatestFile(row.dts_no || row.id);
-                                    setMenuOpenId(null);
+                            {menuOpenId === (row._pk ?? row.id) &&
+                              createPortal(
+                                <div
+                                  ref={menuRef}
+                                  className="menu-popup"
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    position: "fixed",
+                                    top: menuPos.top,
+                                    left: menuPos.left,
+                                    zIndex: 2000,
+                                    background: "#fff",
+                                    border: "1px solid #eee",
+                                    borderRadius: 6,
+                                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                                    padding: 6,
+                                    minWidth: 160,
                                   }}
                                 >
-                                  <FiFile style={{ marginRight: 4 }} />
-                                  View Latest File
-                                </button>
-
-                                {/* View Older Files - for all users */}
-                                <button
-                                  className="menu-item"
-                                  onClick={() => {
-                                    navigate(
-                                      `/docVer?dts_number=${
-                                        row.dts_no || row.id
-                                      }`
-                                    );
-                                    setMenuOpenId(null);
-                                  }}
-                                >
-                                  <FiArchive style={{ marginRight: 4 }} /> View
-                                  Older Files
-                                </button>
-
-                                {/* Upload New Version - admin only */}
-                                {isAdminUser() && (
+                                  {/* View Latest File - for all users */}
                                   <button
                                     className="menu-item"
                                     onClick={() => {
-                                      openUploadFor(row);
+                                      handleViewLatestFile(
+                                        row.dts_no || row.id
+                                      );
                                       setMenuOpenId(null);
                                     }}
                                   >
-                                    <FiUpload style={{ marginRight: 4 }} />{" "}
-                                    Upload New Version
+                                    <FiFile style={{ marginRight: 4 }} />
+                                    View Latest File
                                   </button>
-                                )}
-                              </div>,
-                              document.body
-                            )}
+
+                                  {/* View Older Files - for all users */}
+                                  <button
+                                    className="menu-item"
+                                    onClick={() => {
+                                      navigate(
+                                        `/docVer?dts_number=${
+                                          row.dts_no || row.id
+                                        }`
+                                      );
+                                      setMenuOpenId(null);
+                                    }}
+                                  >
+                                    <FiArchive style={{ marginRight: 4 }} />{" "}
+                                    View Older Files
+                                  </button>
+
+                                  {/* Upload New Version - admin only */}
+                                  {isAdminUser() && (
+                                    <button
+                                      className="menu-item"
+                                      onClick={() => {
+                                        openUploadFor(row);
+                                        setMenuOpenId(null);
+                                      }}
+                                    >
+                                      <FiUpload style={{ marginRight: 4 }} />{" "}
+                                      Upload New Version
+                                    </button>
+                                  )}
+                                </div>,
+                                document.body
+                              )}
+                          </div>
                         </div>
 
                         {/* Second row - Activate and Withdrawn buttons with text AND icons */}
@@ -3125,36 +3217,39 @@ const OverviewMerged = () => {
                                   "—"}
                               </div>
                             </div>
-                          </div>
-                          <div className="file-actions">
-                            <button
-                              className="btn action view-file"
-                              onClick={() =>
-                                handleViewLatestFile(
-                                  selected.dts_no || selected.id
-                                )
-                              }
-                              title="View Latest File"
-                              aria-label="View Latest File"
+                            <div
+                              className="file-actions"
+                              style={{ marginLeft: "auto" }}
                             >
-                              <FiEye className="icon" />
-                              View File
-                            </button>
-                            <button
-                              className="btn action older-files"
-                              onClick={() =>
-                                navigate(
-                                  `/docVer?dts_number=${
+                              <button
+                                className="btn action view-file"
+                                onClick={() =>
+                                  handleViewLatestFile(
                                     selected.dts_no || selected.id
-                                  }`
-                                )
-                              }
-                              title="View Older Files"
-                              aria-label="View Older Files"
-                            >
-                              <FiArchive className="icon" />
-                              Older Files
-                            </button>
+                                  )
+                                }
+                                title="View Latest File"
+                                aria-label="View Latest File"
+                              >
+                                <FiEye className="icon" />
+                                View File
+                              </button>
+                              <button
+                                className="btn action older-files"
+                                onClick={() =>
+                                  navigate(
+                                    `/docVer?dts_number=${
+                                      selected.dts_no || selected.id
+                                    }`
+                                  )
+                                }
+                                title="View Older Files"
+                                aria-label="View Older Files"
+                              >
+                                <FiArchive className="icon" />
+                                Older Files
+                              </button>
+                            </div>
                           </div>
                         </div>
                         {/* Document Information */}
@@ -3197,7 +3292,7 @@ const OverviewMerged = () => {
                             </div>
                             <div>
                               <div className="label">
-                                <FiMapPin className="label-icon" />
+                                <FiHome className="label-icon" />
                                 Source Unit
                               </div>
                               <div className="value">
@@ -3234,26 +3329,37 @@ const OverviewMerged = () => {
                             </div>
                           </div>
                           <div className="label" style={{ marginTop: 20 }}>
-                            <FiAlignLeft className="label-icon" />
+                            <FiBookOpen className="label-icon brief-profile-icon" />
                             Brief Profile
                           </div>
-                          <div className="brief" style={{ marginTop: 8, lineHeight: 1.6 }}>
+                          <div
+                            className="brief"
+                            style={{ marginTop: 8, lineHeight: 1.6 }}
+                          >
                             {selected.brief_profile ||
                               selected.description ||
                               "—"}
                           </div>
                         </section>
-                        
+
                         {/* ===== Linked MOU (placed below Signatories) ===== */}
                         {(() => {
                           // If the currently selected record is an MOU, render it with its MOA children
-                          if (String(selected.document_type || "").toUpperCase() === "MOU") {
+                          if (
+                            String(
+                              selected.document_type || ""
+                            ).toUpperCase() === "MOU"
+                          ) {
                             const mid = selected.id || selected.agreement_id;
                             const children = Array.isArray(agreements)
                               ? agreements.filter(
                                   (c) =>
-                                    String((c.document_type || c.documentType || "")).toUpperCase() === "MOA" &&
-                                    (getLinkedId(c) === mid || c.linkedMouId === mid || c.MOU_to_MOA_id === mid)
+                                    String(
+                                      c.document_type || c.documentType || ""
+                                    ).toUpperCase() === "MOA" &&
+                                    (getLinkedId(c) === mid ||
+                                      c.linkedMouId === mid ||
+                                      c.MOU_to_MOA_id === mid)
                                 )
                               : [];
 
@@ -3269,49 +3375,111 @@ const OverviewMerged = () => {
                                   <h4>Linked Agreements</h4>
                                 </div>
 
-                                <div className="linked-mou-card" onClick={() => openDetails(selected)} style={{ cursor: "pointer" }}>
+                                <div
+                                  className="linked-mou-card"
+                                  onClick={() => openDetails(selected)}
+                                  style={{ cursor: "pointer" }}
+                                >
                                   <div className="linked-mou-left">
                                     <span className="badge mou">MOU</span>
                                   </div>
                                   <div className="linked-mou-body">
                                     <strong className="linked-mou-title">
-                                      {selected.partner_name || selected.name || selected.event_title || selected.eventTitle || "—"}
+                                      {selected.partner_name ||
+                                        selected.name ||
+                                        selected.event_title ||
+                                        selected.eventTitle ||
+                                        "—"}
                                     </strong>
                                     <div className="linked-mou-sub">
-                                      {selected.partnership_classification || selected.partnership_type || selected.partnershipClassification || "—"}
+                                      {selected.partnership_classification ||
+                                        selected.partnership_type ||
+                                        selected.partnershipClassification ||
+                                        "—"}
                                     </div>
                                     <div className="linked-mou-valid">
-                                      Valid until: {" "}
-                                      {selected.expiry || selected.date_expiry ? new Date(selected.expiry || selected.date_expiry).toLocaleDateString() : "—"}
+                                      Valid until:{" "}
+                                      {selected.expiry || selected.date_expiry
+                                        ? new Date(
+                                            selected.expiry ||
+                                              selected.date_expiry
+                                          ).toLocaleDateString()
+                                        : "—"}
                                     </div>
                                     <div className="linked-mou-dts">
-                                      {selected.dts_no || selected.dts_number || selected.id || "—"}
+                                      {selected.dts_no ||
+                                        selected.dts_number ||
+                                        selected.id ||
+                                        "—"}
                                     </div>
                                   </div>
                                 </div>
 
                                 <div className="mou-based">
                                   <div className="mou-based-title">
-                                    <FiLink className="link-inline" /> Agreements based on this MOU ({children.length})
+                                    <FiLink className="link-inline" />{" "}
+                                    Agreements based on this MOU (
+                                    {children.length})
                                   </div>
 
                                   <div className="mou-children">
                                     {children.map((c) => (
-                                      <div className="moa-child-card" key={c.id || c.agreement_id}>
+                                      <div
+                                        className="moa-child-card"
+                                        key={c.id || c.agreement_id}
+                                      >
                                         <div className="moa-left">
                                           <FiArrowRight className="arrow-icon" />
                                           <span className="badge moa">MOA</span>
                                         </div>
 
                                         <div className="moa-body">
-                                          <strong className="moa-title">{c.event_title || c.eventTitle}</strong>
-                                          <div className="moa-sub small">Partner: {c.name || c.partnerName} ({c.country})</div>
-                                          <div className="moa-sub small">Source: {c.source_unit || c.source || c.initiating_unit}</div>
-                                          <div className="moa-valid small">Valid: {c.date_signed || c.dateOfSigning ? new Date(c.date_signed || c.dateOfSigning).toLocaleDateString() : "—"} → {c.date_expiry || c.expiryDate ? new Date(c.date_expiry || c.expiryDate).toLocaleDateString() : "—"}</div>
-                                          <div className="moa-dts small">{c.dts_number || c.dtsNumber || c.dts_no || c.id}</div>
+                                          <strong className="moa-title">
+                                            {c.event_title || c.eventTitle}
+                                          </strong>
+                                          <div className="moa-sub small">
+                                            Partner: {c.name || c.partnerName} (
+                                            {c.country})
+                                          </div>
+                                          <div className="moa-sub small">
+                                            Source:{" "}
+                                            {c.source_unit ||
+                                              c.source ||
+                                              c.initiating_unit}
+                                          </div>
+                                          <div className="moa-valid small">
+                                            Valid:{" "}
+                                            {c.date_signed || c.dateOfSigning
+                                              ? new Date(
+                                                  c.date_signed ||
+                                                    c.dateOfSigning
+                                                ).toLocaleDateString()
+                                              : "—"}{" "}
+                                            →{" "}
+                                            {c.date_expiry || c.expiryDate
+                                              ? new Date(
+                                                  c.date_expiry || c.expiryDate
+                                                ).toLocaleDateString()
+                                              : "—"}
+                                          </div>
+                                          <div className="moa-dts small">
+                                            {c.dts_number ||
+                                              c.dtsNumber ||
+                                              c.dts_no ||
+                                              c.id}
+                                          </div>
                                         </div>
 
-                                        <button className="moa-view-btn" onClick={() => openDetails(c)} aria-label={`View details for ${c.dts_number || c.dtsNumber || c.event_title || 'agreement'}`}>
+                                        <button
+                                          className="moa-view-btn"
+                                          onClick={() => openDetails(c)}
+                                          aria-label={`View details for ${
+                                            c.dts_number ||
+                                            c.dtsNumber ||
+                                            c.event_title ||
+                                            "agreement"
+                                          }`}
+                                        >
                                           <FiEye className="icon" />
                                         </button>
                                       </div>
@@ -3324,7 +3492,11 @@ const OverviewMerged = () => {
 
                           // Fallback: existing behavior for non-MOU records (show their linked MOU if present)
                           // Normalize & resolve linked id using the same helper as ActiveAgreement
-                          const lid = getLinkedId(selected) || selected.linkedMouId || selected.linked_mou || selected.MOU_to_MOA_id;
+                          const lid =
+                            getLinkedId(selected) ||
+                            selected.linkedMouId ||
+                            selected.linked_mou ||
+                            selected.MOU_to_MOA_id;
                           if (!lid) return null;
 
                           const lidStr = String(lid).trim();
@@ -3341,13 +3513,26 @@ const OverviewMerged = () => {
                               a.linked_mou,
                               a.mou_number,
                             ];
-                            return candidates.some((c) => c != null && String(c).trim() === lidStr);
+                            return candidates.some(
+                              (c) => c != null && String(c).trim() === lidStr
+                            );
                           });
 
                           // If not found, try relatedDtsMap -> mapped DTS value
-                          if (!target && relatedDtsMap && relatedDtsMap[lidStr]) {
+                          if (
+                            !target &&
+                            relatedDtsMap &&
+                            relatedDtsMap[lidStr]
+                          ) {
                             const mapped = String(relatedDtsMap[lidStr]).trim();
-                            target = agreements.find((a) => (a.dts_no && String(a.dts_no).trim() === mapped) || (a.dts_number && String(a.dts_number).trim() === mapped) || (a.id && String(a.id).trim() === mapped));
+                            target = agreements.find(
+                              (a) =>
+                                (a.dts_no &&
+                                  String(a.dts_no).trim() === mapped) ||
+                                (a.dts_number &&
+                                  String(a.dts_number).trim() === mapped) ||
+                                (a.id && String(a.id).trim() === mapped)
+                            );
                           }
 
                           if (!target) return null;
@@ -3359,15 +3544,42 @@ const OverviewMerged = () => {
                                 <h4>Linked MOU</h4>
                               </div>
 
-                              <div className="linked-mou-card" onClick={() => openDetails(target)} style={{ cursor: "pointer" }}>
+                              <div
+                                className="linked-mou-card"
+                                onClick={() => openDetails(target)}
+                                style={{ cursor: "pointer" }}
+                              >
                                 <div className="linked-mou-left">
                                   <span className="badge mou">MOU</span>
                                 </div>
                                 <div className="linked-mou-body">
-                                  <strong className="linked-mou-title">{target.partner_name || target.name || target.event_title || target.eventTitle || "—"}</strong>
-                                  <div className="linked-mou-sub">{target.partnership_classification || target.partnership_type || target.partnershipClassification || "—"}</div>
-                                  <div className="linked-mou-valid">Valid until: {target.expiry || target.date_expiry ? new Date(target.expiry || target.date_expiry).toLocaleDateString() : "—"}</div>
-                                  <div className="linked-mou-dts">{target.dts_no || target.dts_number || target.id || "—"}</div>
+                                  <strong className="linked-mou-title">
+                                    {target.partner_name ||
+                                      target.name ||
+                                      target.event_title ||
+                                      target.eventTitle ||
+                                      "—"}
+                                  </strong>
+                                  <div className="linked-mou-sub">
+                                    {target.partnership_classification ||
+                                      target.partnership_type ||
+                                      target.partnershipClassification ||
+                                      "—"}
+                                  </div>
+                                  <div className="linked-mou-valid">
+                                    Valid until:{" "}
+                                    {target.expiry || target.date_expiry
+                                      ? new Date(
+                                          target.expiry || target.date_expiry
+                                        ).toLocaleDateString()
+                                      : "—"}
+                                  </div>
+                                  <div className="linked-mou-dts">
+                                    {target.dts_no ||
+                                      target.dts_number ||
+                                      target.id ||
+                                      "—"}
+                                  </div>
                                 </div>
                               </div>
                             </section>
@@ -3596,7 +3808,7 @@ const OverviewMerged = () => {
                             </div>
                             <div>
                               <div className="label">
-                                <FiCalendar className="label-icon" />
+                                <FiClock className="label-icon" />
                                 Expiry Date
                               </div>
                               <div className="value">
@@ -3648,7 +3860,7 @@ const OverviewMerged = () => {
                             </div>
                             <div>
                               <div className="label">
-                                <FiCalendar className="label-icon" />
+                                <FiClock className="label-icon" />
                                 Validity Period
                               </div>
                               <div className="value">
@@ -3670,7 +3882,7 @@ const OverviewMerged = () => {
                             </div>
                             <div>
                               <div className="label">
-                                <FiTag className="label-icon" />
+                                <FiAward className="label-icon" />
                                 Event Title
                               </div>
                               <div className="value">
@@ -4323,7 +4535,7 @@ const OverviewMerged = () => {
                           </div>
                           <div className="report-sub">
                             Generate comprehensive reports for agreements in
-                            Excel or CSV format
+                            Excel format
                           </div>
                         </div>
                       </div>
@@ -4338,7 +4550,9 @@ const OverviewMerged = () => {
                           <div className="stat-value">
                             {generateDocType === "All"
                               ? "All Agreements"
-                              : generateDocType + " only"}
+                              : generateDocType === "linked"
+                              ? "Linked MOU → MOA"
+                              : generateDocType + " Only"}
                           </div>
                         </div>
                         <div className="stat-item">
@@ -4378,6 +4592,7 @@ const OverviewMerged = () => {
                               <option value="All">All Agreements</option>
                               <option value="MOU">MOU only</option>
                               <option value="MOA">MOA only</option>
+                              <option value="linked">Linked MOU → MOA</option>
                             </select>
                           </div>
 
@@ -4455,6 +4670,52 @@ const OverviewMerged = () => {
                         <div className="export-options">
                           <div className="export-option">
                             <div className="option-header">
+                              <FiPrinter className="option-icon print" />
+                              <div className="option-info">
+                                <div className="option-title">
+                                  Printable Report
+                                </div>
+                                <div className="option-desc">
+                                  Opens a printable HTML view suitable for PDF
+                                  export or printing
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              className="btn export-btn print-btn"
+                              onClick={() => {
+                                try {
+                                  const items = getGenerateItems(
+                                    generateDocType,
+                                    generateStatus
+                                  );
+                                  ReportGen.generatePrintableReport({
+                                    items,
+                                    reportKey: String(
+                                      generateDocType || "all"
+                                    ).toLowerCase(),
+                                    reportLabelMap: {
+                                      all: "Agreements Report",
+                                    },
+                                    getLinkedId,
+                                    allAgreements: agreements,
+                                  });
+                                } catch (e) {
+                                  console.error("Printable report failed", e);
+                                  alert(
+                                    "Printable report failed: " +
+                                      (e?.message || e)
+                                  );
+                                }
+                                setShowGenerateModal(false);
+                              }}
+                            >
+                              <FiPrinter className="icon" />
+                              Print / PDF
+                            </button>
+                          </div>
+                          <div className="export-option">
+                            <div className="option-header">
                               <FiFile className="option-icon excel" />
                               <div className="option-info">
                                 <div className="option-title">Excel Report</div>
@@ -4476,96 +4737,6 @@ const OverviewMerged = () => {
                             >
                               <FiDownload className="icon" />
                               Download Excel
-                            </button>
-                          </div>
-
-                          <div className="export-option">
-                            <div className="option-header">
-                              <FiFileText className="option-icon csv" />
-                              <div className="option-info">
-                                <div className="option-title">CSV Export</div>
-                                <div className="option-desc">
-                                  Simple comma-separated values for quick data
-                                  analysis
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              className="btn export-btn csv-btn"
-                              onClick={async () => {
-                                try {
-                                  const header = [
-                                    "DTS NO",
-                                    "Partner",
-                                    "Document Type",
-                                    "Status",
-                                    "Date Received",
-                                    "Country",
-                                    "Classification",
-                                  ];
-                                  const rows = agreements
-                                    .filter((a) => {
-                                      if (
-                                        !a ||
-                                        String(a.status || "").toLowerCase() ===
-                                          "active"
-                                      )
-                                        return false;
-                                      if (
-                                        generateDocType !== "All" &&
-                                        String(
-                                          a.document_type || ""
-                                        ).toUpperCase() !==
-                                          String(generateDocType).toUpperCase()
-                                      )
-                                        return false;
-                                      if (
-                                        generateStatus !== "All" &&
-                                        String(a.status) !==
-                                          String(generateStatus)
-                                      )
-                                        return false;
-                                      return true;
-                                    })
-                                    .map((a) => [
-                                      a.dts_no || a.id || "",
-                                      a.partner_name || "",
-                                      a.document_type || "",
-                                      a.status || "",
-                                      a.date_received || "",
-                                      a.country || "",
-                                      a.partnership_classification || "",
-                                    ]);
-                                  const csv = [header, ...rows]
-                                    .map((r) =>
-                                      r
-                                        .map(
-                                          (v) =>
-                                            '"' +
-                                            String(v).replace(/"/g, '""') +
-                                            '"'
-                                        )
-                                        .join(",")
-                                    )
-                                    .join("\n");
-                                  const blob = new Blob([csv], {
-                                    type: "text/csv;charset=utf-8;",
-                                  });
-                                  saveAs(
-                                    blob,
-                                    `agreements_${generateDocType.toLowerCase()}_${generateStatus.toLowerCase()}.csv`
-                                  );
-                                } catch (e) {
-                                  console.error("CSV export failed", e);
-                                  alert(
-                                    "CSV export failed: " + (e?.message || e)
-                                  );
-                                }
-                                setShowGenerateModal(false);
-                              }}
-                            >
-                              <FiDownload className="icon" />
-                              Download CSV
                             </button>
                           </div>
                         </div>
@@ -4668,7 +4839,7 @@ const OverviewMerged = () => {
                           <input
                             type="file"
                             id="document-upload"
-                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            accept=".pdf,.doc,.docx"
                             onChange={(e) => setUploadFile(e.target.files[0])}
                             className="file-input"
                           />
@@ -4680,9 +4851,7 @@ const OverviewMerged = () => {
                               <FiUploadCloud className="upload-icon" />
                               <div className="upload-text">
                                 <strong>Choose file to upload</strong>
-                                <span>
-                                  PDF, DOC, DOCX, JPG, PNG (Max: 10MB)
-                                </span>
+                                <span>PDF, DOC, DOCX (Max: 10MB)</span>
                               </div>
                             </div>
                           </label>

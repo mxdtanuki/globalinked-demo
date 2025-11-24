@@ -2,7 +2,7 @@
   padding: 6rem 2rem;
   background: linear-gradient(135deg, #f7f2f2 0%, #fff 100%);
   font-family: "Segoe UI", sans-serif;
-  scroll-margin-top: 90px; 
+  scroll-margin-top: 90px;
 }
 
 .contact-container {
@@ -41,10 +41,11 @@
   flex: 1;
 }
 
-.contact-item img {
-  width: 25px;
-  height: 25px;
+.contact-icon {
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
+  color: #821616;
 }
 
 .contact-item h3 {

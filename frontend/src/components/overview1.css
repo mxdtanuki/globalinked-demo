@@ -585,6 +585,8 @@
 .overview1-modal-body {
   padding: 0 16px 16px 16px;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
 }
 
 .details-modal-body {
@@ -683,40 +685,141 @@
   border: 1px solid #e6e0e0;
   background: #fff;
   color: #333;
+  font-weight: 400 !important;
 }
 
 .btn.action .icon {
-  color: #7a1f2f;
+  color: #555;
+  transition: all 0.2s ease;
 }
 
-.btn.action.view-file:hover {
-  border-color: rgba(139, 31, 45, 0.3);
-  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.06);
+/* View File button in details summary card (Gold hover) */
+.details-summary-card .btn.action.view-file,
+.file-actions .btn.action.view-file {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  transition: all 0.2s ease;
 }
 
-.btn.action.older-files {
+.details-summary-card .btn.action.view-file .icon,
+.file-actions .btn.action.view-file .icon {
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.details-summary-card .btn.action.view-file:hover,
+.file-actions .btn.action.view-file:hover {
   background: #fff !important;
-  border: 1px solid #e6e0e0 !important;
-  color: #333 !important;
+  border-color: #f59e0b !important;
+  border-width: 2px !important;
+  color: #d97706 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2) !important;
 }
 
-.btn.action.older-files .icon {
-  color: #7a1f2f !important;
+.details-summary-card .btn.action.view-file:hover .icon,
+.file-actions .btn.action.view-file:hover .icon {
+  color: #d97706 !important;
 }
 
-.btn.action.older-files:hover {
-  border-color: rgba(139, 31, 45, 0.3) !important;
-  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.06) !important;
+/* Download File button specifically - override to be blue in archive */
+.details-summary-card .btn.action.view-file[title*="Download"],
+.file-actions .btn.action.view-file[title*="Download"] {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.details-summary-card .btn.action.view-file[title*="Download"]:hover,
+.file-actions .btn.action.view-file[title*="Download"]:hover {
   background: #fff !important;
-  color: #333 !important;
+  border-color: #2563eb !important;
+  border-width: 2px !important;
+  color: #1d4ed8 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
 }
 
-.btn.action.older-files:hover .icon {
-  color: #7a1f2f !important;
+.details-summary-card .btn.action.view-file[title*="Download"]:hover .icon,
+.file-actions .btn.action.view-file[title*="Download"]:hover .icon {
+  color: #1d4ed8 !important;
 }
 
-.btn.action.older-files {
+/* Older Files button - brown folder color */
+.btn.action.older-files,
+button.btn.action.older-files {
   background: #fff !important;
+  border: 1px solid #d1d5db !important;
+  color: #374151 !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn.action.older-files .icon,
+button.btn.action.older-files .icon {
+  color: #6b7280 !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn.action.older-files:hover,
+button.btn.action.older-files:hover {
+  background: #fff !important;
+  border-color: #92400e !important;
+  border-width: 2px !important;
+  color: #78350f !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(146, 64, 14, 0.2) !important;
+}
+
+.btn.action.older-files:hover .icon,
+button.btn.action.older-files:hover .icon {
+  color: #78350f !important;
+}
+
+/* Reactivate button styling */
+.btn.action.reactivate {
+  background: #fff;
+  color: #059669;
+  border: 1px solid #d1d5db;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 400 !important;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn.action.reactivate .icon {
+  font-size: 16px;
+  color: #10b981;
+  transition: all 0.2s ease;
+}
+
+.btn.action.reactivate:hover {
+  background: #fff !important;
+  border-color: #059669 !important;
+  border-width: 2px !important;
+  color: #047857 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2) !important;
+}
+
+.btn.action.reactivate:hover .icon {
+  color: #047857 !important;
+  animation: rotate 0.6s ease-in-out !important;
+}
+
+/* Rotating icon animation for reactivate button - single rotation on hover */
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {
@@ -775,12 +878,20 @@
   flex-wrap: wrap;
 }
 .report-controls select {
-  padding: 10px 12px;
+  padding: 10px 32px 10px 12px;
   border-radius: 8px;
   border: 1px solid #e8e8e8;
   min-width: 220px;
   background: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23718096' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
 }
 .report-buttons {
   display: flex;
@@ -2179,12 +2290,21 @@
 /* Report Modal Styles */
 .report-modal {
   max-width: 700px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
 }
 
 .report-modal .overview1-modal-body {
   padding: 20px;
   max-height: 70vh;
   overflow-y: auto;
+}
+
+.report-modal .option-title,
+.report-modal .option-desc,
+.report-modal .export-btn {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
 }
 
 /* Report Summary Card */
@@ -2326,14 +2446,22 @@
 
 .config-select {
   flex: 1;
-  padding: 10px 12px;
+  padding: 10px 32px 10px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 14px;
   background: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23718096' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
   transition: border-color 0.2s ease;
   max-width: 100%;
   box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
 }
 
 .config-select:focus {
@@ -2365,13 +2493,7 @@
   background: #f7fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  transition: all 0.2s ease;
   box-sizing: border-box;
-}
-
-.export-option:hover {
-  border-color: #7a1f2f;
-  background: #fff5f5;
 }
 
 .option-header {
@@ -2392,7 +2514,11 @@
 }
 
 .option-icon.csv {
-  color: #7a1f2f;
+  color: #007bff;
+}
+
+.option-icon.pdf {
+  color: #dc3545;
 }
 
 .option-info {
@@ -2421,31 +2547,37 @@
   gap: 6px;
   padding: 8px 16px;
   border-radius: 6px;
-  font-weight: 600;
+  font-weight: 400;
   font-size: 14px;
-  transition: all 0.2s ease;
+  transition: none;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .excel-btn {
-  background: #217346;
+  background: #28a745;
   color: #ffffff;
-  border: 1px solid #1a5f38;
+  border: 1px solid #1e7e34;
+  transition: none;
+  font-weight: 400 !important;
 }
 
 .excel-btn:hover {
-  background: #1a5f38;
+  background: #1e7e34;
+  transition: none;
 }
 
 .csv-btn {
-  background: #7a1f2f;
+  background: #007bff;
   color: #ffffff;
-  border: 1px solid #5a1522;
+  border: 1px solid #0056b3;
+  transition: none;
+  font-weight: 400 !important;
 }
 
 .csv-btn:hover {
-  background: #5a1522;
+  background: #0056b3;
+  transition: none;
 }
 
 /* Preview Section */
@@ -2635,14 +2767,12 @@
 
 .overview1-modal-footer .btn.cancel:hover {
   background: #f8f9fa;
-  border-color: #7a1f2f;
-  color: #7a1f2f;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(122, 31, 47, 0.1);
+  border-color: #d0d0d0;
+  color: #333;
 }
 
 .overview1-modal-footer .btn.cancel:hover .icon {
-  color: #7a1f2f;
+  color: #333;
 }
 
 .overview1-modal-footer .btn.cancel:active {
@@ -2917,6 +3047,8 @@
   border-radius: 12px;
   padding: 16px;
   margin: 12px 0;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* titles (Document Information, signatories, etc) */
@@ -2934,11 +3066,16 @@
   font-size: 13px !important;
   width: 18px !important;
   height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
   color: #7a1f2f !important;
   display: flex !important;
   gap: 1px !important;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .modal-section .section-header {
@@ -2950,6 +3087,9 @@
   background: linear-gradient(180deg, #ffffff, #fff6f4);
   border: 1px solid rgba(139, 31, 45, 0.08);
   border-radius: 12px;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .modal-section .section-header h4 {
@@ -2960,6 +3100,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+  transform: translateZ(0);
 }
 
 /* Ensure icons are visible in labels */
@@ -2969,6 +3111,7 @@
   margin-right: 6px;
   display: inline-flex !important;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .modal-section .inline-icon {
@@ -2977,6 +3120,7 @@
   margin-right: 6px;
   display: inline-flex !important;
   align-items: center;
+  flex-shrink: 0;
 }
 
 /* Fix for empty state icons */
@@ -3017,6 +3161,7 @@
 .header-icon {
   font-size: 24px;
   color: #7a1f2f;
+  flex-shrink: 0;
 }
 
 .section-header h4 {
@@ -3030,6 +3175,7 @@
   font-size: 16px;
   color: #7a1f2f;
   margin-right: 6px;
+  flex-shrink: 0;
 }
 
 .row.two-col {
@@ -3055,6 +3201,23 @@
   font-size: 14px;
   color: #333;
   line-height: 1.45;
+}
+
+/* Brief profile styling to match active agreements */
+.overview1-modal .modal-section.docinfo .brief {
+  margin-top: 4px !important;
+  padding-top: 4px !important;
+  padding-bottom: 0 !important;
+}
+
+.overview1-modal-body .modal-section.docinfo .label + .brief {
+  margin-top: -10px !important;
+}
+
+.brief-profile-icon {
+  margin-right: 6px !important;
+  color: #8b1f2d;
+  vertical-align: -2px;
 }
 
 .partner-top {

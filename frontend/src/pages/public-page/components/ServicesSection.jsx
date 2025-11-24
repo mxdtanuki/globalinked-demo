@@ -1,15 +1,14 @@
 import React from "react";
 import "./styles/Services.css";
-
-import studentIcon from "./assets/student-icon.png";
-import facultyIcon from "./assets/faculty-icon.png";
-import partnershipIcon from "./assets/partnership.png";
+import { IoSchoolOutline } from "react-icons/io5";
+import { PiChalkboardTeacher } from "react-icons/pi";
+import { HiOutlineGlobeAlt } from "react-icons/hi";
 
 export default function Services() {
   const services = [
     {
       title: "Student Mobility",
-      icon: studentIcon,
+      icon: IoSchoolOutline,
       subsections: [
         {
           subtitle: "International Students in PUP",
@@ -39,7 +38,7 @@ export default function Services() {
     },
     {
       title: "Faculty and Staff Mobility",
-      icon: facultyIcon,
+      icon: PiChalkboardTeacher,
       subsections: [
         {
           subtitle: "Travel Abroad Purposes",
@@ -56,7 +55,7 @@ export default function Services() {
     },
     {
       title: "Partnership, Linkages, and Networks",
-      icon: partnershipIcon,
+      icon: HiOutlineGlobeAlt,
       subsections: [
         {
           subtitle: "International Partnerships",
@@ -87,11 +86,7 @@ export default function Services() {
             >
               <div className="service-header">
                 <div className="service-icon">
-                  <img
-                    src={service.icon}
-                    alt={`${service.title} icon`}
-                    className="service-icon-img"
-                  />
+                  <service.icon className="service-icon-img" />
                 </div>
                 <h3>{service.title}</h3>
               </div>

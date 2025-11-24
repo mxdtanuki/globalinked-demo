@@ -113,7 +113,7 @@ export default function Header() {
                   setIsMobileMenuOpen(false);
                 }}
               >
-                MOUs/MOAs
+                PARTNERSHIP STATISTICS
               </button>
 
               <button

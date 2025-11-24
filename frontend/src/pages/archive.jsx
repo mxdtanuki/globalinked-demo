@@ -3,6 +3,7 @@ import { agreementService } from "../services/agreementService";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import "./archive.css";
+import "../components/overview1.css";
 import { documentService } from "../services/documentService";
 import /* useNavigate */ "react-router-dom";
 
@@ -10,23 +11,35 @@ import {
   FiAlertCircle,
   FiArchive,
   FiBarChart,
+  FiBookOpen,
   FiCalendar,
   FiCheck,
-  FiChevronDown,
+  FiCheckCircle,
+  FiClock,
   FiDownload,
   FiEye,
   FiFile,
   FiFileText,
   FiFilter,
+  FiHash,
   FiInfo,
+  FiMapPin,
   FiPrinter,
   FiRefreshCw,
   FiSettings,
   FiTag,
   FiTrash2,
+  FiUsers,
+  FiMessageCircle,
   FiX,
   FiXCircle,
+  FiLink,
+  FiEdit,
+  FiAward,
+  FiHome,
+  FiGrid,
 } from "react-icons/fi";
+import ReportGen from "../components/reportGeneration";
 
 /* Reusable searchable select */
 const SearchableSelect = ({
@@ -153,13 +166,17 @@ const Archive = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [filterDocType, setFilterDocType] = useState("");
   const [filterClassification, setFilterClassification] = useState("");
+  const [filterValidity, setFilterValidity] = useState("");
+  const [filterCountry, setFilterCountry] = useState("");
+  const [filterSource, setFilterSource] = useState("");
   const [allArchiveData, setAllArchiveData] = useState([]);
   const [withdrawnData, setWithdrawnData] = useState([]);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [tmpDocType, setTmpDocType] = useState("");
   const [tmpClassification, setTmpClassification] = useState("");
+  const [tmpValidity, setTmpValidity] = useState("");
+  const [tmpCountry, setTmpCountry] = useState("");
+  const [tmpSource, setTmpSource] = useState("");
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [displayData, setDisplayData] = useState([]);
@@ -292,12 +309,38 @@ const Archive = () => {
     )
   );
 
+  const validityOptions = Array.from(
+    new Set(
+      [...allArchiveData, ...withdrawnData]
+        .map((a) => a.validity_period)
+        .filter(Boolean)
+    )
+  ).sort((a, b) => parseInt(a) - parseInt(b));
+
+  const countryOptions = Array.from(
+    new Set(
+      [...allArchiveData, ...withdrawnData]
+        .map((a) => a.country)
+        .filter(Boolean)
+    )
+  );
+
+  const sourceOptions = Array.from(
+    new Set(
+      [...allArchiveData, ...withdrawnData]
+        .map((a) => a.source_unit)
+        .filter(Boolean)
+    )
+  ).sort();
+
   const filterByStat = (label) => {
     setActiveTab(label);
     setCurrentPage(1);
     setSearchTerm("");
-    setFilterDocType("");
     setFilterClassification("");
+    setFilterValidity("");
+    setFilterCountry("");
+    setFilterSource("");
     setSelectedIds(new Set());
 
     const key = String(label || "").toLowerCase();
@@ -333,6 +376,13 @@ const Archive = () => {
       default:
         typeMatch = true;
     }
+
+    // Apply additional filters
+    if (filterClassification && item.partnership_type !== filterClassification)
+      return false;
+    if (filterValidity && item.validity_period !== filterValidity) return false;
+    if (filterCountry && item.country !== filterCountry) return false;
+    if (filterSource && item.source_unit !== filterSource) return false;
 
     return searchMatch && typeMatch;
   });
@@ -543,6 +593,18 @@ const Archive = () => {
   };
 
   const closeModal = () => setSelectedAgreement(null);
+
+  const navigateAgreement = (dir) => {
+    if (!selectedAgreement) return;
+    const idx = filteredData.findIndex(
+      (a) =>
+        (a.agreement_id || a.id) ===
+        (selectedAgreement.agreement_id || selectedAgreement.id)
+    );
+    if (idx === -1) return;
+    const next = filteredData[idx + dir];
+    if (next) setSelectedAgreement(next);
+  };
 
   // Open agreement modal: prefer the simple activeAgreement behaviour of
   // displaying the passed item immediately and letting modal effects
@@ -1047,92 +1109,19 @@ const Archive = () => {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-  const safeCsv = (v = "") => {
-    const s = String(v ?? "").replace(/"/g, '""');
-    return `"${s}"`;
-  };
-
   const generatePrintableReport = () => {
-    const rows = reportItems
-      .map((r) => {
-        return `<tr>
-            <td>${escapeHtml(r.document_type)}</td>
-            <td>${escapeHtml(r.dts_number)}</td>
-            <td>${escapeHtml(r.partner_name || r.name || "")}</td>
-            <td>${escapeHtml(r.partnership_type)}</td>
-            <td>${escapeHtml(
-              r.date_expiry ? new Date(r.date_expiry).toLocaleDateString() : ""
-            )}</td>
-            <td>${escapeHtml(r.agreement_status)}</td>
-          </tr>`;
-      })
-      .join("");
-
-    const html = `
-      <html>
-        <head>
-          <title>${reportLabelMap[reportType]}</title>
-          <style>
-            body{font-family: Arial, Helvetica, sans-serif; padding:20px; color:#111}
-            h1{font-size:20px; margin-bottom:6px}
-            table{width:100%;border-collapse:collapse;margin-top:12px}
-            th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:13px}
-            th{background:#f7f7f7}
-          </style>
-        </head>
-        <body>
-          <h1>${reportLabelMap[reportType]}</h1>
-          <div>Total records: ${reportItems.length}</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Type</th><th>DTS</th><th>Partner</th><th>Classification</th><th>Expiry</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <script>window.onload = function(){ window.print(); }</script>
-        </body>
-      </html>`;
-
-    const w = window.open("", "_blank");
-    w.document.write(html);
-    w.document.close();
-  };
-
-  const downloadCSV = () => {
-    const headers = [
-      "Type",
-      "DTS Number",
-      "Partner",
-      "Country",
-      "Classification",
-      "ExpiryDate",
-      "Status",
-    ];
-    const csvRows = [headers.join(",")];
-
-    reportItems.forEach((r) => {
-      const row = [
-        safeCsv(r.document_type),
-        safeCsv(r.dts_number),
-        safeCsv(r.partner_name || r.name || ""),
-        safeCsv(r.country),
-        safeCsv(r.partnership_type),
-        safeCsv(r.date_expiry || ""),
-        safeCsv(r.agreement_status),
-      ];
-      csvRows.push(row.join(","));
+    ReportGen.generatePrintableReport({
+      items: reportItems,
+      reportKey: reportType,
+      reportLabelMap,
+      allAgreements: [...allArchiveData, ...withdrawnData],
+      getLinkedId: (r) =>
+        r?.linked_mou_id ||
+        r?.parent_agreement_id ||
+        r?.linked_mou ||
+        r?.linkedMouId ||
+        "",
     });
-
-    const csvString = csvRows.join("\r\n");
-    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${reportType}-archive-report.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -1159,7 +1148,6 @@ const Archive = () => {
           ) : (
             <>
               <div className="archive-main">
-
                 <div className="archive-stats-row-full">
                   {stats.map((s, i) => (
                     <button
@@ -1262,8 +1250,10 @@ const Archive = () => {
                           e.stopPropagation();
                           setShowFilterPanel((v) => {
                             if (!v) {
-                              setTmpDocType(filterDocType);
                               setTmpClassification(filterClassification);
+                              setTmpValidity(filterValidity);
+                              setTmpCountry(filterCountry);
+                              setTmpSource(filterSource);
                             }
                             return !v;
                           });
@@ -1310,33 +1300,22 @@ const Archive = () => {
                           </button>
                         </div>
 
-                        <div className="archive-panel-row">
+                        <div
+                          className="archive-panel-row"
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(4, 1fr)",
+                            gap: "12px",
+                          }}
+                        >
                           <div className="archive-panel-field">
                             <label className="filter-label">
                               <FiTag className="filter-icon" />
-                              Document Type
+                              Classification
                             </label>
                             <SearchableSelect
                               options={[
-                                { value: "", label: "All Types" },
-                                { value: "MOA", label: "MOA" },
-                                { value: "MOU", label: "MOU" },
-                              ]}
-                              value={tmpDocType}
-                              onChange={(v) => setTmpDocType(v || "")}
-                              placeholder="All Types"
-                              allowClear={false}
-                            />
-                          </div>
-
-                          <div className="archive-panel-field">
-                            <label className="filter-label">
-                              <FiTag className="filter-icon" />
-                              Partnership Classification
-                            </label>
-                            <SearchableSelect
-                              options={[
-                                { value: "", label: "All Classifications" },
+                                { value: "", label: "All" },
                                 ...classificationOptions.map((c) => ({
                                   value: c,
                                   label: c,
@@ -1344,7 +1323,71 @@ const Archive = () => {
                               ]}
                               value={tmpClassification}
                               onChange={(v) => setTmpClassification(v || "")}
-                              placeholder="All Classifications"
+                              placeholder="All"
+                              allowClear={false}
+                            />
+                          </div>
+
+                          <div className="archive-panel-field">
+                            <label className="filter-label">
+                              <FiClock className="filter-icon" />
+                              Validity Period
+                            </label>
+                            <SearchableSelect
+                              options={[
+                                { value: "", label: "All" },
+                                ...validityOptions.map((v) => ({
+                                  value: v,
+                                  label: v
+                                    ? `${v} ${
+                                        parseInt(v) === 1 ? "Year" : "Years"
+                                      }`
+                                    : v,
+                                })),
+                              ]}
+                              value={tmpValidity}
+                              onChange={(v) => setTmpValidity(v || "")}
+                              placeholder="All"
+                              allowClear={false}
+                            />
+                          </div>
+
+                          <div className="archive-panel-field">
+                            <label className="filter-label">
+                              <FiMapPin className="filter-icon" />
+                              Country
+                            </label>
+                            <SearchableSelect
+                              options={[
+                                { value: "", label: "All" },
+                                ...countryOptions.map((c) => ({
+                                  value: c,
+                                  label: c,
+                                })),
+                              ]}
+                              value={tmpCountry}
+                              onChange={(v) => setTmpCountry(v || "")}
+                              placeholder="All"
+                              allowClear={false}
+                            />
+                          </div>
+
+                          <div className="archive-panel-field">
+                            <label className="filter-label">
+                              <FiHome className="filter-icon" />
+                              Source Unit
+                            </label>
+                            <SearchableSelect
+                              options={[
+                                { value: "", label: "All" },
+                                ...sourceOptions.map((s) => ({
+                                  value: s,
+                                  label: s,
+                                })),
+                              ]}
+                              value={tmpSource}
+                              onChange={(v) => setTmpSource(v || "")}
+                              placeholder="All"
                               allowClear={false}
                             />
                           </div>
@@ -1354,10 +1397,14 @@ const Archive = () => {
                           <button
                             className="btn clear"
                             onClick={() => {
-                              setTmpDocType("");
                               setTmpClassification("");
-                              setFilterDocType("");
+                              setTmpValidity("");
+                              setTmpCountry("");
+                              setTmpSource("");
                               setFilterClassification("");
+                              setFilterValidity("");
+                              setFilterCountry("");
+                              setFilterSource("");
                               setShowFilterPanel(false);
                             }}
                           >
@@ -1367,8 +1414,10 @@ const Archive = () => {
                           <button
                             className="btn apply"
                             onClick={() => {
-                              setFilterDocType(tmpDocType);
                               setFilterClassification(tmpClassification);
+                              setFilterValidity(tmpValidity);
+                              setFilterCountry(tmpCountry);
+                              setFilterSource(tmpSource);
                               setShowFilterPanel(false);
                             }}
                           >
@@ -1589,85 +1638,218 @@ const Archive = () => {
       </div>
 
       {selectedAgreement && (
-        <div className="archive-agreement-modal-backdrop" onClick={closeModal}>
+        <div className="overview1-modal-backdrop" onClick={closeModal}>
           <div
-            className="archive-agreement-modal"
+            className="overview1-modal"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
           >
-            <header className="archive-agreement-modal-header">
-              <div className="archive-modal-badge-row">
+            <div
+              className="overview1-modal-header"
+              role="dialog"
+              aria-labelledby="modal-title"
+            >
+              <div className="modal-badge-row">
                 <span
-                  className={`archive-badge ${String(
+                  className={`header-badge doc ${String(
                     selectedAgreement.document_type || ""
                   ).toLowerCase()}`}
                 >
-                  {selectedAgreement.document_type}
+                  <FiFileText className="badge-icon" />
+                  {selectedAgreement.document_type || "—"}
                 </span>
-                <h2 className="archive-modal-title">
+                <h3 id="modal-title" className="modal-title white-title">
                   {selectedAgreement.event_title ||
                     selectedAgreement.partner_name ||
-                    selectedAgreement.name}
-                </h2>
+                    selectedAgreement.name ||
+                    "Agreement Details"}
+                </h3>
               </div>
-              <button className="archive-modal-close" onClick={closeModal}>
-                ✕
-              </button>
-            </header>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  className="nav-btn"
+                  onClick={() => navigateAgreement(-1)}
+                  title="Previous"
+                  aria-label="Previous agreement"
+                >
+                  ‹
+                </button>
+                <button
+                  className="nav-btn"
+                  onClick={() => navigateAgreement(1)}
+                  title="Next"
+                  aria-label="Next agreement"
+                >
+                  ›
+                </button>
+                <button
+                  className="modal-close"
+                  onClick={closeModal}
+                  aria-label="Close"
+                >
+                  <FiX className="icon" />
+                </button>
+              </div>
+            </div>
 
-            <div className="archive-agreement-modal-body">
-              <section className="archive-modal-section archive-docinfo">
-                <h4>Document Information</h4>
-                <div className="archive-row archive-two-col">
+            <div className="overview1-modal-body details-modal-body">
+              {/* Details Summary Card */}
+              <div className="details-summary-card">
+                <div className="details-header">
+                  <div className="details-icon-container">
+                    <FiFileText className="details-main-icon" />
+                  </div>
+                  <div className="details-titles">
+                    <div className="details-title">
+                      {selectedAgreement.event_title ||
+                        selectedAgreement.partner_name ||
+                        selectedAgreement.name ||
+                        "Agreement Details"}
+                    </div>
+                    <div className="details-sub">
+                      {selectedAgreement.document_type || "—"} •{" "}
+                      {selectedAgreement.agreement_status || activeTab}
+                    </div>
+                  </div>
+                  <div className="file-actions" style={{ marginLeft: "auto" }}>
+                    <button
+                      className="btn action view-file"
+                      onClick={() =>
+                        handleViewLatestFile(selectedAgreement.dts_number)
+                      }
+                      title="Download File"
+                      aria-label="Download File"
+                    >
+                      <FiDownload className="icon" />
+                      Download File
+                    </button>
+                    {currentUser?.user_role?.toLowerCase() === "admin" &&
+                      (activeTab === "Withdrawn" ||
+                        String(selectedAgreement?.agreement_status || "")
+                          .toLowerCase()
+                          .includes("withdrawn")) && (
+                        <button
+                          className="btn action reactivate"
+                          onClick={() => {
+                            handleReactivate(selectedAgreement.agreement_id);
+                            closeModal();
+                          }}
+                          title="Reactivate Agreement"
+                          aria-label="Reactivate Agreement"
+                        >
+                          <FiRefreshCw className="icon" />
+                          Reactivate
+                        </button>
+                      )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Document Information */}
+              <section className="modal-section docinfo">
+                <div className="section-header">
+                  <FiInfo className="header-icon" />
+                  <h4>Document Information</h4>
+                </div>
+                <div className="row two-col">
                   <div>
-                    <div className="archive-label">DTS Number</div>
-                    <div className="archive-value archive-mono">
+                    <div className="label">
+                      <FiHash className="label-icon" />
+                      DTS Number
+                    </div>
+                    <div className="value mono">
                       {selectedAgreement?.dts_number || "—"}
                     </div>
                   </div>
 
                   <div>
-                    <div className="archive-label">Hardcopy Locator</div>
-                    <div className="archive-value">
+                    <div className="label">
+                      <FiFileText className="label-icon" />
+                      Document Type
+                    </div>
+                    <div className="value">
+                      {selectedAgreement?.document_type || "—"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="label">
+                      <FiCalendar className="label-icon" />
+                      Date Received
+                    </div>
+                    <div className="value">
+                      {selectedAgreement?.date_received ||
+                      selectedAgreement?.date_signed
+                        ? new Date(
+                            selectedAgreement.date_received ||
+                              selectedAgreement.date_signed
+                          ).toLocaleDateString()
+                        : "—"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="label">
+                      <FiHome className="label-icon" />
+                      Source Unit
+                    </div>
+                    <div className="value">
+                      {selectedAgreement?.source_unit ||
+                        selectedAgreement?.source ||
+                        "—"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="label">
+                      <FiMapPin className="label-icon" />
+                      Hardcopy Locator
+                    </div>
+                    <div className="value">
                       {selectedAgreement?.hardcopy_location || "—"}
                     </div>
                   </div>
 
                   <div>
-                    <div className="archive-label">Date Signed</div>
-                    <div className="archive-value">
-                      {selectedAgreement?.date_signed
-                        ? new Date(
-                            selectedAgreement.date_signed
-                          ).toLocaleDateString()
-                        : "—"}
+                    <div className="label">
+                      <FiCheckCircle className="label-icon" />
+                      Current Status
                     </div>
-                  </div>
-
-                  <div>
-                    <div className="archive-label">Expiry Date</div>
-                    <div className="archive-value">
-                      {selectedAgreement?.date_expiry
-                        ? new Date(
-                            selectedAgreement.date_expiry
-                          ).toLocaleDateString()
-                        : "—"}
+                    <div className="value">
+                      <span
+                        className={`status-badge ${String(
+                          selectedAgreement.agreement_status || activeTab
+                        ).toLowerCase()}`}
+                      >
+                        {selectedAgreement.agreement_status || activeTab}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="archive-label">Brief Profile</div>
-                <div className="archive-brief">
+                <div className="label" style={{ marginTop: 20 }}>
+                  <FiBookOpen className="label-icon brief-profile-icon" />
+                  Brief Profile
+                </div>
+                <div
+                  className="brief"
+                  style={{ marginTop: 8, lineHeight: 1.6 }}
+                >
                   {selectedAgreement?.brief_profile ||
                     selectedAgreement?.description ||
                     "—"}
                 </div>
               </section>
 
-              <section className="archive-modal-section archive-partner">
-                <h4>Partner Information</h4>
-
-                <div className="archive-partner-top">
-                  <div className="archive-partner-logo">
+              {/* Partner Information */}
+              <section className="modal-section partner">
+                <div className="section-header">
+                  <FiTag className="header-icon" />
+                  <h4>Partner Information</h4>
+                </div>
+                <div className="partner-top">
+                  <div className="partner-logo">
                     {LogoSrc(
                       selectedAgreement?.logo_path ||
                         selectedAgreement?.logo_url
@@ -1689,7 +1871,7 @@ const Archive = () => {
                         }}
                       />
                     ) : (
-                      <div className="archive-partner-fallback">
+                      <div className="partner-fallback">
                         {getInitials(
                           selectedAgreement?.partner_name ||
                             selectedAgreement?.name
@@ -1698,42 +1880,70 @@ const Archive = () => {
                     )}
                   </div>
 
-                  <div className="archive-partner-details">
-                    <div className="archive-row archive-two-col">
+                  <div className="partner-details">
+                    <div className="row two-col">
                       <div>
-                        <div className="archive-label">Organization</div>
-                        <div className="archive-value">
+                        <div className="label">
+                          <FiTag className="label-icon" />
+                          Organization
+                        </div>
+                        <div className="value">
                           {selectedAgreement?.partner_name ||
                             selectedAgreement?.name ||
                             "—"}
                         </div>
                       </div>
                       <div>
-                        <div className="archive-label">Country</div>
-                        <div className="archive-value">
+                        <div className="label">
+                          <FiSettings className="label-icon" />
+                          Entity Type
+                        </div>
+                        <div className="value">
+                          {selectedAgreement?.entity_type || "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="label">
+                          <FiMapPin className="label-icon" />
+                          Country
+                        </div>
+                        <div className="value">
                           {selectedAgreement?.country || "—"}
                         </div>
                       </div>
                       <div>
-                        <div className="archive-label">Region</div>
-                        <div className="archive-value">
+                        <div className="label">
+                          <FiMapPin className="label-icon" />
+                          Region
+                        </div>
+                        <div className="value">
                           {selectedAgreement?.region || "—"}
                         </div>
                       </div>
                       <div>
-                        <div className="archive-label">Address</div>
-                        <div className="archive-value">
+                        <div className="label">
+                          <FiMapPin className="label-icon" />
+                          Address
+                        </div>
+                        <div className="value">
                           {selectedAgreement?.address || "—"}
                         </div>
                       </div>
                       <div>
-                        <div className="archive-label">Website</div>
-                        <div className="archive-value">
+                        <div className="label">
+                          <FiLink className="label-icon" />
+                          Website
+                        </div>
+                        <div className="value">
                           {selectedAgreement?.website_url ? (
                             <a
                               href={selectedAgreement.website_url}
                               target="_blank"
-                              rel="noreferrer"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "#3b82f6",
+                                textDecoration: "none",
+                              }}
                             >
                               {selectedAgreement.website_url}
                             </a>
@@ -1747,57 +1957,93 @@ const Archive = () => {
                 </div>
               </section>
 
-              <section className="archive-modal-section archive-contacts">
-                <h4>Contact Persons</h4>
-                <div className="archive-contacts-grid">
-                  <div className="archive-contact-card">
-                    <div className="archive-contact-role">PUP Point Person</div>
-                    <div className="archive-contact-name">
-                      {selectedAgreement?.point_persons_display || "N/A"}
+              {/* Contact Persons */}
+              <section className="modal-section contacts">
+                <div className="section-header">
+                  <FiUsers className="header-icon" />
+                  <h4>Contact Persons</h4>
+                </div>
+                <div className="contacts-grid">
+                  <div className="contact-card">
+                    <div className="contact-role">
+                      <FiUsers className="inline-icon" /> PUP Point Person
                     </div>
-                    <div className="archive-contact-email">
-                      {pupEmail ? (
-                        <a href={`mailto:${pupEmail}`}>{pupEmail}</a>
-                      ) : (
-                        "—"
+                    <div className="contact-name">
+                      {formatContactPersons(
+                        selectedAgreement?.point_persons_display ||
+                          selectedAgreement?.point_persons
                       )}
                     </div>
-                    <div className="archive-contact-org">
+                    <div className="contact-org">
                       {selectedAgreement?.source_unit ||
                         selectedAgreement?.source ||
                         "—"}
                     </div>
+                    {pupEmail ? (
+                      <a className="contact-email" href={`mailto:${pupEmail}`}>
+                        <FiMessageCircle className="inline-icon" /> {pupEmail}
+                      </a>
+                    ) : null}
                   </div>
 
-                  <div className="archive-contact-card archive-alt">
-                    <div className="archive-contact-role">
-                      Partner Contact Person
+                  <div className="contact-card alt">
+                    <div className="contact-role">
+                      <FiUsers className="inline-icon" /> Partner Contact Person
                     </div>
-                    <div className="archive-contact-name">
-                      {selectedAgreement?.contact_persons_display || "N/A"}
-                    </div>
-                    <div className="archive-contact-email">
-                      {partnerEmail ? (
-                        <a href={`mailto:${partnerEmail}`}>{partnerEmail}</a>
-                      ) : (
-                        "—"
+                    <div className="contact-name">
+                      {formatContactPersons(
+                        selectedAgreement?.contact_persons_display ||
+                          selectedAgreement?.contact_persons
                       )}
                     </div>
-                    <div className="archive-contact-org">
+                    <div className="contact-org">
                       {selectedAgreement?.partner_name ||
                         selectedAgreement?.name ||
                         "—"}
+                    </div>
+                    {partnerEmail ? (
+                      <a
+                        className="contact-email"
+                        href={`mailto:${partnerEmail}`}
+                      >
+                        <FiMessageCircle className="inline-icon" />{" "}
+                        {partnerEmail}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
+
+              {/* Linked MOU */}
+              <section className="modal-section linked-mou">
+                <div className="section-header">
+                  <FiLink className="header-icon" />
+                  <h4>Linked MOU</h4>
+                </div>
+                <div className="empty-state">
+                  <FiLink className="empty-icon" />
+                  <div className="empty-content">
+                    <div className="empty-title">No linked MOU</div>
+                    <div className="empty-sub">
+                      This agreement has no linked MOU
                     </div>
                   </div>
                 </div>
               </section>
 
-              <section className="archive-modal-section archive-timeline">
-                <h4>Agreement Timeline</h4>
-                <div className="archive-row archive-two-col">
+              {/* Agreement Timeline */}
+              <section className="modal-section timeline">
+                <div className="section-header">
+                  <FiCalendar className="header-icon" />
+                  <h4>Agreement Timeline</h4>
+                </div>
+                <div className="row two-col">
                   <div>
-                    <div className="archive-label">Date of Signing</div>
-                    <div className="archive-value">
+                    <div className="label">
+                      <FiCalendar className="label-icon" />
+                      Date of Signing
+                    </div>
+                    <div className="value">
                       {selectedAgreement.date_signed
                         ? new Date(
                             selectedAgreement.date_signed
@@ -1806,8 +2052,11 @@ const Archive = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="archive-label">Expiry Date</div>
-                    <div className="archive-value">
+                    <div className="label">
+                      <FiClock className="label-icon" />
+                      Expiry Date
+                    </div>
+                    <div className="value">
                       {selectedAgreement.date_expiry
                         ? new Date(
                             selectedAgreement.date_expiry
@@ -1816,80 +2065,197 @@ const Archive = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="archive-label">Validity Period</div>
-                    <div className="archive-value">
-                      {selectedAgreement.validity_period || "—"}{" "}
-                      {selectedAgreement.validity_period ? "years" : ""}
+                    <div className="label">
+                      <FiCalendar className="label-icon" />
+                      Date Endorsed to ULCO
+                    </div>
+                    <div className="value">
+                      {selectedAgreement.date_endorsed_ulco ||
+                      selectedAgreement.date_endorsed_to_ulco
+                        ? new Date(
+                            selectedAgreement.date_endorsed_ulco ||
+                              selectedAgreement.date_endorsed_to_ulco
+                          ).toLocaleDateString()
+                        : "—"}
                     </div>
                   </div>
                   <div>
-                    <div className="archive-label">Status</div>
-                    <div className="archive-value archive-status-pill archive-archived">
-                      {selectedAgreement.agreement_status || activeTab}
+                    <div className="label">
+                      <FiCheck className="label-icon" />
+                      ULCO's Approval
+                    </div>
+                    <div className="value">
+                      {selectedAgreement.ulco_approval ||
+                      selectedAgreement.date_ulco_approved
+                        ? new Date(
+                            selectedAgreement.ulco_approval ||
+                              selectedAgreement.date_ulco_approved
+                          ).toLocaleDateString()
+                        : "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="label">
+                      <FiEdit className="label-icon" />
+                      PUP Officials' Signature
+                    </div>
+                    <div className="value">
+                      {selectedAgreement.pup_official_sign ||
+                      selectedAgreement.date_signed_by_pup
+                        ? new Date(
+                            selectedAgreement.pup_official_sign ||
+                              selectedAgreement.date_signed_by_pup
+                          ).toLocaleDateString()
+                        : "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="label">
+                      <FiClock className="label-icon" />
+                      Validity Period
+                    </div>
+                    <div className="value">
+                      {selectedAgreement.validity_period
+                        ? `${selectedAgreement.validity_period} years`
+                        : "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="label">
+                      <FiTag className="label-icon" />
+                      Partnership Classification
+                    </div>
+                    <div className="value">
+                      {selectedAgreement.partnership_classification ||
+                        selectedAgreement.partnership_type ||
+                        "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="label">
+                      <FiAward className="label-icon" />
+                      Event Title
+                    </div>
+                    <div className="value">
+                      {selectedAgreement.event_title ||
+                        selectedAgreement.eventTitle ||
+                        "—"}
                     </div>
                   </div>
                 </div>
               </section>
 
-              <section className="archive-modal-section archive-remarks">
-                <div className="archive-label">Remarks</div>
-                <div className="archive-brief">
-                  {Array.isArray(selectedAgreement.remarks) ? (
-                    selectedAgreement.remarks.map((r, idx) => (
-                      <div key={idx}>
-                        {typeof r === "object"
-                          ? r.remark_text || r.text || r.remark || ""
-                          : r}
-                      </div>
-                    ))
-                  ) : selectedAgreement.remarks ? (
-                    <div>{selectedAgreement.remarks}</div>
-                  ) : (
-                    "—"
-                  )}
+              {/* Signatories */}
+              <section className="modal-section">
+                <div className="section-header">
+                  <FiEdit className="header-icon" />
+                  <h4>Signatories</h4>
                 </div>
+                {(() => {
+                  const raw =
+                    selectedAgreement.signatories_list ??
+                    selectedAgreement.signatories ??
+                    selectedAgreement.signatories_text ??
+                    selectedAgreement.signatoriesList ??
+                    "";
+
+                  let signatoriesText = "";
+                  if (Array.isArray(raw)) {
+                    signatoriesText = raw
+                      .map((it) => {
+                        if (!it && it !== 0) return "";
+                        if (typeof it === "string") return it;
+                        if (typeof it === "object")
+                          return (
+                            it.signatory_name ||
+                            it.name ||
+                            it.text ||
+                            it.signatory ||
+                            it.remark_text ||
+                            JSON.stringify(it)
+                          );
+                        return String(it);
+                      })
+                      .filter(Boolean)
+                      .join("; ");
+                  } else if (typeof raw === "string" && raw.trim()) {
+                    signatoriesText = raw.trim();
+                  }
+
+                  if (signatoriesText) {
+                    return <div className="value">{signatoriesText}</div>;
+                  }
+
+                  return (
+                    <div className="empty-state">
+                      <FiEdit className="empty-icon" />
+                      <div className="empty-content">
+                        <div className="empty-title">
+                          No signatories recorded
+                        </div>
+                        <div className="empty-sub">
+                          No signatories available for this agreement
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </section>
+
+              {/* Remarks */}
+              <section className="modal-section remarks">
+                <div className="section-header">
+                  <FiMessageCircle className="header-icon" />
+                  <h4>Remarks</h4>
+                </div>
+                {(() => {
+                  const remarks = selectedAgreement.remarks;
+                  if (Array.isArray(remarks) && remarks.length > 0) {
+                    return (
+                      <div className="value">
+                        {remarks.map((r, idx) => (
+                          <div key={idx}>
+                            {typeof r === "object"
+                              ? r.remark_text || r.text || r.remark || ""
+                              : r}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  } else if (typeof remarks === "string" && remarks.trim()) {
+                    return <div className="value">{remarks}</div>;
+                  }
+                  return (
+                    <div className="empty-state">
+                      <FiMessageCircle className="empty-icon" />
+                      <div className="empty-content">
+                        <div className="empty-title">No remarks</div>
+                        <div className="empty-sub">
+                          No remarks recorded for this agreement
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </section>
             </div>
-
-            <footer className="archive-agreement-modal-footer">
-              <button
-                className="archive-btn archive-view"
-                onClick={() =>
-                  handleViewLatestFile(selectedAgreement.dts_number)
-                }
-              >
-                <FiDownload className="archive-icon" /> Download File
-              </button>
-              {currentUser?.user_role?.toLowerCase() === "admin" &&
-                activeTab === "Withdrawn" && (
-                  <button
-                    className="archive-btn archive-reactivate"
-                    onClick={() => {
-                      handleReactivate(selectedAgreement.agreement_id);
-                      closeModal();
-                    }}
-                  >
-                    <FiRefreshCw /> Reactivate Agreement
-                  </button>
-                )}
-            </footer>
           </div>
         </div>
       )}
 
       {showGenerateModal && (
         <div
-          className="archive-modal-backdrop"
+          className="overview1-modal-backdrop"
           onClick={() => setShowGenerateModal(false)}
         >
           <div
-            className="archive-modal report-modal"
+            className="overview1-modal report-modal"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="archive-modal-header">
+            <div className="overview1-modal-header">
               <div className="modal-badge-row">
                 <FiFileText className="header-icon" />
-                <h3 className="modal-title">Generate Archive Report</h3>
+                <h3 className="modal-title">Generate Report</h3>
               </div>
               <button
                 className="modal-close"
@@ -1900,35 +2266,32 @@ const Archive = () => {
               </button>
             </div>
 
-            <div className="archive-modal-body">
-              <div className="archive-report-summary-card">
-                <div className="archive-report-header">
-                  <div className="archive-report-icon-container">
-                    <FiBarChart className="archive-report-main-icon" />
+            <div className="overview1-modal-body">
+              {/* Report Summary Card */}
+              <div className="report-summary-card">
+                <div className="report-header">
+                  <div className="report-icon-container">
+                    <FiBarChart className="report-main-icon" />
                   </div>
-                  <div className="archive-report-titles">
-                    <div className="archive-report-title">
-                      Archive Report Generator
-                    </div>
-                    <div className="archive-report-sub">
+                  <div className="report-titles">
+                    <div className="report-title">Archive Report Generator</div>
+                    <div className="report-sub">
                       Generate comprehensive reports for archived agreements in
-                      Excel or CSV format
+                      Excel format
                     </div>
                   </div>
                 </div>
 
-                <div className="archive-report-stats">
-                  <div className="archive-stat-item">
-                    <div className="archive-stat-label">Total Agreements</div>
-                    <div className="archive-stat-number">
-                      {reportItems.length}
-                    </div>
+                <div className="report-stats">
+                  <div className="stat-item">
+                    <div className="stat-label">Total Agreements</div>
+                    <div className="stat-number">{reportItems.length}</div>
                   </div>
-                  <div className="archive-stat-item">
-                    <div className="archive-stat-label">Report Type</div>
-                    <div className="archive-stat-value">
+                  <div className="stat-item">
+                    <div className="stat-label">Report Type</div>
+                    <div className="stat-value">
                       {reportType === "all"
-                        ? "All Archives"
+                        ? "All Archived Agreements"
                         : reportType === "expired"
                         ? "Expired Only"
                         : "Withdrawn Only"}
@@ -1937,25 +2300,26 @@ const Archive = () => {
                 </div>
               </div>
 
-              <div className="archive-report-configuration">
-                <div className="archive-config-section">
-                  <h4 className="archive-config-title">
-                    <FiSettings className="archive-config-icon" />
+              {/* Report Configuration */}
+              <div className="report-configuration">
+                <div className="config-section">
+                  <h4 className="config-title">
+                    <FiSettings className="config-icon" />
                     Report Configuration
                   </h4>
 
-                  <div className="archive-config-rows">
-                    <div className="archive-config-row">
-                      <label className="archive-config-label">
-                        <FiFilter className="archive-label-icon" />
+                  <div className="config-rows">
+                    <div className="config-row">
+                      <label className="config-label">
+                        <FiFilter className="label-icon" />
                         Report Type
                       </label>
                       <select
                         value={reportType}
                         onChange={(e) => setReportType(e.target.value)}
-                        className="archive-config-select"
+                        className="config-select"
                       >
-                        <option value="all">All Archives</option>
+                        <option value="all">All Archived Agreements</option>
                         <option value="expired">Expired Only</option>
                         <option value="withdrawn">Withdrawn Only</option>
                       </select>
@@ -1963,59 +2327,94 @@ const Archive = () => {
                   </div>
                 </div>
 
-                <div className="archive-preview-section">
-                  <h4 className="archive-config-title">
-                    <FiEye className="archive-config-icon" />
+                <div className="preview-section">
+                  <h4 className="config-title">
+                    <FiEye className="config-icon" />
                     Report Preview
                   </h4>
-                  <div className="archive-preview-info">
-                    <div className="archive-preview-stats">
-                      <div className="archive-preview-stat">
-                        <FiFile className="archive-stat-icon" />
+                  <div className="preview-info">
+                    <div className="preview-stats">
+                      <div className="preview-stat">
+                        <FiFile className="stat-icon" />
                         <span>
                           Total records: <strong>{reportItems.length}</strong>
                         </span>
                       </div>
-                      <div className="archive-preview-stat">
-                        <FiCalendar className="archive-stat-icon" />
+                      <div className="preview-stat">
+                        <FiCalendar className="stat-icon" />
                         <span>
                           Generated:{" "}
                           <strong>{new Date().toLocaleDateString()}</strong>
                         </span>
                       </div>
                     </div>
-                    <div className="archive-preview-note">
-                      <FiInfo className="archive-note-icon" />
+                    <div className="preview-note">
+                      <FiInfo className="note-icon" />
                       The report will include all agreement details, contact
                       information, and archive status.
                     </div>
                   </div>
                 </div>
 
-                <div className="archive-export-section">
-                  <h4 className="archive-config-title">
-                    <FiDownload className="archive-config-icon" />
+                {/* Export Options */}
+                <div className="export-section">
+                  <h4 className="config-title">
+                    <FiDownload className="config-icon" />
                     Export Options
                   </h4>
 
-                  <div className="archive-export-options">
-                    <div className="archive-export-option">
-                      <div className="archive-option-header">
-                        <FiFile className="archive-option-icon excel" />
-                        <div className="archive-option-info">
-                          <div className="archive-option-title">
-                            Excel Report
+                    <div className="export-option">
+                      <div className="option-header">
+                        <FiPrinter className="option-icon print" />
+                        <div className="option-info">
+                          <div className="option-title">Printable Report</div>
+                          <div className="option-desc">
+                            Open a printable/PDF-friendly view and print or save as PDF
                           </div>
-                          <div className="archive-option-desc">
+                        </div>
+                      </div>
+                      <button
+                        className="btn export-btn print-btn"
+                        onClick={() => {
+                          generatePrintableReport();
+                          setShowGenerateModal(false);
+                        }}
+                      >
+                        <FiPrinter className="icon" />
+                        PDF Report
+                      </button>
+                    </div>
+
+                  <div className="export-options">
+                    <div className="export-option">
+                      <div className="option-header">
+                        <FiFile className="option-icon excel" />
+                        <div className="option-info">
+                          <div className="option-title">Excel Report</div>
+                          <div className="option-desc">
                             Comprehensive spreadsheet with all archive details
                             and formatting
                           </div>
                         </div>
                       </div>
                       <button
-                        className="btn archive-export-btn excel-btn"
+                        className="btn export-btn excel-btn"
                         onClick={async () => {
-                          generatePrintableReport();
+                          await ReportGen.downloadXLSX({
+                            items: reportItems,
+                            reportKey: reportType,
+                            getLinkedId: (r) =>
+                              r?.linked_mou_id ||
+                              r?.parent_agreement_id ||
+                              r?.linked_mou ||
+                              r?.linkedMouId ||
+                              "",
+                            filenamePrefix: `${reportType}-archive`,
+                            allAgreements: [
+                              ...allArchiveData,
+                              ...withdrawnData,
+                            ],
+                          });
                           setShowGenerateModal(false);
                         }}
                       >
@@ -2023,35 +2422,12 @@ const Archive = () => {
                         Download Excel
                       </button>
                     </div>
-
-                    <div className="archive-export-option">
-                      <div className="archive-option-header">
-                        <FiFileText className="archive-option-icon csv" />
-                        <div className="archive-option-info">
-                          <div className="archive-option-title">CSV Export</div>
-                          <div className="archive-option-desc">
-                            Simple comma-separated values for quick data
-                            analysis
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        className="btn archive-export-btn csv-btn"
-                        onClick={async () => {
-                          downloadCSV();
-                          setShowGenerateModal(false);
-                        }}
-                      >
-                        <FiDownload className="icon" />
-                        Download CSV
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="archive-modal-footer">
+            <div className="overview1-modal-footer">
               <button
                 className="btn cancel"
                 onClick={() => setShowGenerateModal(false)}

@@ -251,7 +251,7 @@ export default function MainBanner() {
               ))
             ) : (
               <p className="no-partners-text">
-                Partner university logos will appear here
+                Loading partner institution logos...
               </p>
             )}
           </div>

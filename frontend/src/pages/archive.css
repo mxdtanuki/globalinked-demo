@@ -436,8 +436,8 @@
 
 .archive-icon-btn.archive-view:hover {
   background: #fffdf0;
-  border-color: #D4AF37;
-  color: #D4AF37;
+  border-color: #d4af37;
+  color: #d4af37;
 }
 
 .archive-icon-btn.archive-download:hover {
@@ -477,7 +477,7 @@
 }
 
 .archive-icon-btn.archive-view:hover .archive-icon {
-  color: #D4AF37;
+  color: #d4af37;
 }
 
 .archive-icon-btn.archive-download:hover .archive-icon {
@@ -554,14 +554,6 @@
   flex-direction: column;
   gap: 12px;
   margin-bottom: 18px;
-  transition: all 0.2s ease;
-}
-
-.archive-report-generator-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(16, 20, 30, 0.08);
-  border-color: #e1e5e9;
-  background: #fdfdfe;
 }
 
 .archive-report-header {
@@ -580,12 +572,6 @@
   justify-content: center;
   font-size: 18px;
   box-shadow: 0 6px 18px rgba(30, 115, 255, 0.04);
-  transition: all 0.2s ease;
-}
-
-.archive-report-generator-card:hover .archive-report-icon {
-  transform: scale(1.05);
-  box-shadow: 0 8px 20px rgba(30, 115, 255, 0.08);
 }
 
 .archive-report-header h4 {
@@ -1251,16 +1237,16 @@
   background: #fafafa;
   align-items: center;
 }
-  /* Right-align action buttons on desktop: filter and generate report */
-  @media (min-width: 769px) {
-    .archive-filter-btn {
-      margin-left: auto;
-    }
-
-    .btn.archive-generate {
-      margin-left: auto;
-    }
+/* Right-align action buttons on desktop: filter and generate report */
+@media (min-width: 769px) {
+  .archive-filter-btn {
+    margin-left: auto;
   }
+
+  .btn.archive-generate {
+    margin-left: auto;
+  }
+}
 
 .archive-filter-actions .btn {
   display: flex;
@@ -1448,10 +1434,67 @@
 
 .archive-modal-footer .btn.cancel:hover {
   background: #f8f9fa;
-  border-color: #7a1f2f;
-  color: #7a1f2f;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(122, 31, 47, 0.1);
+  border-color: #d0d0d0;
+  color: #333;
+}
+
+/* Archive Modal Styles (View Modal) */
+.archive-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.archive-modal {
+  background: #fff;
+  width: 94%;
+  max-width: 920px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.archive-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid #f0e6e6;
+  background: linear-gradient(180deg, #7a1f2f, #5a1522);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}
+
+.archive-modal-header h3,
+.archive-modal-header .nav-btn {
+  color: #fff;
+}
+
+.archive-modal-header .nav-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.archive-modal-header .nav-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.archive-modal-body {
+  padding: 0 16px 16px 16px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
 }
 
 /* Archive Report Summary Card */
@@ -1719,7 +1762,11 @@
 }
 
 .archive-option-icon.csv {
-  color: #7a1f2f;
+  color: #007bff;
+}
+
+.archive-option-icon.pdf {
+  color: #dc3545;
 }
 
 .archive-option-info {
@@ -1748,9 +1795,9 @@
   gap: 6px;
   padding: 8px 16px;
   border-radius: 6px;
-  font-weight: 600;
+  font-weight: 400;
   font-size: 14px;
-  transition: all 0.2s ease;
+  transition: none;
   white-space: nowrap;
   flex-shrink: 0;
   border: none;
@@ -1758,23 +1805,29 @@
 }
 
 .archive-export-btn.excel-btn {
-  background: #217346;
+  background: #28a745;
   color: #ffffff;
-  border: 1px solid #1a5f38;
+  border: 1px solid #1e7e34;
+  transition: none;
+  font-weight: 400 !important;
 }
 
 .archive-export-btn.excel-btn:hover {
-  background: #1a5f38;
+  background: #1e7e34;
+  transition: none;
 }
 
 .archive-export-btn.csv-btn {
-  background: #7a1f2f;
+  background: #007bff;
   color: #ffffff;
-  border: 1px solid #5a1522;
+  border: 1px solid #0056b3;
+  transition: none;
+  font-weight: 400 !important;
 }
 
 .archive-export-btn.csv-btn:hover {
-  background: #5a1522;
+  background: #0056b3;
+  transition: none;
 }
 
 /* Responsive Design */
@@ -1783,24 +1836,24 @@
     margin: 8px 12px 16px 12px;
     padding: 0;
   }
-  
+
   .archive-panel-row {
     flex-direction: column;
     align-items: stretch;
     gap: 16px;
     padding: 16px;
   }
-  
+
   .archive-panel-field {
     min-width: auto;
     width: 100%;
   }
-  
+
   .archive-filter-actions {
     flex-direction: row;
     gap: 8px;
   }
-  
+
   .archive-filter-actions .btn {
     width: auto;
     min-width: 90px;
@@ -1813,36 +1866,36 @@
     margin: 20px;
     width: calc(100% - 40px);
   }
-  
+
   .archive-config-row {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
   }
-  
+
   .archive-config-label {
     min-width: auto;
   }
-  
+
   .archive-export-option {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
-  
+
   .archive-option-header {
     min-width: 0;
   }
-  
+
   .archive-export-btn {
     align-self: flex-end;
     width: auto;
   }
-  
+
   .archive-report-stats {
     grid-template-columns: 1fr;
   }
-  
+
   .archive-preview-stats {
     flex-direction: column;
     gap: 12px;
@@ -1853,25 +1906,25 @@
   .archive-panel-header {
     padding: 12px 16px;
   }
-  
+
   .archive-panel-row {
     padding: 12px;
   }
-  
+
   .archive-filter-actions {
     padding: 12px 16px;
     flex-direction: column;
   }
-  
+
   .archive-filter-actions .btn {
     width: 100%;
     min-width: auto;
   }
-  
+
   .filter-label {
     font-size: 13px;
   }
-  
+
   .filter-select {
     padding: 10px 14px;
     padding-right: 36px;
@@ -1880,40 +1933,40 @@
   .archive-report-summary-card {
     padding: 20px;
   }
-  
+
   .archive-report-header {
     flex-direction: column;
     text-align: center;
     gap: 12px;
   }
-  
+
   .archive-config-section,
   .archive-export-section,
   .archive-preview-section {
     padding: 16px;
   }
-  
+
   .archive-modal-body {
     padding: 16px;
     max-height: 60vh;
   }
-  
+
   .archive-export-option {
     padding: 12px;
   }
-  
+
   .archive-option-header {
     gap: 8px;
   }
-  
+
   .archive-option-icon {
     font-size: 20px;
   }
-  
+
   .archive-option-title {
     font-size: 14px;
   }
-  
+
   .archive-option-desc {
     font-size: 12px;
   }

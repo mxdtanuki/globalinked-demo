@@ -1,11 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
 import "./styles/ObjectivesAndFunctions.css";
+import { PiTargetFill } from "react-icons/pi";
+import { FiSettings } from "react-icons/fi";
 
 // Importing icons
-import objectivesTitleIcon from "./assets/objectives.png";
-import functionsTitleIcon from "./assets/functions.png";
-
 import gradCapIcon from "./assets/gradcap.png";
 import collaborationIcon from "./assets/collaboration.png";
 import trophyIcon from "./assets/trophy.png";
@@ -94,31 +93,21 @@ const ObjectivesAndFunctions = () => {
   ];
 
   return (
-    <section className="objectives-functions" id="objectives">
-      <div className="container">
-        <div className="content-grid">
+    <section className="pup-io-objectives-functions" id="objectives">
+      <div className="pup-io-container">
+        <div className="pup-io-content-grid">
           {/* Objectives Section */}
-          <div className="objectives-section">
-            <motion.div
-              className="section-header"
-              initial={{ opacity: 0, y: -10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <img
-                src={objectivesTitleIcon}
-                alt="Objectives Icon"
-                className="section-icon"
-              />
-              <h3>Objectives</h3>
-            </motion.div>
+          <div className="pup-io-objectives-section">
+            <div className="pup-io-section-header">
+              <PiTargetFill className="pup-io-section-icon" size={40} />
+              <h3 className="pup-io-section-title">Objectives</h3>
+            </div>
 
-            <div className="cards-container">
+            <div className="pup-io-cards-container">
               {objectives.map((objective, index) => (
                 <motion.div
                   key={index}
-                  className="objective-card"
+                  className="pup-io-objective-card"
                   custom={index}
                   initial="hidden"
                   whileInView="visible"
@@ -128,36 +117,26 @@ const ObjectivesAndFunctions = () => {
                   <img
                     src={objective.icon}
                     alt="Objective Icon"
-                    className="card-icon-img"
+                    className="pup-io-card-icon-img"
                   />
-                  <p>{objective.text}</p>
+                  <p className="pup-io-card-text">{objective.text}</p>
                 </motion.div>
               ))}
             </div>
           </div>
 
           {/* Functions Section */}
-          <div className="functions-section">
-            <motion.div
-              className="section-header"
-              initial={{ opacity: 0, y: -10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <img
-                src={functionsTitleIcon}
-                alt="Functions Icon"
-                className="section-icon"
-              />
-              <h3>Functions</h3>
-            </motion.div>
+          <div className="pup-io-functions-section">
+            <div className="pup-io-section-header">
+              <FiSettings className="pup-io-section-icon" size={40} />
+              <h3 className="pup-io-section-title">Functions</h3>
+            </div>
 
-            <div className="cards-container">
+            <div className="pup-io-cards-container">
               {functions.map((func, index) => (
                 <motion.div
                   key={index}
-                  className="function-card"
+                  className="pup-io-function-card"
                   custom={index}
                   initial="hidden"
                   whileInView="visible"
@@ -167,9 +146,9 @@ const ObjectivesAndFunctions = () => {
                   <img
                     src={func.icon}
                     alt="Function Icon"
-                    className="card-icon-img"
+                    className="pup-io-card-icon-img"
                   />
-                  <p>{func.text}</p>
+                  <p className="pup-io-card-text">{func.text}</p>
                 </motion.div>
               ))}
             </div>
