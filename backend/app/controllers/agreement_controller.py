@@ -268,16 +268,19 @@ def get_public_agreements(db: Session = Depends(get_db)):
         for agreement, partner in results
     ]
 
-@router.get("/archive", response_model=List[ArchiveAgreementResponse])
+@router.get("/archive", response_model=List[AgreementResponse])
 async def get_archived_agreements(
     current_user: Users = Depends(get_current_user)
 ):
     with _open_session() as db:
         try:
             today = date.today()
-            
-            results = db.query(Agreements, Partners).join(
+
+            # Fetch same columns as get_agreements_list but only where date_expiry <= today
+            results = db.query(Agreements, Partners, Timer).join(
                 Partners, Agreements.partner_id == Partners.partner_id
+            ).join(
+                Timer, Timer.agreement_id == Agreements.agreement_id, isouter=True
             ).filter(
                 Agreements.date_expiry <= today
             ).all()
@@ -285,10 +288,35 @@ async def get_archived_agreements(
             if not results:
                 return []
 
-            agreement_ids = [agreement.agreement_id for agreement, _ in results]
+            agreement_ids = [agreement.agreement_id for agreement, _, _ in results]
+            partner_ids = [partner.partner_id for _, partner, _ in results]
+
+            contact_persons_query = db.query(ContactPersons).filter(
+                or_(
+                    ContactPersons.agreement_id.in_(agreement_ids),
+                    ContactPersons.partner_id.in_(partner_ids)
+                )
+            ).all()
+
             point_persons_query = db.query(PointPersons).filter(
                 PointPersons.agreement_id.in_(agreement_ids)
             ).all()
+
+            remarks_query = db.query(AgreementRemarks).filter(
+                AgreementRemarks.agreement_id.in_(agreement_ids)
+            ).all()
+
+            contact_persons_by_agreement = {}
+            contact_persons_by_partner = {}
+            for cp in contact_persons_query:
+                if cp.agreement_id:
+                    if cp.agreement_id not in contact_persons_by_agreement:
+                        contact_persons_by_agreement[cp.agreement_id] = []
+                    contact_persons_by_agreement[cp.agreement_id].append(cp)
+                if cp.partner_id:
+                    if cp.partner_id not in contact_persons_by_partner:
+                        contact_persons_by_partner[cp.partner_id] = []
+                    contact_persons_by_partner[cp.partner_id].append(cp)
 
             point_persons_by_agreement = {}
             for pp in point_persons_query:
@@ -296,29 +324,85 @@ async def get_archived_agreements(
                     point_persons_by_agreement[pp.agreement_id] = []
                 point_persons_by_agreement[pp.agreement_id].append(pp)
 
-            archive_list = []
-            for agreement, partner in results:
-                point_persons = point_persons_by_agreement.get(agreement.agreement_id, [])
-                
-                point_persons_display = ", ".join(
-                    f"{pp.point_person_position}: {pp.point_person_name} ({pp.point_person_email})"
-                    for pp in point_persons
-                ) if point_persons else ""
+            remarks_by_agreement = {}
+            for remark in remarks_query:
+                if remark.agreement_id not in remarks_by_agreement:
+                    remarks_by_agreement[remark.agreement_id] = []
+                remarks_by_agreement[remark.agreement_id].append(remark)
 
-                archive_list.append(ArchiveAgreementResponse(
+            agreements_list = []
+            for agreement, partner, timer in results:
+
+                days_in_stage = 0
+                if timer and timer.last_status_change:
+                    last_change = timer.last_status_change
+                    if isinstance(last_change, datetime):
+                        last_change = last_change.date()
+                    days_in_stage = (date.today() - last_change).days
+
+                agreement_contact_persons = contact_persons_by_agreement.get(agreement.agreement_id, [])
+                partner_contact_persons = contact_persons_by_partner.get(partner.partner_id, [])
+
+                seen_contact_ids = set()
+                all_contact_persons = []
+
+                for cp in agreement_contact_persons:
+                    if cp.contact_person_id not in seen_contact_ids:
+                        all_contact_persons.append(cp)
+                        seen_contact_ids.add(cp.contact_person_id)
+
+                for cp in partner_contact_persons:
+                    if cp.contact_person_id not in seen_contact_ids:
+                        all_contact_persons.append(cp)
+                        seen_contact_ids.add(cp.contact_person_id)
+
+                point_persons = point_persons_by_agreement.get(agreement.agreement_id, [])
+                remarks = remarks_by_agreement.get(agreement.agreement_id, [])
+
+                agreements_list.append(AgreementResponse(
                     agreement_id=agreement.agreement_id,
+                    partner_id=partner.partner_id,
+                    source_unit=agreement.source_unit,
+                    name=partner.name,
+                    country=partner.country,
+                    region=partner.region,
+                    address=partner.address,
+                    entity_type=partner.entity_type,
+                    website_url=partner.website_url,
+                    description=partner.description,
+                    logo_path=partner.logo_path,
                     dts_number=agreement.dts_number,
-                    partner_name=partner.name,
+                    entry_date=agreement.entry_date,
+                    date_received=agreement.date_received,
+                    date_endorsed_to_ulco=agreement.date_endorsed_to_ulco,
+                    date_ulco_approved=agreement.date_ulco_approved,
+                    date_signed_by_pup=agreement.date_signed_by_pup,
+                    date_signed=agreement.date_signed,
+                    date_expiry=agreement.date_expiry,
                     document_type=agreement.document_type,
                     partnership_type=agreement.partnership_type,
-                    date_expiry=agreement.date_expiry,
-                    point_persons_display=point_persons_display
+                    validity_period=agreement.validity_period,
+                    event_info=agreement.event_info,
+                    signatories_list=agreement.signatories_list,
+                    agreement_status=agreement.agreement_status,
+                    hardcopy_location=agreement.hardcopy_location,
+                    entry_type=agreement.entry_type,
+                    renewed_from_agreement_id=agreement.renewed_from_agreement_id,
+                    MOU_to_MOA_id=agreement.MOU_to_MOA_id,
+                    contact_persons=[ContactPersonResponse.model_validate(cp, from_attributes=True) for cp in all_contact_persons],
+                    point_persons=[PointPersonResponse.model_validate(pp, from_attributes=True) for pp in point_persons],
+                    remarks=[RemarkResponse.model_validate(r, from_attributes=True) for r in remarks],
+                    timer=TimerResponse.model_validate(timer, from_attributes=True) if timer else None,
+                    days_in_stage=days_in_stage,
+                    delayed=(days_in_stage >= 14),
+                    created_at=partner.created_at
                 ))
 
-            return archive_list
+            return agreements_list
 
         except Exception as e:
             logger.error(f"Error fetching archive: {e}")
+            traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Error fetching archive: {str(e)}")
 
 @router.get("/summary", response_model=dict)
