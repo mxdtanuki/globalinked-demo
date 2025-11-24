@@ -82,7 +82,7 @@ SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
-    expire_on_commit=True,  # ← CHANGED: Expire objects on commit to free memory
+    expire_on_commit=True,  
     future=True,
 )
 
