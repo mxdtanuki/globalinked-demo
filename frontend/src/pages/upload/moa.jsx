@@ -145,7 +145,7 @@ const MOAUpload = () => {
                 placeholder='DT2025123456' 
               />
             </div>
-
+            {/*
             <div className="form-group">
               <label htmlFor="dtsStatus">DTS Status:*</label>
               <select 
@@ -159,7 +159,7 @@ const MOAUpload = () => {
               <option value="Open - OIA">OPEN</option>
               <option value="Open - Other Office">CLOSE</option>
               </select>
-            </div>
+            </div> */}
 
             <div className="form-group">
               <label>Date (PUP Official Signed)</label>
