@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.users import Users
 from app.schemas.registration_schemas import UserCreate, UserResponse, UserUpdate
 from datetime import datetime
+from app.models.audit_logging import AuditLogging
 from app.utils.utils import get_current_user, hash_password
 from app.services.email_service import send_email
 from app.services.notif_service import create_notification_if_new
@@ -135,9 +136,14 @@ async def delete_user(user_id: int, db: Session = Depends(get_db), current_user:
     if current_user.user_id != user_id and current_user.user_role.lower() != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
+    audit_logs = db.query(AuditLogging).filter(AuditLogging.user_id == user_id).all()
+    for log in audit_logs:
+        log.user_id = None 
+
+    # Now delete the user
     db.delete(user)
     db.commit()
-    log_delete_request(db, current_user, user)
+    log_delete_request(db, current_user, user) 
     return {"status": "deleted"}
     
 

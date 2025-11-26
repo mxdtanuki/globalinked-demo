@@ -52,14 +52,22 @@ def create_notification_if_new(
     now = datetime.now(PH_TZ)
 
     if existing:
-        # If status changed , allow new notification
-        if last_status_change and existing.created_at < last_status_change:
-            pass  
-        # If status did not change, only allow if >24h old
-        elif (now - existing.created_at) > timedelta(hours=24):
-            pass  
+        # Special handling for pending_long: allow daily notifications
+        if category == "pending_long":
+            if (now - existing.created_at) > timedelta(hours=24):
+                pass  # Allow daily reminders for stuck agreements
+            else:
+                return None  # Too recent, skip
+        # For other categories: normal logic
         else:
-            return None
+            # If status changed, allow new notification
+            if last_status_change and existing.created_at < last_status_change:
+                pass  
+            # If status did not change, only allow if >24h old
+            elif (now - existing.created_at) > timedelta(hours=24):
+                pass  
+            else:
+                return None
 
     notif = Notification(
         agreement_id=agreement_id,

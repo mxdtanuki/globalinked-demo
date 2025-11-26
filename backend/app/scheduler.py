@@ -320,19 +320,21 @@ def agreement_notification_job():
                         else:
                             last_change_date = last_status_change
                         # Ensure today is also a date
-                        if isinstance(today, datetime):
-                            today_date = today.date()
-                        else:
-                            today_date = today
+                        today_date = today.date() if isinstance(today, datetime) else today
                         days_pending = (today_date - last_change_date).days
                         last_change_info = f"since {last_change_date}"
                     elif a.entry_date:
                         entry_date = (
                             datetime.strptime(a.entry_date, '%Y-%m-%d').date() 
                             if isinstance(a.entry_date, str) 
-                            else a.entry_date
+                            else a.entry_date.date() if isinstance(a.entry_date, datetime) else a.entry_date
                         )
-                        days_pending = (today - entry_date).days
+                        # Ensure both are date objects
+                        if isinstance(entry_date, datetime):
+                            entry_date = entry_date.date()
+                        today_date = today.date() if isinstance(today, datetime) else today
+                        
+                        days_pending = (today_date - entry_date).days
                         last_change_info = f"since entry {entry_date}"
                         last_status_change = None
                     else:

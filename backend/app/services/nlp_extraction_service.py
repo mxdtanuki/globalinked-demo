@@ -451,7 +451,6 @@ class NLPLegalExtractionService:
                 },
                 "source_unit": None,
                 "dts_number": metadata.get("dts_number"),
-                "dts_status": metadata.get("dts_status", "OPEN - OIA"),
                 "entry_date": datetime.now().strftime("%Y-%m-%d"),
                 "date_received": metadata.get("date_received"),
                 "date_endorsed_to_ulco": metadata.get("date_endorsed_to_ulco"),
@@ -1175,7 +1174,6 @@ class NLPLegalExtractionService:
             "date_pup_signed": extracted.get("date_pup_signed", ""),
             "agreement_status": extracted.get("agreement_status", "Active"),
             "dts_number": extracted.get("dts_number", ""),
-            "dts_status": extracted.get("dts_status", "OPEN - OIA"),
             "hardcopy_location": extracted.get("hardcopy_location", ""),
             "entry_type": "Extracted",
             "remarks": extracted.get("remarks", "")
