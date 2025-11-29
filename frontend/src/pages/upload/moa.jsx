@@ -10,7 +10,8 @@ const MOAUpload = () => {
   const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
   const [uploadedFile, setUploadedFile] = useState(null); 
   const [loading, setLoading] = useState(false);
-  const [extractionProgress, setExtractionProgress] = useState(0); 
+  const [extractionProgress, setExtractionProgress] = useState(0);
+  const [extractionStatus, setExtractionStatus] = useState("");
 
 
   // Form state
@@ -18,7 +19,6 @@ const MOAUpload = () => {
     source: "",
     ulcoApprovalDate: "",
     dtsNo: "",
-    dtsStatus: "",
     pupSignedDate: "",
     remarks: ""
   });
@@ -52,7 +52,7 @@ const MOAUpload = () => {
   // handle file change 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setUploadedFile(file);  // Store the file
+    setUploadedFile(file);
     document.getElementById("fileName").textContent = file ? file.name : "No file chosen";
   };
 
@@ -65,17 +65,28 @@ const MOAUpload = () => {
 
     setLoading(true);
     setExtractionProgress(0);
+    setExtractionStatus("Initializing extraction...");
 
     try {
       // Call NLP extraction with progress
+      setExtractionStatus("Extracting text from document...");
       const result = await agreementService.extractAgreementMetadataWithProgress(uploadedFile, (percent) => {
         setExtractionProgress(percent);
+        if (percent < 30) {
+          setExtractionStatus("Reading document...");
+        } else if (percent < 60) {
+          setExtractionStatus("Analyzing with Legal-BERT...");
+        } else if (percent < 90) {
+          setExtractionStatus("Extracting metadata fields...");
+        } else {
+          setExtractionStatus("Finalizing extraction...");
+        }
       });
       const extractedMetadata = result.metadata;
-
       setExtractionProgress(100);
+      setExtractionStatus("Extraction complete!");
 
-      
+
       setTimeout(() => {
         // Navigate with extracted metadata
         navigate('/upload/extractedEntryMOA', { 
@@ -90,20 +101,29 @@ const MOAUpload = () => {
 
     } catch (error) {
       console.error("Extraction failed:", error);
-      alert("Failed to extract metadata from the document. Please proceed with manual entry.");
+      setExtractionStatus("Extraction failed");
       
-      // Navigate without extracted metadata
-      navigate('/upload/extractedEntryMOA', { 
-        state: { 
-          uploadedFile,
-          formData,
-          pointPersons: pointPersonsData,
-          extractedMetadata: null
-        } 
-      });
+      // Show error message but still allow manual entry
+      const proceed = window.confirm(
+        "Failed to extract metadata from the document. Would you like to proceed with manual entry?"
+      );
+      
+      if (proceed) {
+        navigate('/upload/extractedEntryMOA', { 
+          state: { 
+            uploadedFile,
+            formData,
+            pointPersons: pointPersonsData,
+            extractedMetadata: null
+          } 
+        });
+      }
     } finally {
       setLoading(false);
-      setExtractionProgress(0);
+      setTimeout(() => {
+        setExtractionProgress(0);
+        setExtractionStatus("");
+      }, 1000);
     }
   };
 
@@ -145,21 +165,6 @@ const MOAUpload = () => {
                 placeholder='DT2025123456' 
               />
             </div>
-            {/*
-            <div className="form-group">
-              <label htmlFor="dtsStatus">DTS Status:*</label>
-              <select 
-                id="dtsStatus" 
-                name="dtsStatus" 
-                value={formData.dtsStatus}
-                onChange={(e) => handleInputChange('dtsStatus', e.target.value)}
-                required
-              >
-                <option value="">Select Status</option>
-              <option value="Open - OIA">OPEN</option>
-              <option value="Open - Other Office">CLOSE</option>
-              </select>
-            </div> */}
 
             <div className="form-group">
               <label>Date (PUP Official Signed)</label>
@@ -253,24 +258,39 @@ const MOAUpload = () => {
             <p id="fileName" className="file-name">No file chosen</p>
           </div>
 
-          {/* Progress Bar */}
+          {/* Enhanced Progress Bar with Status */}
           {loading && (
             <div className="extraction-progress">
-              <p>Extracting metadata from document...</p>
+              <p className="extraction-status">{extractionStatus}</p>
               <div className="progress-bar-container">
                 <div 
                   className="progress-bar-fill" 
                   style={{ width: `${extractionProgress}%` }}
-                ></div>
+                >
+                  <span className="progress-bar-text">{extractionProgress}%</span>
+                </div>
               </div>
-              <p className="progress-text">{extractionProgress}%</p>
+              <div className="extraction-steps">
+                <div className={`step ${extractionProgress >= 25 ? 'complete' : 'active'}`}>
+                  📄 Reading Document
+                </div>
+                <div className={`step ${extractionProgress >= 50 ? 'complete' : extractionProgress >= 25 ? 'active' : ''}`}>
+                  🤖 AI Analysis
+                </div>
+                <div className={`step ${extractionProgress >= 75 ? 'complete' : extractionProgress >= 50 ? 'active' : ''}`}>
+                  📋 Extracting Fields
+                </div>
+                <div className={`step ${extractionProgress === 100 ? 'complete' : extractionProgress >= 75 ? 'active' : ''}`}>
+                  ✅ Complete
+                </div>
+              </div>
             </div>
           )}
 
           <button
             className="submit-btn"
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || !uploadedFile}
           >
             {loading ? "Extracting..." : "Submit"}
           </button>

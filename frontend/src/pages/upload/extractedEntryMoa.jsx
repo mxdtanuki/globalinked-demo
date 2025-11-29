@@ -1,10 +1,10 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import TopbarSidebar from '../../components/topbarSidebar';
 import Select from 'react-select';
 import { agreementService } from '../../services/agreementService';
 import './globalUpload.css';
 import { useLocation } from 'react-router-dom';
-  
+
 const countryOptions = [
   { value: "Afghanistan", label: "Afghanistan", region: "Southern Asia" },
   { value: "Albania", label: "Albania", region: "Southern Europe" },
@@ -279,19 +279,17 @@ const ExtractedEntryMOA = () => {
   const [dtsNumber, setDtsNumber] = useState("");
   const [documentType, setDocumentType] = useState("");
   const [partnershipType, setPartnershipType] = useState("");
-
-  // Additional form states for initial data
   const [source, setSource] = useState("");
   const [dtsStatus, setDtsStatus] = useState("");
   const [dateUlcoApproved, setDateUlcoApproved] = useState("");
   const [remarks, setRemarks] = useState("");
- 
-  const location = useLocation();  
-  const uploadedFile = location.state?.uploadedFile;  // Retrieve file
-  const formData = location.state?.formData;  // Retrieve form data
-  const initialPointPersons = location.state?.pointPersons;  // Retrieve point persons
-  const extractedMetadata = location.state?.extractedMetadata;  // Retrieve extracted metadata
   const [versionComment, setVersionComment] = useState("");
+  
+  const location = useLocation();  
+  const uploadedFile = location.state?.uploadedFile;
+  const formData = location.state?.formData;
+  const initialPointPersons = location.state?.pointPersons;
+  const extractedMetadata = location.state?.extractedMetadata;
 
   // Partner state
   const [partnerEntryType, setPartnerEntryType] = useState("New"); 
@@ -315,8 +313,13 @@ const ExtractedEntryMOA = () => {
   const [dateSigned, setDateSigned] = useState("");
   const [validityPeriod, setValidityPeriod] = useState("");
   const [dateExpiry, setDateExpiry] = useState("");
-   const [datePupSigned, setDatePupSigned] = useState("");
+  const [datePupSigned, setDatePupSigned] = useState("");
+  const [eventInfo, setEventInfo] = useState("");
+  const [signatories, setSignatories] = useState("");
 
+  // Related agreements
+  const [relatedAgreements, setRelatedAgreements] = useState([]);
+  const [selectedRelatedAgreement, setSelectedRelatedAgreement] = useState(null);
 
   // Contact functions
   const addContact = () => setContacts([...contacts, { position: "", name: "", email: "" }]);
@@ -349,26 +352,26 @@ const ExtractedEntryMOA = () => {
     }
   };
 
-// Set entry date to today automatically
-useEffect(() => {
-  const today = new Date();
-  const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-  setEntryDate(localDate);
-}, []);
+  // Set entry date to today automatically
+  useEffect(() => {
+    const today = new Date();
+    const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    setEntryDate(localDate);
+  }, []);
 
-// Effect to calculate Expiration Date
-useEffect(() => {
-  if (datePupSigned && validityPeriod) {
-    const baseDate = new Date(datePupSigned);
-    const yearsToAdd = parseInt(validityPeriod, 10);
-    if (!isNaN(yearsToAdd)) {
-      baseDate.setFullYear(baseDate.getFullYear() + yearsToAdd);
-      setDateExpiry(baseDate.toISOString().split('T')[0]);
+  // Effect to calculate Expiration Date
+  useEffect(() => {
+    if (datePupSigned && validityPeriod) {
+      const baseDate = new Date(datePupSigned);
+      const yearsToAdd = parseInt(validityPeriod, 10);
+      if (!isNaN(yearsToAdd)) {
+        baseDate.setFullYear(baseDate.getFullYear() + yearsToAdd);
+        setDateExpiry(baseDate.toISOString().split('T')[0]);
+      }
+    } else if (!datePupSigned || !validityPeriod) {
+      setDateExpiry("");
     }
-  } else if (!datePupSigned || !validityPeriod) {
-    setDateExpiry("");
-  }
-}, [datePupSigned, validityPeriod]);
+  }, [datePupSigned, validityPeriod]);
 
   // Fetch existing partners
   useEffect(() => {
@@ -393,7 +396,6 @@ useEffect(() => {
     if (formData) {
       setSource(formData.source || "");
       setDtsNumber(formData.dtsNo || "");
-      setDtsStatus(formData.dtsStatus || "");
       setDatePupSigned(formData.pupSignedDate || "");
       setDateUlcoApproved(formData.ulcoApprovalDate || "");
       setRemarks(formData.remarks || "");
@@ -407,12 +409,13 @@ useEffect(() => {
     }
   }, [formData, initialPointPersons]);
 
-  // Populate form with extracted metadata
+  // Populate form with extracted metadata - ENHANCED
   useEffect(() => {
     if (extractedMetadata) {
-      setMessage("Using extracted metadata from document...");
+      console.log("📄 Extracted Metadata:", extractedMetadata);
+      setMessage("✅ Form populated with AI-extracted metadata from document");
 
-      // Populate form with extracted data
+      // Partner data
       if (extractedMetadata.partner_data) {
         setPartnerData({
           name: extractedMetadata.partner_data.name || "",
@@ -422,6 +425,7 @@ useEffect(() => {
           description: extractedMetadata.partner_data.description || "",
           logo: null,
         });
+        
         // Set country and region
         if (extractedMetadata.partner_data.country) {
           const countryOpt = countryOptions.find(c => c.value === extractedMetadata.partner_data.country);
@@ -432,22 +436,23 @@ useEffect(() => {
         }
       }
 
+      // Document info
       setDocumentType(extractedMetadata.document_type || "");
       setPartnershipType(extractedMetadata.partnership_type || "");
+      setEventInfo(extractedMetadata.event_info || "");
+      setSignatories(extractedMetadata.signatories_list || "");
+
+      // Dates
       setDateSigned(extractedMetadata.date_signed || "");
-      setValidityPeriod(extractedMetadata.validity_period || "");
+      setValidityPeriod(String(extractedMetadata.validity_period || ""));
       setDateExpiry(extractedMetadata.date_expiry || "");
 
-      // Set dates
-      setEntryDate(extractedMetadata.entry_date || entryDate);
-      setDatePupSigned(extractedMetadata.date_pup_signed || datePupSigned);
-      setDateUlcoApproved(extractedMetadata.date_ulco_approved || dateUlcoApproved);
+      // Administrative dates from initial form or extracted
+      setDatePupSigned(extractedMetadata.date_signed_by_pup || formData?.pupSignedDate || "");
+      setDateUlcoApproved(extractedMetadata.date_ulco_approved || formData?.ulcoApprovalDate || "");
+      setDtsNumber(extractedMetadata.dts_number || formData?.dtsNo || "");
 
-      // Set DTS info
-      setDtsNumber(extractedMetadata.dts_number || dtsNumber);
-      //setDtsStatus(extractedMetadata.dts_status || dtsStatus);
-
-      // Set contacts and point persons
+      // Contacts
       if (extractedMetadata.contact_persons && extractedMetadata.contact_persons.length > 0) {
         setContacts(extractedMetadata.contact_persons.map(c => ({
           position: c.contact_person_position || "",
@@ -456,21 +461,31 @@ useEffect(() => {
         })));
       }
 
+      // Point persons - merge initial with extracted
       if (extractedMetadata.point_persons && extractedMetadata.point_persons.length > 0) {
-        setPointPersons(extractedMetadata.point_persons.map(p => ({
+        const mergedPointPersons = [...(initialPointPersons || [])];
+        extractedMetadata.point_persons.forEach(ep => {
+          if (!mergedPointPersons.some(mp => mp.point_person_email === ep.point_person_email)) {
+            mergedPointPersons.push(ep);
+          }
+        });
+        setPointPersons(mergedPointPersons.map(p => ({
           position: p.point_person_position || "",
           name: p.point_person_name || "",
           email: p.point_person_email || ""
         })));
       }
 
-      setRemarks(extractedMetadata.initial_remarks?.[0]?.remark_text || remarks);
+      // Remarks
+      if (extractedMetadata.initial_remarks && extractedMetadata.initial_remarks.length > 0) {
+        setRemarks(extractedMetadata.initial_remarks[0]?.remark_text || formData?.remarks || "");
+      }
 
-      setMessage("Form populated with extracted metadata!");
+      console.log("✅ Form population complete");
     } else if (uploadedFile) {
-      setMessage("No extracted metadata available. Please fill the form manually.");
+      setMessage("⚠️ No metadata extracted. Please review and fill the form manually.");
     }
-  }, [extractedMetadata, uploadedFile]);
+  }, [extractedMetadata, uploadedFile, formData, initialPointPersons]);
 
   // Handle selecting an existing partner
   const handleExistingPartnerChange = (opt) => {
@@ -498,799 +513,796 @@ useEffect(() => {
     }
   };
 
-// Convert file to base64 string
-const toBase64 = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result.split(",")[1]; // remove 'data:image/...;base64,'
-      console.log("✅ Base64 string preview:", result.slice(0, 80) + "..."); // to verify
-      resolve(result);
-    };
-    reader.onerror = (error) => reject(error);
-  });
-
+  // Convert file to base64 string
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result.split(",")[1];
+        resolve(result);
+      };
+      reader.onerror = (error) => reject(error);
+    });
 
   // Submit handler
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setMessage("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
 
-  try {
-    const form = new FormData(e.target);
-    const data = Object.fromEntries(form);
+    try {
+      const form = new FormData(e.target);
+      const data = Object.fromEntries(form);
 
-    let agreementData = {
-      source_unit: data.source,
-      dts_number: dtsNumber,
-     // dts_status: data.dtsStatus,
-      document_type: documentType,
-      partnership_type: partnershipType,
-      agreement_status: data.status,
-      entry_type: data.entryType,
-      entry_date: entryDate || null, // not from form
-      related_agreement_id:
-        selectedRelatedAgreement?.value === "NA"
-          ? null
-          : selectedRelatedAgreement?.value || null,
-      date_received: data.dateReceived || null,
-      date_endorsed_to_ulco: data.dateEndorsed || null,
-      date_ulco_approved: data.dateUlcoApproved || null,
-      date_signed_by_pup: datePupSigned || null,
-      date_signed: dateSigned || null,
-      date_expiry: dateExpiry || null,
-      validity_period: validityPeriod || null,
-      event_info: data.eventInfo || null,
-      signatories_list: data.signatories || null,
+      let agreementData = {
+        source_unit: source,
+        dts_number: dtsNumber,
+        document_type: documentType,
+        partnership_type: partnershipType,
+        agreement_status: data.status,
+        entry_type: data.entryType,
+        entry_date: entryDate || null,
+        related_agreement_id:
+          selectedRelatedAgreement?.value === "NA"
+            ? null
+            : selectedRelatedAgreement?.value || null,
+        date_received: data.dateReceived || null,
+        date_endorsed_to_ulco: data.dateEndorsed || null,
+        date_ulco_approved: dateUlcoApproved || null,
+        date_signed_by_pup: datePupSigned || null,
+        date_signed: dateSigned || null,
+        date_expiry: dateExpiry || null,
+        validity_period: validityPeriod ? parseInt(validityPeriod) : null,
+        event_info: eventInfo || null,
+        signatories_list: signatories || null,
 
-      // Point persons array from state
-      point_persons: pointPersons
-        .filter((pp) => pp.name)
-        .map((pp) => ({
-          point_person_name: pp.name,
-          point_person_position: pp.position || "",
-          point_person_email: pp.email || "",
-        })),
-
-      // Timer data
-      timer: {
-        deadline: data.deadlineDate || null,
-        days: parseInt(data.days) || 0,
-        hours: parseInt(data.hours) || 0,
-        minutes: parseInt(data.minutes) || 0,
-      },
-
-      hardcopy_location: data.locator || null,
-      renewed_from_agreement_id: data.renewedFrom
-        ? String(data.renewedFrom)
-        : null,
-      initial_remarks: data.remarks
-        ? [{ remark_text: data.remarks }]
-        : [],
-    };
-
-    // Handle partner differently for existing vs new
-    if (partnerEntryType === "Existing") {
-      agreementData.partner_id = selectedPartner?.value || null;
-    } else {
-      agreementData.partner_data = {
-        name: partnerData.name,
-        entity_type: partnerData.entityType,
-        country: selectedCountry?.value || "",
-        region: selectedRegion?.value || "",
-        address: partnerData.address,
-        website_url: partnerData.website || "",
-        description: partnerData.description || "",
-        logo_path: partnerData.logo || "", // <-- send the base64 string
-        status: "active",
-        contact_persons: contacts
-          .filter((c) => c.name)
-          .map((c) => ({
-            contact_person_name: c.name,
-            contact_person_position: c.position || "",
-            contact_person_email: c.email || "",
+        point_persons: pointPersons
+          .filter((pp) => pp.name)
+          .map((pp) => ({
+            point_person_name: pp.name,
+            point_person_position: pp.position || "",
+            point_person_email: pp.email || "",
           })),
+
+        timer: {
+          deadline: data.deadlineDate || null,
+          days: parseInt(data.days) || 0,
+          hours: parseInt(data.hours) || 0,
+          minutes: parseInt(data.minutes) || 0,
+        },
+
+        hardcopy_location: data.locator || null,
+        renewed_from_agreement_id: data.renewedFrom
+          ? String(data.renewedFrom)
+          : null,
+        initial_remarks: remarks
+          ? [{ remark_text: remarks }]
+          : [],
       };
-    }
 
-    // Send request to backend
-    const response = await agreementService.createAgreement(agreementData);
-
-    if (response.status === "duplicate") {
-      setMessage(
-        `Duplicate found:
-         Partner: ${response.agreement.name}
-         DTS No.: ${response.agreement.dts_number}
-         Document Type: ${response.agreement.document_type}
-         Partnership Type: ${response.agreement.partnership_type}`
-      );
-      return;
-    }
-
-    if (response.status === "created") {
-      setMessage("Entry created successfully!");
-
-      // Upload version if file is provided
-      if (uploadedFile) {
-        try {
-          const formData = new FormData();
-          formData.append("file", uploadedFile);
-          formData.append("version_comment", versionComment);
-          formData.append("status_at_upload", agreementData.agreement_status);
-
-          const res = await fetch(
-            `/documents/${agreementData.dts_number}/versions`,
-            {
-              method: "POST",
-              body: formData,
-            }
-          );
-
-          if (!res.ok) {
-            throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
-          }
-
-          setMessage("Entry created and version uploaded successfully!");
-        } catch (err) {
-          console.error("Version upload failed:", err);
-          setMessage("Entry created, but version upload failed.");
-        }
+      // Handle partner
+      if (partnerEntryType === "Existing") {
+        agreementData.partner_id = selectedPartner?.value || null;
+      } else {
+        agreementData.partner_data = {
+          name: partnerData.name,
+          entity_type: partnerData.entityType,
+          country: selectedCountry?.value || "",
+          region: selectedRegion?.value || "",
+          address: partnerData.address,
+          website_url: partnerData.website || "",
+          description: partnerData.description || "",
+          logo_path: partnerData.logo || "",
+          status: "active",
+          contact_persons: contacts
+            .filter((c) => c.name)
+            .map((c) => ({
+              contact_person_name: c.name,
+              contact_person_position: c.position || "",
+              contact_person_email: c.email || "",
+            })),
+        };
       }
 
-      // reset form state
-      e.target.reset();
-      setSelectedCountry(null);
-      setSelectedRegion(null);
-      setDtsNumber("");
-      setDocumentType("");
-      setDtsStatus(""); 
-      setDateUlcoApproved("");
-      setRemarks("");
-      setDocumentType("");
-      setPartnershipType("");
-      setPartnerEntryType("New");
+      // Send request
+      const response = await agreementService.createAgreement(agreementData);
+
+      if (response.status === "duplicate") {
+        setMessage(
+          `⚠️ Duplicate found:\nPartner: ${response.agreement.name}\nDTS No.: ${response.agreement.dts_number}\nDocument Type: ${response.agreement.document_type}`
+        );
+        return;
+      }
+
+      if (response.status === "created") {
+        setMessage("✅ Entry created successfully!");
+
+        // Upload version if file provided
+        if (uploadedFile) {
+          try {
+            const formData = new FormData();
+            formData.append("file", uploadedFile);
+            formData.append("version_comment", versionComment || "Initial upload via NLP extraction");
+            formData.append("status_at_upload", agreementData.agreement_status);
+
+            const res = await fetch(
+              `/documents/${agreementData.dts_number}/versions`,
+              {
+                method: "POST",
+                body: formData,
+              }
+            );
+
+            if (!res.ok) {
+              throw new Error(`Upload failed: ${res.status}`);
+            }
+
+            setMessage("✅ Entry created and document uploaded successfully!");
+          } catch (err) {
+            console.error("Version upload failed:", err);
+            setMessage("✅ Entry created, but document upload failed.");
+          }
+        }
+
+        // Reset form
+        setTimeout(() => {
+          e.target.reset();
+          setSelectedCountry(null);
+          setSelectedRegion(null);
+          setDtsNumber("");
+          setDocumentType("");
+          setDtsStatus(""); 
+          setDateUlcoApproved("");
+          setRemarks("");
+          setDocumentType("");
+          setPartnershipType("");
+          setPartnerEntryType("New");
+          setSelectedPartner(null);
+          setPartnerData({
+           name: "",
+            entityType: "",
+            address: "",
+            website: "",
+            description: "",
+            logo: null,
+          });
+          setSelectedRelatedAgreement(null);
+          setRelatedAgreements([]);
+          setSource("");
+          setDtsStatus("");
+          setDatePupSigned("");
+          setDateUlcoApproved("");
+          setRemarks("");
+          setPointPersons([{ name: "", position: "", email: "" }]);
+          setContacts([{ name: "", position: "", email: "" }]);
+          setVersionComment("");
+          setEntryDate("");
+          setDateSigned("");
+          setValidityPeriod("");
+          setDateExpiry("");
+          setDatePupSigned("");
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      setMessage("❌ Error: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch related agreements
+  useEffect(() => {
+    const fetchRelated = async () => {
+      if (!documentType) {
+        setRelatedAgreements([]);
+        setSelectedRelatedAgreement(null);
+        return;
+      }
+      try {
+        const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
+        const agreements = await agreementService.getAgreements({
+          document_type: typeToFetch
+        });
+        const filtered = agreements.filter(
+          a => a.document_type === typeToFetch && a.agreement_status !== "Withdrawn"
+        );
+        const options = filtered.map(a => ({
+          value: a.agreement_id,
+          label: a.dts_number,
+        }));
+        options.unshift({ value: "NA", label: "N/A" });
+        setRelatedAgreements(options);
+        setSelectedRelatedAgreement(options[0]);
+      } catch (err) {
+        setRelatedAgreements([{ value: "NA", label: "N/A" }]);
+        setSelectedRelatedAgreement({ value: "NA", label: "N/A" });
+      }
+    };
+    fetchRelated();
+  }, [documentType]);
+
+  const handlePartnerEntryTypeChange = (type) => {
+    setPartnerEntryType(type);
+    if (type === "New") {
       setSelectedPartner(null);
       setPartnerData({
-       name: "",
+        name: "",
         entityType: "",
         address: "",
         website: "",
         description: "",
         logo: null,
       });
-      setSelectedRelatedAgreement(null);
-      setRelatedAgreements([]);
-      setSource("");
-      setDtsStatus("");
-      setDatePupSigned("");
-      setDateUlcoApproved("");
-      setRemarks("");
-      setPointPersons([{ name: "", position: "", email: "" }]);
-      setContacts([{ name: "", position: "", email: "" }]);
-      setVersionComment("");
-      setEntryDate("");
-      setDateSigned("");
-      setValidityPeriod("");
-      setDateExpiry("");
-      setDatePupSigned("");
-    }
-  } catch (error) {
-    console.error("Full error:", error);
-    setMessage("Error: " + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const [relatedAgreements, setRelatedAgreements] = useState([]);
-  const [selectedRelatedAgreement, setSelectedRelatedAgreement] = useState(null);
-
-  // Fetch related agreements based on documentType
-useEffect(() => {
-  const fetchRelated = async () => {
-    if (!documentType) {
-      setRelatedAgreements([]);
-      setSelectedRelatedAgreement(null);
-      return;
-    }
-    try {
-      // Opposite type
-      const typeToFetch = documentType === "MOA" ? "MOU" : "MOA";
-      // Fetch all agreements of the opposite type
-      const agreements = await agreementService.getAgreements({
-        document_type: typeToFetch
-      });
-      // Filter out Withdrawn
-      const filtered = agreements.filter(
-        a => a.document_type === typeToFetch && a.agreement_status !== "Withdrawn"
-      );
-      const options = filtered.map(a => ({
-        value: a.agreement_id,
-        label: a.dts_number,
-        dts_number: a.dts_number
-      }));
-      options.unshift({ value: "NA", label: "N/A" });
-      setRelatedAgreements(options);
-      setSelectedRelatedAgreement(options[0]);
-    } catch (err) {
-      setRelatedAgreements([{ value: "NA", label: "N/A" }]);
-      setSelectedRelatedAgreement({ value: "NA", label: "N/A" });
+      setSelectedCountry(null);
+      setSelectedRegion(null);
     }
   };
-  fetchRelated();
-}, [documentType]);
 
-  const handlePartnerEntryTypeChange = (type) => {
-  setPartnerEntryType(type);
-  if (type === "New") {
-    setSelectedPartner(null);
-    setPartnerData({
-      name: "",
-      entityType: "",
-      address: "",
-      website: "",
-      description: "",
-      logo: null,
-    });
-    setSelectedCountry(null);
-    setSelectedRegion(null);
-  }
-};
-
-    return (
-  <TopbarSidebar>
-    <div className="manual-entry-wrapper">
-      <div className="manual-entry-container">
-        <h2 className="form-title">Extracted Entry Form</h2>
-        {message && (
-          <div
-            style={{
-              padding: "10px",
-              margin: "10px 0",
-              backgroundColor: message.includes("Error")
-                ? "#ffebee"
-                : "#e8f5e8"
-            }}
-          >
-            {message}
-          </div>
-        )}
-        <form className="manual-entry-form" onSubmit={handleSubmit}>
-
-          {/* DISPLAY UPLOADED FILE */}
+  return (
+    <TopbarSidebar>
+      <div className="manual-entry-wrapper">
+        <div className="manual-entry-container">
+          <h2 className="form-title">AI-Assisted Entry Form</h2>
+          {message && (
+            <div
+              style={{
+                padding: "10px",
+                margin: "10px 0",
+                backgroundColor: message.includes("Error") || message.includes("❌")
+                  ? "#ffebee"
+                  : message.includes("⚠️")
+                  ? "#fff3cd"
+                  : "#e8f5e8",
+                borderLeft: `4px solid ${
+                  message.includes("Error") || message.includes("❌")
+                    ? "#f44336"
+                    : message.includes("⚠️")
+                    ? "#ff9800"
+                    : "#4caf50"
+                }`,
+                borderRadius: "4px",
+              }}
+            >
+              {message}
+            </div>
+          )}
+          <form className="manual-entry-form" onSubmit={handleSubmit}>
+            {/* DISPLAY UPLOADED FILE */}
             <div className="form-group">
-              <label>Uploaded File:</label>
+              <label>📄 Uploaded File:</label>
               <input
                 type="text"
                 value={uploadedFile ? uploadedFile.name : "No file uploaded"}
                 readOnly
+                style={{ backgroundColor: "#f5f5f5" }}
               />
             </div>
 
-          {/* VERSION COMMENTS */}
-          <div className="form-group full-width">
-            <label>File Comments:</label>
-            <textarea 
-              value={versionComment}
-              onChange={(e) => setVersionComment(e.target.value)}
-            />
-          </div>
+            {/* VERSION COMMENTS */}
+            <div className="form-group full-width">
+              <label>File Comments:</label>
+              <textarea 
+                value={versionComment}
+                onChange={(e) => setVersionComment(e.target.value)}
+                placeholder="Enter any comments about this document version..."
+              />
+            </div>
 
-          {/* Document Type */}
-          <div className="form-group">
-          <label htmlFor="docType">Document Type:*</label>
-          <select
-            id="docType"
-            name="docType"
-            required
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-          >
-            <option value="" disabled>
-              Select Document Type
-            </option>
-            <option value="MOA">MOA</option>
-            <option value="MOU">MOU</option>
-          </select>
-          </div>
-
-          {/* Related MOU/MOA */}
-          <div className="form-group">
-            <label htmlFor="relatedAgreement">
-              {documentType === "MOA"
-                ? "Related MOU"
-                : documentType === "MOU"
-                ? "Related MOA"
-                : "Related MOU/MOA"}
-              :
-            </label>
-            <Select
-              id="relatedAgreement"
-              name="relatedAgreement"
-              options={relatedAgreements}
-              value={selectedRelatedAgreement}
-              onChange={setSelectedRelatedAgreement}
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select Related Agreement"
-              isDisabled={!documentType}
-            />
-          </div>
-
-          {/* AGREEMENT STATUS */}
-          <div className="form-group">
-          <label htmlFor="status">Agreement Status:*</label>
-          <select id="status" name="status" required>
-            <option value="">Select Status</option>
-            <option value="InitialReview">Initial Review</option>
-            <option value="Endorse">Endorse to ULCO for Review and Approval</option>
-            <option value="Revert">Revert To Initiator with Comments</option>
-            <option value="Consultation">For Consultation</option>
-            <option value="Replication">Replication of Copies (8 sets)</option>
-            <option value="SignituresPUP">For Signatures of PUP Officials</option>
-            <option value="SignedPUP">Signed by PUP Officials</option>
-            <option value="SignituresPartner">For Signatures of Partner</option>
-            <option value="SignedPartner">Signed by Partner Institution</option>
-            <option value="Complete">Completely Signed</option>
-            <option value="Notary">For Notary</option>
-            <option value="FFUPCopy">FFUP Copy From College/Campus</option>
-            <option value="Active">Active</option>
-            <option value="Withdrawn">Withdrawn</option>
-          </select>
-          </div>
-
-          {/* AGREEMENT ENTRY TYPE */}
-          <div className="form-group">
-          <label htmlFor="entryType">Agreement Entry Type:*</label>
-          <select id="entryType" name="entryType" required>
-            <option value="">Select Entry Type</option>
-            <option value="Renewal">Renewal</option>
-            <option value="New">New</option>
-            <option value="Other">Other</option>
-          </select>
-          </div>
-
-          {/* RENEWED AGREEMENT */}
-          <div className="form-group">
-            <label htmlFor="renewedFrom">Renewed Agreement from (DTS Number Format):</label>
-            <input id="renewedFrom" name="renewedFrom" type="text" />
-          </div>
-            
-          {/* VALIDITY PERIOD*/}
-          <div className="form-group">
-          <label htmlFor="validity">Validity Period:</label>
-          <select
-            id="validity"
-            name="validity"
-            value={validityPeriod}
-            onChange={(e) => setValidityPeriod(e.target.value)}
-          >
-            <option value="">Select Period</option>
-            <option value="5">5</option>
-            <option value="4">4</option>
-            <option value="3">3</option>
-            <option value="2">2</option>
-            <option value="1">1</option>
-          </select>
-          </div>
-
-          {/* DTS No. */}
-          <div className="form-group">
-          <label htmlFor="dtsNo">DTS No.:*</label>
-          <input
-            id="dtsNo"
-            name="dtsNo"
-            type="text"
-            required
-            value={dtsNumber}
-            onChange={(e) => setDtsNumber(e.target.value) }
-            placeholder="DT2025123456"
-          />
-          </div>
-
-          {/* DTS STATUS */}
-          <div className="form-group">
-            <label htmlFor="dtsStatus">DTS Status:*</label>
-            <select 
-              id="dtsStatus" 
-              name="dtsStatus" 
-              value={dtsStatus}
-              onChange={(e) => setDtsStatus(e.target.value)}
-              required
-            >
-              <option value="">Select Status</option>
-              <option value="Open - OIA">OPEN</option>
-              <option value="Open - Other Office">CLOSE</option>
-            </select>
-          </div>
-
-          {/* SOURCE UNIT */}
-          <div className="form-group">
-            <label htmlFor="source">Source (Campus/College Dept):*</label>
-            <input 
-              id="source" 
-              name="source" 
-              type="text" 
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              required 
-            />
-          </div>
-
-          {/* PARTNERSHIP TYPE */}
-          <div className="form-group">
-            <label htmlFor="partnershipType">Partnership Type:*</label>
-            <Select
-              options={partnershipTypeOptions}
-              name="partnershipType"
-              id="partnershipType"
-              required
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select Partnership Type"
-              value={partnershipTypeOptions.find(o => o.value === partnershipType) || null}
-              onChange={(opt) => setPartnershipType(opt?.value || "")}
-            />
-          </div>
-
-          {/* Partner Entry Type */}
-          <div className="form-group">
-            <label htmlFor="partnerEntryType">Partner Entry Type:*</label>
+            {/* Document Type */}
+            <div className="form-group">
+            <label htmlFor="docType">Document Type:*</label>
             <select
-              id="partnerEntryType"
-              value={partnerEntryType}
-              onChange={(e) => handlePartnerEntryTypeChange(e.target.value)}
-            >
-              <option value="New">New</option>
-              <option value="Existing">Existing</option>
-            </select>
-          </div>
-
-          {/* Partner Fields */}
-          <div className="form-group">
-            <label>Partner Name:*</label>
-            {partnerEntryType === "New" ? (
-              <input
-                type="text"
-                value={partnerData.name}
-                onChange={(e) =>
-                  setPartnerData({ ...partnerData, name: e.target.value })
-                }
-                required
-              />
-            ) : (
-              <Select
-                value={selectedPartner}
-                onChange={handleExistingPartnerChange}
-                options={existingPartners}
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select Existing Partner"
-              />
-            )}
-          </div>
-
-          <div className="form-group">
-            <label>Entity Type:*</label>
-            <input
-              type="text"
-              value={partnerData.entityType}
-              onChange={(e) =>
-                setPartnerData({ ...partnerData, entityType: e.target.value })
-              }
+              id="docType"
+              name="docType"
               required
-              readOnly={partnerEntryType === "Existing"}
-              placeholder="e.g., University, Company, NGO"
-            />
-          </div>
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value)}
+            >
+              <option value="" disabled>
+                Select Document Type
+              </option>
+              <option value="MOA">MOA</option>
+              <option value="MOU">MOU</option>
+            </select>
+            </div>
 
-          <div className="form-group">
-            <label>Country:*</label>
-            {partnerEntryType === "New" ? (
+            {/* Related MOU/MOA */}
+            <div className="form-group">
+              <label htmlFor="relatedAgreement">
+                {documentType === "MOA"
+                  ? "Related MOU"
+                  : documentType === "MOU"
+                  ? "Related MOA"
+                  : "Related MOU/MOA"}
+              :
+              </label>
               <Select
-                value={selectedCountry}
-                onChange={handleCountryChange}
-                options={countryOptions}
+                id="relatedAgreement"
+                name="relatedAgreement"
+                options={relatedAgreements}
+                value={selectedRelatedAgreement}
+                onChange={setSelectedRelatedAgreement}
                 className="react-select-container"
                 classNamePrefix="react-select"
-                placeholder="Select Country"
-                required
-              />
-            ) : (
-              <input type="text" value={selectedCountry?.label || ""} readOnly />
-            )}
-          </div>
-
-          <div className="form-group">
-            <label>Region:*</label>
-            {partnerEntryType === "New" ? (
-              <Select
-                value={selectedRegion}
-                onChange={setSelectedRegion}
-                options={regionOptions}
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select Region"
-                required
-              />
-            ) : (
-              <input type="text" value={selectedRegion?.label || ""} readOnly />
-            )}
-          </div>
-
-          <div className="form-group">
-            <label>Address:</label>
-            <input
-              type="text"
-              value={partnerData.address}
-              onChange={(e) =>
-                setPartnerData({ ...partnerData, address: e.target.value })
-              }
-              readOnly={partnerEntryType === "Existing"}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Logo:</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {partnerData.logo && typeof partnerData.logo === "string" && (
-                <img
-                  src={`data:image/png;base64,${partnerData.logo}`}
-                  alt="Partner Logo"
-                  style={{ width: "120px", height: "120px", objectFit: "contain", border: "1px solid #ccc" }}
-                />
-              )}
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={async (e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  if (file.size > 2 * 1024 * 1024) {
-                    alert("Logo too large. Maximum size is 2MB.");
-                    return;
-                  }
-
-                  try {
-                    const base64 = await toBase64(file);
-                    setPartnerData({ ...partnerData, logo: base64 });
-                  } catch (err) {
-                    console.error("Base64 conversion failed:", err);
-                    alert("Failed to process image.");
-                  }
-                }}
-                disabled={partnerEntryType === "Existing"}
+                placeholder="Select Related Agreement"
+                isDisabled={!documentType}
               />
             </div>
-          </div>
-          
-          <div className="form-group">
-            <label>Website:</label>
+
+            {/* AGREEMENT STATUS */}
+            <div className="form-group">
+            <label htmlFor="status">Agreement Status:*</label>
+            <select id="status" name="status" required>
+              <option value="">Select Status</option>
+              <option value="InitialReview">Initial Review</option>
+              <option value="Endorse">Endorse to ULCO for Review and Approval</option>
+              <option value="Revert">Revert To Initiator with Comments</option>
+              <option value="Consultation">For Consultation</option>
+              <option value="Replication">Replication of Copies (8 sets)</option>
+              <option value="SignituresPUP">For Signatures of PUP Officials</option>
+              <option value="SignedPUP">Signed by PUP Officials</option>
+              <option value="SignituresPartner">For Signatures of Partner</option>
+              <option value="SignedPartner">Signed by Partner Institution</option>
+              <option value="Complete">Completely Signed</option>
+              <option value="Notary">For Notary</option>
+              <option value="FFUPCopy">FFUP Copy From College/Campus</option>
+              <option value="Active">Active</option>
+              <option value="Withdrawn">Withdrawn</option>
+            </select>
+            </div>
+
+            {/* AGREEMENT ENTRY TYPE */}
+            <div className="form-group">
+            <label htmlFor="entryType">Agreement Entry Type:*</label>
+            <select id="entryType" name="entryType" required>
+              <option value="">Select Entry Type</option>
+              <option value="Renewal">Renewal</option>
+              <option value="New">New</option>
+              <option value="Other">Other</option>
+            </select>
+            </div>
+
+            {/* RENEWED AGREEMENT */}
+            <div className="form-group">
+              <label htmlFor="renewedFrom">Renewed Agreement from (DTS Number Format):</label>
+              <input id="renewedFrom" name="renewedFrom" type="text" />
+            </div>
+              
+            {/* VALIDITY PERIOD*/}
+            <div className="form-group">
+            <label htmlFor="validity">Validity Period:</label>
+            <select
+              id="validity"
+              name="validity"
+              value={validityPeriod}
+              onChange={(e) => setValidityPeriod(e.target.value)}
+            >
+              <option value="">Select Period</option>
+              <option value="5">5</option>
+              <option value="4">4</option>
+              <option value="3">3</option>
+              <option value="2">2</option>
+              <option value="1">1</option>
+            </select>
+            </div>
+
+            {/* DTS No. */}
+            <div className="form-group">
+            <label htmlFor="dtsNo">DTS No.:*</label>
             <input
-              type="url"
-              value={partnerData.website}
-              onChange={(e) =>
-                setPartnerData({ ...partnerData, website: e.target.value })
-              }
-              readOnly={partnerEntryType === "Existing"}
+              id="dtsNo"
+              name="dtsNo"
+              type="text"
+              required
+              value={dtsNumber}
+              onChange={(e) => setDtsNumber(e.target.value) }
+              placeholder="DT2025123456"
             />
-          </div>
+            </div>
 
-          <div className="form-group full-width">
-            <label>Partner Description:</label>
-            <textarea
-              value={partnerData.description}
-              onChange={(e) =>
-                setPartnerData({ ...partnerData, description: e.target.value })
-              }
-              readOnly={partnerEntryType === "Existing"}
-            />
-          </div>
+            {/* DTS STATUS */}
+            <div className="form-group">
+              <label htmlFor="dtsStatus">DTS Status:*</label>
+              <select 
+                id="dtsStatus" 
+                name="dtsStatus" 
+                value={dtsStatus}
+                onChange={(e) => setDtsStatus(e.target.value)}
+                required
+              >
+                <option value="">Select Status</option>
+                <option value="Open - OIA">OPEN</option>
+                <option value="Open - Other Office">CLOSE</option>
+              </select>
+            </div>
 
-          {/* SIGNATORIES */}
-          <div className="form-group full-width">
-          <label htmlFor="signatories">Signatories:</label>
-          <input id="signatories" name="signatories" type="text" />
-          </div>
+            {/* SOURCE UNIT */}
+            <div className="form-group">
+              <label htmlFor="source">Source (Campus/College Dept):*</label>
+              <input 
+                id="source" 
+                name="source" 
+                type="text" 
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                required 
+              />
+            </div>
 
-          {/* POINT PERSON */}
-          <div className="form-section">
-            <label>Point Persons</label>
-            {pointPersons.map((pp, index) => (
-              <div key={index} className="contact-row">
+            {/* PARTNERSHIP TYPE */}
+            <div className="form-group">
+              <label htmlFor="partnershipType">Partnership Type:*</label>
+              <Select
+                options={partnershipTypeOptions}
+                name="partnershipType"
+                id="partnershipType"
+                required
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select Partnership Type"
+                value={partnershipTypeOptions.find(o => o.value === partnershipType) || null}
+                onChange={(opt) => setPartnershipType(opt?.value || "")}
+              />
+            </div>
+
+            {/* Partner Entry Type */}
+            <div className="form-group">
+              <label htmlFor="partnerEntryType">Partner Entry Type:*</label>
+              <select
+                id="partnerEntryType"
+                value={partnerEntryType}
+                onChange={(e) => handlePartnerEntryTypeChange(e.target.value)}
+              >
+                <option value="New">New</option>
+                <option value="Existing">Existing</option>
+              </select>
+            </div>
+
+            {/* Partner Fields */}
+            <div className="form-group">
+              <label>Partner Name:*</label>
+              {partnerEntryType === "New" ? (
                 <input
                   type="text"
-                  placeholder="Position"
-                  value={pp.position}
+                  value={partnerData.name}
                   onChange={(e) =>
-                    handlePointPersonChange(index, "position", e.target.value)
-                  }
-                />
-                <input
-                  type="text"
-                  placeholder="Name"
-                  value={pp.name}
-                  onChange={(e) =>
-                    handlePointPersonChange(index, "name", e.target.value)
+                    setPartnerData({ ...partnerData, name: e.target.value })
                   }
                   required
                 />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={pp.email}
-                  onChange={(e) =>
-                    handlePointPersonChange(index, "email", e.target.value)
-                  }
+              ) : (
+                <Select
+                  value={selectedPartner}
+                  onChange={handleExistingPartnerChange}
+                  options={existingPartners}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Existing Partner"
                 />
-                <button
-                  type="button"
-                  className="remove-btn"
-                  onClick={() => removePointPerson(index)}
-                >
-                  ❌
-                </button>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label>Entity Type:*</label>
+              <input
+                type="text"
+                value={partnerData.entityType}
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, entityType: e.target.value })
+                }
+                required
+                readOnly={partnerEntryType === "Existing"}
+                placeholder="e.g., University, Company, NGO"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Country:*</label>
+              {partnerEntryType === "New" ? (
+                <Select
+                  value={selectedCountry}
+                  onChange={handleCountryChange}
+                  options={countryOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Country"
+                  required
+                />
+              ) : (
+                <input type="text" value={selectedCountry?.label || ""} readOnly />
+              )}
+            </div>
+
+            <div className="form-group">
+              <label>Region:*</label>
+              {partnerEntryType === "New" ? (
+                <Select
+                  value={selectedRegion}
+                  onChange={setSelectedRegion}
+                  options={regionOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Region"
+                  required
+                />
+              ) : (
+                <input type="text" value={selectedRegion?.label || ""} readOnly />
+              )}
+            </div>
+
+            <div className="form-group">
+              <label>Address:</label>
+              <input
+                type="text"
+                value={partnerData.address}
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, address: e.target.value })
+                }
+                readOnly={partnerEntryType === "Existing"}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Logo:</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {partnerData.logo && typeof partnerData.logo === "string" && (
+                  <img
+                    src={`data:image/png;base64,${partnerData.logo}`}
+                    alt="Partner Logo"
+                    style={{ width: "120px", height: "120px", objectFit: "contain", border: "1px solid #ccc" }}
+                  />
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) {
+                      alert("Logo too large. Maximum size is 2MB.");
+                      return;
+                    }
+
+                    try {
+                      const base64 = await toBase64(file);
+                      setPartnerData({ ...partnerData, logo: base64 });
+                    } catch (err) {
+                      console.error("Base64 conversion failed:", err);
+                      alert("Failed to process image.");
+                    }
+                  }}
+                  disabled={partnerEntryType === "Existing"}
+                />
               </div>
-            ))}
+            </div>
+            
+            <div className="form-group">
+              <label>Website:</label>
+              <input
+                type="url"
+                value={partnerData.website}
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, website: e.target.value })
+                }
+                readOnly={partnerEntryType === "Existing"}
+              />
+            </div>
 
-            <button
-              type="button"
-              className="add-contact-btn"
-              onClick={addPointPerson}
-            >
-              ➕ Add Point Person
-            </button>
-          </div>
+            <div className="form-group full-width">
+              <label>Partner Description:</label>
+              <textarea
+                value={partnerData.description}
+                onChange={(e) =>
+                  setPartnerData({ ...partnerData, description: e.target.value })
+                }
+                readOnly={partnerEntryType === "Existing"}
+              />
+            </div>
 
-           {/* CONTACT PERSON */}
+            {/* SIGNATORIES */}
+            <div className="form-group full-width">
+            <label htmlFor="signatories">Signatories:</label>
+            <input id="signatories" name="signatories" type="text" />
+            </div>
+
+            {/* POINT PERSON */}
             <div className="form-section">
-              <label>Contact Person</label>
-              {contacts.map((contact, index) => (
+              <label>Point Persons</label>
+              {pointPersons.map((pp, index) => (
                 <div key={index} className="contact-row">
                   <input
                     type="text"
                     placeholder="Position"
-                    value={contact.position}
+                    value={pp.position}
                     onChange={(e) =>
-                      handleContactChange(index, "position", e.target.value)
+                      handlePointPersonChange(index, "position", e.target.value)
                     }
                   />
                   <input
                     type="text"
                     placeholder="Name"
-                    value={contact.name}
+                    value={pp.name}
                     onChange={(e) =>
-                      handleContactChange(index, "name", e.target.value)
+                      handlePointPersonChange(index, "name", e.target.value)
                     }
+                    required
                   />
                   <input
                     type="email"
-                    placeholder="Email Address"
-                    value={contact.email}
+                    placeholder="Email"
+                    value={pp.email}
                     onChange={(e) =>
-                      handleContactChange(index, "email", e.target.value)
+                      handlePointPersonChange(index, "email", e.target.value)
                     }
                   />
                   <button
                     type="button"
                     className="remove-btn"
-                    onClick={() => removeContact(index)}
+                    onClick={() => removePointPerson(index)}
                   >
                     ❌
                   </button>
                 </div>
               ))}
+
               <button
                 type="button"
                 className="add-contact-btn"
-                onClick={addContact}
+                onClick={addPointPerson}
               >
-                ➕ Add Contact
+                ➕ Add Point Person
               </button>
             </div>
 
-          
-          {/* DATE RECEIVED */}
-          <div className="form-group">
-          <label htmlFor="dateReceived">Date Received:*</label>
-          <input id="dateReceived" name="dateReceived" type="date" required />
-          </div>
+             {/* CONTACT PERSON */}
+              <div className="form-section">
+                <label>Contact Person</label>
+                {contacts.map((contact, index) => (
+                  <div key={index} className="contact-row">
+                    <input
+                      type="text"
+                      placeholder="Position"
+                      value={contact.position}
+                      onChange={(e) =>
+                        handleContactChange(index, "position", e.target.value)
+                      }
+                    />
+                    <input
+                      type="text"
+                      placeholder="Name"
+                      value={contact.name}
+                      onChange={(e) =>
+                        handleContactChange(index, "name", e.target.value)
+                      }
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email Address"
+                      value={contact.email}
+                      onChange={(e) =>
+                        handleContactChange(index, "email", e.target.value)
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="remove-btn"
+                      onClick={() => removeContact(index)}
+                    >
+                      ❌
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="add-contact-btn"
+                  onClick={addContact}
+                >
+                  ➕ Add Contact
+                </button>
+              </div>
 
-          {/* DATE EXPIRY */}
-          <div className="form-group">
-          <label htmlFor="dateExpiry">Date Expiry:</label>
-          <input
-            id="dateExpiry"
-            name="dateExpiry"
-            type="date"
-            value={dateExpiry}
-            onChange={(e) => setDateExpiry(e.target.value)}
-            required
-          />
-          </div>
+            
+            {/* DATE RECEIVED */}
+            <div className="form-group">
+            <label htmlFor="dateReceived">Date Received:*</label>
+            <input id="dateReceived" name="dateReceived" type="date" required />
+            </div>
 
-          {/* DATE PUP SIGNED */}
-          <div className="form-group">
-          <label htmlFor="datePupSigned">Date PUP Signed:</label>
-          <input 
-            id="datePupSigned" 
-            name="datePupSigned" 
-            type="date" 
-            value={datePupSigned}
-            onChange={(e) => setDatePupSigned(e.target.value)}
-          />
-          </div>
+            {/* DATE EXPIRY */}
+            <div className="form-group">
+            <label htmlFor="dateExpiry">Date Expiry:</label>
+            <input
+              id="dateExpiry"
+              name="dateExpiry"
+              type="date"
+              value={dateExpiry}
+              onChange={(e) => setDateExpiry(e.target.value)}
+              required
+            />
+            </div>
 
-           {/* DATE SIGNED */}
-          <div className="form-group">
-          <label htmlFor="dateSigned">Date/Year of Signing:</label>
-          <input
-            id="dateSigned"
-            name="dateSigned"
-            type="date"
-            value={dateSigned}
-            onChange={(e) => setDateSigned(e.target.value)}
-          />
-          </div>
+            {/* DATE PUP SIGNED */}
+            <div className="form-group">
+            <label htmlFor="datePupSigned">Date PUP Signed:</label>
+            <input 
+              id="datePupSigned" 
+              name="datePupSigned" 
+              type="date" 
+              value={datePupSigned}
+              onChange={(e) => setDatePupSigned(e.target.value)}
+            />
+            </div>
 
-          {/* DATE ENDORSED */}
-          <div className="form-group">
-          <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
-          <input id="dateEndorsed" name="dateEndorsed" type="date" />
-          </div>
+             {/* DATE SIGNED */}
+            <div className="form-group">
+            <label htmlFor="dateSigned">Date/Year of Signing:</label>
+            <input
+              id="dateSigned"
+              name="dateSigned"
+              type="date"
+              value={dateSigned}
+              onChange={(e) => setDateSigned(e.target.value)}
+            />
+            </div>
 
-          {/* DATE ULCO APPROVED */}
-          <div className="form-group">
-          <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
-          <input 
-            id="dateUlcoApproved" 
-            name="dateUlcoApproved" 
-            type="date" 
-            value={dateUlcoApproved}
-            onChange={(e) => setDateUlcoApproved(e.target.value)}
-          />
-          </div>
+            {/* DATE ENDORSED */}
+            <div className="form-group">
+            <label htmlFor="dateEndorsed">Date Endorsed to ULCO:</label>
+            <input id="dateEndorsed" name="dateEndorsed" type="date" />
+            </div>
 
-          {/* HARDCOPY LOCATOR */}
-          <div className="form-group full-width">
-          <label htmlFor="locator">Hardcopy Locator:</label>
-          <input id="locator" name="locator" type="text" />
-          </div>
+            {/* DATE ULCO APPROVED */}
+            <div className="form-group">
+            <label htmlFor="dateUlcoApproved">Date ULCO Approved:</label>
+            <input 
+              id="dateUlcoApproved" 
+              name="dateUlcoApproved" 
+              type="date" 
+              value={dateUlcoApproved}
+              onChange={(e) => setDateUlcoApproved(e.target.value)}
+            />
+            </div>
 
-          {/* EVENT INFO */}
-          <div className="form-group full-width">
-          <label htmlFor="eventInfo">Event Info:</label>
-          <textarea
-            id="eventInfo"
-            name="eventInfo"
-            defaultValue={extractedMetadata?.event_info || ""}
-          />
-          </div>  
+            {/* HARDCOPY LOCATOR */}
+            <div className="form-group full-width">
+            <label htmlFor="locator">Hardcopy Locator:</label>
+            <input id="locator" name="locator" type="text" />
+            </div>
 
-          {/* REMARKS */}
-          <div className="form-group full-width">
-          <label htmlFor="remarks">Remarks:</label>
-          <textarea 
-            id="remarks" 
-            name="remarks" 
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-          />
-          </div>
+            {/* EVENT INFO */}
+            <div className="form-group full-width">
+            <label htmlFor="eventInfo">Event Info:</label>
+            <textarea
+              id="eventInfo"
+              name="eventInfo"
+              defaultValue={extractedMetadata?.event_info || ""}
+            />
+            </div>  
 
-          <div className="form-actions">
-            <button type="submit" className="publish-button" disabled={loading}>
-              {loading ? "Creating..." : "Publish"}
-            </button>
-          </div>
-        </form>
+            {/* REMARKS */}
+            <div className="form-group full-width">
+            <label htmlFor="remarks">Remarks:</label>
+            <textarea 
+              id="remarks" 
+              name="remarks" 
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+            />
+            </div>
+
+            <div className="form-actions">
+              <button type="submit" className="publish-button" disabled={loading}>
+                {loading ? "Creating..." : "Publish Agreement"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  </TopbarSidebar>
-);
+    </TopbarSidebar>
+  );
 };
 
 export default ExtractedEntryMOA;
