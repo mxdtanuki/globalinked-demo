@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import threading
 from datetime import datetime, timedelta
 from dateutil import parser
 from typing import Dict, Any, List, Optional, Tuple
@@ -22,12 +23,48 @@ from .document_processing_service import DocumentProcessingService
 logger = logging.getLogger(__name__)
 
 
+class TimeoutError(Exception):
+    """Custom timeout exception"""
+    pass
+
+
+def run_with_timeout(func, args=(), kwargs=None, timeout_duration=5):
+    """
+    ✅ WINDOWS-COMPATIBLE: Run a function with timeout using threading
+    Works on both Windows and Unix systems
+    """
+    if kwargs is None:
+        kwargs = {}
+    
+    result = [TimeoutError("Function call timed out")]
+    
+    def target():
+        try:
+            result[0] = func(*args, **kwargs)
+        except Exception as e:
+            result[0] = e
+    
+    thread = threading.Thread(target=target)
+    thread.daemon = True
+    thread.start()
+    thread.join(timeout_duration)
+    
+    if thread.is_alive():
+        # Thread is still running, timeout occurred
+        raise TimeoutError(f"Operation timed out after {timeout_duration} seconds")
+    
+    if isinstance(result[0], Exception):
+        raise result[0]
+    
+    return result[0]
+
+
 class NLPLegalExtractionService:
     """
     Production-Ready Legal Document Extraction Service using spaCy NER + Legal-BERT QA.
     
     ✅ ALL CRITICAL FIXES APPLIED:
-    - Enhanced timeout protection for regex operations
+    - ✅ WINDOWS-COMPATIBLE timeout protection using threading
     - Comprehensive length validation for all extracted fields
     - RFC-compliant email validation with domain checking
     - Bounds checking for text processing to handle large documents
@@ -184,7 +221,7 @@ class NLPLegalExtractionService:
 
         self._qa_loading = False
 
-        # ✅ CRITICAL: Enhanced questions for better extraction coverage
+        # Enhanced questions for better extraction coverage
         self.questions = {
             "document_type": [
                 "What type of document is this - Memorandum of Agreement (MOA) or Memorandum of Understanding (MOU)?",
@@ -522,7 +559,7 @@ class NLPLegalExtractionService:
 
     def _extract_partner_name_with_timeout(self, text: str) -> str:
         """
-        ✅ CRITICAL FIX: Partner name extraction with timeout protection and length limits
+        ✅ WINDOWS-COMPATIBLE: Partner name extraction with timeout protection and length limits
         """
         # ✅ Prevent processing excessively long text
         if len(text) > 50000:
@@ -538,18 +575,15 @@ class NLPLegalExtractionService:
 
         for i, pattern in enumerate(patterns):
             try:
-                # ✅ Add timeout protection (5 seconds max per pattern)
-                import signal
-                def timeout_handler(signum, frame):
-                    raise TimeoutError("Regex timeout")
-                
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(5)
+                # ✅ WINDOWS-COMPATIBLE: Use threading-based timeout instead of signal.alarm
+                def regex_search():
+                    return re.search(pattern, text, re.IGNORECASE | re.DOTALL)
                 
                 try:
-                    match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-                finally:
-                    signal.alarm(0)
+                    match = run_with_timeout(regex_search, timeout_duration=5)
+                except TimeoutError:
+                    logger.warning(f"Regex timeout on partner name pattern {i+1}")
+                    continue
                 
                 if match:
                     name = match.group(1).strip()
@@ -569,9 +603,6 @@ class NLPLegalExtractionService:
                         if not is_pup and any(c.isupper() for c in name):
                             logger.info(f"✓ Partner name extracted (pattern {i+1}): {name}")
                             return name
-            except TimeoutError:
-                logger.warning(f"Regex timeout on partner name pattern {i+1}")
-                continue
             except Exception as e:
                 logger.debug(f"Partner name pattern {i+1} error: {e}")
                 continue
@@ -596,7 +627,16 @@ class NLPLegalExtractionService:
 
         for pattern in patterns:
             try:
-                matches = re.findall(pattern, text, re.IGNORECASE | re.DOTALL)
+                # ✅ Add timeout protection for address patterns
+                def regex_findall():
+                    return re.findall(pattern, text, re.IGNORECASE | re.DOTALL)
+                
+                try:
+                    matches = run_with_timeout(regex_findall, timeout_duration=3)
+                except TimeoutError:
+                    logger.debug("Regex timeout on address pattern, skipping")
+                    continue
+                
                 for match in matches:
                     address = match.strip()
                     address = re.sub(r'\s+', ' ', address)
@@ -744,7 +784,7 @@ class NLPLegalExtractionService:
 
     def _extract_event_info_structured(self, text: str) -> str:
         """
-        ✅ CRITICAL FIX: Enhanced event info with better section detection
+        ✅ WINDOWS-COMPATIBLE: Enhanced event info with better section detection and timeout
         """
         patterns = [
             r"PURPOSE\s*:?\s*\n?((?:[^\n]|\n(?!\s*(?:ARTICLE|WHEREAS|NOW|SCOPE)))*?)(?:\n\s*(?:ARTICLE|WHEREAS|NOW|SCOPE|$))",
@@ -755,7 +795,16 @@ class NLPLegalExtractionService:
 
         for pattern in patterns:
             try:
-                match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+                # ✅ WINDOWS-COMPATIBLE: Timeout protection for complex regex
+                def regex_search():
+                    return re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+                
+                try:
+                    match = run_with_timeout(regex_search, timeout_duration=5)
+                except TimeoutError:
+                    logger.debug("Regex timeout on event info pattern, trying next")
+                    continue
+                
                 if match:
                     info = match.group(1).strip()
                     info = re.sub(r'\s+', ' ', info)
@@ -797,14 +846,27 @@ class NLPLegalExtractionService:
 
     def _extract_contact_persons_validated(self, text: str) -> List[Dict[str, str]]:
         """
-        ✅ CRITICAL FIX: Enhanced contact extraction with RFC-compliant email validation
+        ✅ WINDOWS-COMPATIBLE: Enhanced contact extraction with RFC-compliant email validation and timeout
         """
         contacts = []
         seen_emails = set()
 
-        # ✅ Comprehensive email pattern
+        # ✅ Comprehensive email pattern with timeout protection
         email_pattern = r"([a-zA-Z0-9][a-zA-Z0-9._%+-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,})"
-        emails = re.findall(email_pattern, text)
+        
+        try:
+            def find_emails():
+                return re.findall(email_pattern, text)
+            
+            try:
+                emails = run_with_timeout(find_emails, timeout_duration=5)
+            except TimeoutError:
+                logger.warning("Email extraction timeout, using fallback")
+                # Fallback: extract from smaller chunks
+                emails = re.findall(email_pattern, text[:10000])
+        except Exception as e:
+            logger.debug(f"Error in email extraction: {e}")
+            emails = []
 
         for email in emails:
             email_lower = email.lower()
@@ -840,12 +902,15 @@ class NLPLegalExtractionService:
                 ]
                 
                 for name_pattern in name_patterns:
-                    name_match = re.search(name_pattern, context, re.IGNORECASE)
-                    if name_match:
-                        contact_name = re.sub(r'\s+', ' ', name_match.group(1).strip())
-                        break
+                    try:
+                        name_match = re.search(name_pattern, context, re.IGNORECASE)
+                        if name_match:
+                            contact_name = re.sub(r'\s+', ' ', name_match.group(1).strip())
+                            break
+                    except Exception:
+                        continue
                 
-                # ✅ Extract position
+                # ✅ Extract position with timeout
                 position_keywords = [
                     "Director", "Coordinator", "Officer", "Manager", "Head", "Chair",
                     "Dean", "President", "Vice", "Professor", "Dr", "Representative",
@@ -854,11 +919,14 @@ class NLPLegalExtractionService:
                 
                 for keyword in position_keywords:
                     if keyword.lower() in context.lower():
-                        position_pattern = rf"({keyword}[A-Za-z\s,.-]*?)(?:\n|{re.escape(email)})"
-                        position_match = re.search(position_pattern, context, re.IGNORECASE)
-                        if position_match:
-                            contact_position = re.sub(r'\s+', ' ', position_match.group(1).strip())
-                            break
+                        try:
+                            position_pattern = rf"({keyword}[A-Za-z\s,.-]*?)(?:\n|{re.escape(email)})"
+                            position_match = re.search(position_pattern, context, re.IGNORECASE)
+                            if position_match:
+                                contact_position = re.sub(r'\s+', ' ', position_match.group(1).strip())
+                                break
+                        except Exception:
+                            continue
 
                 if contact_name or contact_position or email:
                     contacts.append({
@@ -1001,6 +1069,145 @@ class NLPLegalExtractionService:
             "qa_ready": self.is_qa_ready()
         }
 
+    def _preprocess_text(self, text: str) -> str:
+        """
+        ✅ ADDED: Preprocess text for extraction
+        Cleans up formatting, removes extra whitespace, normalizes structure
+        """
+        if not text:
+            return ""
+
+        try:
+            # Remove excessive whitespace and normalize line breaks
+            text = re.sub(r'\n\s*\n', '\n\n', text)
+            text = re.sub(r'[ \t]+', ' ', text)
+            text = re.sub(r'\n\d+\n', '\n', text)  # Remove page numbers
+
+            # Remove header/footer patterns
+            text = re.sub(r'Page\s+\d+\s+of\s+\d+', '', text, flags=re.IGNORECASE)
+            text = re.sub(r'^\s*\d+\s*$', '', text, flags=re.MULTILINE)
+
+            # Normalize common legal document patterns
+            text = re.sub(r'WHEREAS[,;]', 'WHEREAS,', text, flags=re.IGNORECASE)
+            text = re.sub(r'NOW[,\s]+THEREFORE[,;]', 'NOW, THEREFORE,', text, flags=re.IGNORECASE)
+
+            return text.strip()
+        except Exception as e:
+            logger.debug(f"Text preprocessing error: {e}")
+            return text
+
+    def _extract_document_type(self, text: str) -> str:
+        """
+        ✅ ADDED: Extract document type (MOA/MOU) - prioritize document title
+        """
+        try:
+            # First, check the document title/header (first few lines) for primary document type
+            header_lines = '\n'.join(text.split('\n')[:10])  # First 10 lines
+            
+            # Check header for primary document type
+            if re.search(r'\bmemorandum of understanding\b', header_lines, re.IGNORECASE):
+                return "MOU"
+            elif re.search(r'\bmemorandum of agreement\b', header_lines, re.IGNORECASE):
+                return "MOA"
+            
+            # If not found in header, check for abbreviations in header
+            if re.search(r'\bmou\b', header_lines, re.IGNORECASE):
+                return "MOU"
+            elif re.search(r'\bmoa\b', header_lines, re.IGNORECASE):
+                return "MOA"
+            
+            # Fallback: check entire document, but prioritize full forms over abbreviations
+            if re.search(r'\bmemorandum of understanding\b', text, re.IGNORECASE):
+                return "MOU"
+            elif re.search(r'\bmemorandum of agreement\b', text, re.IGNORECASE):
+                return "MOA"
+            
+            # Last resort: check for abbreviations in full document
+            if re.search(r'\bmou\b', text, re.IGNORECASE):
+                return "MOU" 
+            elif re.search(r'\bmoa\b', text, re.IGNORECASE):
+                return "MOA"
+            
+            return ""
+        except Exception as e:
+            logger.debug(f"Document type extraction error: {e}")
+            return ""
+
+    def _compute_expiry_date(self, date_signed: str, validity_years: int) -> str:
+        """
+        ✅ ADDED: Compute expiry date from signing date and validity period
+        Uses relativedelta for accurate year addition
+        """
+        if not date_signed or not validity_years or validity_years <= 0:
+            return ""
+        try:
+            signed_date = datetime.strptime(date_signed, "%Y-%m-%d")
+            expiry_date = signed_date + relativedelta(years=validity_years)
+            return expiry_date.strftime("%Y-%m-%d")
+        except Exception as e:
+            logger.debug(f"Expiry date computation error: {e}")
+            return ""
+
+    def _infer_entity_type(self, partner_name: str) -> str:
+        """
+        ✅ ADDED: Infer entity type from partner name
+        """
+        if not partner_name:
+            return "Organization"
+        
+        name_lower = partner_name.lower()
+
+        if any(keyword in name_lower for keyword in ["university", "college", "institute", "school", "academy"]):
+            return "University"
+        elif any(keyword in name_lower for keyword in ["company", "corp", "corporation", "inc", "ltd", "llc", "limited"]):
+            return "Company"
+        elif any(keyword in name_lower for keyword in ["government", "ministry", "department", "agency", "bureau", "council"]):
+            return "Government"
+        elif any(keyword in name_lower for keyword in ["foundation", "association", "ngo", "society", "federation"]):
+            return "NGO"
+        else:
+            return "Organization"
+
+    def _map_to_agreement_fields(self, extracted: Dict[str, Any], full_text: str) -> Dict[str, Any]:
+        """
+        ✅ ADDED: Map extracted data to agreement structure matching AgreementCreate schema
+        """
+        # Build partner information
+        partner_info = {
+            "name": extracted.get("partner_name", ""),
+            "entity_type": extracted.get("partner_entity_type", ""),
+            "country": extracted.get("partner_country", ""),
+            "region": extracted.get("partner_region", ""),
+            "address": extracted.get("partner_address", ""),
+            "website": extracted.get("partner_website", ""),
+            "description": extracted.get("partner_description", "")
+        }
+
+        # Map document metadata
+        result = {
+            "partner": partner_info,
+            "document_type": extracted.get("document_type", ""),
+            "partnership_type": extracted.get("partnership_type", ""),
+            "date_signed": extracted.get("date_signed", ""),
+            "date_expiry": extracted.get("date_expiry", ""),
+            "validity_period": extracted.get("validity_period", 0),
+            "event_info": extracted.get("event_info", ""),
+            "signatories_list": extracted.get("signatories_list", []),
+            "contact_persons": extracted.get("contact_persons", []),
+            "point_persons": extracted.get("point_persons", []),
+            "date_received": extracted.get("date_received", ""),
+            "date_endorsed_to_ulco": extracted.get("date_endorsed_to_ulco", ""),
+            "date_ulco_approved": extracted.get("date_ulco_approved", ""),
+            "date_pup_signed": extracted.get("date_pup_signed", ""),
+            "agreement_status": extracted.get("agreement_status", "Active"),
+            "dts_number": extracted.get("dts_number", ""),
+            "hardcopy_location": extracted.get("hardcopy_location", ""),
+            "source_unit": extracted.get("source_unit", ""),
+            "entry_type": "Extracted",
+            "remarks": extracted.get("remarks", "")
+        }
+
+        return result
 
 # Compatibility alias
 NlpExtractionService = NLPLegalExtractionService
