@@ -130,42 +130,20 @@ async def performance_test(db: Session = Depends(get_db)):
 # Startup / Shutdown Events
 # ---------------------------
 @app.on_event("startup")
-def on_startup():
-    """Initialize scheduler, preload NLP model, and verify DB connectivity."""
+async def startup_event():
+    logger.info("🚀 Application starting up...")
+    
+    # ✅ START SCHEDULER
     try:
         from app.scheduler import start_scheduler
         start_scheduler()
-        logger.info("Scheduler started successfully.")
+        logger.info("✅ Scheduler started successfully")
     except Exception as e:
-        logger.warning(f"Scheduler failed to start: {e}")
-    # Preload QA model
-    try:
-        svc = getattr(app.state, "nlp_service", None)
-        if svc is None:
-            app.state.nlp_service = NlpExtractionService(
-                document_processing_service=app.state.doc_processing_service
-            )
-            svc = app.state.nlp_service
-
-        if hasattr(svc, "_ensure_qa"):
-            svc._ensure_qa()
-        info = getattr(svc, "qa_info", lambda: {})()
-        logger.info(
-            "QA ready: model=%s device=%s chunk=%s overlap=%s",
-            info.get("model", "?"),
-            info.get("device", "?"),
-            info.get("chunk_chars", "?"),
-            info.get("overlap", "?"),
-        )
-    except Exception as e:
-        logger.exception(f"Failed to preload QA model: {e}")
-
-    # DB health check at startup
-    try:
-        db_status = test_connection()
-        logger.info(f"Database startup check: {db_status}")
-    except Exception as e:
-        logger.error(f"Database connection failed at startup: {e}")
+        logger.error(f"❌ Failed to start scheduler: {e}")
+    
+    # ✅ NLP models will lazy-load on first use
+    logger.info("✅ NLP models will load on first extraction request")
+    logger.info("✅ Startup complete - ready to accept requests")
 
 
 @app.on_event("shutdown")
@@ -174,9 +152,9 @@ def on_shutdown():
     try:
         from app.scheduler import shutdown_scheduler
         shutdown_scheduler()
-        logger.info("Scheduler stopped successfully.")
+        logger.info("✅ Scheduler stopped successfully.")
     except Exception as e:
-        logger.warning(f"Scheduler shutdown issue: {e}")
+        logger.warning(f"⚠️ Scheduler shutdown issue: {e}")
 
 # ---------------------------
 # NLP Health Endpoint

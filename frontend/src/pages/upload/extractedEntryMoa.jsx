@@ -409,7 +409,7 @@ const ExtractedEntryMOA = () => {
     }
   }, [formData, initialPointPersons]);
 
-  // Populate form with extracted metadata - ENHANCED
+  // Populate form with extracted metadata 
   useEffect(() => {
     if (extractedMetadata) {
       console.log("📄 Extracted Metadata:", extractedMetadata);
@@ -1102,10 +1102,30 @@ const ExtractedEntryMOA = () => {
               />
             </div>
 
-            {/* SIGNATORIES */}
+            {/* EVENT INFO */}
             <div className="form-group full-width">
-            <label htmlFor="signatories">Signatories:</label>
-            <input id="signatories" name="signatories" type="text" />
+              <label htmlFor="eventInfo">Event Info:</label>
+              <textarea
+                id="eventInfo"
+                name="eventInfo"
+                value={eventInfo}
+                onChange={(e) => setEventInfo(e.target.value)}
+                placeholder="Enter event or partnership information..."
+                rows="4"
+              />
+            </div>  
+
+            {/* SIGNATORIES - ✅ FIXED: Now uses signatories state */}
+            <div className="form-group full-width">
+              <label htmlFor="signatories">Signatories:</label>
+              <input 
+                id="signatories" 
+                name="signatories" 
+                type="text" 
+                value={signatories}
+                onChange={(e) => setSignatories(e.target.value)}
+                placeholder="Name, Position, Institution; Name, Position, Institution"
+              />
             </div>
 
             {/* POINT PERSON */}
@@ -1274,12 +1294,15 @@ const ExtractedEntryMOA = () => {
 
             {/* EVENT INFO */}
             <div className="form-group full-width">
-            <label htmlFor="eventInfo">Event Info:</label>
-            <textarea
-              id="eventInfo"
-              name="eventInfo"
-              defaultValue={extractedMetadata?.event_info || ""}
-            />
+              <label htmlFor="eventInfo">Event Info:</label>
+              <textarea
+                id="eventInfo"
+                name="eventInfo"
+                value={eventInfo}
+                onChange={(e) => setEventInfo(e.target.value)}
+                placeholder="Enter event or partnership information..."
+                rows="4"
+              />
             </div>  
 
             {/* REMARKS */}
