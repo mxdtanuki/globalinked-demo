@@ -210,7 +210,7 @@
 .extraction-progress {
   margin: 20px 0;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800000 0%, #fce830 100%);
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }

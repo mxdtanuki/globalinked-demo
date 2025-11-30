@@ -1102,20 +1102,7 @@ const ExtractedEntryMOA = () => {
               />
             </div>
 
-            {/* EVENT INFO */}
-            <div className="form-group full-width">
-              <label htmlFor="eventInfo">Event Info:</label>
-              <textarea
-                id="eventInfo"
-                name="eventInfo"
-                value={eventInfo}
-                onChange={(e) => setEventInfo(e.target.value)}
-                placeholder="Enter event or partnership information..."
-                rows="4"
-              />
-            </div>  
-
-            {/* SIGNATORIES - ✅ FIXED: Now uses signatories state */}
+            {/* SIGNATORIES - Now uses signatories state */}
             <div className="form-group full-width">
               <label htmlFor="signatories">Signatories:</label>
               <input 

@@ -1283,35 +1283,93 @@ class NLPLegalExtractionService:
 
     def _extract_signatories_safe(self, text: str) -> List[Dict[str, str]]:
         """
-     signatories extraction with error handling
+        ✅ ENHANCED: Extract signatories with better pattern matching
         """
         signatories = []
         
         try:
+            # ✅ Pattern 1: Standard signature blocks with "By:" format
             signature_blocks = re.findall(
-                r"By:\s*\n?\s*([A-Z][A-Z\s\.]+)\s*\n?\s*([A-Za-z\s,\.-]+?)(?:\n|$)", 
+                r"(?:By|Signed by):\s*\n?\s*([A-Z][A-Z\s\.]+?)\s*\n\s*([^\n]+?)(?:\n|$)", 
                 text, 
-                re.MULTILINE
+                re.MULTILINE | re.IGNORECASE
             )
 
             for name, position in signature_blocks:
+                name = re.sub(r'\s+', ' ', name.strip())
+                position = re.sub(r'\s+', ' ', position.strip())
+                
+                # Determine institution
                 institution = "PUP" if any(k in position.lower() for k in ["pup", "polytechnic"]) else "Partner"
+                
                 signatories.append({
-                    "name": name.strip()[:100],
-                    "position": position.strip()[:100],
+                    "name": name[:100],
+                    "position": position[:100],
                     "institution": institution
                 })
+
+            # ✅ Pattern 2: Name followed by position (common in MOAs)
+            # Example: "DR. RYU HONG LIM\nPresident"
+            if not signatories:
+                name_position_pairs = re.findall(
+                    r"([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s*\n\s*([A-Za-z\s,\.-]+?)(?:\n\n|$)",
+                    text,
+                    re.MULTILINE
+                )
+                
+                for name, position in name_position_pairs:
+                    name = re.sub(r'\s+', ' ', name.strip())
+                    position = re.sub(r'\s+', ' ', position.strip())
+                    
+                    # Filter out common false positives
+                    if len(name) > 4 and len(position) > 3:
+                        # Determine institution
+                        pup_keywords = ["pup", "polytechnic university", "manuel", "rivera"]
+                        is_pup = any(keyword in name.lower() or keyword in position.lower() for keyword in pup_keywords)
+                        institution = "PUP" if is_pup else "Partner"
+                        
+                        signatories.append({
+                            "name": name[:100],
+                            "position": position[:100],
+                            "institution": institution
+                        })
+
+            # ✅ Pattern 3: Extract from witness section
+            witness_section = re.search(
+                r"(?:Signed in the presence of|Witnesses?):\s*\n((?:.*\n){1,10})",
+                text,
+                re.IGNORECASE | re.MULTILINE
+            )
+            
+            if witness_section:
+                witness_text = witness_section.group(1)
+                witness_names = re.findall(
+                    r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*\n\s*([^\n]+)",
+                    witness_text
+                )
+                
+                for name, position in witness_names:
+                    if name not in [s["name"] for s in signatories]:
+                        signatories.append({
+                            "name": name.strip()[:100],
+                            "position": position.strip()[:100],
+                            "institution": "Witness"
+                        })
+
+            logger.info(f"✍️ Extracted {len(signatories)} signatories")
+            
         except Exception as e:
             logger.debug(f"Error extracting signatories: {e}")
 
-        return signatories[:6]
+        return signatories[:10]  # Return up to 10 signatories
 
     def _extract_contact_persons_validated(self, text: str) -> List[Dict[str, str]]:
         """
-        ✅ WINDOWS-COMPATIBLE: contact extraction with RFC-compliant email validation and timeout
+        ✅ ENHANCED: Extract contact persons with comprehensive pattern matching
         """
         contacts = []
         seen_emails = set()
+        seen_names = set()
 
         # ✅ Comprehensive email pattern with timeout protection
         email_pattern = r"([a-zA-Z0-9][a-zA-Z0-9._%+-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,})"
@@ -1324,7 +1382,6 @@ class NLPLegalExtractionService:
                 emails = run_with_timeout(find_emails, timeout_duration=5)
             except TimeoutError:
                 logger.warning("Email extraction timeout, using fallback")
-                # Fallback: extract from smaller chunks
                 emails = re.findall(email_pattern, text[:10000])
         except Exception as e:
             logger.debug(f"Error in email extraction: {e}")
@@ -1336,11 +1393,11 @@ class NLPLegalExtractionService:
                 continue
             seen_emails.add(email_lower)
             
-            # ✅ email validation
+            # ✅ Email validation
             if not self._validate_email_rfc(email):
                 continue
             
-            # Skip PUP emails
+            # Skip PUP emails (those are point persons)
             if self._is_pup_email(email):
                 continue
             
@@ -1349,6 +1406,7 @@ class NLPLegalExtractionService:
                 if email_pos == -1:
                     continue
                 
+                # Get context around email (±300 chars)
                 start_context = max(0, email_pos - 300)
                 end_context = min(len(text), email_pos + 100)
                 context = text[start_context:end_context]
@@ -1356,11 +1414,14 @@ class NLPLegalExtractionService:
                 contact_name = ""
                 contact_position = ""
                 
-                # ✅ Multiple name pattern attempts
+                # ✅ Pattern 1: Name before email
                 name_patterns = [
-                    r"(?:Attention|Contact|Representative|Focal\s+Point|Contact\s+Person)\s*:?\s*\n?\s*([A-Z][A-Za-z\s\.]{2,50}?)(?:\n|,|$)",
-                    r"([A-Z][a-z]+\s+[A-Z][a-z]+)\s*[\n,]*\s*" + re.escape(email),
-                    r"(?:Dr\.?\s+|Prof\.?\s+|Mr\.?\s+|Ms\.?\s+|Mrs\.?\s+)?([A-Z][A-Za-z\s\.]{5,50}?)\s*[\n,]*\s*" + re.escape(email)
+                    # "Mr. Joon Park" or "Dr. Ana Bautista"
+                    r"(?:Dr\.?\s+|Prof\.?\s+|Mr\.?\s+|Ms\.?\s+|Mrs\.?\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*[\n,]*\s*" + re.escape(email),
+                    # "Office of International Affairs, SNU"
+                    r"([A-Z][a-z]+\s+[A-Z][a-z]+)\s*\n\s*Office",
+                    # Generic name pattern
+                    r"([A-Z][A-Za-z\s\.]{5,50}?)\s*[\n,]*\s*" + re.escape(email)
                 ]
                 
                 for name_pattern in name_patterns:
@@ -1368,44 +1429,51 @@ class NLPLegalExtractionService:
                         name_match = re.search(name_pattern, context, re.IGNORECASE)
                         if name_match:
                             contact_name = re.sub(r'\s+', ' ', name_match.group(1).strip())
-                            break
+                            if contact_name not in seen_names and len(contact_name) > 3:
+                                seen_names.add(contact_name)
+                                break
                     except Exception:
                         continue
                 
-                # ✅ Extract position with timeout
+                # ✅ Pattern 2: Position extraction
                 position_keywords = [
                     "Director", "Coordinator", "Officer", "Manager", "Head", "Chair",
                     "Dean", "President", "Vice", "Professor", "Dr", "Representative",
-                    "Secretary", "Administrator", "Chief", "Principal"
+                    "Secretary", "Administrator", "Chief", "Principal", "Office of"
                 ]
                 
                 for keyword in position_keywords:
                     if keyword.lower() in context.lower():
                         try:
-                            position_pattern = rf"({keyword}[A-Za-z\s,.-]*?)(?:\n|{re.escape(email)})"
-                            position_match = re.search(position_pattern, context, re.IGNORE_CASE)
+                            # Extract position with timeout
+                            position_pattern = rf"({keyword}[A-Za-z\s,.-]*?)(?:\n|{re.escape(email)}|$)"
+                            position_match = re.search(position_pattern, context, re.IGNORECASE)
                             if position_match:
                                 contact_position = re.sub(r'\s+', ' ', position_match.group(1).strip())
-                                break
+                                if len(contact_position) > 3 and len(contact_position) < 100:
+                                    break
                         except Exception:
                             continue
 
+                # ✅ Add contact if we have meaningful data
                 if contact_name or contact_position or email:
                     contacts.append({
                         "contact_person_name": contact_name[:100],
                         "contact_person_position": contact_position[:100],
                         "contact_person_email": email
                     })
+                    logger.debug(f"📧 Contact: {contact_name} ({contact_position}) - {email}")
                     
             except Exception as e:
                 logger.debug(f"Error processing contact email {email}: {e}")
                 continue
 
+        logger.info(f"📞 Extracted {len(contacts)} partner contacts")
         return contacts[:5]
 
     def _validate_email_rfc(self, email: str) -> bool:
         """
-     RFC-compliant email validation
+        RFC-compliant email validation
         """
         if not email or len(email) < 5 or len(email) > 254:
             return False
@@ -1435,23 +1503,76 @@ class NLPLegalExtractionService:
 
     def _extract_point_persons_validated(self, text: str) -> List[Dict[str, str]]:
         """
-     PUP point persons extraction
+        ✅ ENHANCED: Extract PUP point persons with name and position
         """
         point_persons = []
+        seen_emails = set()
+        seen_names = set()
+        
+        # Find all PUP emails
         emails = re.findall(r"([a-zA-Z0-9._%+-]+@pup\.edu\.ph)", text, re.IGNORECASE)
         
         for email in set(emails):
-            point_persons.append({
-                "point_person_name": "",
-                "point_person_position": "",
-                "point_person_email": email
-            })
+            if email.lower() in seen_emails:
+                continue
+            seen_emails.add(email.lower())
+            
+            try:
+                # Get context around email
+                email_pos = text.find(email)
+                if email_pos == -1:
+                    continue
+                
+                start_context = max(0, email_pos - 300)
+                end_context = min(len(text), email_pos + 100)
+                context = text[start_context:end_context]
+                
+                person_name = ""
+                person_position = ""
+                
+                # ✅ Extract name patterns
+                name_patterns = [
+                    r"(?:Dr\.?\s+|Prof\.?\s+)?([A-Z][a-z]+\s+[A-Z][a-z]+)\s*[\n,]*\s*" + re.escape(email),
+                    r"([A-Z][a-z]+\s+[A-Z][a-z]+)\s*\n\s*Office\s+of\s+International\s+Affairs",
+                ]
+                
+                for name_pattern in name_patterns:
+                    name_match = re.search(name_pattern, context, re.IGNORECASE)
+                    if name_match:
+                        person_name = re.sub(r'\s+', ' ', name_match.group(1).strip())
+                        if person_name not in seen_names:
+                            seen_names.add(person_name)
+                            break
+            
+                # ✅ Extract position
+                position_keywords = ["Director", "Coordinator", "Professor", "Dean", "Officer", "Office of"]
+                for keyword in position_keywords:
+                    if keyword.lower() in context.lower():
+                        position_pattern = rf"({keyword}[A-Za-z\s,.-]*?)(?:\n|{re.escape(email)}|$)"
+                        position_match = re.search(position_pattern, context, re.IGNORECASE)
+                        if position_match:
+                            person_position = re.sub(r'\s+', ' ', position_match.group(1).strip())
+                            if len(person_position) > 3:
+                                break
+                
+                point_persons.append({
+                    "point_person_name": person_name[:100],
+                    "point_person_position": person_position[:100],
+                    "point_person_email": email
+                })
+                
+                logger.debug(f"👤 PUP Point Person: {person_name} ({person_position}) - {email}")
+                
+            except Exception as e:
+                logger.debug(f"Error extracting point person for {email}: {e}")
+                continue
 
-        return point_persons[:3]
+        logger.info(f"👥 Extracted {len(point_persons)} PUP point persons")
+        return point_persons[:5]
 
     def _extract_source_unit_validated(self, text: str) -> str:
         """
-     Source unit extraction with validation
+        Source unit extraction with validation
         """
         patterns = [
             r"(?:prepared by|from)\s+(?:the\s+)?([A-Za-z\s&\-\.]+?)(?:\.|,|$)",

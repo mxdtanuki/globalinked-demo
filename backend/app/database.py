@@ -95,21 +95,15 @@ def get_db() -> Session:
     """
     db = SessionLocal()
     try:
+        # Test connection immediately
+        db.execute(text("SELECT 1"))
         yield db
-    except OperationalError as e:
-        logger.error(f"OperationalError in get_db: {e}")
-        db.rollback()
-        raise
     except Exception as e:
-        logger.error(f"Exception in get_db: {e}")
+        logger.error(f"❌ Database session error: {e}")
         db.rollback()
         raise
     finally:
-        try:
-            db.close()
-            logger.debug("Session closed successfully")
-        except Exception as e:
-            logger.warning(f"Error closing session: {e}")
+        db.close()
 
 def reset_connection_pool():
     """

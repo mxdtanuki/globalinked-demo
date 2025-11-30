@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError, OperationalError
 import logging
 import time
 
@@ -21,7 +22,7 @@ from app.controllers import (
 
 # Models and Services
 from app.models.notification import Notification  
-from app.services.nlp_extraction_service import NlpExtractionService
+from app.services.nlp_extraction_service import NLPLegalExtractionService  # ✅ CORRECT CLASS NAME
 from app.services.document_processing_service import DocumentProcessingService
 
 # Logger
@@ -72,7 +73,7 @@ if not hasattr(app.state, "doc_processing_service"):
     app.state.doc_processing_service = DocumentProcessingService()
 
 if not hasattr(app.state, "nlp_service"):
-    app.state.nlp_service = NlpExtractionService(
+    app.state.nlp_service = NLPLegalExtractionService(  # ✅ CORRECT CLASS NAME
         document_processing_service=app.state.doc_processing_service
     )
 
@@ -176,3 +177,21 @@ def qa_health():
         ready = False
         info = {}
     return {"ready": ready, "info": info}
+
+# database connection health check middleware
+@app.middleware("http")
+async def db_session_middleware(request, call_next):
+    """Ensure database connection is alive before processing request"""
+    try:
+        response = await call_next(request)
+        return response
+    except (DBAPIError, OperationalError) as e:
+        if "DbHandler exited" in str(e) or "connection" in str(e).lower():
+            logger.error(f"🔄 Database connection lost, attempting to reset pool: {e}")
+            try:
+                from app.database import reset_connection_pool
+                reset_connection_pool()
+                logger.info("✅ Connection pool reset successfully")
+            except Exception as reset_err:
+                logger.error(f"❌ Failed to reset connection pool: {reset_err}")
+        raise HTTPException(status_code=503, detail="Database connection error. Please try again.")
