@@ -43,9 +43,8 @@ const Profile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type and size
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
 
     if (!validTypes.includes(file.type)) {
       alert('Please select a valid image file (JPEG, PNG, GIF)');
@@ -82,12 +81,10 @@ const Profile = () => {
       setProfilePic(tempPhoto);
       localStorage.setItem("user", JSON.stringify(updated));
       
-      // Reset states
       setTempPhoto(null);
       setPreviewPhoto(null);
       setShowPhotoActions(false);
       
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -168,8 +165,8 @@ const Profile = () => {
         <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
           
           {loading ? (
-            <div className="loading-container">
-              <div className="spinner"></div>
+            <div className="profile-loading-container">
+              <div className="profile-spinner"></div>
               <p>Loading Profile...</p>
             </div>
           ) : (
@@ -179,7 +176,7 @@ const Profile = () => {
 
                 <div className="profile-pic-wrapper">
                   <div 
-                    className={`profile-pic-container ${showPhotoActions ? 'active' : ''}`}
+                    className={`profile-pic-container ${showPhotoActions ? 'profile-active' : ''}`}
                     onClick={handlePhotoClick}
                   >
                     <img
@@ -188,17 +185,17 @@ const Profile = () => {
                       className="profile-pic"
                     />
                     
-                    <div className="photo-overlay">
-                      <FiCamera className="camera-icon-large" />
-                      <span className="overlay-text">Update Photo</span>
+                    <div className="profile-photo-overlay">
+                      <FiCamera className="profile-camera-icon-large" />
+                      <span className="profile-overlay-text">Update Photo</span>
                     </div>
                   </div>
 
                   {!showPhotoActions && currentUser?.user_profile_img && (
-                    <div className="photo-edit-btn">
+                    <div className="profile-photo-edit-btn">
                       <button
                         type="button"
-                        className="photo-action-btn edit"
+                        className="profile-photo-action-btn profile-edit"
                         title="Edit photo"
                         aria-label="Edit photo"
                         onClick={handlePhotoClick}
@@ -209,10 +206,10 @@ const Profile = () => {
                   )}
 
                   {showPhotoActions && (
-                    <div className="photo-action-panel">
-                      <div className="action-buttons">
+                    <div className="profile-photo-action-panel">
+                      <div className="profile-action-buttons">
                         <button
-                          className="action-btn upload-btn"
+                          className="profile-action-btn profile-upload-btn"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={isSaving}
                         >
@@ -222,7 +219,7 @@ const Profile = () => {
                         
                         {currentUser?.user_profile_img && (
                           <button
-                            className="action-btn remove-btn"
+                            className="profile-action-btn profile-remove-btn"
                             onClick={() => setShowRemoveConfirm(true)}
                             disabled={isSaving}
                           >
@@ -233,9 +230,9 @@ const Profile = () => {
                       </div>
                       
                       {previewPhoto && (
-                        <div className="preview-actions">
+                        <div className="profile-preview-actions">
                           <button
-                            className="action-btn cancel-btn"
+                            className="profile-action-btn profile-cancel-btn"
                             onClick={handleCancelPhotoChange}
                             disabled={isSaving}
                           >
@@ -243,13 +240,13 @@ const Profile = () => {
                             <span>Cancel</span>
                           </button>
                           <button
-                            className="action-btn save-btn"
+                            className="profile-action-btn profile-save-btn"
                             onClick={handleSavePhoto}
                             disabled={isSaving}
                           >
                             {isSaving ? (
                               <>
-                                <div className="mini-spinner"></div>
+                                <div className="profile-mini-spinner"></div>
                                 <span>Saving...</span>
                               </>
                             ) : (
@@ -275,20 +272,20 @@ const Profile = () => {
                 </div>
 
                 {showRemoveConfirm && (
-                  <div className="confirm-dialog-overlay">
-                    <div className="confirm-dialog">
+                  <div className="profile-confirm-dialog-overlay">
+                    <div className="profile-confirm-dialog">
                       <h4>Remove Profile Photo?</h4>
                       <p>Are you sure you want to remove your profile photo?</p>
-                      <div className="dialog-buttons">
+                      <div className="profile-dialog-buttons">
                         <button
-                          className="dialog-btn cancel-btn"
+                          className="profile-dialog-btn profile-cancel-dialog-btn"
                           onClick={() => setShowRemoveConfirm(false)}
                           disabled={isSaving}
                         >
                           Cancel
                         </button>
                         <button
-                          className="dialog-btn confirm-btn"
+                          className="profile-dialog-btn profile-confirm-dialog-btn"
                           onClick={handleRemovePhoto}
                           disabled={isSaving}
                         >
@@ -299,7 +296,7 @@ const Profile = () => {
                   </div>
                 )}
 
-                <div className="form-group">
+                <div className="profile-form-group">
                   <label>Name</label>
                   <input
                     type="text"
@@ -308,7 +305,7 @@ const Profile = () => {
                   />
                 </div>
 
-                <div className="form-group">
+                <div className="profile-form-group">
                   <label>Email</label>
                   <input
                     type="text"
@@ -317,7 +314,7 @@ const Profile = () => {
                   />
                 </div>
 
-                <div className="form-group">
+                <div className="profile-form-group">
                   <label>Position</label>
                   <input
                     type="text"
@@ -327,17 +324,17 @@ const Profile = () => {
                 </div>
 
                 <div className="profile-actions">
-                  <button className="btn-save" onClick={handleSave} disabled={isSaving}>
+                  <button className="profile-btn-save" onClick={handleSave} disabled={isSaving}>
                     {isSaving ? "Saving..." : "Save Changes"}
                   </button>
-                  <button className="btn-cancel" onClick={() => window.location.reload()}>
+                  <button className="profile-btn-cancel" onClick={() => window.location.reload()}>
                     Cancel
                   </button>
                 </div>
 
                 {currentUser?.user_role?.toLowerCase() === "admin" && (
-                  <div className="manage-user-requests">
-                    <button className="btn-manage" onClick={() => navigate('/userManagement')}>
+                  <div className="profile-manage-user-requests">
+                    <button className="profile-btn-manage" onClick={() => navigate('/userManagement')}>
                       Manage User Requests
                     </button>
                   </div>

@@ -779,7 +779,7 @@ const DocumentVersion = () => {
                     Next →
                   </button>
                 </div>
-                {/* Edit Modal (updated to match ActiveAgreement edit UI) */}
+                {/* Edit Modal */}
                 {isAdmin && editingDoc && (
                   <div
                     className="docver-modal-backdrop"

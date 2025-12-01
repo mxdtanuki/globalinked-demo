@@ -44,11 +44,11 @@
   transition: all 0.3s ease;
 }
 
-.profile-pic-container.active {
+.profile-pic-container.profile-active {
   transform: scale(1.05);
 }
 
-.profile-pic-container:hover .photo-overlay {
+.profile-pic-container:hover .profile-photo-overlay {
   opacity: 1;
 }
 
@@ -61,7 +61,7 @@
   box-shadow: 0 3px 8px rgba(0,0,0,0.15);
 }
 
-.photo-overlay {
+.profile-photo-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -78,24 +78,24 @@
   color: white;
 }
 
-.camera-icon-large {
+.profile-camera-icon-large {
   font-size: 24px;
   margin-bottom: 8px;
 }
 
-.overlay-text {
+.profile-overlay-text {
   font-size: 12px;
   font-weight: 500;
 }
 
-.photo-edit-btn {
+.profile-photo-edit-btn {
   position: absolute;
   bottom: 5px;
   right: calc(50% - 75px + 120px);
   z-index: 10;
 }
 
-.photo-action-btn.edit {
+.profile-photo-action-btn.profile-edit {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -110,13 +110,13 @@
   transition: all 0.3s ease;
 }
 
-.photo-action-btn.edit:hover {
+.profile-photo-action-btn.profile-edit:hover {
   background: #800000;
   color: white;
   transform: scale(1.1);
 }
 
-.photo-action-panel {
+.profile-photo-action-panel {
   width: 100%;
   max-width: 400px;
   background: white;
@@ -127,14 +127,14 @@
   border: 1px solid #e0e0e0;
 }
 
-.action-buttons {
+.profile-action-buttons {
   display: flex;
   gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
 }
 
-.action-btn {
+.profile-action-btn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -149,36 +149,36 @@
   transition: all 0.3s ease;
 }
 
-.action-btn:hover {
+.profile-action-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.action-btn:disabled {
+.profile-action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
-.upload-btn {
+.profile-upload-btn {
   border-color: #800000;
   color: #800000;
 }
 
-.upload-btn:hover {
+.profile-upload-btn:hover {
   background: rgba(128, 0, 0, 0.05);
 }
 
-.remove-btn {
+.profile-remove-btn {
   border-color: #dc2626;
   color: #dc2626;
 }
 
-.remove-btn:hover {
+.profile-remove-btn:hover {
   background: rgba(220, 38, 38, 0.05);
 }
 
-.preview-actions {
+.profile-preview-actions {
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -187,43 +187,43 @@
   border-top: 1px solid #eee;
 }
 
-.cancel-btn {
+.profile-cancel-btn {
   border-color: #666;
   color: #666;
 }
 
-.cancel-btn:hover {
+.profile-cancel-btn:hover {
   background: #f5f5f5;
 }
 
-.save-btn {
+.profile-save-btn {
   background: #800000;
   color: white;
   border: none;
 }
 
-.save-btn:hover {
+.profile-save-btn:hover {
   background: #a52a2a;
 }
 
-.save-btn:disabled {
+.profile-save-btn:disabled {
   background: #ccc;
 }
 
-.mini-spinner {
+.profile-mini-spinner {
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: white;
-  animation: spin 1s linear infinite;
+  animation: profile-spin 1s linear infinite;
 }
 
-@keyframes spin {
+@keyframes profile-spin {
   to { transform: rotate(360deg); }
 }
 
-.confirm-dialog-overlay {
+.profile-confirm-dialog-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -236,7 +236,7 @@
   z-index: 1000;
 }
 
-.confirm-dialog {
+.profile-confirm-dialog {
   background: white;
   border-radius: 12px;
   padding: 30px;
@@ -246,25 +246,25 @@
   text-align: center;
 }
 
-.confirm-dialog h4 {
+.profile-confirm-dialog h4 {
   margin-bottom: 10px;
   color: #333;
   font-size: 18px;
 }
 
-.confirm-dialog p {
+.profile-confirm-dialog p {
   margin-bottom: 20px;
   color: #666;
   line-height: 1.5;
 }
 
-.dialog-buttons {
+.profile-dialog-buttons {
   display: flex;
   gap: 10px;
   justify-content: center;
 }
 
-.dialog-btn {
+.profile-dialog-btn {
   padding: 10px 24px;
   border-radius: 8px;
   border: 1px solid #ddd;
@@ -276,35 +276,35 @@
   transition: all 0.3s ease;
 }
 
-.dialog-btn:hover {
+.profile-dialog-btn:hover {
   transform: translateY(-1px);
 }
 
-.cancel-btn {
+.profile-cancel-dialog-btn {
   border-color: #666;
   color: #666;
 }
 
-.confirm-btn {
+.profile-confirm-dialog-btn {
   background: #dc2626;
   color: white;
   border: none;
 }
 
-.confirm-btn:hover {
+.profile-confirm-dialog-btn:hover {
   background: #b91c1c;
 }
 
-.confirm-btn:disabled {
+.profile-confirm-dialog-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
 
-.form-group {
+.profile-form-group {
   margin-bottom: 2rem;
 }
 
-.form-group label {
+.profile-form-group label {
   display: block;
   font-size: 16px;
   font-weight: 600;
@@ -312,7 +312,7 @@
   color: #333;
 }
 
-.form-group input {
+.profile-form-group input {
   width: 100%;
   padding: 14px 16px;
   border: 1px solid #ddd;
@@ -322,7 +322,7 @@
   transition: all 0.3s ease;
 }
 
-.form-group input:focus {
+.profile-form-group input:focus {
   border-color: #800000;
   box-shadow: 0 0 0 4px rgba(128,0,0,0.1);
 }
@@ -345,37 +345,37 @@
   transition: 0.3s ease;
 }
 
-.btn-save {
+.profile-btn-save {
   background: #800000;
   color: #fff;
 }
 
-.btn-save:hover {
+.profile-btn-save:hover {
   background: #a52a2a;
 }
 
-.btn-save:disabled {
+.profile-btn-save:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
 
-.btn-cancel {
+.profile-btn-cancel {
   background: #f3f3f3;
   color: #666;
   border: 1px solid #ddd;
 }
 
-.btn-cancel:hover {
+.profile-btn-cancel:hover {
   background: #e8e8e8;
 }
 
-.manage-user-requests {
+.profile-manage-user-requests {
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid #eee;
 }
 
-.btn-manage {
+.profile-btn-manage {
   padding: 12px 24px;
   border-radius: 14px;
   border: none;
@@ -389,11 +389,28 @@
   transition: all 0.3s ease;
 }
 
-.btn-manage:hover {
+.profile-btn-manage:hover {
   background: #a52a2a;
 }
 
-/* Mobile Responsive */
+.profile-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.profile-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(128, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #800000;
+  animation: profile-spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
 @media (max-width: 768px) {
   .profile-card {
     padding: 2rem 1.5rem;
@@ -405,19 +422,19 @@
     height: 120px;
   }
 
-  .photo-edit-btn {
+  .profile-photo-edit-btn {
     right: calc(50% - 60px + 100px);
   }
 
-  .photo-action-panel {
+  .profile-photo-action-panel {
     padding: 15px;
   }
 
-  .action-buttons {
+  .profile-action-buttons {
     flex-direction: column;
   }
 
-  .action-btn {
+  .profile-action-btn {
     width: 100%;
     justify-content: center;
   }
@@ -426,11 +443,11 @@
     flex-direction: column;
   }
 
-  .dialog-buttons {
+  .profile-dialog-buttons {
     flex-direction: column;
   }
 
-  .dialog-btn {
+  .profile-dialog-btn {
     width: 100%;
   }
 }
