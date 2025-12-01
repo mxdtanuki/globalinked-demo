@@ -234,8 +234,35 @@ async getAgreementByDts(dts) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Failed to update agreement');
+      // Parse JSON body when possible and produce a helpful Error
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (parseErr) {
+        throw new Error(`Failed to update agreement (status ${response.status})`);
+      }
+
+      // If detail is an array (validation errors), flatten it
+      if (errorData && Array.isArray(errorData.detail)) {
+        const validationErrors = errorData.detail
+          .map((err) => {
+            if (typeof err === 'string') return err;
+            return `${err.loc?.[1] || 'Field'}: ${err.msg || err.type || JSON.stringify(err)}`;
+          })
+          .join('\n');
+        const ex = new Error(`Validation errors:\n${validationErrors}`);
+        ex.raw = errorData;
+        throw ex;
+      }
+
+      // If detail is an object or string, include it in the Error message
+      const detail =
+        typeof errorData.detail === 'string'
+          ? errorData.detail
+          : JSON.stringify(errorData.detail || errorData);
+      const ex = new Error(detail || `Failed to update agreement (status ${response.status})`);
+      ex.raw = errorData;
+      throw ex;
     }
 
     return response.json();

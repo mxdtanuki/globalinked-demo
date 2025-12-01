@@ -35,6 +35,10 @@ import {
   FiGrid,
   FiPlus,
   FiSave,
+  FiUser,
+  FiActivity,
+  FiGlobe,
+  FiImage,
 } from "react-icons/fi";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -131,7 +135,7 @@ const SearchableSelect = ({
             background: "#fff",
             boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
             marginTop: 6,
-            width: 320,
+            width: "100%",
             maxHeight: 260,
             overflow: "auto",
           }}
@@ -208,6 +212,279 @@ const STATUS_THRESHOLDS = {
   Notary: 3,
   FFUPCopy: 3,
 };
+
+const countryOptionsWithRegions = [
+  { value: "Afghanistan", label: "Afghanistan", region: "Southern Asia" },
+  { value: "Albania", label: "Albania", region: "Southern Europe" },
+  { value: "Algeria", label: "Algeria", region: "Northern Africa" },
+  { value: "Andorra", label: "Andorra", region: "Southern Europe" },
+  { value: "Angola", label: "Angola", region: "Middle Africa" },
+  {
+    value: "Antigua and Barbuda",
+    label: "Antigua and Barbuda",
+    region: "Caribbean",
+  },
+  { value: "Argentina", label: "Argentina", region: "South America" },
+  { value: "Armenia", label: "Armenia", region: "Western Asia" },
+  { value: "Australia", label: "Australia", region: "Oceania" },
+  { value: "Austria", label: "Austria", region: "Western Europe" },
+  { value: "Azerbaijan", label: "Azerbaijan", region: "Western Asia" },
+  { value: "Bahamas", label: "Bahamas", region: "Caribbean" },
+  { value: "Bahrain", label: "Bahrain", region: "Western Asia" },
+  { value: "Bangladesh", label: "Bangladesh", region: "Southern Asia" },
+  { value: "Barbados", label: "Barbados", region: "Caribbean" },
+  { value: "Belarus", label: "Belarus", region: "Eastern Europe" },
+  { value: "Belgium", label: "Belgium", region: "Western Europe" },
+  { value: "Belize", label: "Belize", region: "Central America" },
+  { value: "Benin", label: "Benin", region: "Western Africa" },
+  { value: "Bhutan", label: "Bhutan", region: "Southern Asia" },
+  { value: "Bolivia", label: "Bolivia", region: "South America" },
+  {
+    value: "Bosnia and Herzegovina",
+    label: "Bosnia and Herzegovina",
+    region: "Southern Europe",
+  },
+  { value: "Botswana", label: "Botswana", region: "Southern Africa" },
+  { value: "Brazil", label: "Brazil", region: "South America" },
+  { value: "Brunei", label: "Brunei", region: "South-Eastern Asia" },
+  { value: "Bulgaria", label: "Bulgaria", region: "Eastern Europe" },
+  { value: "Burkina Faso", label: "Burkina Faso", region: "Western Africa" },
+  { value: "Burundi", label: "Burundi", region: "Eastern Africa" },
+  { value: "Cambodia", label: "Cambodia", region: "South-Eastern Asia" },
+  { value: "Cameroon", label: "Cameroon", region: "Middle Africa" },
+  { value: "Canada", label: "Canada", region: "North America" },
+  { value: "Cape Verde", label: "Cape Verde", region: "Western Africa" },
+  {
+    value: "Central African Republic",
+    label: "Central African Republic",
+    region: "Middle Africa",
+  },
+  { value: "Chad", label: "Chad", region: "Middle Africa" },
+  { value: "Chile", label: "Chile", region: "South America" },
+  { value: "China", label: "China", region: "Eastern Asia" },
+  { value: "Colombia", label: "Colombia", region: "South America" },
+  { value: "Comoros", label: "Comoros", region: "Eastern Africa" },
+  { value: "Congo", label: "Congo", region: "Middle Africa" },
+  { value: "Costa Rica", label: "Costa Rica", region: "Central America" },
+  { value: "Croatia", label: "Croatia", region: "Southern Europe" },
+  { value: "Cuba", label: "Cuba", region: "Caribbean" },
+  { value: "Cyprus", label: "Cyprus", region: "Western Asia" },
+  {
+    value: "Czech Republic",
+    label: "Czech Republic",
+    region: "Eastern Europe",
+  },
+  { value: "Denmark", label: "Denmark", region: "Northern Europe" },
+  { value: "Djibouti", label: "Djibouti", region: "Eastern Africa" },
+  { value: "Dominica", label: "Dominica", region: "Caribbean" },
+  {
+    value: "Dominican Republic",
+    label: "Dominican Republic",
+    region: "Caribbean",
+  },
+  { value: "Ecuador", label: "Ecuador", region: "South America" },
+  { value: "Egypt", label: "Egypt", region: "Northern Africa" },
+  { value: "El Salvador", label: "El Salvador", region: "Central America" },
+  {
+    value: "Equatorial Guinea",
+    label: "Equatorial Guinea",
+    region: "Middle Africa",
+  },
+  { value: "Eritrea", label: "Eritrea", region: "Eastern Africa" },
+  { value: "Estonia", label: "Estonia", region: "Northern Europe" },
+  { value: "Eswatini", label: "Eswatini", region: "Southern Africa" },
+  { value: "Ethiopia", label: "Ethiopia", region: "Eastern Africa" },
+  { value: "Fiji", label: "Fiji", region: "Oceania" },
+  { value: "Finland", label: "Finland", region: "Northern Europe" },
+  { value: "France", label: "France", region: "Western Europe" },
+  { value: "Gabon", label: "Gabon", region: "Middle Africa" },
+  { value: "Gambia", label: "Gambia", region: "Western Africa" },
+  { value: "Georgia", label: "Georgia", region: "Western Asia" },
+  { value: "Germany", label: "Germany", region: "Western Europe" },
+  { value: "Ghana", label: "Ghana", region: "Western Africa" },
+  { value: "Greece", label: "Greece", region: "Southern Europe" },
+  { value: "Grenada", label: "Grenada", region: "Caribbean" },
+  { value: "Guatemala", label: "Guatemala", region: "Central America" },
+  { value: "Guinea", label: "Guinea", region: "Western Africa" },
+  { value: "Guinea-Bissau", label: "Guinea-Bissau", region: "Western Africa" },
+  { value: "Guyana", label: "Guyana", region: "South America" },
+  { value: "Haiti", label: "Haiti", region: "Caribbean" },
+  { value: "Honduras", label: "Honduras", region: "Central America" },
+  { value: "HongKong", label: "HongKong", region: "Eastern Asia" },
+  { value: "Hungary", label: "Hungary", region: "Eastern Europe" },
+  { value: "Iceland", label: "Iceland", region: "Northern Europe" },
+  { value: "India", label: "India", region: "Southern Asia" },
+  { value: "Indonesia", label: "Indonesia", region: "South-Eastern Asia" },
+  { value: "Iran", label: "Iran", region: "Southern Asia" },
+  { value: "Iraq", label: "Iraq", region: "Western Asia" },
+  { value: "Ireland", label: "Ireland", region: "Northern Europe" },
+  { value: "Israel", label: "Israel", region: "Western Asia" },
+  { value: "Italy", label: "Italy", region: "Southern Europe" },
+  { value: "Jamaica", label: "Jamaica", region: "Caribbean" },
+  { value: "Japan", label: "Japan", region: "Eastern Asia" },
+  { value: "Jordan", label: "Jordan", region: "Western Asia" },
+  { value: "Kazakhstan", label: "Kazakhstan", region: "Central Asia" },
+  { value: "Kenya", label: "Kenya", region: "Eastern Africa" },
+  { value: "Kiribati", label: "Kiribati", region: "Oceania" },
+  { value: "Kuwait", label: "Kuwait", region: "Western Asia" },
+  { value: "Kyrgyzstan", label: "Kyrgyzstan", region: "Central Asia" },
+  { value: "Laos", label: "Laos", region: "South-Eastern Asia" },
+  { value: "Latvia", label: "Latvia", region: "Northern Europe" },
+  { value: "Lebanon", label: "Lebanon", region: "Western Asia" },
+  { value: "Lesotho", label: "Lesotho", region: "Southern Africa" },
+  { value: "Liberia", label: "Liberia", region: "Western Africa" },
+  { value: "Libya", label: "Libya", region: "Northern Africa" },
+  { value: "Liechtenstein", label: "Liechtenstein", region: "Western Europe" },
+  { value: "Lithuania", label: "Lithuania", region: "Northern Europe" },
+  { value: "Luxembourg", label: "Luxembourg", region: "Western Europe" },
+  { value: "Macao", label: "Macao", region: "Eastern Asia" },
+  { value: "Madagascar", label: "Madagascar", region: "Eastern Africa" },
+  { value: "Malawi", label: "Malawi", region: "Eastern Africa" },
+  { value: "Malaysia", label: "Malaysia", region: "South-Eastern Asia" },
+  { value: "Maldives", label: "Maldives", region: "Southern Asia" },
+  { value: "Mali", label: "Mali", region: "Western Africa" },
+  { value: "Malta", label: "Malta", region: "Southern Europe" },
+  { value: "Marshall Islands", label: "Marshall Islands", region: "Oceania" },
+  { value: "Mauritania", label: "Mauritania", region: "Western Africa" },
+  { value: "Mauritius", label: "Mauritius", region: "Eastern Africa" },
+  { value: "Mexico", label: "Mexico", region: "Central America" },
+  { value: "Micronesia", label: "Micronesia", region: "Oceania" },
+  { value: "Moldova", label: "Moldova", region: "Eastern Europe" },
+  { value: "Monaco", label: "Monaco", region: "Western Europe" },
+  { value: "Mongolia", label: "Mongolia", region: "Eastern Asia" },
+  { value: "Montenegro", label: "Montenegro", region: "Southern Europe" },
+  { value: "Morocco", label: "Morocco", region: "Northern Africa" },
+  { value: "Mozambique", label: "Mozambique", region: "Eastern Africa" },
+  { value: "Myanmar", label: "Myanmar", region: "South-Eastern Asia" },
+  { value: "Namibia", label: "Namibia", region: "Southern Africa" },
+  { value: "Nauru", label: "Nauru", region: "Oceania" },
+  { value: "Nepal", label: "Nepal", region: "Southern Asia" },
+  { value: "Netherlands", label: "Netherlands", region: "Western Europe" },
+  { value: "New Zealand", label: "New Zealand", region: "Oceania" },
+  { value: "Nicaragua", label: "Nicaragua", region: "Central America" },
+  { value: "Niger", label: "Niger", region: "Western Africa" },
+  { value: "Nigeria", label: "Nigeria", region: "Western Africa" },
+  { value: "North Korea", label: "North Korea", region: "Eastern Asia" },
+  {
+    value: "North Macedonia",
+    label: "North Macedonia",
+    region: "Southern Europe",
+  },
+  { value: "Norway", label: "Norway", region: "Northern Europe" },
+  { value: "Oman", label: "Oman", region: "Western Asia" },
+  { value: "Pakistan", label: "Pakistan", region: "Southern Asia" },
+  { value: "Palau", label: "Palau", region: "Oceania" },
+  { value: "Palestine", label: "Palestine", region: "Western Asia" },
+  { value: "Panama", label: "Panama", region: "Central America" },
+  { value: "Papua New Guinea", label: "Papua New Guinea", region: "Oceania" },
+  { value: "Paraguay", label: "Paraguay", region: "South America" },
+  { value: "Peru", label: "Peru", region: "South America" },
+  { value: "Philippines", label: "Philippines", region: "South-Eastern Asia" },
+  { value: "Poland", label: "Poland", region: "Eastern Europe" },
+  { value: "Portugal", label: "Portugal", region: "Southern Europe" },
+  { value: "Qatar", label: "Qatar", region: "Western Asia" },
+  { value: "Romania", label: "Romania", region: "Eastern Europe" },
+  { value: "Russia", label: "Russia", region: "Eastern Europe" },
+  { value: "Rwanda", label: "Rwanda", region: "Eastern Africa" },
+  {
+    value: "Saint Kitts and Nevis",
+    label: "Saint Kitts and Nevis",
+    region: "Caribbean",
+  },
+  { value: "Saint Lucia", label: "Saint Lucia", region: "Caribbean" },
+  {
+    value: "Saint Vincent and the Grenadines",
+    label: "Saint Vincent and the Grenadines",
+    region: "Caribbean",
+  },
+  { value: "Samoa", label: "Samoa", region: "Oceania" },
+  { value: "San Marino", label: "San Marino", region: "Southern Europe" },
+  {
+    value: "Sao Tome and Principe",
+    label: "Sao Tome and Principe",
+    region: "Middle Africa",
+  },
+  { value: "Saudi Arabia", label: "Saudi Arabia", region: "Western Asia" },
+  { value: "Senegal", label: "Senegal", region: "Western Africa" },
+  { value: "Serbia", label: "Serbia", region: "Southern Europe" },
+  { value: "Seychelles", label: "Seychelles", region: "Eastern Africa" },
+  { value: "Sierra Leone", label: "Sierra Leone", region: "Western Africa" },
+  { value: "Singapore", label: "Singapore", region: "South-Eastern Asia" },
+  { value: "Slovakia", label: "Slovakia", region: "Eastern Europe" },
+  { value: "Slovenia", label: "Slovenia", region: "Southern Europe" },
+  { value: "Solomon Islands", label: "Solomon Islands", region: "Oceania" },
+  { value: "Somalia", label: "Somalia", region: "Eastern Africa" },
+  { value: "South Africa", label: "South Africa", region: "Southern Africa" },
+  { value: "South Korea", label: "South Korea", region: "Eastern Asia" },
+  { value: "South Sudan", label: "South Sudan", region: "Eastern Africa" },
+  { value: "Spain", label: "Spain", region: "Southern Europe" },
+  { value: "Sri Lanka", label: "Sri Lanka", region: "Southern Asia" },
+  { value: "Sudan", label: "Sudan", region: "Northern Africa" },
+  { value: "Suriname", label: "Suriname", region: "South America" },
+  { value: "Sweden", label: "Sweden", region: "Northern Europe" },
+  { value: "Switzerland", label: "Switzerland", region: "Western Europe" },
+  { value: "Syria", label: "Syria", region: "Western Asia" },
+  { value: "Taiwan", label: "Taiwan", region: "Eastern Asia" },
+  { value: "Tajikistan", label: "Tajikistan", region: "Central Asia" },
+  { value: "Tanzania", label: "Tanzania", region: "Eastern Africa" },
+  { value: "Thailand", label: "Thailand", region: "South-Eastern Asia" },
+  { value: "Timor-Leste", label: "Timor-Leste", region: "South-Eastern Asia" },
+  { value: "Togo", label: "Togo", region: "Western Africa" },
+  { value: "Tonga", label: "Tonga", region: "Oceania" },
+  {
+    value: "Trinidad and Tobago",
+    label: "Trinidad and Tobago",
+    region: "Caribbean",
+  },
+  { value: "Tunisia", label: "Tunisia", region: "Northern Africa" },
+  { value: "Turkey", label: "Turkey", region: "Western Asia" },
+  { value: "Turkmenistan", label: "Turkmenistan", region: "Central Asia" },
+  { value: "Tuvalu", label: "Tuvalu", region: "Oceania" },
+  { value: "Uganda", label: "Uganda", region: "Eastern Africa" },
+  { value: "Ukraine", label: "Ukraine", region: "Eastern Europe" },
+  {
+    value: "United Arab Emirates",
+    label: "United Arab Emirates",
+    region: "Western Asia",
+  },
+  {
+    value: "United Kingdom",
+    label: "United Kingdom",
+    region: "Northern Europe",
+  },
+  { value: "United States", label: "United States", region: "North America" },
+  { value: "Uruguay", label: "Uruguay", region: "South America" },
+  { value: "Uzbekistan", label: "Uzbekistan", region: "Central Asia" },
+  { value: "Vanuatu", label: "Vanuatu", region: "Oceania" },
+  { value: "Vatican City", label: "Vatican City", region: "Southern Europe" },
+  { value: "Venezuela", label: "Venezuela", region: "South America" },
+  { value: "Vietnam", label: "Vietnam", region: "South-Eastern Asia" },
+  { value: "Yemen", label: "Yemen", region: "Western Asia" },
+  { value: "Zambia", label: "Zambia", region: "Eastern Africa" },
+  { value: "Zimbabwe", label: "Zimbabwe", region: "Eastern Africa" },
+];
+
+const regionOptions = [
+  "Central Asia",
+  "Eastern Asia",
+  "Southern Asia",
+  "South-Eastern Asia",
+  "Western Asia",
+  "Northern Europe",
+  "Western Europe",
+  "Eastern Europe",
+  "Southern Europe",
+  "North America",
+  "Caribbean",
+  "Central America",
+  "South America",
+  "Oceania",
+  "Eastern Africa",
+  "Middle Africa",
+  "Northern Africa",
+  "Southern Africa",
+  "Western Africa",
+];
 
 const normalizeStatusIn = (s) => {
   const raw = String(s || "")
@@ -801,40 +1078,63 @@ const MultiPersonField = ({
 
   return (
     <div className="multi-list">
-      {value.map((p, idx) => (
-        <div key={idx} className="multi-row">
-          <input
-            placeholder="Position"
-            value={p.position || ""}
-            onChange={(e) => updateAt(idx, "position", e.target.value)}
-            disabled={disabled}
-          />
-          <input
-            placeholder="Name"
-            value={p.name || ""}
-            onChange={(e) => updateAt(idx, "name", e.target.value)}
-            disabled={disabled}
-          />
-          <input
-            placeholder="Email"
-            value={p.email || ""}
-            onChange={(e) => updateAt(idx, "email", e.target.value)}
-            disabled={disabled}
-          />
+      {value.length > 0 ? (
+        value.map((p, idx) => (
+          <div key={idx} className="multi-row">
+            <input
+              placeholder="Position"
+              value={p.position || ""}
+              onChange={(e) => updateAt(idx, "position", e.target.value)}
+              disabled={disabled}
+            />
+            <input
+              placeholder="Name"
+              value={p.name || ""}
+              onChange={(e) => updateAt(idx, "name", e.target.value)}
+              disabled={disabled}
+            />
+            <input
+              placeholder="Email"
+              value={p.email || ""}
+              onChange={(e) => updateAt(idx, "email", e.target.value)}
+              disabled={disabled}
+            />
+            <button
+              type="button"
+              className="btn-icon add"
+              title="Add Point Person"
+              onClick={add}
+              disabled={disabled}
+            >
+              <FiPlus />
+            </button>
+            <button
+              type="button"
+              className="btn-icon remove"
+              title="Remove Point Person"
+              onClick={() => remove(idx)}
+              disabled={disabled}
+            >
+              <FiTrash2 />
+            </button>
+          </div>
+        ))
+      ) : (
+        <div className="multi-row empty">
           <button
             type="button"
-            className="icon-btn"
-            title="Remove"
-            onClick={() => remove(idx)}
+            className="btn-icon add"
+            title="Add Contact Person"
+            onClick={add}
             disabled={disabled}
           >
-            <FiTrash2 />
+            <FiPlus />
           </button>
+          <span className="empty-text">
+            No contact persons yet - click + to add
+          </span>
         </div>
-      ))}
-      <button type="button" className="btn" onClick={add} disabled={disabled}>
-        Add
-      </button>
+      )}
     </div>
   );
 };
@@ -884,7 +1184,7 @@ const MultiRemarkField = ({
             <button
               type="button"
               className="btn-icon add"
-              title="Add remark"
+              title="Add Remark"
               onClick={add}
               disabled={disabled}
             >
@@ -893,7 +1193,7 @@ const MultiRemarkField = ({
             <button
               type="button"
               className="btn-icon remove"
-              title="Remove remark"
+              title="Remove Remark"
               onClick={() => remove(i)}
               disabled={disabled}
             >
@@ -1133,6 +1433,47 @@ const OverviewMerged = () => {
     // intentionally no-op: related DTS resolution removed
     return () => {};
   }, [agreements]);
+
+  // Auto-calculate Date Expiry when editing based on Date PUP Signed + Validity Period
+  useEffect(() => {
+    if (
+      isEditing &&
+      selected &&
+      selected.pup_official_sign &&
+      selected.validity_period
+    ) {
+      const datePupSigned = selected.pup_official_sign;
+      const validityPeriod = selected.validity_period;
+
+      const baseDate = new Date(datePupSigned);
+      const yearsToAdd = parseInt(validityPeriod, 10);
+
+      if (!isNaN(yearsToAdd) && yearsToAdd > 0) {
+        baseDate.setFullYear(baseDate.getFullYear() + yearsToAdd);
+        const expiryCandidate = baseDate.toISOString().split("T")[0];
+
+        // Only update if the calculated value is different from current value
+        if (selected.expiry !== expiryCandidate) {
+          setSelected((s) => ({
+            ...s,
+            expiry: expiryCandidate,
+          }));
+        }
+      }
+    } else if (
+      isEditing &&
+      selected &&
+      (!selected.pup_official_sign || !selected.validity_period)
+    ) {
+      // Clear expiry if either pup_official_sign or validity_period is empty
+      if (selected.expiry) {
+        setSelected((s) => ({
+          ...s,
+          expiry: "",
+        }));
+      }
+    }
+  }, [isEditing, selected?.pup_official_sign, selected?.validity_period]);
 
   const STAGE_LIST = useMemo(
     () => LIFECYCLE_OPTIONS.filter((o) => o.value),
@@ -1767,22 +2108,38 @@ const OverviewMerged = () => {
       );
     };
 
-    // signatories_list: backend stores this as a list; convert simple string into array when needed
+    // signatories_list: backend stores this as a VARCHAR string; always return string
     const normalizeSignatoriesList = (sigs, list) => {
-      if (Array.isArray(list) && list.length) return list;
-      if (Array.isArray(sigs) && sigs.length) return sigs;
-      // Accept a string in either 'list' or 'sigs' and split into array
-      const maybeStr =
-        typeof list === "string" && list.trim()
-          ? list
-          : typeof sigs === "string" && sigs.trim()
-          ? sigs
-          : null;
-      if (maybeStr)
-        return String(maybeStr)
-          .split(/[,;\n]+/)
-          .map((x) => x.trim())
-          .filter(Boolean);
+      // If it's already a string, return as-is
+      if (typeof list === "string" && list.trim()) return list;
+      if (typeof sigs === "string" && sigs.trim()) return sigs;
+      
+      // If it's an array, convert to comma-separated string
+      if (Array.isArray(list) && list.length) {
+        return list
+          .map((item) => {
+            if (typeof item === "object") {
+              // Extract name/person from object
+              return item.signatory_name || item.name || item.person || item;
+            }
+            return String(item).trim();
+          })
+          .filter(Boolean)
+          .join(", ");
+      }
+      
+      if (Array.isArray(sigs) && sigs.length) {
+        return sigs
+          .map((item) => {
+            if (typeof item === "object") {
+              return item.signatory_name || item.name || item.person || item;
+            }
+            return String(item).trim();
+          })
+          .filter(Boolean)
+          .join(", ");
+      }
+      
       return undefined;
     };
 
@@ -1806,7 +2163,8 @@ const OverviewMerged = () => {
     };
 
     const payload = {
-      dts_number: s.dts_no || s.id || undefined,
+      // DO NOT include dts_number in body payload; it's the path parameter (agreement_id)
+      // dts_number is only needed when actually changing the DTS, which is rare
       agreement_status: s.status || undefined,
       document_type: s.document_type || undefined,
       // frontend uses "partnership_classification" but backend expects "partnership_type"
@@ -1825,7 +2183,17 @@ const OverviewMerged = () => {
       country: s.country || undefined,
       region: s.region || undefined,
       // related agreement id - prefer explicit numeric parent id when present
-      MOU_to_MOA_id: s.MOU_to_MOA_id ?? undefined,
+      // Only send a numeric id to avoid sending DTS strings (which cause a 422/500 on the server)
+      MOU_to_MOA_id: (() => {
+        const raw = s.MOU_to_MOA_id ?? s.linkedMouId ?? s.linked_mou ?? s.related_mou ?? null;
+        if (raw == null || raw === "") return undefined;
+        // If it's already a number, return it. If it's a numeric string, coerce to Number.
+        if (typeof raw === "number") return raw;
+        const str = String(raw).trim();
+        if (/^\d+$/.test(str)) return Number(str);
+        // Non-numeric values (e.g. DTS strings) are intentionally not sent here.
+        return undefined;
+      })(),
       // persons transformed to backend keys
       point_persons: transformPointPersons(s.point_people, {
         positionKey: "point_position",
@@ -1837,13 +2205,10 @@ const OverviewMerged = () => {
         nameKey: "contact_name",
         emailKey: "contact_email",
       }),
-      // signatories for compatibility: send string list and object list
+      // signatories for compatibility: send only string list for DB storage
       signatories_list: normalizeSignatoriesList(
         s.signatories,
         s.signatories_list
-      ),
-      signatories: toSignatoryObjects(
-        normalizeSignatoriesList(s.signatories, s.signatories_list) || []
       ),
       // partner metadata
       website_url: s.website_link || s.website_url || undefined,
@@ -1872,16 +2237,23 @@ const OverviewMerged = () => {
       // Local smart-update: try multiple id candidates against the existing
       // `agreementService.updateAgreement` method. This mirrors the service
       // flexibility without editing the service file.
-      const idCandidates = Array.from(
-        new Set([
-          getPk(selected),
-          selected?.agreement_id,
-          selected?._pk,
-          selected?.id,
-          selected?.dts_no,
-          selected?.dts_number,
-        ])
-      ).filter((x) => x != null && x !== "");
+      const rawCandidates = [
+        getPk(selected),
+        selected?.agreement_id,
+        selected?._pk,
+        selected?.id,
+        selected?.dts_no,
+        selected?.dts_number,
+      ];
+      // Unique and prefer numeric ids first (so we try integer path param before string DTS)
+      const idCandidates = Array.from(new Set(rawCandidates))
+        .filter((x) => x != null && x !== "")
+        .sort((a, b) => {
+          const na = /^\d+$/.test(String(a));
+          const nb = /^\d+$/.test(String(b));
+          if (na === nb) return 0;
+          return na ? -1 : 1;
+        });
 
       let updated = null;
       let lastErr = null;
@@ -1964,6 +2336,64 @@ const OverviewMerged = () => {
       console.error("Failed to save details:", e);
       alert("Failed to save changes: " + (e.detail || e.message || e));
     }
+  };
+
+  // Check if any changes have been made to the selected agreement
+  const hasChanges = () => {
+    if (!selected || !originalRef.current) return false;
+
+    // Helper to compare arrays
+    const arraysEqual = (a, b) => {
+      if (!Array.isArray(a) || !Array.isArray(b)) return a === b;
+      if (a.length !== b.length) return false;
+      return JSON.stringify(a) === JSON.stringify(b);
+    };
+
+    // Compare key fields that can be edited
+    const fieldsToCheck = [
+      "document_type",
+      "validity_period",
+      "status",
+      "dts_no",
+      "source_unit",
+      "partnership_classification",
+      "partner_name",
+      "entity_type",
+      "country",
+      "region",
+      "address",
+      "logo",
+      "logo_path",
+      "website_link",
+      "brief_profile",
+      "signatories",
+      "date_received",
+      "expiry",
+      "pup_official_sign",
+      "date_of_signing",
+      "date_endorsed_ulco",
+      "ulco_approval",
+      "hardcopy_locator",
+      "event_title",
+    ];
+
+    for (const field of fieldsToCheck) {
+      const current = selected[field];
+      const original = originalRef.current[field];
+      if (current !== original) return true;
+    }
+
+    // Check complex fields (point_people, contact_people, remarks)
+    if (!arraysEqual(selected.point_people, originalRef.current.point_people))
+      return true;
+    if (
+      !arraysEqual(selected.contact_people, originalRef.current.contact_people)
+    )
+      return true;
+    if (!arraysEqual(selected.remarks, originalRef.current.remarks))
+      return true;
+
+    return false;
   };
 
   /* ---------- Legacy editing functions (from overviewDash) ---------- */
@@ -4000,46 +4430,367 @@ const OverviewMerged = () => {
                       </>
                     ) : (
                       /* === EDIT MODE - Form Fields === */
-                      <div className="overview1-details-grid overview1-form-grid">
-                        {/* Keep existing form fields from your current implementation */}
-                        {/* Date */}
-                        <label className="field">
-                          Date
-                          <input
-                            ref={modalFirstFieldRef}
-                            type="date"
-                            value={
-                              selected.date || selected.date_received || ""
-                            }
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                date_received: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
+                      <div className="modal-edit-panel">
+                        <div className="edit-section-header">
+                          <FiEdit className="section-icon" />
+                          <h4>Edit Agreement Details</h4>
+                        </div>
 
-                        {/* Source */}
-                        <label className="field">
-                          Source
-                          <input
-                            value={
-                              selected.source_unit || selected.source || ""
-                            }
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                source_unit: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
+                        <div className="edit-form-grid">
+                          {/* Document type */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiFileText className="label-icon" />
+                              Document Type
+                            </label>
+                            <select
+                              ref={modalFirstFieldRef}
+                              className="config-select"
+                              value={selected.document_type || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  document_type: e.target.value,
+                                }));
+                              }}
+                            >
+                              <option value="">Select</option>
+                              <option value="MOA">MOA</option>
+                              <option value="MOU">MOU</option>
+                            </select>
+                          </div>
 
-                        {/* Point person / position */}
-                        <div className="full-col">
-                          <label className="field full">
-                            Point person / position
+                          {/* Validity Period */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiClock className="label-icon" />
+                              Validity Period
+                            </label>
+                            <select
+                              className="config-select"
+                              value={selected.validity_period || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  validity_period: e.target.value,
+                                }));
+                              }}
+                            >
+                              <option value="">Select Validity</option>
+                              {validityOptions.map((v) => (
+                                <option key={v} value={v}>
+                                  {v}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Status */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiCheckCircle className="label-icon" />
+                              Agreement Status
+                            </label>
+                            <select
+                              className="config-select"
+                              value={selected.status || ""}
+                              onChange={(e) => {
+                                setSelected((s) => {
+                                  const nextStatus = e.target.value;
+                                  if (nextStatus !== s.status) {
+                                    const now = new Date().toISOString();
+                                    return {
+                                      ...s,
+                                      status: nextStatus,
+                                      _stage_start_at: now,
+                                      last_status_change: now,
+                                      days_in_stage: 0,
+                                      delayed: false,
+                                      delay_level: "none",
+                                    };
+                                  }
+                                  return s;
+                                });
+                              }}
+                            >
+                              <option value="">Select Status</option>
+                              {LIFECYCLE_OPTIONS.filter((o) => o.value).map(
+                                (o) => (
+                                  <option key={o.value} value={o.value}>
+                                    {o.label}
+                                  </option>
+                                )
+                              )}
+                              {selected.status &&
+                                !LIFECYCLE_OPTIONS.some(
+                                  (o) => o.value === selected.status
+                                ) && (
+                                  <option value={selected.status}>
+                                    {selected.status}
+                                  </option>
+                                )}
+                            </select>
+                          </div>
+
+                          {/* DTS NO. */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiHash className="label-icon" />
+                              DTS NO.
+                            </label>
+                            <input
+                              className="edit-input"
+                              value={selected.dts_no || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  dts_no: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Source */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiHome className="label-icon" />
+                              Source (Campus/College Dept)
+                            </label>
+                            <input
+                              className="edit-input"
+                              placeholder="e.g., College of Engineering, Main Campus"
+                              value={
+                                selected.source_unit || selected.source || ""
+                              }
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  source_unit: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Partnership classification */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiTag className="label-icon" />
+                              Partnership Type
+                            </label>
+                            <select
+                              className="config-select"
+                              value={selected.partnership_classification || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  partnership_classification: e.target.value,
+                                }));
+                              }}
+                            >
+                              <option value="">Select Classification</option>
+                              {classificationOptions.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Partner's name */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiUsers className="label-icon" />
+                              Partner Name
+                            </label>
+                            <input
+                              className="edit-input"
+                              placeholder="Enter partner organization name"
+                              value={selected.partner_name || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  partner_name: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Entity Type */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiTag className="label-icon" />
+                              Entity Type
+                            </label>
+                            <input
+                              className="edit-input"
+                              placeholder="e.g., University, Company, NGO"
+                              value={selected.entity_type || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  entity_type: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Country */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiGlobe className="label-icon" />
+                              Country
+                            </label>
+                            <select
+                              className="config-select"
+                              value={selected.country || ""}
+                              onChange={(e) => {
+                                const selectedCountryValue = e.target.value;
+                                const countryObj =
+                                  countryOptionsWithRegions.find(
+                                    (c) => c.value === selectedCountryValue
+                                  );
+                                setSelected((s) => ({
+                                  ...s,
+                                  country: selectedCountryValue,
+                                  region: countryObj
+                                    ? countryObj.region
+                                    : s.region,
+                                }));
+                              }}
+                            >
+                              <option value="">Select Country</option>
+                              {countryOptionsWithRegions.map((c) => (
+                                <option key={c.value} value={c.value}>
+                                  {c.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Region */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiMapPin className="label-icon" />
+                              Region
+                            </label>
+                            <input
+                              className="edit-input"
+                              placeholder="Auto-filled from country"
+                              value={selected.region || ""}
+                              readOnly
+                              style={{
+                                backgroundColor: "#f8f9fa",
+                                cursor: "not-allowed",
+                              }}
+                            />
+                          </div>
+
+                          {/* Address */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiMapPin className="label-icon" />
+                              Address
+                            </label>
+                            <input
+                              className="edit-input"
+                              placeholder="Enter partner address"
+                              value={selected.address || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  address: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Logo */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiImage className="label-icon" />
+                              Logo - Upload
+                            </label>
+                            <div className="logo-upload">
+                              {selected.logo ? (
+                                <img
+                                  src={selected.logo}
+                                  className="logo-preview"
+                                  alt="logo"
+                                />
+                              ) : null}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleLogoUpload}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Website Link */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiLink className="label-icon" />
+                              Website
+                            </label>
+                            <input
+                              className="edit-input"
+                              placeholder="https://www.example.com"
+                              value={selected.website_link || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  website_link: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Brief Profile - full width */}
+                          <div className="edit-field full-width">
+                            <label className="edit-label">
+                              <FiFileText className="label-icon" />
+                              Partner Description
+                            </label>
+                            <textarea
+                              className="edit-input"
+                              style={{ height: "auto", minHeight: "80px" }}
+                              placeholder="Brief description of the partner organization"
+                              value={selected.brief_profile || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  brief_profile: e.target.value,
+                                }));
+                              }}
+                              rows={3}
+                            />
+                          </div>
+
+                          {/* Signatories */}
+                          <div className="edit-field full-width">
+                            <label className="edit-label">
+                              <FiEdit className="label-icon" />
+                              Signatories
+                            </label>
+                            <input
+                              className="edit-input"
+                              placeholder="Enter signatories"
+                              value={selected.signatories || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  signatories: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Point person / position */}
+                          <div className="edit-field full-width">
+                            <label className="edit-label">
+                              <FiUser className="label-icon" />
+                              PUP Point Persons
+                            </label>
                             <MultiPersonField
                               listKey="point_people"
                               legacyKeys={{
@@ -4051,159 +4802,14 @@ const OverviewMerged = () => {
                               setSelected={setSelected}
                               disabled={false}
                             />
-                          </label>
-                        </div>
+                          </div>
 
-                        {/* DTS NO. */}
-                        <label className="field">
-                          DTS NO.
-                          <input
-                            value={selected.dts_no || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                dts_no: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Status */}
-                        <label className="field">
-                          STATUS
-                          <select
-                            value={selected.status || ""}
-                            onChange={(e) => {
-                              setSelected((s) => {
-                                const nextStatus = e.target.value;
-                                if (nextStatus !== s.status) {
-                                  const now = new Date().toISOString();
-                                  return {
-                                    ...s,
-                                    status: nextStatus,
-                                    _stage_start_at: now,
-                                    last_status_change: now,
-                                    days_in_stage: 0,
-                                    delayed: false,
-                                    delay_level: "none",
-                                  };
-                                }
-                                return s;
-                              });
-                            }}
-                          >
-                            <option value="">Select Status</option>
-                            {LIFECYCLE_OPTIONS.filter((o) => o.value).map(
-                              (o) => (
-                                <option key={o.value} value={o.value}>
-                                  {o.label}
-                                </option>
-                              )
-                            )}
-                            {selected.status &&
-                              !LIFECYCLE_OPTIONS.some(
-                                (o) => o.value === selected.status
-                              ) && (
-                                <option value={selected.status}>
-                                  {selected.status}
-                                </option>
-                              )}
-                          </select>
-                        </label>
-
-                        {/* Partner's name */}
-                        <label className="field">
-                          Partner's name
-                          <input
-                            value={selected.partner_name || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                partner_name: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Entity Type */}
-                        <label className="field">
-                          Entity Type
-                          <input
-                            value={selected.entity_type || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                entity_type: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Address */}
-                        <label className="field">
-                          Address
-                          <input
-                            value={selected.address || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                address: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Country */}
-                        <label className="field">
-                          Country
-                          <SearchableSelect
-                            options={countryOptions.map((c) => ({
-                              value: c,
-                              label: c,
-                            }))}
-                            value={selected.country || ""}
-                            onChange={(val) => {
-                              setSelected((s) => ({ ...s, country: val }));
-                            }}
-                            placeholder="Select Country"
-                            allowClear={true}
-                          />
-                        </label>
-
-                        {/* Region */}
-                        <label className="field">
-                          Region
-                          <input
-                            value={selected.region || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                region: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Signatories */}
-                        <div className="full-col">
-                          <label className="field">
-                            Signatories
-                            <input
-                              value={selected.signatories || ""}
-                              onChange={(e) => {
-                                setSelected((s) => ({
-                                  ...s,
-                                  signatories: e.target.value,
-                                }));
-                              }}
-                            />
-                          </label>
-                        </div>
-
-                        {/* Contact person / details */}
-                        <div className="full-col">
-                          <label className="field full">
-                            Contact person / details
+                          {/* Contact person / details */}
+                          <div className="edit-field full-width">
+                            <label className="edit-label">
+                              <FiUser className="label-icon" />
+                              Partner Contact Persons
+                            </label>
                             <MultiPersonField
                               listKey="contact_people"
                               legacyKeys={{
@@ -4215,73 +4821,150 @@ const OverviewMerged = () => {
                               setSelected={setSelected}
                               disabled={false}
                             />
-                          </label>
-                        </div>
+                          </div>
 
-                        {/* Document type */}
-                        <label className="field">
-                          Document type
-                          <select
-                            value={selected.document_type || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                document_type: e.target.value,
-                              }));
-                            }}
-                          >
-                            <option value="">Select</option>
-                            <option value="MOA">MOA</option>
-                            <option value="MOU">MOU</option>
-                          </select>
-                        </label>
-
-                        {/* Partnership classification */}
-                        <label className="field">
-                          Partnership classification
-                          <SearchableSelect
-                            options={classificationOptions.map((c) => ({
-                              value: c,
-                              label: c,
-                            }))}
-                            value={selected.partnership_classification || ""}
-                            onChange={(val) => {
-                              setSelected((s) => ({
-                                ...s,
-                                partnership_classification: val,
-                              }));
-                            }}
-                            placeholder="Select Classification"
-                            allowClear={true}
-                          />
-                        </label>
-
-                        {/* Validity Period */}
-                        <label className="field">
-                          Validity Period
-                          <select
-                            value={selected.validity_period || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                validity_period: e.target.value,
-                              }));
-                            }}
-                          >
-                            <option value="">Select Validity</option>
-                            {validityOptions.map((v) => (
-                              <option key={v} value={v}>
-                                {v}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-
-                        {/* Event Title */}
-                        <div className="full-col">
-                          <label className="field">
-                            Event Title
+                          {/* Date Received */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiCalendar className="label-icon" />
+                              Date Received
+                            </label>
                             <input
+                              className="edit-input"
+                              type="date"
+                              value={selected.date_received || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  date_received: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Expiry */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiClock className="label-icon" />
+                              Date Expiry
+                            </label>
+                            <input
+                              className="edit-input"
+                              type="date"
+                              value={selected.expiry || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  expiry: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* PUP Official's Signature */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiEdit className="label-icon" />
+                              Date PUP Signed
+                            </label>
+                            <input
+                              className="edit-input"
+                              type="date"
+                              value={selected.pup_official_sign || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  pup_official_sign: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Date / Year of Signing */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiCalendar className="label-icon" />
+                              Date/Year of Signing
+                            </label>
+                            <input
+                              className="edit-input"
+                              type="date"
+                              value={selected.date_of_signing || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  date_of_signing: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Date Endorsed to ULCO */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiCalendar className="label-icon" />
+                              Date Endorsed to ULCO
+                            </label>
+                            <input
+                              className="edit-input"
+                              type="date"
+                              value={selected.date_endorsed_ulco || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  date_endorsed_ulco: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* ULCO's Approval */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiCheck className="label-icon" />
+                              Date ULCO Approved
+                            </label>
+                            <input
+                              className="edit-input"
+                              type="date"
+                              value={selected.ulco_approval || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  ulco_approval: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Hardcopy locator */}
+                          <div className="edit-field">
+                            <label className="edit-label">
+                              <FiMapPin className="label-icon" />
+                              Hardcopy Locator
+                            </label>
+                            <input
+                              className="edit-input"
+                              placeholder="Physical location of document"
+                              value={selected.hardcopy_locator || ""}
+                              onChange={(e) => {
+                                setSelected((s) => ({
+                                  ...s,
+                                  hardcopy_locator: e.target.value,
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Event Title */}
+                          <div className="edit-field full-width">
+                            <label className="edit-label">
+                              <FiAward className="label-icon" />
+                              Event Info
+                            </label>
+                            <input
+                              className="edit-input"
+                              placeholder="Related event information"
                               value={selected.event_title || ""}
                               onChange={(e) => {
                                 setSelected((s) => ({
@@ -4290,185 +4973,59 @@ const OverviewMerged = () => {
                                 }));
                               }}
                             />
-                          </label>
-                        </div>
-
-                        {/* Date / Year of Signing */}
-                        <label className="field">
-                          DATE / YEAR OF SIGNING
-                          <input
-                            type="date"
-                            value={selected.date_of_signing || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                date_of_signing: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Expiry */}
-                        <label className="field">
-                          EXPIRY DATE / YEAR
-                          <input
-                            type="date"
-                            value={selected.expiry || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                expiry: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Date Received */}
-                        <label className="field">
-                          DATE RECEIVED
-                          <input
-                            type="date"
-                            value={selected.date_received || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                date_received: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Date Endorsed to ULCO */}
-                        <label className="field">
-                          DATE ENDORSED TO ULCO
-                          <input
-                            type="date"
-                            value={selected.date_endorsed_ulco || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                date_endorsed_ulco: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* ULCO's Approval */}
-                        <label className="field">
-                          ULCO'S APPROVAL
-                          <input
-                            type="date"
-                            value={selected.ulco_approval || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                ulco_approval: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* PUP Official's Signature */}
-                        <label className="field">
-                          PUP OFFICIALS' SIGNATURE
-                          <input
-                            type="date"
-                            value={selected.pup_official_sign || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                pup_official_sign: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Website Link */}
-                        <label className="field">
-                          WEBSITE LINK
-                          <input
-                            value={selected.website_link || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                website_link: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Brief Profile - full width */}
-                        <div className="full-col">
-                          <label className="field full">
-                            BRIEF PROFILE
-                            <textarea
-                              value={selected.brief_profile || ""}
-                              onChange={(e) => {
-                                setSelected((s) => ({
-                                  ...s,
-                                  brief_profile: e.target.value,
-                                }));
-                              }}
-                              rows={3}
-                            />
-                          </label>
-                        </div>
-
-                        {/* Logo */}
-                        <label className="field">
-                          LOGO - upload
-                          <div className="logo-upload">
-                            {selected.logo ? (
-                              <img
-                                src={selected.logo}
-                                className="logo-preview"
-                                alt="logo"
-                              />
-                            ) : null}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleLogoUpload}
-                            />
                           </div>
-                        </label>
 
-                        {/* Hardcopy locator */}
-                        <label className="field">
-                          HARDCOPY LOCATOR
-                          <input
-                            value={selected.hardcopy_locator || ""}
-                            onChange={(e) => {
-                              setSelected((s) => ({
-                                ...s,
-                                hardcopy_locator: e.target.value,
-                              }));
-                            }}
-                          />
-                        </label>
-
-                        {/* Remarks full width */}
-                        <div className="full-col">
-                          <label className="field full">
-                            REMARKS
+                          {/* Remarks full width */}
+                          <div className="edit-field full-width">
+                            <label className="edit-label">
+                              <FiMessageCircle className="label-icon" />
+                              Remarks
+                            </label>
                             <MultiRemarkField
                               listKey="remarks"
                               selected={selected}
                               setSelected={setSelected}
                               disabled={false}
                             />
-                          </label>
+                          </div>
+                        </div>
+
+                        <div className="edit-actions">
+                          <button
+                            className="btn cancel"
+                            onClick={() => {
+                              setSelected(originalRef.current);
+                              setIsEditing(false);
+                            }}
+                            type="button"
+                          >
+                            <FiX className="icon" />
+                            Cancel
+                          </button>
+                          <button
+                            className="btn save"
+                            onClick={saveDetails}
+                            type="button"
+                            disabled={!hasChanges()}
+                            style={{
+                              opacity: hasChanges() ? 1 : 0.5,
+                              cursor: hasChanges() ? "pointer" : "not-allowed",
+                            }}
+                          >
+                            <FiSave className="icon" />
+                            Save Changes
+                          </button>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="overview1-modal-footer">
-                    <button className="btn cancel" onClick={closeDetails}>
-                      Close
-                    </button>
-                    {!isEditing ? (
-                      isAdminUser() ? (
+                  {!isEditing && (
+                    <div className="overview1-modal-footer">
+                      <button className="btn cancel" onClick={closeDetails}>
+                        Close
+                      </button>
+                      {isAdminUser() && (
                         <button
                           className="btn edit"
                           onClick={() => setIsEditing(true)}
@@ -4476,24 +5033,9 @@ const OverviewMerged = () => {
                           <FiEdit className="icon" />
                           Edit
                         </button>
-                      ) : null
-                    ) : (
-                      <>
-                        <button
-                          className="btn cancel"
-                          onClick={() => {
-                            setSelected(originalRef.current);
-                            setIsEditing(false);
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button className="btn save" onClick={saveDetails}>
-                          Save
-                        </button>
-                      </>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

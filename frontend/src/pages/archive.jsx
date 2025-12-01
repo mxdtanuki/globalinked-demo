@@ -1141,9 +1141,9 @@ const Archive = () => {
           onClick={() => mobileShow && setMobileShow(false)}
         >
           {loading ? (
-            <div className="archive-loading-container">
-              <div className="archive-spinner"></div>
-              <p>Loading Archives...</p>
+            <div className="lloading-container">
+              <div className="spinner"></div>
+              <p>Loading archives...</p>
             </div>
           ) : (
             <>
@@ -2363,29 +2363,36 @@ const Archive = () => {
                     Export Options
                   </h4>
 
+                  <div className="export-options">
                     <div className="export-option">
                       <div className="option-header">
-                        <FiPrinter className="option-icon print" />
+                        <FiFileText className="option-icon pdf" />
                         <div className="option-info">
-                          <div className="option-title">Printable Report</div>
+                          <div className="option-title">PDF Report</div>
                           <div className="option-desc">
-                            Open a printable/PDF-friendly view and print or save as PDF
+                            Printable PDF formatted report
                           </div>
                         </div>
                       </div>
                       <button
-                        className="btn export-btn print-btn"
-                        onClick={() => {
-                          generatePrintableReport();
+                        className="btn export-btn pdf-btn"
+                        onClick={async () => {
+                          try {
+                            await generatePrintableReport();
+                          } catch (e) {
+                            console.error(e);
+                            alert(
+                              "PDF generation failed: " + (e?.message || e)
+                            );
+                          }
                           setShowGenerateModal(false);
                         }}
                       >
                         <FiPrinter className="icon" />
-                        PDF Report
+                        Download PDF
                       </button>
                     </div>
 
-                  <div className="export-options">
                     <div className="export-option">
                       <div className="option-header">
                         <FiFile className="option-icon excel" />

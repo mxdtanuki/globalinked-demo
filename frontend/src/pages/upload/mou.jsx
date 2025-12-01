@@ -1,93 +1,131 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import TopbarSidebar from '../../components/topbarSidebar';
-import './mou.css';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import TopbarSidebar from "../../components/topbarSidebar";
+import {
+  FiHome,
+  FiCheck,
+  FiUser,
+  FiEdit,
+  FiHash,
+  FiMessageCircle,
+} from "react-icons/fi";
+import "./mou.css";
 
 const MOUUpload = () => {
   const navigate = useNavigate();
 
-  // handle file change 
+  // handle file change
   const handleFileChange = (e) => {
     const fileName = e.target.files[0]?.name || "No file chosen";
-    document.getElementById("fileName").textContent = fileName;
+    document.getElementById("mouFileName").textContent = fileName;
   };
 
   return (
     <TopbarSidebar>
-      <div className="mou-upload-container">
+      <div className="mou-upload-wrapper">
         {/* Initial Form */}
-        <form className="initial-form">
-          <h3 className="form-title">MOU Initial Form</h3>
+        <form className="mou-initial-form">
+          <h3 className="mou-form-title">MOU Initial Form</h3>
 
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Source (Campus/College Dept)</label>
+          <div className="mou-form-grid">
+            <div className="mou-form-group">
+              <label>
+                <FiHome className="mou-label-icon" />
+                Source (Campus/College Dept)
+              </label>
               <select defaultValue="" required>
-                <option value="" disabled>Select source</option>
+                <option value="" disabled>
+                  Select source
+                </option>
                 <option value="CTHTM">CTHTM</option>
                 <option value="COC">COC</option>
                 <option value="COE">COE</option>
               </select>
             </div>
 
-            <div className="form-group">
-              <label>Date (ULCO Approval)</label>
+            <div className="mou-form-group">
+              <label>
+                <FiCheck className="mou-label-icon" />
+                Date (ULCO Approval)
+              </label>
               <input type="date" />
             </div>
 
-            <div className="form-group">
-              <label>Point Person Position</label>
+            <div className="mou-form-group">
+              <label>
+                <FiUser className="mou-label-icon" />
+                Point Person Position
+              </label>
               <input type="text" />
             </div>
 
-            <div className="form-group">
-              <label>Date (PUP Official Signed)</label>
+            <div className="mou-form-group">
+              <label>
+                <FiEdit className="mou-label-icon" />
+                Date (PUP Official Signed)
+              </label>
               <input type="date" />
             </div>
 
-            <div className="form-group">
-              <label>DTS No.</label>
+            <div className="mou-form-group">
+              <label>
+                <FiHash className="mou-label-icon" />
+                DTS No.
+              </label>
+              <input type="text" className="dts-number" required />
+            </div>
+
+            <div className="mou-form-group">
+              <label>
+                <FiHash className="mou-label-icon" />
+                DTS Status
+              </label>
               <input type="text" required />
             </div>
 
-            <div className="form-group">
-              <label>DTS Status</label>
-              <input type="text" required />
-            </div>
-
-            <div className="form-group full-width">
-              <label>Remarks:</label>
+            <div className="mou-form-group mou-full-width">
+              <label>
+                <FiMessageCircle className="mou-label-icon" />
+                Remarks:
+              </label>
               <textarea rows="3" />
             </div>
           </div>
 
           <p
-            className="manual-entry-note"
-            onClick={() => navigate('/upload/manualEntry')}
+            className="mou-manual-entry-note"
+            onClick={() => navigate("/upload/manualEntry")}
           >
             Manual Entry
           </p>
         </form>
 
         {/* Upload Box */}
-        <div className="upload-box">
+        <div className="mou-upload-box">
           <h3>Upload File</h3>
           <p>Select MOU file</p>
 
-          <div className="file-drop-area">
+          <div className="mou-file-drop-area">
             <p>Select a file</p>
             <small>DOCX, PDF or Scanned PDF, file size no more than 20MB</small>
 
-            <label htmlFor="mouFile" className="select-file-btn">
+            <label htmlFor="mouFileInput" className="mou-select-file-btn">
               Choose File
             </label>
-            <input type="file" id="mouFile" hidden onChange={handleFileChange} />
-            <p id="fileName" className="file-name">No file chosen</p>
+            <input
+              type="file"
+              id="mouFileInput"
+              hidden
+              onChange={handleFileChange}
+            />
+            <p id="mouFileName" className="mou-file-name">
+              No file chosen
+            </p>
           </div>
 
           <button
-            className="submit-btn"
-            onClick={() => navigate('/upload/extractedEntry')}
+            className="mou-submit-btn"
+            onClick={() => navigate("/upload/extractedEntry")}
           >
             Submit
           </button>

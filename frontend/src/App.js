@@ -5,6 +5,10 @@ import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './App.css';
 
+
+// new test manual entry and extracted entry pages
+import ManualExtract from './pages/upload/manualExtract';
+
 // auth pages
 import Login from './pages/login';
 import Register from './pages/register';
@@ -126,6 +130,8 @@ function AppRoutes() {
           <ProtectedRoute><AuditLogsPage /></ProtectedRoute>
         } />
 
+        
+
         {/* Upload Document Routes */}
         <Route path="/document-upload/mou" element={
           <ProtectedRoute><MOUUpload /></ProtectedRoute>
@@ -142,6 +148,9 @@ function AppRoutes() {
 
         {/* Existing MOUMOAPage route */}
         <Route path="/mou-moa" element={<MOUMOAPublicPage />} />
+        <Route path="/upload/manualExtract" element={
+          <ProtectedRoute><ManualExtract /></ProtectedRoute>
+        } />
       </Routes>
     </>
   );

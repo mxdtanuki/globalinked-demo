@@ -1,33 +1,38 @@
 /* Main container */
-.manual-entry-container {
+.moa-manual-container {
   display: flex;
   flex-direction: column;
-  align-items: center; 
+  align-items: center;
   justify-content: flex-start;
   min-height: 100vh;
   padding: 30px;
-  background-color: #fdf6f6; 
-  font-family: 'Inter', sans-serif;
+  background-color: #fdf6f6;
+  font-family: "Inter", sans-serif;
 }
-
-.manual-entry-container,
+.moa-manual-container,
+.moa-manual-content,
 .manual-entry-form,
 .manual-entry-form * {
-  font-family: 'Inter', sans-serif !important;
+  font-family: "Inter", sans-serif !important;
 }
- 
+
+/* Content wrapper used by component */
+.moa-manual-content {
+  width: 100%;
+  max-width: 980px;
+}
+
 .react-select__control,
 .react-select__menu,
 .react-select__option,
 .react-select__single-value,
 .react-select__input,
 .react-select__value-container {
-  font-family: 'Inter', sans-serif !important;
+  font-family: "Inter", sans-serif !important;
 }
 
-
 /* Title */
-.form-title {
+.moa-manual-form-title {
   font-size: 28px;
   font-weight: 700;
   color: #8b0000;
@@ -37,95 +42,160 @@
 
 /* Form box */
 .manual-entry-form {
+  /* spacing variables: adjust --form-field-vertical-gap to change vertical spacing between form fields */
+  --form-field-vertical-gap: 28px;
+  --form-section-inner-gap: 12px;
+
   background: #ffffff;
   padding: 35px;
   border-radius: 14px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   width: 100%;
-  max-width: 900px; 
+  max-width: 900px;
   display: grid;
-  grid-template-columns: 1fr 1fr; 
-  column-gap: 22px;  
-  row-gap: 1px;  
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+  row-gap: var(--form-field-vertical-gap);
   margin: 0 auto;
 }
 
 /* Each form group */
-.form-group {
+.moa-manual-form-group {
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
-.form-group label {
+.moa-manual-form-group label {
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 0;
   color: #444;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* Inputs and selects */
-.form-group input,
-.form-group select,
-.form-group textarea {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 15px;
+.moa-manual-form-group.moa-manual-logo-field {
+  grid-column: span 1;
+  max-width: 400px;
+}
+
+/* Inputs - uniform styling */
+.moa-manual-form-group input {
+  padding: 0 12px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  font-size: 0.95rem;
   width: 100%;
+  height: 40px;
+  line-height: 40px;
   box-sizing: border-box;
-  transition: border 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: white;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  border-color: #8b0000;
-  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+.moa-manual-form-group input:focus {
+  border-color: maroon;
+  box-shadow: 0 0 0 2px rgba(128, 0, 0, 0.15);
   outline: none;
-  background-color: #fffdfd;
 }
 
+/* Select dropdowns - styled like report configuration */
+.moa-manual-form-group select {
+  flex: 1;
+  padding: 12px 32px 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23718096' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  transition: all 0.2s ease;
+  max-width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  height: 44px;
+  color: #1e293b;
+  width: 100%;
+}
 
-.form-group.full-width {
+.moa-manual-form-group select:focus {
+  outline: none;
+  border-color: #94a3b8;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(122, 31, 47, 0.1);
+}
+
+.moa-manual-form-group select:hover {
+  border-color: #cbd5e1;
+}
+
+/* Textareas - separate styling for multi-line fields */
+.moa-manual-form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  width: 100%;
+  min-height: 80px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: white;
+  resize: none;
+}
+
+.moa-manual-form-group textarea:focus {
+  border-color: maroon;
+  box-shadow: 0 0 0 2px rgba(128, 0, 0, 0.15);
+  outline: none;
+}
+
+.moa-manual-form-group.moa-manual-full-width {
   grid-column: span 2;
 }
 
-/* placeholder color for DTS num */ 
-.form-group input::-webkit-input-placeholder {
+/* placeholder color for DTS num */
+.moa-manual-form-group input::-webkit-input-placeholder {
   opacity: 0.6;
   color: #888;
 }
 
-.form-group input::-moz-placeholder {
+.moa-manual-form-group input::-moz-placeholder {
   opacity: 0.6;
   color: #888;
 }
 
-.form-group input:-ms-input-placeholder {
+.moa-manual-form-group input:-ms-input-placeholder {
   opacity: 0.6;
   color: #888;
 }
 
-.form-group input::-ms-input-placeholder {
+.moa-manual-form-group input::-ms-input-placeholder {
   opacity: 0.6;
   color: #888;
 }
 
-.form-group input::placeholder {
+.moa-manual-form-group input::placeholder {
   opacity: 0.6;
   color: #888;
 }
 
 /* Buttons */
-.form-actions {
+.moa-manual-form-actions {
   grid-column: span 2;
   display: flex;
-  justify-content: center;   
+  justify-content: center;
   gap: 18px;
   margin-top: 25px;
 }
 
-.form-actions button {
+.moa-manual-form-actions button {
   padding: 12px 24px;
   border: none;
   border-radius: 10px;
@@ -138,60 +208,79 @@
 }
 
 /* Publish button */
-.publish-button {
+.moa-manual-publish-button {
   background-color: #a80000;
   color: #fff;
 }
 
-.publish-button:hover {
+.moa-manual-publish-button:hover {
   background-color: #8b0000;
 }
 
 /* Clear button */
-.clear-btn {
+.moa-manual-clear-btn {
   background-color: #f4f4f4;
   color: #444;
   border: 1px solid #ddd;
 }
 
-.clear-btn:hover {
+.moa-manual-clear-btn:hover {
   background-color: #e8e8e8;
 }
 
 /* Contact Section */
-.form-section {
+.moa-manual-form-section {
   grid-column: span 2;
-  margin-top: 10px;
-  padding: 20px;
+  /* keep section as a single form field in the grid; internal rows use flex column with controlled gap */
+  margin: 0;
+  padding: 24px;
   border: 1px solid #eee;
   border-radius: 10px;
   background: #fafafa;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: var(--form-section-inner-gap);
 }
 
-.form-section label {
+.moa-manual-form-section + .moa-manual-form-section {
+  margin-top: 4px !important;
+}
+
+/* Point Persons + Contact Person containers */
+.moa-manual-form-section.compact-section
+  + .moa-manual-form-section.compact-section {
+  margin-top: 8px;
+  margin-bottom: 17px;
+}
+
+.moa-manual-form-section label {
   display: block;
   font-weight: 700;
   margin-bottom: 12px;
   color: #333;
 }
 
-.contact-row {
+.moa-manual-contact-row {
   display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 0;
+  align-items: center;
 }
 
-.contact-row input {
+.moa-manual-contact-row input {
   flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
+  padding: 0 12px;
+  border: 1px solid #bbb;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 0.95rem;
+  height: 40px;
+  line-height: 40px;
+  box-sizing: border-box;
 }
 
 /* Add/Remove Contact Buttons */
-.add-contact-btn {
+.moa-manual-add-contact-btn {
   margin-top: 5px;
   padding: 8px 14px;
   background-color: #8b0000;
@@ -203,11 +292,11 @@
   transition: background-color 0.2s ease;
 }
 
-.add-contact-btn:hover {
+.moa-manual-add-contact-btn:hover {
   background-color: #a80000;
 }
 
-.remove-btn {
+.moa-manual-remove-btn {
   background: #8b0000;
   border: none;
   color: white;
@@ -218,20 +307,291 @@
   transition: background 0.2s;
 }
 
-.remove-btn:hover {
+.moa-manual-remove-btn:hover {
   background: #a80000;
 }
 
-.deadline-selects {
+/* Icon buttons for add/remove (matching overview modal style) */
+.moa-manual-btn-icon {
+  background: transparent;
+  border: 1px solid #8b0000;
+  color: #8b0000;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  height: 40px;
+  min-width: 40px;
+}
+
+.moa-manual-btn-icon:hover {
+  background: #8b0000;
+  color: white;
+}
+
+.moa-manual-btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.moa-manual-btn-icon.add,
+.moa-manual-btn-icon.remove {
+  background: #f4f4f4;
+  border: 1px solid #bbb;
+  color: #444;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.moa-manual-btn-icon.add:hover,
+.moa-manual-btn-icon.remove:hover {
+  background: #22c55e;
+  color: #fff;
+  border-color: #22c55e;
+}
+
+.moa-manual-btn-icon.add {
+  margin-top: 0;
+}
+
+.moa-manual-btn-icon.remove {
+  flex-shrink: 0;
+}
+
+.moa-manual-btn-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Label icons */
+.moa-manual-label-icon {
+  margin-right: 2px;
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: -1px !important;
+}
+
+/* Point & Contact specific icon blocks */
+.moa-point-icon {
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: -1px !important;
+  margin-right: 10px !important;
+}
+
+.moa-contact-icon {
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: -1px !important;
+  margin-right: 10px !important;
+}
+
+.moa-point-icon svg,
+.moa-contact-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* delete (remove) icon hover fpr Point/Contact */
+.moa-manual-form-section .moa-manual-btn-icon.remove:hover {
+  background: #a80000 !important;
+  color: #ffffff !important;
+  border-color: #a80000 !important;
+}
+
+.moa-manual-deadline-selects {
   display: flex;
   gap: 10px;
   margin-top: 5px;
 }
 
-.deadline-selects select {
+.moa-manual-deadline-selects select {
   padding: 5px;
 }
 
+/* React Select custom styling to match report configuration dropdowns */
+.react-select-container .react-select__control {
+  min-height: 44px;
+  height: 44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: none !important;
+  transition: all 0.2s ease;
+  background: #ffffff !important;
+  cursor: pointer;
+}
+
+/* Ensure the react-select container fills the form group's width like native inputs */
+.react-select-container {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+}
+
+.react-select-container .react-select__control {
+  width: 100%;
+}
+
+.react-select-container .react-select__control:hover {
+  border-color: #cbd5e1;
+}
+
+.react-select-container .react-select__control--is-focused {
+  border-color: #94a3b8 !important;
+  box-shadow: 0 0 0 3px rgba(122, 31, 47, 0.1) !important;
+}
+
+.react-select-container .react-select__control--is-disabled {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.react-select-container .react-select__value-container {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 40px;
+}
+
+.react-select-container .react-select__input-container {
+  margin: 0;
+  padding: 0;
+}
+
+.react-select-container .react-select__indicator-separator {
+  display: none;
+}
+
+.react-select-container .react-select__dropdown-indicator {
+  padding: 8px 12px;
+  color: #718096;
+}
+
+.react-select-container .react-select__dropdown-indicator:hover {
+  color: #1e293b;
+}
+
+.react-select-container .react-select__single-value {
+  font-size: 14px;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  line-height: 40px;
+}
+
+.react-select-container .react-select__single-value--is-disabled {
+  color: #64748b;
+}
+
+.react-select-container .react-select__placeholder {
+  font-size: 14px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  line-height: 40px;
+}
+
+.react-select-container .react-select__input {
+  color: #1e293b;
+}
+
+.react-select-container .react-select__indicators {
+  opacity: 1;
+}
+
+.react-select-container .react-select__menu {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-top: 4px;
+}
+
+.react-select-container .react-select__option {
+  font-size: 14px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.react-select-container .react-select__option--is-focused {
+  background-color: #f8fafc;
+}
+
+.react-select-container .react-select__option--is-selected {
+  background-color: #7a1f2f;
+  color: #ffffff;
+}
+
+.react-select-container .react-select__option:active {
+  background-color: #e2e8f0;
+}
+
+/* Logo field specific styling */
+.moa-manual-form-group.moa-manual-logo-field {
+  grid-column: span 1;
+}
+
+.moa-manual-form-group.moa-manual-logo-field input[type="file"] {
+  padding-top: 1px;
+  padding-bottom: 40px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: white;
+}
+
+.moa-manual-form-group.moa-manual-logo-field input[type="file"]:focus {
+  border-color: maroon;
+  box-shadow: 0 0 0 2px rgba(128, 0, 0, 0.15);
+  outline: none;
+}
+
+/* Logo preview container */
+.moa-manual-logo-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.moa-manual-logo-preview-container img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 4px;
+  background: white;
+}
 
 /* Responsive for mobile */
 @media (max-width: 768px) {
@@ -239,16 +599,16 @@
     grid-template-columns: 1fr;
   }
 
-  .form-group.full-width {
+  .moa-manual-form-group.moa-manual-full-width {
     grid-column: span 1;
   }
 
-  .form-actions {
+  .moa-manual-form-actions {
     flex-direction: column;
     align-items: center;
   }
 
-  .form-actions button {
+  .moa-manual-form-actions button {
     width: 100%;
     max-width: 250px;
   }

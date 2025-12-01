@@ -742,8 +742,6 @@ async def update_agreement(
                 agreement.source_unit = up['source_unit']
             if 'dts_number' in up:
                 agreement.dts_number = up['dts_number']
-            # if 'dts_status' in up:
-                # agreement.dts_status = up['dts_status']
             if 'entry_date' in up:
                 agreement.entry_date = up['entry_date']
             if 'date_received' in up:
@@ -882,6 +880,8 @@ async def update_agreement(
                 AgreementRemarks.agreement_id == agreement_id
             ).all()
 
+            timer = db.query(Timer).filter(Timer.agreement_id == agreement_id).first()
+
             return AgreementResponse(
                 agreement_id=agreement.agreement_id,
                 partner_id=partner.partner_id,
@@ -922,6 +922,7 @@ async def update_agreement(
                     PointPersonResponse.model_validate(pp, from_attributes=True)
                     for pp in point_persons
                 ],
+                timer=TimerResponse.model_validate(timer, from_attributes=True) if timer else None,
                 created_at=partner.created_at
             )
 
@@ -929,9 +930,16 @@ async def update_agreement(
             raise
         except Exception as e:
             db.rollback()
-            logger.error(f"Error updating agreement {agreement_id}: {e}")
+            error_msg = f"Error updating agreement {agreement_id}: {str(e)}"
+            logger.error(error_msg)
             traceback.print_exc()
-            raise HTTPException(status_code=500, detail=f"Failed to update agreement: {str(e)}")
+            # Include full traceback in response for debugging
+            import sys
+            tb_lines = traceback.format_exc()
+            raise HTTPException(
+                status_code=500, 
+                detail=f"{error_msg}\n\nTraceback:\n{tb_lines}"
+            )
 
 @router.delete("/{agreement_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_agreement(

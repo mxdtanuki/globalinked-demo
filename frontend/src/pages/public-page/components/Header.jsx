@@ -123,7 +123,7 @@ export default function Header() {
                   setIsMobileMenuOpen(false);
                 }}
               >
-                AGREEMENT TEMPLATES
+                MEMORANDUM TEMPLATES
               </button>
 
               <button

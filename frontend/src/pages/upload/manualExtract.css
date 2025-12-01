@@ -1,0 +1,156 @@
+
+.manualExtract-outer{
+  padding: 48px 24px;
+  background: #FFF4F6; 
+}
+
+.manualExtract-wrapper{
+  display:flex;
+  flex-direction:column; 
+  align-items:center;   
+  gap:18px;
+}
+
+.manualExtract-card{
+  width:100%;
+  max-width:1100px;
+  background:#fff;
+  border-radius:24px;
+  border:1px solid #F8DCE2; 
+  box-shadow: 0 10px 30px rgba(34,34,34,0.06); 
+  position:relative;
+  padding:32px 36px;
+}
+
+.manualExtract-badge{
+  position:absolute;
+  top:-16px;
+  left:26px;
+  background:#7A0010; 
+  color:#fff;
+  padding:8px 18px;
+  border-radius:20px;
+  font-weight:600;
+  font-size:14px;
+  box-shadow: 0 6px 18px rgba(122,0,16,0.12);
+}
+
+.manualExtract-card-inner{
+  display:flex;
+  gap:28px;
+  align-items:flex-start;
+}
+
+.manualExtract-icon-col{
+  flex:0 0 84px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+}
+
+.manualExtract-icon-box{
+  width:72px;
+  height:72px;
+  background:#7A0010; 
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow: 0 8px 24px rgba(122,0,16,0.08);
+}
+
+.manualExtract-icon-box svg{display:block}
+
+.manualExtract-content-col{flex:1}
+
+.manualExtract-card-title{
+  margin:0 0 6px 0;
+  font-size:24px;
+  color:#7A0010; 
+  font-weight:700;
+}
+
+.manualExtract-card-desc{
+  margin:0 0 20px 0;
+  color:#6c757d;
+  font-weight:500;
+  line-height:1.45;
+}
+
+.manualExtract-features-list{list-style:none;padding:0;margin:0 0 26px 0}
+
+.manualExtract-features-list li{
+  display:flex;align-items:center;margin:12px 0;color:#394247;font-weight:500;font-size:15px;
+}
+
+.manualExtract-features-list .manualExtract-check{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;margin-right:14px;background:#7A0010;color:#fff;border-radius:50%;font-weight:700;font-size:14px;
+}
+
+.manualExtract-start-row{margin-top:6px}
+
+.manualExtract-start-btn{
+  width:100%;
+  padding:18px 22px;
+  background:#7A0010; 
+  color:#fff;
+  border-radius:28px; 
+  border:none;
+  display:flex;align-items:center;justify-content:space-between;font-size:16px;font-weight:600;cursor:pointer;
+}
+
+.manualExtract-start-btn .manualExtract-arrow{font-size:20px;opacity:0.95}
+
+.manualExtract-extracted-card{
+  width:100%;
+  max-width:1100px;
+  background:#fff;
+  /* match manual card corner radius and padding so both cards appear same length */
+  border-radius:24px;
+  border:1px solid rgba(22,34,41,0.04);
+  box-shadow: 0 6px 18px rgba(22,34,41,0.03);
+  padding:32px 36px;
+}
+
+.manualExtract-extracted-inner{
+  display:flex;
+  gap:18px;
+  align-items:flex-start;
+}
+
+.manualExtract-extracted-icon{
+  flex:0 0 64px;
+  display:flex;align-items:flex-start;justify-content:center;
+}
+
+.manualExtract-extracted-icon-box{
+  width:48px;height:48px;border-radius:10px;background:#eef6f9;display:flex;align-items:center;justify-content:center;color:#3b4a55;box-shadow:none;
+}
+
+.manualExtract-extracted-content{flex:1}
+
+.manualExtract-extracted-title{margin:0 0 6px 0;font-size:18px;color:#16262d;font-weight:700}
+.manualExtract-extracted-desc{margin:0 0 12px 0;color:#6c757d}
+
+.manualExtract-extracted-features{list-style:none;padding:0;margin:0}
+.manualExtract-extracted-features li{display:flex;align-items:center;margin:10px 0;color:#394247;font-size:14px}
+
+.manualExtract-extracted-bullet{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;margin-right:12px;border-radius:50%;border:2px solid #d6e2e9;color:#3b4a55;font-size:12px}
+
+.manualExtract-extracted-cta{margin-top:14px}
+.manualExtract-extracted-btn{width:100%;padding:18px 22px;background:#f5f8fa;border-radius:28px;border:none;display:flex;align-items:center;justify-content:space-between;color:#16323a;font-weight:600;cursor:pointer}
+.manualExtract-extracted-btn .manualExtract-extracted-arrow{font-size:18px}
+
+@media (max-width:900px){
+  .manualExtract-extracted-inner{flex-direction:column}
+  .manualExtract-extracted-cta{margin-top:12px}
+}
+
+@media (max-width:900px){
+  .manualExtract-card-inner{flex-direction:column}
+  .manualExtract-icon-col{order:0}
+  .manualExtract-card{padding:20px}
+  .manualExtract-card-title{font-size:20px}
+}
+

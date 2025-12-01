@@ -1,44 +1,85 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import TopbarSidebar from '../../components/topbarSidebar';
-import { agreementService } from '../../services/agreementService';
-import './moa.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import TopbarSidebar from "../../components/topbarSidebar";
+import { agreementService } from "../../services/agreementService";
+import {
+  FiHome,
+  FiHash,
+  FiEdit,
+  FiUser,
+  FiMessageCircle,
+  FiPlus,
+  FiTrash2,
+  FiCheck,
+  FiUpload,
+  FiFileText,
+  FiInfo,
+  FiAlertCircle,
+  FiFile,
+  FiSend,
+  FiX,
+} from "react-icons/fi";
+import "./moa.css";
+
+// Configurable file name truncate limit. Can be overridden with
+// `REACT_APP_FILENAME_TRUNCATE_LIMIT` in environment.
+const FILE_NAME_DISPLAY_LIMIT =
+  parseInt(process.env.REACT_APP_FILENAME_TRUNCATE_LIMIT, 10) || 40;
+
+function truncateFileName(name, limit) {
+  if (!name) return "";
+  if (name.length <= limit) return name;
+
+  const lastDot = name.lastIndexOf(".");
+  const ext = lastDot !== -1 ? name.slice(lastDot) : "";
+  const nameWithoutExt = lastDot !== -1 ? name.slice(0, lastDot) : name;
+
+  // Reserve space for ellipsis and extension
+  const reserved = ext.length + 3; // '...'
+  const keep = Math.max(1, limit - reserved);
+
+  const start = nameWithoutExt.slice(0, keep);
+  return `${start}...${ext}`;
+}
 
 const MOAUpload = () => {
   const navigate = useNavigate();
 
-  const [pointPersons, setPointPersons] = useState([{ position: "", name: "", email: "" }]);
-  const [uploadedFile, setUploadedFile] = useState(null); 
+  const [pointPersons, setPointPersons] = useState([
+    { position: "", name: "", email: "" },
+  ]);
+  const [uploadedFile, setUploadedFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [extractionProgress, setExtractionProgress] = useState(0);
-  const [extractionStatus, setExtractionStatus] = useState("");
-
 
   // Form state
   const [formData, setFormData] = useState({
     source: "",
     ulcoApprovalDate: "",
     dtsNo: "",
+    dtsStatus: "",
     pupSignedDate: "",
-    remarks: ""
+    remarks: "",
   });
 
   // Handle form input changes
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-  }; 
+  };
 
   // Point person functions
-  const addPointPerson = () => setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
+  const addPointPerson = () =>
+    setPointPersons([...pointPersons, { position: "", name: "", email: "" }]);
   const handlePointPersonChange = (i, field, val) => {
     const updated = [...pointPersons];
     updated[i][field] = val;
     setPointPersons(updated);
   };
-  const removePointPerson = (i) => setPointPersons(pointPersons.filter((_, idx) => idx !== i));
+  const removePointPerson = (i) =>
+    setPointPersons(pointPersons.filter((_, idx) => idx !== i));
 
   // Point persons array from state
   const pointPersonsData = pointPersons
@@ -49,11 +90,20 @@ const MOAUpload = () => {
       point_person_email: pp.email || "",
     }));
 
-  // handle file change 
+  // handle file change
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setUploadedFile(file);
-    document.getElementById("fileName").textContent = file ? file.name : "No file chosen";
+    if (file) {
+      setUploadedFile(file);
+    }
+  };
+
+  // clear uploaded file
+  const handleClearFile = () => {
+    setUploadedFile(null);
+    // Also clear the input value so user can re-upload the same file if needed
+    const input = document.getElementById("moaFile");
+    if (input) input.value = "";
   };
 
   // Handle submit: Extract metadata then navigate
@@ -65,121 +115,139 @@ const MOAUpload = () => {
 
     setLoading(true);
     setExtractionProgress(0);
-    setExtractionStatus("Initializing extraction...");
 
     try {
       // Call NLP extraction with progress
-      setExtractionStatus("Extracting text from document...");
-      const result = await agreementService.extractAgreementMetadataWithProgress(uploadedFile, (percent) => {
-        setExtractionProgress(percent);
-        if (percent < 30) {
-          setExtractionStatus("Reading document...");
-        } else if (percent < 60) {
-          setExtractionStatus("Analyzing with Legal-BERT...");
-        } else if (percent < 90) {
-          setExtractionStatus("Extracting metadata fields...");
-        } else {
-          setExtractionStatus("Finalizing extraction...");
-        }
-      });
+      const result =
+        await agreementService.extractAgreementMetadataWithProgress(
+          uploadedFile,
+          (percent) => {
+            setExtractionProgress(percent);
+          }
+        );
       const extractedMetadata = result.metadata;
-      setExtractionProgress(100);
-      setExtractionStatus("Extraction complete!");
 
+      setExtractionProgress(100);
 
       setTimeout(() => {
         // Navigate with extracted metadata
-        navigate('/upload/extractedEntryMOA', { 
-          state: { 
+        navigate("/upload/extractedEntryMOA", {
+          state: {
             uploadedFile,
             formData,
             pointPersons: pointPersonsData,
-            extractedMetadata
-          } 
+            extractedMetadata,
+          },
         });
       }, 500);
-
     } catch (error) {
       console.error("Extraction failed:", error);
-      setExtractionStatus("Extraction failed");
-      
-      // Show error message but still allow manual entry
-      const proceed = window.confirm(
-        "Failed to extract metadata from the document. Would you like to proceed with manual entry?"
+      alert(
+        "Failed to extract metadata from the document. Please proceed with manual entry."
       );
-      
-      if (proceed) {
-        navigate('/upload/extractedEntryMOA', { 
-          state: { 
-            uploadedFile,
-            formData,
-            pointPersons: pointPersonsData,
-            extractedMetadata: null
-          } 
-        });
-      }
+
+      // Navigate without extracted metadata
+      navigate("/upload/extractedEntryMOA", {
+        state: {
+          uploadedFile,
+          formData,
+          pointPersons: pointPersonsData,
+          extractedMetadata: null,
+        },
+      });
     } finally {
       setLoading(false);
-      setTimeout(() => {
-        setExtractionProgress(0);
-        setExtractionStatus("");
-      }, 1000);
+      setExtractionProgress(0);
     }
   };
 
   return (
     <TopbarSidebar>
-      <div className="mou-upload-container">
-        <form className="initial-form">
-          <h3 className="form-title">Initial Form</h3>
+      <div className="moa-upload-wrapper">
+        <form className="moa-initial-form">
+          <h3 className="moa-form-title">Initial Form</h3>
 
-          <div className="form-grid">
-            <div className="form-group">
-              <label htmlFor="source">Source (Campus/College Dept):*</label>
-              <input 
-                id="source" 
-                name="source" 
-                type="text" 
+          <div className="moa-form-grid">
+            <div className="moa-form-group">
+              <label htmlFor="moaSource">
+                <FiHome className="moa-label-icon" />
+                Source (Campus/College Dept):*
+              </label>
+              <input
+                id="moaSource"
+                name="source"
+                type="text"
                 value={formData.source}
-                onChange={(e) => handleInputChange('source', e.target.value)}
-                required 
+                onChange={(e) => handleInputChange("source", e.target.value)}
+                required
               />
             </div>
 
-            <div className="form-group">
-              <label>Date (ULCO Approval)</label>
-              <input 
-                type="date" 
+            <div className="moa-form-group">
+              <label>
+                <FiCheck className="moa-label-icon" />
+                Date (ULCO Approval)
+              </label>
+              <input
+                type="date"
                 value={formData.ulcoApprovalDate}
-                onChange={(e) => handleInputChange('ulcoApprovalDate', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("ulcoApprovalDate", e.target.value)
+                }
               />
             </div>
 
-            <div className="form-group">
-              <label>DTS No.</label>
-              <input 
-                type="text" 
+            <div className="moa-form-group">
+              <label>
+                <FiHash className="moa-label-icon" />
+                DTS No.
+              </label>
+              <input
+                type="text"
                 value={formData.dtsNo}
-                onChange={(e) => handleInputChange('dtsNo', e.target.value)}
-                required 
-                placeholder='DT2025123456' 
+                onChange={(e) => handleInputChange("dtsNo", e.target.value)}
+                required
+                placeholder="DT2025123456"
               />
             </div>
+            {/*
+            <div className="moa-form-group">
+              <label htmlFor="dtsStatus">DTS Status:*</label>
+              <select 
+                id="dtsStatus" 
+                name="dtsStatus" 
+                value={formData.dtsStatus}
+                onChange={(e) => handleInputChange('dtsStatus', e.target.value)}
+                required
+              >
+                <option value="">Select Status</option>
+              <option value="Open - OIA">OPEN</option>
+              <option value="Open - Other Office">CLOSE</option>
+              </select>
+            </div> */}
 
-            <div className="form-group">
-              <label>Date (PUP Official Signed)</label>
-              <input 
-                type="date" 
+            <div className="moa-form-group">
+              <label>
+                <FiEdit className="moa-label-icon" />
+                Date (PUP Official Signed)
+              </label>
+              <input
+                type="date"
                 value={formData.pupSignedDate}
-                onChange={(e) => handleInputChange('pupSignedDate', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("pupSignedDate", e.target.value)
+                }
               />
             </div>
 
             {/* POINT PERSON */}
-            <div className="form-section">
-              <label>Point Persons</label>
+            <div className="moa-form-section">
+              <label>
+                <FiUser className="moa-label-icon" />
+                Point Persons
+              </label>
               {pointPersons.map((pp, index) => (
-                <div key={index} className="contact-row">
+                <div key={index} className="moa-contact-row">
                   <input
                     type="text"
                     placeholder="Position"
@@ -207,92 +275,142 @@ const MOAUpload = () => {
                   />
                   <button
                     type="button"
-                    className="remove-btn"
-                    onClick={() => removePointPerson(index)}
+                    className="moa-btn-icon moa-add-btn"
+                    onClick={addPointPerson}
+                    title="Add Point Person"
                   >
-                    ❌
+                    <FiPlus />
+                  </button>
+                  <button
+                    type="button"
+                    className="moa-btn-icon moa-remove-btn"
+                    onClick={() => removePointPerson(index)}
+                    title="Remove Point Person"
+                    disabled={pointPersons.length === 1}
+                  >
+                    <FiTrash2 />
                   </button>
                 </div>
               ))}
-
-              <button
-                type="button"
-                className="add-contact-btn"
-                onClick={addPointPerson}
-              >
-                ➕ Add Point Person
-              </button>
             </div>
 
-            <div className="form-group full-width">
-              <label>Remarks:</label>
-              <textarea 
-                rows="3" 
+            <div className="moa-form-group moa-full-width">
+              <label>
+                <FiMessageCircle className="moa-label-icon" />
+                Remarks:
+              </label>
+              <textarea
+                rows="3"
                 value={formData.remarks}
-                onChange={(e) => handleInputChange('remarks', e.target.value)}
+                onChange={(e) => handleInputChange("remarks", e.target.value)}
               />
             </div>
           </div>
 
           <p
-            className="manual-entry-note"
-            onClick={() => navigate('/upload/manualEntryMOA')}
+            className="moa-manual-entry-note"
+            onClick={() => navigate("/upload/manualEntryMOA")}
           >
             Manual Entry
           </p>
         </form>
 
         {/* Upload Box */}
-        <div className="upload-box">
-          <h3>Upload File</h3>
-          <p>Select file</p>
-
-          <div className="file-drop-area">
-            <p>Select a file</p>
-            <small>DOCX, PDF or Scanned PDF, file size no more than 20MB</small>
-
-            <label htmlFor="mouFile" className="select-file-btn">
-              Choose File
-            </label>
-            <input type="file" id="mouFile" hidden onChange={handleFileChange} />
-            <p id="fileName" className="file-name">No file chosen</p>
+        <div className="moa-upload-card">
+          <div className="moa-upload-header">
+            <h3 className="moa-upload-title">Upload File</h3>
+            <p className="moa-upload-subtitle">Select a file to upload</p>
           </div>
 
-          {/* Enhanced Progress Bar with Status */}
-          {loading && (
-            <div className="extraction-progress">
-              <p className="extraction-status">{extractionStatus}</p>
-              <div className="progress-bar-container">
-                <div 
-                  className="progress-bar-fill" 
-                  style={{ width: `${extractionProgress}%` }}
-                >
-                  <span className="progress-bar-text">{extractionProgress}%</span>
-                </div>
+          <div className="moa-file-upload-area">
+            <div className="moa-file-upload-content">
+              <FiFileText className="moa-file-main-icon" />
+              <div className="moa-file-upload-text">
+                <p>DOCX, PDF or Scanned PDF</p>
+                <span>File size no more than 20MB</span>
               </div>
-              <div className="extraction-steps">
-                <div className={`step ${extractionProgress >= 25 ? 'complete' : 'active'}`}>
-                  📄 Reading Document
+              <label
+                htmlFor="moaFile"
+                className="moa-file-browse-btn"
+                style={{ display: uploadedFile ? "none" : "inline-flex" }}
+              >
+                <FiUpload className="btn-icon" />
+                Select File
+              </label>
+              <input
+                type="file"
+                id="moaFile"
+                hidden
+                onChange={handleFileChange}
+                accept=".docx,.pdf"
+                multiple={false}
+              />
+            </div>
+
+            {uploadedFile && (
+              <div className="moa-file-selected">
+                <FiFile className="moa-file-success-icon" />
+                <div className="moa-file-details">
+                  <span
+                    className="moa-file-name"
+                    title={uploadedFile.name}
+                    aria-label={uploadedFile.name}
+                  >
+                    {truncateFileName(
+                      uploadedFile.name,
+                      FILE_NAME_DISPLAY_LIMIT
+                    )}
+                  </span>
+                  <span className="moa-file-size">
+                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </span>
                 </div>
-                <div className={`step ${extractionProgress >= 50 ? 'complete' : extractionProgress >= 25 ? 'active' : ''}`}>
-                  🤖 AI Analysis
-                </div>
-                <div className={`step ${extractionProgress >= 75 ? 'complete' : extractionProgress >= 50 ? 'active' : ''}`}>
-                  📋 Extracting Fields
-                </div>
-                <div className={`step ${extractionProgress === 100 ? 'complete' : extractionProgress >= 75 ? 'active' : ''}`}>
-                  ✅ Complete
-                </div>
+                <button
+                  type="button"
+                  className="moa-file-clear-btn"
+                  onClick={handleClearFile}
+                  title="Remove file"
+                  aria-label="Remove file"
+                  disabled={loading}
+                >
+                  <FiX />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {loading && (
+            <div className="moa-extraction-progress">
+              <div className="moa-progress-header">
+                <span>Extracting metadata...</span>
+                <span className="moa-progress-percent">
+                  {extractionProgress}%
+                </span>
+              </div>
+              <div className="moa-progress-bar-container">
+                <div
+                  className="moa-progress-bar-fill"
+                  style={{ width: `${extractionProgress}%` }}
+                ></div>
               </div>
             </div>
           )}
 
           <button
-            className="submit-btn"
+            className={`moa-submit-btn${
+              !uploadedFile ? " moa-submit-disabled" : ""
+            }`}
             onClick={handleSubmit}
             disabled={loading || !uploadedFile}
           >
-            {loading ? "Extracting..." : "Submit"}
+            {loading ? (
+              <>
+                <div className="moa-loading-spinner"></div>
+                Processing...
+              </>
+            ) : (
+              <>Submit Document</>
+            )}
           </button>
         </div>
       </div>

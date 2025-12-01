@@ -1,14 +1,14 @@
-.moa-upload-container {
+.moa-upload-wrapper {
   display: flex;
   justify-content: center;
   align-items: flex-start;
   gap: 3rem;
   padding: 2rem 4rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
-.initial-form,
-.upload-box {
+.moa-initial-form,
+.moa-upload-box {
   background: #fff;
   border: 1px solid #ccc;
   border-radius: 10px;
@@ -16,59 +16,65 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.initial-form {
-  max-width: 700px;
-  flex: 1 1 600px;
+.moa-initial-form {
+  width: 100%;
+  max-width: 900px;
+  min-width: 700px;
+  flex: 1 1 750px;
 }
 
-.upload-box {
+.moa-upload-box {
   width: 350px;
   text-align: center;
   border-style: dashed;
   border-color: #ccc;
 }
 
-.form-title {
+.moa-form-title {
   font-weight: bold;
   text-align: center;
   margin-bottom: 1.5rem;
-  color: #800000; 
+  color: #800000;
 }
 
-.form-grid {
+.moa-form-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
-  gap: 0 rem 1rem !important; 
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 1rem !important;
+  width: 100%;
 }
 
-.form-group.full-width {
+.moa-form-group.moa-full-width,
+.moa-form-section {
   grid-column: span 2;
 }
 
-.form-group {
+.moa-form-group {
   display: flex;
   flex-direction: column;
 }
 
-.form-group label {
+.moa-form-group label {
   font-size: 0.9rem;
   margin-bottom: 0.3rem;
+  display: flex;
+  align-items: center;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.moa-form-group input,
+.moa-form-group select,
+.moa-form-group textarea {
   padding: 0.5rem;
   font-size: 1rem;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
 
-.form-group textarea {
+.moa-form-group textarea {
   resize: none;
 }
 
-.manual-entry-note {
+.moa-manual-entry-note {
   font-size: 0.85rem;
   text-align: center;
   margin-top: 1rem;
@@ -81,11 +87,11 @@
   padding: 0;
 }
 
-.manual-entry-note:hover {
+.moa-manual-entry-note:hover {
   opacity: 0.8;
 }
 
-.with-mou-section {
+.moa-with-mou-section {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -93,9 +99,8 @@
   margin-top: 0.5rem;
 }
 
-
 /* Toggle switch for With MOU */
-.checkbox-group-inline {
+.moa-checkbox-group-inline {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -104,7 +109,7 @@
   user-select: none;
 }
 
-.checkbox-group-inline input[type="checkbox"] {
+.moa-checkbox-group-inline input[type="checkbox"] {
   appearance: none;
   width: 40px;
   height: 20px;
@@ -116,7 +121,7 @@
   transition: background 0.3s ease;
 }
 
-.checkbox-group-inline input[type="checkbox"]::before {
+.moa-checkbox-group-inline input[type="checkbox"]::before {
   content: "";
   position: absolute;
   width: 16px;
@@ -128,20 +133,20 @@
   transition: transform 0.3s ease;
 }
 
-.checkbox-group-inline input[type="checkbox"]:checked {
+.moa-checkbox-group-inline input[type="checkbox"]:checked {
   background: #800000;
 }
 
-.checkbox-group-inline input[type="checkbox"]:checked::before {
+.moa-checkbox-group-inline input[type="checkbox"]:checked::before {
   transform: translateX(20px);
 }
 
 /* Dropdown */
-.mou-dropdown {
+.moa-mou-dropdown {
   width: 100%;
 }
 
-.mou-dropdown select {
+.moa-mou-dropdown select {
   width: 100%;
   padding: 0.6rem;
   font-size: 0.95rem;
@@ -151,13 +156,13 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.mou-dropdown select:focus {
+.moa-mou-dropdown select:focus {
   border-color: #800000;
   box-shadow: 0 0 4px rgba(128, 0, 0, 0.4);
   outline: none;
 }
 
-@keyframes fadeIn {
+@keyframes moa-fadeIn {
   from {
     opacity: 0;
     transform: translateY(-5px);
@@ -168,30 +173,30 @@
   }
 }
 
-.file-drop-area {
+.moa-file-drop-area {
   border: 2px dashed #ccc;
   border-radius: 8px;
   padding: 1rem;
   margin: 1.5rem 0;
-  text-align: center; 
+  text-align: center;
 }
 
-.file-drop-area p {
+.moa-file-drop-area p {
   font-weight: 500;
   margin-bottom: 0.5rem;
 }
 
-.file-drop-area small {
+.moa-file-drop-area small {
   display: block;
   color: #666;
   font-size: 0.75rem;
-  margin-bottom: 1rem; 
+  margin-bottom: 1rem;
 }
 
-.select-file-btn {
+.moa-select-file-btn {
   background-color: #800000;
   color: #fff;
-  padding: 0.5rem 1.2rem; 
+  padding: 0.5rem 1.2rem;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -200,120 +205,13 @@
   display: inline-block;
 }
 
-.file-name {
+.moa-file-name {
   margin-top: 0.8rem;
   font-size: 0.85rem;
   color: #444;
 }
 
-/* Enhanced Extraction Progress Styles */
-.extraction-progress {
-  margin: 20px 0;
-  padding: 20px;
-  background: linear-gradient(135deg, #800000 0%, #fce830 100%);
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.extraction-status {
-  color: white;
-  font-weight: 600;
-  margin-bottom: 15px;
-  text-align: center;
-  font-size: 14px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.progress-bar-container {
-  width: 100%;
-  height: 30px;
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 15px;
-  overflow: hidden;
-  margin-bottom: 15px;
-  position: relative;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%);
-  transition: width 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 15px;
-  position: relative;
-  overflow: hidden;
-}
-
-.progress-bar-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.progress-bar-text {
-  color: white;
-  font-weight: bold;
-  font-size: 12px;
-  z-index: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.extraction-steps {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-
-.extraction-steps .step {
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  text-align: center;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  transition: all 0.3s ease;
-  border: 1px solid transparent;
-}
-
-.extraction-steps .step.active {
-  background: rgba(255, 255, 255, 0.3);
-  color: white;
-  font-weight: 600;
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: scale(1.05);
-}
-
-.extraction-steps .step.complete {
-  background: rgba(76, 175, 80, 0.8);
-  color: white;
-  font-weight: 600;
-  border-color: rgba(76, 175, 80, 1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.submit-btn {
+.moa-submit-btn {
   background-color: #800000;
   color: #fff;
   padding: 0.6rem;
@@ -324,13 +222,396 @@
   margin-top: 1rem;
 }
 
-.submit-btn:disabled {
-  opacity: 0.6;
+.moa-submit-btn:disabled {
+  background-color: #ccc;
   cursor: not-allowed;
-  background: #ccc;
 }
 
-.submit-btn:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+/* Progress Bar Styles */
+.moa-extraction-progress {
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.moa-extraction-progress p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #800000;
+  font-weight: 500;
+}
+
+.moa-progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+
+.moa-progress-bar-fill {
+  height: 100%;
+  background-color: #800000;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.moa-progress-text {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0.25rem 0;
+}
+
+/* Contact Row and Point Persons */
+
+.moa-form-section {
+  grid-column: span 2;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.2rem 1rem;
+  margin: 1rem 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.moa-form-section > label {
+  grid-column: span 2;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.moa-contact-row {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: 180px 180px 180px 44px 44px;
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.moa-contact-row input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Icon buttons for add/remove */
+.moa-btn-icon {
+  background: #f5f5f5;
+  color: #444;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 40px;
+  min-width: 40px;
+}
+
+.moa-btn-icon:hover {
+  background: #e6ffe6;
+  color: #008000;
+  border-color: #008000;
+}
+
+.moa-btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.moa-add-btn {
+  margin-top: 0;
+}
+
+.moa-remove-btn {
+  flex-shrink: 0;
+}
+
+.moa-btn-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Label icons */
+.moa-label-icon {
+  margin-right: 6px;
+  vertical-align: middle;
+  color: #666;
+}
+
+/* MOA Upload Section */
+.moa-upload-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e8e8;
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.moa-upload-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.moa-upload-icon {
+  width: 60px;
+  height: 60px;
+  background: #6c757d;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.moa-upload-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  margin-top: 10px;
+}
+
+.moa-upload-subtitle {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.moa-file-upload-area {
+  max-width: 250px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem 0.5rem;
+  border: 2px dashed #dee2e6;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+  margin-top: -10px;
+}
+
+.moa-file-upload-area:hover {
+  border-color: #28a745;
+  background: #f8fff9;
+}
+
+.moa-file-upload-content {
+  text-align: center;
+}
+
+.moa-file-main-icon {
+  font-size: 2.5rem;
+  color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+.moa-file-upload-text p {
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.moa-file-upload-text span {
+  color: #666;
+  font-size: 0.85rem;
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
+.moa-file-browse-btn {
+  background: #6c757d;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.moa-file-browse-btn:hover {
+  background: #28a745;
+  transform: translateY(-1px);
+}
+
+.moa-file-selected {
+  display: flex;
+  align-items: center;
+  background: #e8f5e8;
+  border: 1px solid #d4edda;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  animation: fileSlideIn 0.3s ease;
+}
+
+.moa-file-success-icon {
+  color: #28a745;
+  font-size: 1.25rem;
+  margin-right: 0.75rem;
+}
+
+.moa-file-details {
+  flex: 1;
+  text-align: left;
+  min-width: 0; /* allow the details to shrink inside flex containers */
+}
+
+.moa-file-details .moa-file-name {
+  display: block;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; /* show ellipsis for long file names */
+  max-width: 100%;
+}
+
+.moa-file-details .moa-file-size {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.moa-extraction-progress {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.moa-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  font-size: 0.9rem;
+}
+
+.moa-progress-percent {
+  color: #800000;
+  font-weight: 600;
+}
+
+.moa-progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.moa-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #800000, #b22222);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.moa-submit-btn {
+  background: #800000;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.9rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 25px;
+  margin-bottom: 5px;
+}
+
+.moa-submit-btn:hover:not(:disabled) {
+  background: #b22222;
+  transform: translateY(-1px);
+}
+
+.moa-submit-disabled {
+  background: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.moa-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Responsive handling for very long/unbroken filenames and small screens */
+.moa-file-clear-btn {
+  flex-shrink: 0; /* keep the clear button visible */
+}
+
+@media (max-width: 520px) {
+  /* Allow filenames to wrap on small screens instead of overflowing */
+  .moa-file-details .moa-file-name {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Slightly reduce padding and allow file details to use available space */
+  .moa-file-selected {
+    gap: 0.5rem;
+  }
+}
+
+/* Clear file button for uploaded file (X icon) */
+
+.moa-file-clear-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.3rem;
+  cursor: pointer;
+  margin-left: 10px;
+  padding: 4px;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.moa-file-clear-btn:disabled,
+.moa-file-clear-btn.disabled {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.moa-file-clear-btn:hover:not(:disabled):not(.disabled) {
+  color: #888;
 }

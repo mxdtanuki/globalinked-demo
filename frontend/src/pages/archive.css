@@ -614,7 +614,7 @@
 
 .archive-report-actions {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   margin-left: 8px;
 }
 
@@ -1724,7 +1724,7 @@
 .archive-export-options {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
 .archive-export-option {
@@ -1802,6 +1802,19 @@
   flex-shrink: 0;
   border: none;
   cursor: pointer;
+}
+
+.archive-export-btn.pdf-btn {
+  background: #007bff;
+  color: #ffffff;
+  border: 1px solid #0056b3;
+  transition: none;
+  font-weight: 400 !important;
+}
+
+.archive-export-btn.pdf-btn:hover {
+  background: #0056b3;
+  transition: none;
 }
 
 .archive-export-btn.excel-btn {

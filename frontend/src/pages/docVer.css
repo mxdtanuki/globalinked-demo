@@ -2,7 +2,7 @@
   background: #fff;
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .search-filter-bar {
@@ -20,7 +20,7 @@
   font-size: 14px;
   margin-right: 10px;
 }
- 
+
 .filter-btn {
   padding: 12px 20px;
   background-color: #f5f5f5;
@@ -101,24 +101,24 @@
   cursor: not-allowed;
 }
 .doc-ver-title {
-  font-size: 2rem;       
-  font-weight: 700;      
-  color: #800000;        
-  margin-bottom: 20px;  
-  border-bottom: 2px solid #d9b3b3; 
-  padding-bottom: 8px;   
+  font-size: 2rem;
+  font-weight: 700;
+  color: #800000;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #d9b3b3;
+  padding-bottom: 8px;
 }
 .filter-box {
-  background-color: #fdf2f2; 
-  border: 1px solid #800000; 
+  background-color: #fdf2f2;
+  border: 1px solid #800000;
   border-radius: 10px;
   padding: 12px 16px;
   margin-bottom: 16px;
   display: flex;
   gap: 10px;
   align-items: center;
-  flex-wrap: wrap; 
-  box-shadow: 0 2px 6px rgba(128, 0, 0, 0.15); 
+  flex-wrap: wrap;
+  box-shadow: 0 2px 6px rgba(128, 0, 0, 0.15);
 }
 
 /* new adjustments for action buttons */
@@ -150,8 +150,8 @@
 
 .docu-icon-btn.docu-view:hover {
   background: #fffdf0;
-  border-color: #D4AF37;
-  color: #D4AF37;
+  border-color: #d4af37;
+  color: #d4af37;
 }
 
 .docu-icon-btn.docu-download:hover {
@@ -190,7 +190,7 @@
 }
 
 .docu-icon-btn.docu-view:hover .docu-icon {
-  color: #D4AF37;
+  color: #d4af37;
 }
 
 .docu-icon-btn.docu-download:hover .docu-icon {
@@ -246,56 +246,206 @@
   background-color: #fdf2f2;
 }
 
+/* Card wrapper for edit form*/
+.edit-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.06);
+  border: 1px solid rgba(139, 31, 45, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-row td {
+  background-color: transparent;
+}
+
 .edit-form-expanded {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.edit-form-expanded textarea {
+.edit-card textarea {
   width: 100%;
-  min-height: 60px;
+  min-height: 84px;
   resize: vertical;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1px solid #efe9e9;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
 }
 
-.edit-form-expanded input[type="file"] {
+.edit-card textarea:focus {
+  outline: none;
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.08);
+  border-color: #8b1f2d;
+}
+
+.edit-card .docver-file-input {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  position: relative; 
+  padding: 4px 0;
+}
+
+.edit-card .docver-file-input input[type="file"] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+.edit-card .docver-file-input .docver-file-label-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  height: 36px;
+  line-height: 1;
+  border-radius: 6px;
+  border: 1px solid rgba(110, 18, 25, 0.12);
+  background: #8b1f2d;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  min-width: 100px;
+  justify-content: center;
+  z-index: 3;
+  -webkit-appearance: none;
+  appearance: none;
+  margin-right: 8px;
+  pointer-events: auto;
+  position: relative;
   font-size: 14px;
+  text-transform: none;
+}
+
+.edit-card .docver-file-input .docver-file-name {
+  color: #333;
+  font-size: 14px;
+  flex: 1; 
+  min-width: 0; 
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 6px;
+  align-self: center;
+}
+
+.edit-card .docver-file-input .docver-file-label-text:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.edit-card .docver-file-input .docver-file-label-text[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .inline-edit-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  align-items: center;
 }
 
-.edit-form .save-btn {
-  background-color: #800000;
+.inline-edit-actions .save-btn {
+  background: #8b1f2d;
   color: #fff;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  box-sizing: border-box;
 }
 
-.edit-form .save-btn:hover {
-  background-color: #a30f0f;
+.inline-edit-actions .save-btn:hover {
+  filter: brightness(1.06);
 }
 
-.edit-form .cancel-btn {
-  background-color: #f3f3f3;
+.inline-edit-actions .cancel-btn {
+  background: #fff;
   color: #333;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid #e6e0e0;
+  padding: 10px 14px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  box-sizing: border-box;
 }
 
-.edit-form .cancel-btn:hover {
-  background-color: #e0e0e0;
+.inline-edit-actions .cancel-btn:hover {
+  background: #f6f6f6;
+}
+
+.inline-edit-actions .save-btn svg,
+.inline-edit-actions .cancel-btn svg {
+  height: 16px;
+  width: 16px;
+}
+
+.docver-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+.docver-modal {
+  width: 96%;
+  max-width: 720px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  overflow: visible;
+  position: relative;
+  z-index: 1300;
+}
+.docver-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0e6e6;
+  background: linear-gradient(180deg, #7a1f2f, #5a1522);
+  color: #fff;
+}
+.docver-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.docver-modal-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.docver-modal-close:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.docver-modal-body {
+  padding: 16px;
 }
 /* Small fade/scale animation */
 @keyframes fadeInScale {
@@ -309,7 +459,6 @@
   }
 }
 
-/* Document Type Color Coding (updated to match overview1 look) */
 .document-type-badge {
   padding: 6px 10px;
   border-radius: 8px;
@@ -321,29 +470,39 @@
   box-sizing: border-box;
 }
 
-/* MOA -> blue like overview1 .badge.doc.moa */
 .document-type-moa {
   background-color: #1e73ff;
   color: #ffffff;
   border: 1px solid rgba(30, 115, 255, 0.12);
 }
 
-/* MOU -> maroon/pink like overview1 .badge.doc.mou */
 .document-type-mou {
   background-color: #b85c6b;
   color: #ffffff;
   border: 1px solid rgba(184, 92, 107, 0.12);
 }
 
-/* keep default style for unknown types */
 .document-type-default {
   background-color: #f5f5f5;
   color: #616161;
   border: 1px solid #e0e0e0;
 }
 
-/* Center the document type column */
 .contact-person-table td:nth-child(2) {
   text-align: center;
   vertical-align: middle;
+}
+
+.docver-modal * {
+  pointer-events: auto;
+}
+
+.inline-edit-actions .save-btn,
+.inline-edit-actions .cancel-btn {
+  position: relative;
+  z-index: 1310;
+}
+
+.edit-card .docver-file-input {
+  pointer-events: auto;
 }

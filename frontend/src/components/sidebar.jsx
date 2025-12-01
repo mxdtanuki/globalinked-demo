@@ -35,7 +35,7 @@ const Sidebar = ({ mobileShow }) => {
     { label: 'Overview', path: '/overview', icon: <FiHome /> },
     { label: 'Agreements', path: '/active-agreements', icon: <FiFileText/> },
     { label: 'Analytics', path: '/analytics', icon: <FiBarChart2 /> },
-    { label: 'Document Entry', path: '/docUpload', icon: <FiUpload />, roles: ['admin'] },
+    { label: 'Document Entry', path: '/upload/manualExtract', icon: <FiUpload />, roles: ['admin'] },
     { label: 'Point Person', path: '/pointPerson', icon: <FiUser /> },
     { label: 'Contact Person', path: '/contactPerson', icon: <FiUsers /> },
     { label: 'Mobility', path: '/mobility', icon: <FiMap /> },

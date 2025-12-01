@@ -17,17 +17,20 @@
 
 .search-input {
   flex: 1;
-  padding: 12px 14px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
   font-size: 14px;
-  transition: all 0.2s ease;
+  outline: none;
+  transition: box-shadow 0.12s ease, border-color 0.12s ease;
+  height: 42px;
+  box-sizing: border-box;
 }
 
 .search-input:focus {
-  outline: none;
-  border-color: #800000;
-  box-shadow: 0 0 6px rgba(128, 0, 0, 0.3);
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.08);
+  border-color: var(--archive-primary);
 }
 
 /* Buttons */
@@ -41,22 +44,47 @@
   border: none;
 }
 
-/* Filter button */
+/* Filter button (match overview style) */
 .filter-btn {
-  background-color: #800000 !important;
-  color: #fff !important;
-  border: none !important;
-  cursor: pointer !important;
-  margin-top: -27.5px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+.filter-btn .filter-icon {
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  color: inherit;
 }
 
 .filter-btn:hover {
-  background-color: #a00000 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
+.filter-btn:focus {
+  outline: none;
+}
+
+.filter-btn.open,
 .filter-btn:active,
 .filter-btn.active {
-  background-color: #800000;
+  background: linear-gradient(180deg, #fff6f4, #fff0ee);
+  border: 1px solid rgba(139, 31, 45, 0.18);
+  color: #800020 !important;
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.06);
 }
 
 /* Generate button */
@@ -76,20 +104,20 @@
   background-color: #5a0000;
 }
 
-
 /* Filters */
 .filters-container {
   display: flex;
   gap: 12px;
   margin: 12px 0 18px;
-  flex-wrap: wrap;
-  flex-direction: column; 
+  /* single-row filters (no column stacking) */
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .filters-row {
   display: flex;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   width: 100%;
 }
 
@@ -103,17 +131,22 @@
 
 .apply-btn,
 .clear-btn {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e6e6e6;
   cursor: pointer;
   background: #fff;
+  height: 42px;
+  box-sizing: border-box;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .apply-btn {
-  background: #800000;
-  color: #fff;
-  border: none;
+  background: #fff;
+  color: #333;
 }
 
 .clear-btn {
@@ -122,19 +155,22 @@
 }
 
 .filters-container select {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  background: #fafafa;
   font-size: 14px;
-  background-color: #fff;
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  min-width: 220px;
+  height: 42px;
+  box-sizing: border-box;
 }
 
 .filters-container select:focus {
-  border-color: #800000;
+  border-color: var(--archive-primary);
   outline: none;
-  box-shadow: 0 0 5px rgba(128, 0, 0, 0.4);
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.08);
 }
 
 /* Table */
@@ -232,4 +268,35 @@
   margin-bottom: 20px;
   border-bottom: 2px solid #d9b3b3;
   padding-bottom: 8px;
+}
+
+/* Remove native/stray clear (×) icons that appear in some browsers */
+/* Hides the search input clear/cancel button (WebKit) */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  display: none;
+}
+
+/* Hides clear/reveal buttons in IE/Edge */
+input[type="search"]::-ms-clear,
+input[type="search"]::-ms-reveal {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Defensive rules: hide small stray clear icons inside filters container */
+.filters-container .clear,
+.filters-container .clear-icon,
+.filters-container .search-clear,
+.filters-container .x-clear {
+  display: none !important;
+}
+
+/* Ensure select appearance is consistent (optional) */
+.filters-container select {
+  -webkit-appearance: none;
+  appearance: none;
 }

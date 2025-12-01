@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import "./docVer.css";
@@ -15,8 +16,12 @@ import {
   FiSave,
   FiXCircle,
   FiRefreshCw,
+  FiFile,
+  FiSettings,
+  FiFileText,
+  FiCalendar,
 } from "react-icons/fi";
- 
+
 const DocumentVersion = () => {
   const [searchParams] = useSearchParams();
   const prefilledDts = searchParams.get("dts_number") || "";
@@ -34,6 +39,7 @@ const DocumentVersion = () => {
   const [editingDoc, setEditingDoc] = useState(null);
   const [editComment, setEditComment] = useState("");
   const [editFile, setEditFile] = useState(null);
+  const fileInputRef = useRef(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
@@ -42,6 +48,183 @@ const DocumentVersion = () => {
   const [tempPartnershipType, setTempPartnershipType] = useState("");
   const [tempVersion, setTempVersion] = useState("");
   const [tempStatus, setTempStatus] = useState("");
+
+  const SearchableSelect = ({
+    options = [],
+    value,
+    onChange,
+    placeholder = "Select...",
+    allowClear = false,
+  }) => {
+    const normalized = options.map((o) =>
+      typeof o === "string" ? { value: o, label: o } : o
+    );
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState("");
+    const ref = useRef();
+    const panelRef = useRef(null);
+    const searchInputRef = useRef(null);
+    const [panelStyle, setPanelStyle] = useState(null);
+    const [toggleWidth, setToggleWidth] = useState(null);
+
+    useEffect(() => {
+      const onDocClick = (e) => {
+        const clickInsideToggle = ref.current && ref.current.contains(e.target);
+        const clickInsidePanel = panelRef.current && panelRef.current.contains(e.target);
+        if (!clickInsideToggle && !clickInsidePanel) setOpen(false);
+      };
+      window.addEventListener("click", onDocClick);
+      return () => window.removeEventListener("click", onDocClick);
+    }, []);
+
+    useEffect(() => {
+      if (open && searchInputRef.current) {
+        try {
+          searchInputRef.current.focus({ preventScroll: true });
+        } catch (e) {
+          searchInputRef.current.focus();
+        }
+      }
+    }, [open]);
+
+    useEffect(() => {
+      if (!open) {
+        setPanelStyle(null);
+        return;
+      }
+      const prevBodyOverflow = typeof document !== "undefined" ? document.body.style.overflow : undefined;
+      try {
+        if (typeof document !== "undefined") document.body.style.overflow = "hidden";
+      } catch (e) {
+      }
+
+      const updatePosition = () => {
+        if (!ref.current) return;
+        const rect = ref.current.getBoundingClientRect();
+        const viewportPadding = 8;
+        const maxAllowed = window.innerWidth - viewportPadding * 2;
+        const desiredWidth = Math.min(Math.max(rect.width, 120), Math.min(320, maxAllowed));
+        const left = Math.max(viewportPadding, rect.left + window.scrollX);
+        const top = rect.bottom + window.scrollY;
+        setPanelStyle({ position: "absolute", left: left + "px", top: top + "px", width: desiredWidth + "px", zIndex: 9999 });
+        setToggleWidth(desiredWidth);
+      };
+
+      updatePosition();
+      window.addEventListener("resize", updatePosition);
+      window.addEventListener("scroll", updatePosition, true);
+      return () => {
+        window.removeEventListener("resize", updatePosition);
+        window.removeEventListener("scroll", updatePosition, true);
+        try {
+          if (typeof document !== "undefined") document.body.style.overflow = prevBodyOverflow || "";
+        } catch (e) {
+          // ignore
+        }
+      };
+    }, [open]);
+
+    const filtered = normalized.filter((o) =>
+      o.label.toLowerCase().includes(query.toLowerCase())
+    );
+    const selectedLabel =
+      normalized.find((o) => String(o.value) === String(value))?.label || "";
+
+    return (
+      <div
+        className="searchable-select"
+        ref={ref}
+        style={{ position: "relative" }}
+      >
+        <button
+          type="button"
+          className="ss-toggle"
+          onClick={() => {
+            if (!open && ref.current) {
+              const w = Math.round(ref.current.getBoundingClientRect().width || 0);
+              setToggleWidth(w || null);
+            }
+            setOpen((v) => !v);
+            if (open) {
+              setToggleWidth(null);
+            }
+          }}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          style={toggleWidth ? { minWidth: toggleWidth + "px", whiteSpace: "nowrap" } : { whiteSpace: "nowrap" }}
+        >
+          <span className={`ss-value ${selectedLabel ? "" : "placeholder"}`}>
+            {selectedLabel || placeholder}
+          </span>
+          <span className="ss-caret">▾</span>
+        </button>
+        {allowClear && selectedLabel && (
+          <button
+            className="ss-clear"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange("");
+            }}
+            aria-label="Clear selection"
+          >
+            ×
+          </button>
+        )}
+        {open &&
+          createPortal(
+            <div
+              ref={panelRef}
+              className="ss-panel"
+              role="dialog"
+              style={{
+                ...panelStyle,
+                background: "#fff",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                marginTop: 6,
+                maxHeight: 260,
+                overflow: "auto",
+              }}
+            >
+              <div style={{ padding: 8 }}>
+                <input
+                  ref={searchInputRef}
+                  className="ss-search"
+                  placeholder="Type to search..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  style={{ width: "100%" }}
+                />
+              </div>
+              <ul
+                className="ss-list"
+                role="listbox"
+                aria-label="options"
+                style={{ listStyle: "none", margin: 0, padding: 0 }}
+              >
+                {filtered.length === 0 && (
+                  <li style={{ padding: 8, color: "#666" }}>No results</li>
+                )}
+                {filtered.map((o) => (
+                  <li
+                    key={o.value}
+                    className="ss-item"
+                    style={{ padding: 8, cursor: "pointer" }}
+                    onClick={() => {
+                      onChange(o.value);
+                      setOpen(false);
+                      setQuery("");
+                    }}
+                  >
+                    {o.label}
+                  </li>
+                ))}
+              </ul>
+            </div>,
+            document.body
+          )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     if (prefilledDts) {
@@ -205,7 +388,6 @@ const DocumentVersion = () => {
     }
   };
 
-  // { dts_number: max_version_number }
   const latestByDts = documents.reduce((acc, doc) => {
     if (!acc[doc.dts_number] || doc.version_number > acc[doc.dts_number]) {
       acc[doc.dts_number] = doc.version_number;
@@ -240,11 +422,11 @@ const DocumentVersion = () => {
 
               <div className="contact-person-wrapper">
                 {/* Search + Filter toggle button */}
-                <div className="search-filter-bar">
+                <div className="overview1-controls-row">
                   <input
                     type="text"
                     placeholder="Search here"
-                    className="search-input"
+                    className="overview1-search-input"
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -252,66 +434,107 @@ const DocumentVersion = () => {
                     }}
                   />
                   <button
-                    className="filter-btn"
+                    className={
+                      "overview1-filter-btn " + (showFilters ? "active" : "")
+                    }
                     onClick={() => setShowFilters(!showFilters)}
                   >
-                    <FiFilter size={16} />
-                    {showFilters ? " Hide Filters" : " Show Filters"}
+                    <span className="filter-icon">
+                      <FiFilter size={16} />
+                    </span>
+                    {showFilters ? "Filters" : "Filters"}
                   </button>
                 </div>
 
                 {/* Filters */}
                 {showFilters && (
-                  <div className="filter-section">
-                    {/* Temporary state selectors */}
-                    <select
-                      value={tempDocType}
-                      onChange={(e) => setTempDocType(e.target.value)}
+                  <div className="overview1-filter-panel">
+                    <div
+                      className="overview1-panel-row"
+                      style={{
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "flex-end",
+                        flexWrap: "nowrap",
+                        overflowX: "auto",
+                      }}
                     >
-                      <option value="">All Document Types</option>
-                      <option value="MOA">MOA</option>
-                      <option value="MOU">MOU</option>
-                    </select>
+                      <div
+                        className="overview1-panel-field"
+                        style={{ flex: "1 1 220px", minWidth: 180 }}
+                      >
+                        <label className="form-label">
+                          <FiFile className="label-icon" /> Document Type
+                        </label>
+                        <SearchableSelect
+                          options={[
+                            { value: "MOA", label: "MOA" },
+                            { value: "MOU", label: "MOU" },
+                          ]}
+                          value={tempDocType}
+                          onChange={(v) => setTempDocType(v)}
+                          placeholder="All Document Types"
+                        />
+                      </div>
 
-                    <select
-                      value={tempPartnershipType}
-                      onChange={(e) => setTempPartnershipType(e.target.value)}
-                    >
-                      <option value="">All Partnership Types</option>
-                      {partnershipTypes.map((type, i) => (
-                        <option key={i} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </select>
+                      <div
+                        className="overview1-panel-field"
+                        style={{ flex: "1 1 220px", minWidth: 180 }}
+                      >
+                        <label className="form-label">
+                          <FiSettings className="label-icon" /> Partnership Type
+                        </label>
+                        <SearchableSelect
+                          options={partnershipTypes.map((t) => ({
+                            value: t,
+                            label: t,
+                          }))}
+                          value={tempPartnershipType}
+                          onChange={(v) => setTempPartnershipType(v)}
+                          placeholder="All Partnership Types"
+                        />
+                      </div>
 
-                    <select
-                      value={tempVersion}
-                      onChange={(e) => setTempVersion(e.target.value)}
-                    >
-                      <option value="">All Versions</option>
-                      {versions.map((v, i) => (
-                        <option key={i} value={v}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
+                      <div
+                        className="overview1-panel-field"
+                        style={{ flex: "1 1 140px", minWidth: 120 }}
+                      >
+                        <label className="form-label">
+                          <FiFileText className="label-icon" /> Version
+                        </label>
+                        <SearchableSelect
+                          options={versions.map((v) => ({
+                            value: v,
+                            label: v,
+                          }))}
+                          value={tempVersion}
+                          onChange={(v) => setTempVersion(v)}
+                          placeholder="All Versions"
+                        />
+                      </div>
 
-                    <select
-                      value={tempStatus}
-                      onChange={(e) => setTempStatus(e.target.value)}
-                    >
-                      <option value="">All Status</option>
-                      {statuses.map((s, i) => (
-                        <option key={i} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
+                      <div
+                        className="overview1-panel-field"
+                        style={{ flex: "1 1 140px", minWidth: 120 }}
+                      >
+                        <label className="form-label">
+                          <FiCalendar className="label-icon" /> Status
+                        </label>
+                        <SearchableSelect
+                          options={statuses.map((s) => ({
+                            value: s,
+                            label: s,
+                          }))}
+                          value={tempStatus}
+                          onChange={(v) => setTempStatus(v)}
+                          placeholder="All Status"
+                        />
+                      </div>
+                    </div>
 
-                    <div className="filter-actions">
+                    <div className="overview1-filter-actions">
                       <button
-                        className="apply-btn"
+                        className="btn apply"
                         onClick={() => {
                           setFilterDocType(tempDocType);
                           setFilterPartnershipType(tempPartnershipType);
@@ -320,11 +543,10 @@ const DocumentVersion = () => {
                           setCurrentPage(1);
                         }}
                       >
-                        <FiFilter size={14} />
                         Apply
                       </button>
                       <button
-                        className="clear-btn"
+                        className="btn clear"
                         onClick={() => {
                           setTempDocType("");
                           setTempPartnershipType("");
@@ -337,7 +559,6 @@ const DocumentVersion = () => {
                           setCurrentPage(1);
                         }}
                       >
-                        <FiX size={14} />
                         Clear
                       </button>
                     </div>
@@ -496,46 +717,7 @@ const DocumentVersion = () => {
                               </td>
                             </tr>
 
-                            {/* Edit Form Row */}
-                            {isAdmin &&
-                              editingDoc?.version_id === doc.version_id && (
-                                <tr className="edit-row">
-                                  <td colSpan="9">
-                                    <div className="edit-form-expanded">
-                                      <textarea
-                                        value={editComment}
-                                        onChange={(e) =>
-                                          setEditComment(e.target.value)
-                                        }
-                                        placeholder="Edit comment"
-                                      />
-                                      <input
-                                        type="file"
-                                        accept="application/pdf"
-                                        onChange={(e) =>
-                                          setEditFile(e.target.files[0])
-                                        }
-                                      />
-                                      <div className="inline-edit-actions">
-                                        <button
-                                          className="save-btn"
-                                          onClick={handleSave}
-                                        >
-                                          <FiSave size={16} />
-                                          Save Changes
-                                        </button>
-                                        <button
-                                          className="cancel-btn"
-                                          onClick={() => setEditingDoc(null)}
-                                        >
-                                          <FiXCircle size={16} />
-                                          Cancel
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
+                            {/* Edit handled in modal*/}
                           </React.Fragment>
                         ))
                       ) : (
@@ -573,6 +755,92 @@ const DocumentVersion = () => {
                     Next →
                   </button>
                 </div>
+                {/* Edit Modal */}
+                {isAdmin && editingDoc && (
+                  <div
+                    className="docver-modal-backdrop"
+                    onClick={() => setEditingDoc(null)}
+                  >
+                    <div
+                      className="docver-modal"
+                      onClick={(e) => e.stopPropagation()}
+                      role="dialog"
+                      aria-modal="true"
+                    >
+                      <div className="docver-modal-header">
+                        <h3>Edit Version</h3>
+                        <button
+                          className="docver-modal-close"
+                          onClick={() => setEditingDoc(null)}
+                          aria-label="Close"
+                        >
+                          <FiX size={18} />
+                        </button>
+                      </div>
+                      <div className="docver-modal-body">
+                        <div className="edit-card">
+                          <label className="sr-only">Comment</label>
+                          <textarea
+                            value={editComment}
+                            onChange={(e) => setEditComment(e.target.value)}
+                            placeholder="Edit comment"
+                          />
+
+                          <div>
+                            <div className="docver-file-input">
+                              <input
+                                ref={fileInputRef}
+                                name="DOC-VER-file-inpout"
+                                id={
+                                  editingDoc
+                                    ? `file-input-${editingDoc.version_id}`
+                                    : "file-input"
+                                }
+                                type="file"
+                                accept="application/pdf"
+                                onChange={(e) => setEditFile(e.target.files[0])}
+                              />
+
+                              <label
+                                htmlFor={
+                                  editingDoc
+                                    ? `file-input-${editingDoc.version_id}`
+                                    : "file-input"
+                                }
+                                className="docver-file-label-text"
+                              >
+                                Choose file
+                              </label>
+
+                              <span className="docver-file-name">
+                                {editFile ? editFile.name : "No file chosen"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="inline-edit-actions">
+                            <button
+                              type="button"
+                              className="save-btn"
+                              onClick={handleSave}
+                            >
+                              <FiSave size={16} />
+                              Save Changes
+                            </button>
+                            <button
+                              type="button"
+                              className="cancel-btn"
+                              onClick={() => setEditingDoc(null)}
+                            >
+                              <FiXCircle size={16} />
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
