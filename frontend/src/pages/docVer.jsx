@@ -779,7 +779,7 @@ const DocumentVersion = () => {
                     Next →
                   </button>
                 </div>
-                {/* Edit Modal (refactored to use ActiveAgreement edit layout) */}
+                {/* Edit Modal */}
                 {isAdmin && editingDoc && (
                   <div
                     className="docver-modal-backdrop"
@@ -791,21 +791,15 @@ const DocumentVersion = () => {
                       role="dialog"
                       aria-modal="true"
                     >
-                      <div className="docver-modal-header">
-                        <div className="modal-badge-row" style={{display:'flex',alignItems:'center',gap:8}}>
-                          <FiEdit className="section-icon" />
-                          <h3 className="modal-title" style={{margin:0}}>Edit Version</h3>
-                        </div>
+                      <div className="docver-modal-body">
                         <button
                           className="docver-modal-close"
                           onClick={() => setEditingDoc(null)}
                           aria-label="Close"
+                          style={{position:'absolute',right:12,top:12}}
                         >
                           <FiX size={18} />
                         </button>
-                      </div>
-
-                      <div className="docver-modal-body">
                         <div className="modal-edit-panel">
                           <div className="edit-section-header">
                             <FiEdit className="section-icon" />

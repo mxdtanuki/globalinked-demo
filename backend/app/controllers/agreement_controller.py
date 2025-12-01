@@ -767,9 +767,23 @@ async def update_agreement(
             if 'signatories_list' in up:
                 agreement.signatories_list = up['signatories_list']
             if 'agreement_status' in up:
-                # Only update last_status_change if the status actually changed
-                if up['agreement_status'] != agreement.agreement_status:
-                    agreement.agreement_status = up['agreement_status']
+                # Only update last_status_change if the status actually changed.
+                # Use normalized comparison (strip + case-insensitive) to avoid
+                # resetting the timer due to whitespace/casing differences.
+                new_status_raw = up.get('agreement_status')
+                old_status_raw = agreement.agreement_status
+                def _norm(s):
+                    try:
+                        return str(s).strip().lower() if s is not None else None
+                    except Exception:
+                        return None
+
+                new_status = _norm(new_status_raw)
+                old_status = _norm(old_status_raw)
+
+                if new_status != old_status:
+                    # status changed -> update stored value and reset timer
+                    agreement.agreement_status = new_status_raw
                     timer = db.query(Timer).filter(Timer.agreement_id == agreement.agreement_id).first()
                     if timer:
                         timer.last_status_change = datetime.utcnow()
@@ -780,8 +794,8 @@ async def update_agreement(
                         )
                         db.add(timer)
                 else:
-                    # Status did not change, just update the field 
-                    agreement.agreement_status = up['agreement_status']
+                    # Status did not change; preserve original timer value.
+                    agreement.agreement_status = new_status_raw
 
             if 'hardcopy_location' in up:
                 agreement.hardcopy_location = up['hardcopy_location']

@@ -189,21 +189,20 @@ const Profile = () => {
                       <FiCamera className="profile-camera-icon-large" />
                       <span className="profile-overlay-text">Update Photo</span>
                     </div>
-                  </div>
-
-                  {!showPhotoActions && currentUser?.user_profile_img && (
-                    <div className="profile-photo-edit-btn">
+                    {/* Inner edit button placed inside the photo (bottom-right) */}
+                    <div className="profile-inner-edit-btn">
                       <button
                         type="button"
-                        className="profile-photo-action-btn profile-edit"
+                        className="profile-photo-action-btn profile-edit inner"
                         title="Edit photo"
                         aria-label="Edit photo"
-                        onClick={handlePhotoClick}
+                        onClick={(e) => { e.stopPropagation(); setShowPhotoActions(true); }}
                       >
                         <FiEdit2 />
                       </button>
                     </div>
-                  )}
+                  </div>
+
 
                   {showPhotoActions && (
                     <div className="profile-photo-action-panel">
@@ -227,6 +226,14 @@ const Profile = () => {
                             <span>Remove Photo</span>
                           </button>
                         )}
+                        <button
+                          className="profile-action-btn profile-cancel-panel-btn"
+                          onClick={handleCancelPhotoChange}
+                          disabled={isSaving}
+                        >
+                          <FiX />
+                          <span>Cancel</span>
+                        </button>
                       </div>
                       
                       {previewPhoto && (

@@ -304,53 +304,7 @@
   cursor: pointer;
   z-index: 2;
 }
-.edit-card .docver-file-input .docver-file-label-text {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  height: 36px;
-  line-height: 1;
-  border-radius: 6px;
-  border: 1px solid rgba(110, 18, 25, 0.12);
-  background: #8b1f2d;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-  min-width: 100px;
-  justify-content: center;
-  z-index: 3;
-  -webkit-appearance: none;
-  appearance: none;
-  margin-right: 8px;
-  pointer-events: auto;
-  position: relative;
-  font-size: 14px;
-  text-transform: none;
-}
-
-.edit-card .docver-file-input .docver-file-name {
-  color: #333;
-  font-size: 14px;
-  flex: 1; 
-  min-width: 0; 
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-left: 6px;
-  align-self: center;
-}
-
-.edit-card .docver-file-input .docver-file-label-text:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-}
-
-.edit-card .docver-file-input .docver-file-label-text[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+/* (Removed old .edit-card file-label styles to avoid duplicate buttons) */
 
 .inline-edit-actions {
   display: flex;
@@ -505,4 +459,71 @@
 
 .edit-card .docver-file-input {
   pointer-events: auto;
+}
+
+.docver-modal:focus,
+.docver-modal *:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.docver-modal button:focus,
+.docver-modal textarea:focus,
+.docver-modal input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.docver-modal .docver-file-label-text {
+  /* Neutral "choose file" appearance */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  height: 36px;
+  line-height: 1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: 100px;
+  justify-content: center;
+  z-index: 3;
+  -webkit-appearance: none;
+  appearance: none;
+  margin-right: 8px;
+  font-size: 14px;
+  border: 1px solid #e6e0e0;
+}
+.docver-modal .docver-file-label-text:hover {
+  background: #f6f6f6;
+  border-color: #dcdcdc;
+}
+.docver-modal .docver-file-name {
+  color: #333;
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 6px;
+  align-self: center;
+}
+
+.docver-modal .edit-input,
+.docver-modal textarea.edit-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #efe9e9;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.docver-modal .edit-input:focus,
+.docver-modal textarea.edit-input:focus {
+  outline: none;
+  box-shadow: 0 6px 18px rgba(139, 31, 45, 0.08);
+  border-color: #8b1f2d;
 }
