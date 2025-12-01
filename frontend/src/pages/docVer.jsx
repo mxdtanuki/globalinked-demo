@@ -779,7 +779,7 @@ const DocumentVersion = () => {
                     Next →
                   </button>
                 </div>
-                {/* Edit Modal */}
+                {/* Edit Modal (refactored to use ActiveAgreement edit layout) */}
                 {isAdmin && editingDoc && (
                   <div
                     className="docver-modal-backdrop"
@@ -792,9 +792,9 @@ const DocumentVersion = () => {
                       aria-modal="true"
                     >
                       <div className="docver-modal-header">
-                        <div className="edit-section-header" style={{display:'flex',alignItems:'center',gap:8}}>
+                        <div className="modal-badge-row" style={{display:'flex',alignItems:'center',gap:8}}>
                           <FiEdit className="section-icon" />
-                          <h3 style={{margin:0}}>Edit Version</h3>
+                          <h3 className="modal-title" style={{margin:0}}>Edit Version</h3>
                         </div>
                         <button
                           className="docver-modal-close"
@@ -804,66 +804,78 @@ const DocumentVersion = () => {
                           <FiX size={18} />
                         </button>
                       </div>
+
                       <div className="docver-modal-body">
-                        <div className="edit-card">
-                          <label className="edit-label" style={{display:'flex',alignItems:'center',gap:8}}>
-                            <FiFileText className="label-icon" />
-                            Comment
-                          </label>
-                          <textarea
-                            value={editComment}
-                            onChange={(e) => setEditComment(e.target.value)}
-                            placeholder="Edit comment"
-                          />
-
-                          <div className="docver-file-input" style={{marginTop:12}}>
-                            <input
-                              ref={fileInputRef}
-                              name="DOC-VER-file-input"
-                              id={
-                                editingDoc
-                                  ? `file-input-${editingDoc.version_id}`
-                                  : "file-input"
-                              }
-                              type="file"
-                              accept="application/pdf"
-                              onChange={(e) => setEditFile(e.target.files[0])}
-                            />
-
-                            <label
-                              htmlFor={
-                                editingDoc
-                                  ? `file-input-${editingDoc.version_id}`
-                                  : "file-input"
-                              }
-                              className="docver-file-label-text"
-                              style={{display:'inline-flex',alignItems:'center',gap:8}}
-                            >
-                              <FiFile />
-                              Choose file
-                            </label>
-
-                            <span className="docver-file-name">
-                              {editFile ? editFile.name : "No file chosen"}
-                            </span>
+                        <div className="modal-edit-panel">
+                          <div className="edit-section-header">
+                            <FiEdit className="section-icon" />
+                            <h4>Edit Version</h4>
                           </div>
 
-                          <div className="inline-edit-actions" style={{marginTop:12}}>
+                          <div className="edit-form-grid">
+                            <div className="edit-field full-width">
+                              <label className="edit-label">
+                                <FiFileText className="label-icon" /> Comment
+                              </label>
+                              <textarea
+                                className="edit-input"
+                                value={editComment}
+                                onChange={(e) => setEditComment(e.target.value)}
+                                placeholder="Edit comment"
+                                style={{minHeight:100}}
+                              />
+                            </div>
+
+                            <div className="edit-field full-width">
+                              <label className="edit-label">
+                                <FiFile className="label-icon" /> Replace File
+                              </label>
+                              <div className="docver-file-input">
+                                <input
+                                  ref={fileInputRef}
+                                  name="DOC-VER-file-input"
+                                  id={
+                                    editingDoc
+                                      ? `file-input-${editingDoc.version_id}`
+                                      : "file-input"
+                                  }
+                                  type="file"
+                                  accept="application/pdf"
+                                  onChange={(e) => setEditFile(e.target.files[0])}
+                                />
+
+                                <label
+                                  htmlFor={
+                                    editingDoc
+                                      ? `file-input-${editingDoc.version_id}`
+                                      : "file-input"
+                                  }
+                                  className="docver-file-label-text"
+                                >
+                                  Choose file
+                                </label>
+
+                                <span className="docver-file-name">
+                                  {editFile ? editFile.name : "No file chosen"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="edit-actions" style={{marginTop:12,display:'flex',justifyContent:'flex-end',gap:8}}>
                             <button
+                              className="btn cancel"
+                              onClick={() => setEditingDoc(null)}
                               type="button"
-                              className="save-btn"
-                              onClick={handleSave}
                             >
-                              <FiSave size={16} />
-                              Save Changes
+                              <FiX className="icon" /> Cancel
                             </button>
                             <button
+                              className="btn save"
+                              onClick={handleSave}
                               type="button"
-                              className="cancel-btn"
-                              onClick={() => setEditingDoc(null)}
                             >
-                              <FiXCircle size={16} />
-                              Cancel
+                              <FiSave className="icon" /> Save Changes
                             </button>
                           </div>
                         </div>
