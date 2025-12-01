@@ -20,7 +20,7 @@ export function NotificationsProvider({ children }) {
   //  stay in localStorage so it survives refreshes
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem("notifications");
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved).map(n => ({ ...n, action: "" })) : [];
   });
 
   useEffect(() => {

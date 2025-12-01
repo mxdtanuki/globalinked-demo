@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
-import { FiCamera } from 'react-icons/fi';
+import { FiCamera, FiTrash2, FiX, FiCheck, FiEdit2 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, updateUserProfile } from '../services/registrationService';
 import '../components/layout.css';
@@ -13,14 +13,18 @@ const Profile = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [loading, setLoading] = useState(true); // ✅ added
+  const [loading, setLoading] = useState(true);
+  const [showPhotoActions, setShowPhotoActions] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [tempPhoto, setTempPhoto] = useState(null);
+  const [previewPhoto, setPreviewPhoto] = useState(null);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const data = await getCurrentUser();
-        console.log("getCurrentUser() response:", data);
         setCurrentUser(data);
         setProfilePic(data.user_profile_img ? `data:image/png;base64,${data.user_profile_img}` : null);
         localStorage.setItem("user", JSON.stringify(data));
@@ -29,7 +33,7 @@ const Profile = () => {
         const cached = localStorage.getItem("user");
         if (cached) setCurrentUser(JSON.parse(cached));
       } finally {
-        setLoading(false); // ✅ stop loading after fetch
+        setLoading(false);
       }
     };
     loadProfile();
@@ -39,16 +43,98 @@ const Profile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validate file type and size
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!validTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF)');
+      return;
+    }
+
+    if (file.size > maxSize) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64Str = reader.result.split(",")[1];
-      setProfilePic(reader.result);
-      setCurrentUser(prev => ({
-        ...prev,
-        user_profile_img: base64Str,
-      }));
+      setPreviewPhoto(reader.result);
+      setTempPhoto(reader.result);
+      setShowPhotoActions(true);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleSavePhoto = async () => {
+    if (!tempPhoto || !currentUser) return;
+
+    const base64Str = tempPhoto.split(",")[1];
+    setIsSaving(true);
+    
+    try {
+      const updated = await updateUserProfile(currentUser.user_id, {
+        ...currentUser,
+        user_profile_img: base64Str,
+      });
+
+      setCurrentUser(updated);
+      setProfilePic(tempPhoto);
+      localStorage.setItem("user", JSON.stringify(updated));
+      
+      // Reset states
+      setTempPhoto(null);
+      setPreviewPhoto(null);
+      setShowPhotoActions(false);
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+      alert("Profile photo updated successfully!");
+    } catch (err) {
+      alert("Failed to update profile photo: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setIsSaving(true);
+    try {
+      const updated = await updateUserProfile(currentUser.user_id, {
+        ...currentUser,
+        user_profile_img: null,
+      });
+
+      setCurrentUser(updated);
+      setProfilePic(null);
+      localStorage.setItem("user", JSON.stringify(updated));
+      
+      setShowRemoveConfirm(false);
+      setShowPhotoActions(false);
+      setPreviewPhoto(null);
+      
+      alert("Profile photo removed successfully!");
+    } catch (err) {
+      alert("Failed to remove profile photo: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelPhotoChange = () => {
+    setPreviewPhoto(null);
+    setTempPhoto(null);
+    setShowPhotoActions(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handlePhotoClick = () => {
+    setShowPhotoActions(true);
   };
 
   const handleSave = async () => {
@@ -82,7 +168,7 @@ const Profile = () => {
         <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
           
           {loading ? (
-            <div className="lloading-container">
+            <div className="loading-container">
               <div className="spinner"></div>
               <p>Loading Profile...</p>
             </div>
@@ -92,15 +178,94 @@ const Profile = () => {
                 <h3 className="profile-title">Profile</h3>
 
                 <div className="profile-pic-wrapper">
-                  <img
-                    src={profilePic || "/default-profile.png"}
-                    alt="Profile"
-                    className="profile-pic"
-                  />
-                  <div className="camera-icon" onClick={() => document.getElementById("profilePicInput").click()}>
-                    <FiCamera />
+                  <div 
+                    className={`profile-pic-container ${showPhotoActions ? 'active' : ''}`}
+                    onClick={handlePhotoClick}
+                  >
+                    <img
+                      src={previewPhoto || profilePic || "/default-profile.png"}
+                      alt="Profile"
+                      className="profile-pic"
+                    />
+                    
+                    <div className="photo-overlay">
+                      <FiCamera className="camera-icon-large" />
+                      <span className="overlay-text">Update Photo</span>
+                    </div>
                   </div>
+
+                  {!showPhotoActions && currentUser?.user_profile_img && (
+                    <div className="photo-edit-btn">
+                      <button
+                        type="button"
+                        className="photo-action-btn edit"
+                        title="Edit photo"
+                        aria-label="Edit photo"
+                        onClick={handlePhotoClick}
+                      >
+                        <FiEdit2 />
+                      </button>
+                    </div>
+                  )}
+
+                  {showPhotoActions && (
+                    <div className="photo-action-panel">
+                      <div className="action-buttons">
+                        <button
+                          className="action-btn upload-btn"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isSaving}
+                        >
+                          <FiCamera />
+                          <span>Upload Photo</span>
+                        </button>
+                        
+                        {currentUser?.user_profile_img && (
+                          <button
+                            className="action-btn remove-btn"
+                            onClick={() => setShowRemoveConfirm(true)}
+                            disabled={isSaving}
+                          >
+                            <FiTrash2 />
+                            <span>Remove Photo</span>
+                          </button>
+                        )}
+                      </div>
+                      
+                      {previewPhoto && (
+                        <div className="preview-actions">
+                          <button
+                            className="action-btn cancel-btn"
+                            onClick={handleCancelPhotoChange}
+                            disabled={isSaving}
+                          >
+                            <FiX />
+                            <span>Cancel</span>
+                          </button>
+                          <button
+                            className="action-btn save-btn"
+                            onClick={handleSavePhoto}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? (
+                              <>
+                                <div className="mini-spinner"></div>
+                                <span>Saving...</span>
+                              </>
+                            ) : (
+                              <>
+                                <FiCheck />
+                                <span>Save</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <input
+                    ref={fileInputRef}
                     id="profilePicInput"
                     type="file"
                     accept="image/*"
@@ -108,6 +273,31 @@ const Profile = () => {
                     onChange={handleProfilePicChange}
                   />
                 </div>
+
+                {showRemoveConfirm && (
+                  <div className="confirm-dialog-overlay">
+                    <div className="confirm-dialog">
+                      <h4>Remove Profile Photo?</h4>
+                      <p>Are you sure you want to remove your profile photo?</p>
+                      <div className="dialog-buttons">
+                        <button
+                          className="dialog-btn cancel-btn"
+                          onClick={() => setShowRemoveConfirm(false)}
+                          disabled={isSaving}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="dialog-btn confirm-btn"
+                          onClick={handleRemovePhoto}
+                          disabled={isSaving}
+                        >
+                          {isSaving ? "Removing..." : "Remove"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label>Name</label>
@@ -138,7 +328,7 @@ const Profile = () => {
 
                 <div className="profile-actions">
                   <button className="btn-save" onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? "Saving..." : "Save"}
+                    {isSaving ? "Saving..." : "Save Changes"}
                   </button>
                   <button className="btn-cancel" onClick={() => window.location.reload()}>
                     Cancel

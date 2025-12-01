@@ -112,7 +112,6 @@ const Mobility = () => {
     const panelRef = useRef(null);
     const searchInputRef = useRef(null);
     const [panelStyle, setPanelStyle] = useState(null);
-    const [toggleWidth, setToggleWidth] = useState(null);
 
     useEffect(() => {
       const onDocClick = (e) => {
@@ -141,19 +140,6 @@ const Mobility = () => {
         setPanelStyle(null);
         return;
       }
-      const prevBodyOverflow =
-        typeof document !== "undefined" ? document.body.style.overflow : undefined;
-      const prevBodyPaddingRight =
-        typeof document !== "undefined" ? document.body.style.paddingRight : undefined;
-      try {
-        if (typeof document !== "undefined") {
-          document.body.style.overflow = "hidden";
-          const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-          if (scrollbarWidth > 0) {
-            document.body.style.paddingRight = `${scrollbarWidth}px`;
-          }
-        }
-      } catch (e) {}
 
       const updatePosition = () => {
         if (!ref.current) return;
@@ -161,10 +147,19 @@ const Mobility = () => {
         const viewportPadding = 8;
         const maxAllowed = window.innerWidth - viewportPadding * 2;
         const desiredWidth = Math.min(Math.max(rect.width, 120), Math.min(320, maxAllowed));
-        const left = Math.max(viewportPadding, rect.left + window.scrollX);
-        const top = rect.bottom + window.scrollY;
-        setPanelStyle({ position: "absolute", left: left + "px", top: top + "px", width: desiredWidth + "px", zIndex: 9999 });
-        setToggleWidth(desiredWidth);
+
+        const left = Math.min(
+          Math.max(rect.left, viewportPadding),
+          Math.max(viewportPadding, window.innerWidth - desiredWidth - viewportPadding)
+        );
+        const top = rect.bottom;
+        setPanelStyle({
+          position: "fixed",
+          left: left + "px",
+          top: top + "px",
+          width: desiredWidth + "px",
+          zIndex: 9999,
+        });
       };
 
       updatePosition();
@@ -173,12 +168,6 @@ const Mobility = () => {
       return () => {
         window.removeEventListener("resize", updatePosition);
         window.removeEventListener("scroll", updatePosition, true);
-        try {
-          if (typeof document !== "undefined") {
-            document.body.style.overflow = prevBodyOverflow;
-            document.body.style.paddingRight = prevBodyPaddingRight;
-          }
-        } catch (e) {}
       };
     }, [open]);
 
@@ -198,18 +187,34 @@ const Mobility = () => {
           type="button"
           className="ss-toggle"
           onClick={() => {
+            // If opening, measure toggle position synchronously and set panel style
             if (!open && ref.current) {
-              const w = Math.round(ref.current.getBoundingClientRect().width || 0);
-              setToggleWidth(w || null);
+              const rect = ref.current.getBoundingClientRect();
+              const viewportPadding = 8;
+              const maxAllowed = window.innerWidth - viewportPadding * 2;
+              const desiredWidth = Math.min(Math.max(rect.width, 120), Math.min(320, maxAllowed));
+              const left = Math.min(
+                Math.max(rect.left, viewportPadding),
+                Math.max(viewportPadding, window.innerWidth - desiredWidth - viewportPadding)
+              );
+              const top = rect.bottom;
+              setPanelStyle({
+                position: "fixed",
+                left: left + "px",
+                top: top + "px",
+                width: desiredWidth + "px",
+                zIndex: 9999,
+              });
+              setOpen(true);
+              return;
             }
-            setOpen((v) => !v);
-            if (open) {
-              setToggleWidth(null);
-            }
+            // closing
+            setPanelStyle(null);
+            setOpen(false);
           }}
           aria-haspopup="listbox"
           aria-expanded={open}
-          style={toggleWidth ? { minWidth: toggleWidth + "px", whiteSpace: "nowrap" } : { whiteSpace: "nowrap" }}
+          style={{ whiteSpace: "nowrap" }}
         >
           <span className={`ss-value ${selectedLabel ? "" : "placeholder"}`}>
             {selectedLabel || placeholder}

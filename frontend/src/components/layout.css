@@ -1,337 +1,457 @@
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+}
 
-  body, html, #root {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    font-family: Arial, sans-serif;
-  }
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
 
-  .dashboard-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-  }
+.topbar {
+  background-color: #800000;
+  color: white;
+  padding: 12px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-  /* TOPBAR */
-  .topbar {
-    background-color: #800000; 
-    color: white;
-    padding: 12px 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-  .topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+.logo-globe {
+  width: 30px;
+}
 
-  .logo-globe {
-    width: 30px;
-  }
+.topbar-title {
+  font-weight: bold;
+  font-size: 18px;
+}
 
-  .topbar-title {
-    font-weight: bold;
-    font-size: 18px;
-  }
+.topbar-right {
+  display: flex;
+  gap: 20px;
+  font-size: 18px;
+}
 
-  .topbar-right {
-    display: flex;
-    gap: 20px;
-    font-size: 18px;
-  }
+.topbar-icon {
+  cursor: pointer;
+  position: relative;
+}
 
-  .topbar-icon {
-    cursor: pointer;
-  }
+.topbar-logout {
+  background-color: #ffffff;
+  color: #800000;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 14px;
+  border: 1px solid #ffffff;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
 
-  .topbar-logout {
-    background-color: #ffffff;
-    color: #800000;
-    padding: 5px 12px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 14px;
-    border: 1px solid #ffffff;
-    transition: all 0.2s ease;
-  }
+.topbar-logout:hover {
+  background-color: #f4eaea;
+  color: #800000;
+  border-color: #800000;
+}
 
-  .topbar-logout:hover {
-    background-color: #f4eaea;
-    color: #800000;
-    border-color: #800000;
-  }
+.content-body {
+  display: flex;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
 
-  /* Sidebar + Main */
-  .content-body {
-    display: flex;
-    height: 100%;
-    position: relative; 
-    overflow: hidden;
-  }
+.sidebar {
+  width: 240px;
+  background-color: #ffffff;
+  border-right: 1px solid #ddd;
+  transition: width 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
 
-  /* Sidebar container */
-    .sidebar {
-      width: 240px;
-      background-color: #ffffff;
-      border-right: 1px solid #ddd;
-      transition: width 0.3s ease;
-      overflow: hidden;
-      position: relative; 
-    }
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
 
-  /* Sidebar Menu */
-  .sidebar-menu {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  position: relative;
+  transition: background 0.2s ease, padding-left 0.2s ease, color 0.2s ease;
+}
 
-  .sidebar-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 12px 0;
-    cursor: pointer;
-    font-size: 15px;
-    padding: 8px 10px;
-    border-radius: 4px;
-    position: relative;
-    transition: background 0.2s ease, padding-left 0.2s ease, color 0.2s ease;
-  }
+.sidebar-item:hover {
+  background-color: #f17a7a2f;
+}
 
-  .sidebar-item:hover {
-    background-color: #f17a7a2f;
-  }
+.sidebar-item.active {
+  font-weight: bold;
+  color: #800000;
+  background-color: #f4eaea;
+  border-left: 4px solid #800000;
+  padding-left: 12px;
+}
 
-  .sidebar-item.active {
-    font-weight: bold;
-    color: #800000;
-    background-color: #f4eaea;
-    border-left: 4px solid #800000;
-    padding-left: 12px;
-  }
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+  width: 100%;
+  height: 100%;
+}
 
-  .sidebar-link {
-    display: flex;
-    align-items: center;
-    gap: 12px;  
-    color: inherit;
-    text-decoration: none;
-    width: 100%;
-    height: 100%;
-  }
+.sidebar-icon {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .sidebar-icon {
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+.notification-wrapper {
+  position: relative;
+  display: inline-block;
+}
 
+.notif-badge {
+  background: maroon;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  border: 1px solid white;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1;
+}
 
-  /* Notification */
-  .notif-badge {
-    background: maroon;
-    color: white;
-    font-size: 12px;
-    padding: 2px 6px;
-    border-radius: 50%;
-    position: absolute;
-    top: -5px;
-    right: -5px;
-  }
+.notif-dropdown {
+  position: absolute;
+  top: 38px;
+  right: -5px;
+  width: 320px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 1000;
+  padding: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
 
-  .notif-dropdown {
-    position: absolute;
-    top: 38px;
-    right: -5px;
-    width: 320px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 1000;
-    padding: 10px;
-  }
+.notif-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
 
+.notif-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
 
+.notif-dropdown::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
 
-  .notif-item {
-    border-bottom: 1px solid #eee;
-    padding: 8px 0;
-  }
+.notif-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
 
-  .notif-title {
-    font-weight: bold;
-    font-size: 14px;
-    margin: 0;
-  }
+/* Notification dropdown styles matching new design (appended to override older rules) */
+.notification-wrapper {
+  position: relative;
+  display: inline-block;
+}
 
-  .notif-recommend {
-    font-size: 13px;
-    color: #555;
-    margin: 4px 0;
-  }
+.notif-badge {
+  background: maroon;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  border: 1px solid white;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1;
+}
 
-  .notif-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+.notif-dropdown {
+  position: absolute;
+  top: 45px;
+  right: -10px;
+  width: 360px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 1000;
+  padding: 0;
+  max-height: 500px;
+  overflow-y: auto;
+  animation: fadeInScale 0.2s ease-in-out;
+}
 
-  .notif-time {
-    font-size: 12px;
-    color: gray;
-  }
+@keyframes fadeInScale {
+  from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
-  .notif-action {
-    font-size: 12px;
-    background: none;
-    border: none;
-    color: maroon;
-    cursor: pointer;
-  }
+.notif-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+}
 
-  .notif-refresh {
-    text-align: left;
-    font-size: 13px;
-    color: maroon;
-    cursor: pointer;
-    margin-top: 8px;
-  }
+.notif-dropdown-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #800000;
+}
 
-  .notif-refresh button {
+.notif-dropdown-refresh {
+  padding: 5px 12px;
+  background: transparent;
+  color: #800000;
+  border: 2px solid #800000;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.notif-dropdown-refresh:hover {
+  background: #800000;
+  color: white;
+}
+
+.notif-dropdown-item {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.notif-dropdown-item.unread {
+  background: #fff7f7;
+  border-left: 4px solid #800000;
+}
+
+.notif-dropdown-item.read {
+  background: #fff;
+}
+
+.notif-dropdown-item:hover {
+  background: #f4eaea;
+}
+
+.notif-dropdown-content {
+  width: 100%;
+}
+
+.notif-dropdown-title-text {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 5px 0;
+  line-height: 1.3;
+}
+
+.notif-dropdown-recommend {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 8px 0;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.notif-dropdown-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notif-dropdown-time {
+  font-size: 12px;
+  color: #888;
+}
+
+.notif-dropdown-empty {
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.notif-dropdown-empty p {
+  color: #888;
+  font-size: 14px;
+  margin: 0;
+}
+
+.notif-dropdown-footer-link {
+  text-align: center;
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  color: #800000;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-radius: 0 0 12px 12px;
+}
+
+.notif-dropdown-footer-link:hover {
+  background: #f4eaea;
+  text-decoration: underline;
+}
+
+.notif-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notif-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.notif-dropdown::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.notif-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.notif-item {
+  border-bottom: 1px solid #eee;
+  padding: 8px 0;
+  transition: background 0.2s ease;
+}
+
+.notif-item:hover {
+  background: #f4eaea;
+}
+
+.notif-title {
+  font-weight: bold;
+  font-size: 14px;
+  color: #800000;
+  margin: 0;
+}
+
+.notif-recommend {
+  font-size: 13px;
+  color: #555;
+  margin: 4px 0;
+  font-style: italic;
+}
+
+.notif-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.notif-time {
+  font-size: 12px;
+  color: gray;
+}
+
+.notif-action {
+  font-size: 12px;
+  background: transparent;
+  border: 2px solid #800000;
+  color: #800000;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.notif-action:hover {
+  background: #800000;
+  color: white;
+}
+
+.notif-refresh {
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+.notif-refresh button {
   background: none;
   border: none;
-  color: maroon;
+  color: #800000;
   padding: 0;
   margin: 0;
   font: inherit;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
 }
 
-  .notif-refresh button:hover {
+.notif-refresh button:hover {
   text-decoration: underline;
   color: #b30000;
 }
 
-  .notif-footer-link {
-    text-align: center;
-    font-size: 13px;
-    color: maroon;
-    cursor: pointer;
-    margin-top: 8px;
-  }
-
-  .notification-wrapper {
-    position: relative;
-    display: inline-block;
-  }
-
-  .no-notifs {
-    font-size: 13px;
-    color: gray;
-    text-align: center;
-    padding: 10px;
-  }
-
-  .notif-badge {
-    background: maroon;
-    color: white;
-    font-size: 12px;
-    padding: 2px 6px;
-    border-radius: 50%;
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    border: 1px solid white; 
-  }
-
-  .notif-dropdown {
-    position: absolute;
-    top: 38px;
-    right: -5px;
-    width: 320px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 1000;
-    padding: 10px;
-  }
-
-
-  .notif-item {
-    border-bottom: 1px solid #eee;
-    padding: 8px 0;
-  }
-
-  .notif-item:hover {
-  background: #f4eaea;
+.notif-footer-link {
+  text-align: center;
+  font-size: 13px;
+  color: #800000;
+  cursor: pointer;
+  margin-top: 8px;
+  font-weight: 600;
+  padding: 8px;
+  border-top: 1px solid #eee;
 }
 
-  .notif-title {
-    font-weight: bold;
-    font-size: 14px;
-    color: black;
-    margin: 0;
-  }
-
-  .notif-recommend {
-    font-size: 13px;
-    color: #555;
-    margin: 4px 0;
-  }
-
-  .notif-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .notif-footer-link:hover {
+.notif-footer-link:hover {
   text-decoration: underline;
   color: #b30000;
 }
 
-  .notif-time {
-    font-size: 12px;
-    color: gray;
-  }
+.no-notifs {
+  font-size: 13px;
+  color: gray;
+  text-align: center;
+  padding: 10px;
+}
 
-  .notif-action {
-    font-size: 12px;
-    background: none;
-    border: none;
-    color: maroon;
-    cursor: pointer;
-  }
-
-  .notif-footer-link {
-    text-align: center;
-    font-size: 13px;
-    color: maroon;
-    cursor: pointer;
-    margin-top: 8px;
-  }
-
-  .notification-wrapper {
-    position: relative;
-    display: inline-block;
-  }
-
-  .no-notifs {
-    font-size: 13px;
-    color: gray;
-    text-align: center;
-    padding: 10px;
-  }
-
-/* Audit Log Icon and Dropdown */
 .audit-icon {
   color: rgb(255, 255, 255);
   font-size: 22px;
@@ -411,11 +531,11 @@
 }
 
 .auditlog-link {
-    text-align: center;
-    font-size: 13px;
-    color: maroon;
-    cursor: pointer;
-    margin-top: 8px;
+  text-align: center;
+  font-size: 13px;
+  color: maroon;
+  cursor: pointer;
+  margin-top: 8px;
 }
 
 .auditlog-link:hover {
@@ -446,37 +566,35 @@
   color: #b30000;
 }
 
-  /* HAMBURGER */
-  .hamburger {
-    display: none;
-    font-size: 22px;
-    cursor: pointer;
-    margin-right: 10px;
-  }
+.hamburger {
+  display: none;
+  font-size: 22px;
+  cursor: pointer;
+  margin-right: 10px;
+}
 
+.mobile-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+}
 
-  .mobile-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.3);
-    z-index: 999; 
-  }
-
-  .table-scroll {
+.table-scroll {
   overflow-x: auto;
   width: 100%;
 }
-  /* MAIN CONTENT AREA */
-  .main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: #fdf6f6;
-    padding: 30px;
-    overflow-y: auto;
-    width: 100%;
-    box-sizing: border-box;
-  }
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #fdf6f6;
+  padding: 30px;
+  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+}

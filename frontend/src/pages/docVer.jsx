@@ -65,7 +65,6 @@ const DocumentVersion = () => {
     const panelRef = useRef(null);
     const searchInputRef = useRef(null);
     const [panelStyle, setPanelStyle] = useState(null);
-    const [toggleWidth, setToggleWidth] = useState(null);
 
     useEffect(() => {
       const onDocClick = (e) => {
@@ -93,8 +92,18 @@ const DocumentVersion = () => {
         return;
       }
       const prevBodyOverflow = typeof document !== "undefined" ? document.body.style.overflow : undefined;
+      const prevBodyPaddingRight = typeof document !== "undefined" ? document.body.style.paddingRight : undefined;
       try {
-        if (typeof document !== "undefined") document.body.style.overflow = "hidden";
+        if (typeof document !== "undefined") {
+          // Prevent layout shift when hiding the scrollbar by compensating
+          // with an equal right padding. This avoids a left-right flicker
+          // when the panel opens/closes.
+          const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+          if (scrollbarWidth > 0) {
+            document.body.style.paddingRight = scrollbarWidth + "px";
+          }
+          document.body.style.overflow = "hidden";
+        }
       } catch (e) {
       }
 
@@ -104,10 +113,10 @@ const DocumentVersion = () => {
         const viewportPadding = 8;
         const maxAllowed = window.innerWidth - viewportPadding * 2;
         const desiredWidth = Math.min(Math.max(rect.width, 120), Math.min(320, maxAllowed));
-        const left = Math.max(viewportPadding, rect.left + window.scrollX);
-        const top = rect.bottom + window.scrollY;
-        setPanelStyle({ position: "absolute", left: left + "px", top: top + "px", width: desiredWidth + "px", zIndex: 9999 });
-        setToggleWidth(desiredWidth);
+        const left = Math.max(viewportPadding, rect.left);
+        const top = rect.bottom;
+        // Use fixed positioning so the panel is anchored to viewport coordinates
+        setPanelStyle({ position: "fixed", left: left + "px", top: top + "px", width: desiredWidth + "px", zIndex: 9999 });
       };
 
       updatePosition();
@@ -117,7 +126,10 @@ const DocumentVersion = () => {
         window.removeEventListener("resize", updatePosition);
         window.removeEventListener("scroll", updatePosition, true);
         try {
-          if (typeof document !== "undefined") document.body.style.overflow = prevBodyOverflow || "";
+          if (typeof document !== "undefined") {
+            document.body.style.overflow = prevBodyOverflow || "";
+            document.body.style.paddingRight = prevBodyPaddingRight || "";
+          }
         } catch (e) {
           // ignore
         }
@@ -141,17 +153,29 @@ const DocumentVersion = () => {
           className="ss-toggle"
           onClick={() => {
             if (!open && ref.current) {
-              const w = Math.round(ref.current.getBoundingClientRect().width || 0);
-              setToggleWidth(w || null);
+              const rect = ref.current.getBoundingClientRect();
+              const viewportPadding = 8;
+              const maxAllowed = window.innerWidth - viewportPadding * 2;
+              const desiredWidth = Math.min(
+                Math.max(rect.width, 120),
+                Math.min(320, maxAllowed)
+              );
+              const left = Math.max(viewportPadding, rect.left);
+              const top = rect.bottom;
+              // Set panel style immediately so the portal mounts at final coords
+              setPanelStyle({
+                position: "fixed",
+                left: left + "px",
+                top: top + "px",
+                width: desiredWidth + "px",
+                zIndex: 9999,
+              });
             }
             setOpen((v) => !v);
-            if (open) {
-              setToggleWidth(null);
-            }
           }}
           aria-haspopup="listbox"
           aria-expanded={open}
-          style={toggleWidth ? { minWidth: toggleWidth + "px", whiteSpace: "nowrap" } : { whiteSpace: "nowrap" }}
+          style={{ whiteSpace: "nowrap" }}
         >
           <span className={`ss-value ${selectedLabel ? "" : "placeholder"}`}>
             {selectedLabel || placeholder}
@@ -566,7 +590,7 @@ const DocumentVersion = () => {
                 )}
 
                 {/* Table */}
-                <div className="table-container">
+                <div className="table-container1">
                   <table className="contact-person-table">
                     <thead>
                       <tr>
@@ -755,7 +779,7 @@ const DocumentVersion = () => {
                     Next →
                   </button>
                 </div>
-                {/* Edit Modal */}
+                {/* Edit Modal (updated to match ActiveAgreement edit UI) */}
                 {isAdmin && editingDoc && (
                   <div
                     className="docver-modal-backdrop"
@@ -768,7 +792,10 @@ const DocumentVersion = () => {
                       aria-modal="true"
                     >
                       <div className="docver-modal-header">
-                        <h3>Edit Version</h3>
+                        <div className="edit-section-header" style={{display:'flex',alignItems:'center',gap:8}}>
+                          <FiEdit className="section-icon" />
+                          <h3 style={{margin:0}}>Edit Version</h3>
+                        </div>
                         <button
                           className="docver-modal-close"
                           onClick={() => setEditingDoc(null)}
@@ -779,46 +806,49 @@ const DocumentVersion = () => {
                       </div>
                       <div className="docver-modal-body">
                         <div className="edit-card">
-                          <label className="sr-only">Comment</label>
+                          <label className="edit-label" style={{display:'flex',alignItems:'center',gap:8}}>
+                            <FiFileText className="label-icon" />
+                            Comment
+                          </label>
                           <textarea
                             value={editComment}
                             onChange={(e) => setEditComment(e.target.value)}
                             placeholder="Edit comment"
                           />
 
-                          <div>
-                            <div className="docver-file-input">
-                              <input
-                                ref={fileInputRef}
-                                name="DOC-VER-file-inpout"
-                                id={
-                                  editingDoc
-                                    ? `file-input-${editingDoc.version_id}`
-                                    : "file-input"
-                                }
-                                type="file"
-                                accept="application/pdf"
-                                onChange={(e) => setEditFile(e.target.files[0])}
-                              />
+                          <div className="docver-file-input" style={{marginTop:12}}>
+                            <input
+                              ref={fileInputRef}
+                              name="DOC-VER-file-input"
+                              id={
+                                editingDoc
+                                  ? `file-input-${editingDoc.version_id}`
+                                  : "file-input"
+                              }
+                              type="file"
+                              accept="application/pdf"
+                              onChange={(e) => setEditFile(e.target.files[0])}
+                            />
 
-                              <label
-                                htmlFor={
-                                  editingDoc
-                                    ? `file-input-${editingDoc.version_id}`
-                                    : "file-input"
-                                }
-                                className="docver-file-label-text"
-                              >
-                                Choose file
-                              </label>
+                            <label
+                              htmlFor={
+                                editingDoc
+                                  ? `file-input-${editingDoc.version_id}`
+                                  : "file-input"
+                              }
+                              className="docver-file-label-text"
+                              style={{display:'inline-flex',alignItems:'center',gap:8}}
+                            >
+                              <FiFile />
+                              Choose file
+                            </label>
 
-                              <span className="docver-file-name">
-                                {editFile ? editFile.name : "No file chosen"}
-                              </span>
-                            </div>
+                            <span className="docver-file-name">
+                              {editFile ? editFile.name : "No file chosen"}
+                            </span>
                           </div>
 
-                          <div className="inline-edit-actions">
+                          <div className="inline-edit-actions" style={{marginTop:12}}>
                             <button
                               type="button"
                               className="save-btn"

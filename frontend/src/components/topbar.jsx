@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../pages/notificationContext';
-import { useAuditLogs } from '../pages/auditContext'; 
+import { useAuditLogs } from '../pages/auditContext';
 import './layout.css';
 import { MdOutlineManageHistory } from 'react-icons/md';
 
@@ -24,15 +24,15 @@ const TopBar = ({ toggleSidebar }) => {
 
   const toggleDropdown = () => {
     setShowDropdown((prev) => !prev);
-    setShowAuditDropdown(false); 
+    setShowAuditDropdown(false);
   };
 
   const toggleAuditDropdown = () => {
     setShowAuditDropdown((prev) => !prev);
-    setShowDropdown(false); 
+    setShowDropdown(false);
   };
 
-    useEffect(() => {
+  useEffect(() => {
     try {
       const userStr = localStorage.getItem("user");
       if (userStr) {
@@ -53,11 +53,10 @@ const TopBar = ({ toggleSidebar }) => {
       </div>
 
       <div className="topbar-right">
-        {/* Audit Log Icon (Admins only) */}
         {currentUser?.user_role?.toLowerCase() === "admin" && (
           <div className="auditlog-wrapper">
             <span className="topbar-icon" title="Audit Logs" onClick={toggleAuditDropdown}>
-              <MdOutlineManageHistory className="audit-icon" size={24} color="#ffffffff" /> 
+              <MdOutlineManageHistory className="audit-icon" size={24} color="#ffffffff" />
             </span>
             {showAuditDropdown && (
               <div className="auditlog-dropdown">
@@ -91,7 +90,7 @@ const TopBar = ({ toggleSidebar }) => {
             )}
           </div>
         )}
-        
+
         <div className="notification-wrapper">
           <span className="topbar-icon" onClick={toggleDropdown} title="Show notifications">
             🔔
@@ -100,40 +99,51 @@ const TopBar = ({ toggleSidebar }) => {
             )}
           </span>
 
-          {/* Dropdown for Notifications */}
           {showDropdown && (
             <div className="notif-dropdown">
-                <div className="notif-refresh">
-                  <button onClick={() => refresh()} className="notif-refresh">
-                    Refresh
-                  </button>
-                </div>
+              <div className="notif-dropdown-header">
+                <span className="notif-dropdown-title">Notifications</span>
+                <button className="notif-dropdown-refresh" onClick={() => refresh()}>
+                  Refresh
+                </button>
+              </div>
+
               {unreadNotifications.length > 0 ? (
                 unreadNotifications.slice(0, 5).map((notif) => (
-                  <div key={notif.id} className="notif-item">
-                    <p className="notif-title">{notif.title}</p>
-                    <p className="notif-recommend">{notif.recommendation}</p>
-                    <div className="notif-footer">
-                      <span className="notif-time">
-                        {new Date(new Date(notif.time).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
-                      </span>
-                      <button onClick={() => markAsRead(notif.id)} className="notif-action">
-                        Mark as read
-                      </button>
+                  <div key={notif.id} className={`notif-dropdown-item ${notif.read ? 'read' : 'unread'}`}>
+                    <div className="notif-dropdown-content" onClick={() => {
+                      markAsRead(notif.id);
+                      setShowDropdown(false);
+                      navigate('/notification');
+                    }}>
+                      <p className="notif-dropdown-title-text">{notif.title}</p>
+                      {notif.raw?.message && notif.raw.message !== notif.title ? (
+                        <p className="notif-dropdown-recommend">{notif.raw.message}</p>
+                      ) : null}
+                      <div className="notif-dropdown-footer">
+                        <span className="notif-dropdown-time">
+                          {new Date(new Date(notif.time).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="no-notifs">No new notifications</p>
+                <div className="notif-dropdown-empty">
+                  <p>No new notifications</p>
+                </div>
               )}
-              <div className="notif-footer-link" onClick={() => navigate('/notification')}>
-                See more →
+
+              <div className="notif-dropdown-footer-link" onClick={() => {
+                setShowDropdown(false);
+                navigate('/notification');
+              }}>
+                View All Notifications →
               </div>
             </div>
           )}
         </div>
 
-        {/* Settings Icon (Navigate to Profile) */}
         <span
           className="topbar-icon"
           onClick={() => navigate('/profile')}
@@ -143,7 +153,6 @@ const TopBar = ({ toggleSidebar }) => {
           ⚙️
         </span>
 
-        {/* Logout */}
         <span className="topbar-logout" title="Logout" onClick={handleLogout}>
           LOG OUT
         </span>

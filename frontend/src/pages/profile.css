@@ -8,9 +8,10 @@
   background: #fff;
   border-radius: 20px;
   padding: 3rem 2.5rem;
-  width: 600px; 
+  width: 600px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .profile-card:hover {
@@ -19,7 +20,7 @@
 
 .profile-title {
   margin-bottom: 2rem;
-  font-size: 24px; 
+  font-size: 24px;
   font-weight: 700;
   color: #800000;
   text-align: center;
@@ -28,35 +29,275 @@
 .profile-pic-wrapper {
   position: relative;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin-bottom: 2.5rem;
 }
 
-.profile-pic {
-  width: 150px;  
+.profile-pic-container {
+  position: relative;
+  width: 150px;
   height: 150px;
   border-radius: 50%;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.profile-pic-container.active {
+  transform: scale(1.05);
+}
+
+.profile-pic-container:hover .photo-overlay {
+  opacity: 1;
+}
+
+.profile-pic {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  border-radius: 50%;
   border: 5px solid #f3f3f3;
   box-shadow: 0 3px 8px rgba(0,0,0,0.15);
 }
 
-.camera-icon {
+.photo-overlay {
   position: absolute;
-  bottom: 12px;
-  right: calc(50% - 75px);
-  background: #800000;
-  color: #fff;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
   border-radius: 50%;
-  padding: 10px;
-  border: 3px solid #fff;
-  cursor: pointer;
-  font-size: 18px; 
-  transition: 0.3s ease;
+  color: white;
 }
 
-.camera-icon:hover {
+.camera-icon-large {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.overlay-text {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.photo-edit-btn {
+  position: absolute;
+  bottom: 5px;
+  right: calc(50% - 75px + 120px);
+  z-index: 10;
+}
+
+.photo-action-btn.edit {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #ddd;
+  color: #800000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: all 0.3s ease;
+}
+
+.photo-action-btn.edit:hover {
+  background: #800000;
+  color: white;
+  transform: scale(1.1);
+}
+
+.photo-action-panel {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  margin-top: 20px;
+  border: 1px solid #e0e0e0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.upload-btn {
+  border-color: #800000;
+  color: #800000;
+}
+
+.upload-btn:hover {
+  background: rgba(128, 0, 0, 0.05);
+}
+
+.remove-btn {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.remove-btn:hover {
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.preview-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.cancel-btn {
+  border-color: #666;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background: #f5f5f5;
+}
+
+.save-btn {
+  background: #800000;
+  color: white;
+  border: none;
+}
+
+.save-btn:hover {
   background: #a52a2a;
+}
+
+.save-btn:disabled {
+  background: #ccc;
+}
+
+.mini-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.confirm-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirm-dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+.confirm-dialog h4 {
+  margin-bottom: 10px;
+  color: #333;
+  font-size: 18px;
+}
+
+.confirm-dialog p {
+  margin-bottom: 20px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.dialog-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.dialog-btn:hover {
+  transform: translateY(-1px);
+}
+
+.cancel-btn {
+  border-color: #666;
+  color: #666;
+}
+
+.confirm-btn {
+  background: #dc2626;
+  color: white;
+  border: none;
+}
+
+.confirm-btn:hover {
+  background: #b91c1c;
+}
+
+.confirm-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 .form-group {
@@ -65,7 +306,7 @@
 
 .form-group label {
   display: block;
-  font-size: 16px; 
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
   color: #333;
@@ -73,11 +314,11 @@
 
 .form-group input {
   width: 100%;
-  padding: 14px 16px; 
+  padding: 14px 16px;
   border: 1px solid #ddd;
   border-radius: 14px;
   outline: none;
-  font-size: 16px;   
+  font-size: 16px;
   transition: all 0.3s ease;
 }
 
@@ -98,7 +339,7 @@
   padding: 14px;
   border: none;
   border-radius: 14px;
-  font-size: 16px;   
+  font-size: 16px;
   cursor: pointer;
   font-weight: 600;
   transition: 0.3s ease;
@@ -113,31 +354,83 @@
   background: #a52a2a;
 }
 
+.btn-save:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
 .btn-cancel {
-  background: #800000;
-  color: #fff;
+  background: #f3f3f3;
+  color: #666;
+  border: 1px solid #ddd;
 }
 
 .btn-cancel:hover {
-  background: #a52a2a;
+  background: #e8e8e8;
 }
 
-
-.profile-actions {
-  margin-top: 1rem;
-  display: flex;
-  gap: 10px;
+.manage-user-requests {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #eee;
 }
 
 .btn-manage {
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 12px 24px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
-  font-size: 14px;
-  margin-top: 1rem;
-  background: #f3f3f3;
-  color: black;
+  font-size: 16px;
+  background: #800000;
+  color: white;
   width: 100%;
   text-align: center;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-manage:hover {
+  background: #a52a2a;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .profile-card {
+    padding: 2rem 1.5rem;
+    width: 90%;
+  }
+
+  .profile-pic-container {
+    width: 120px;
+    height: 120px;
+  }
+
+  .photo-edit-btn {
+    right: calc(50% - 60px + 100px);
+  }
+
+  .photo-action-panel {
+    padding: 15px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+  }
+
+  .dialog-buttons {
+    flex-direction: column;
+  }
+
+  .dialog-btn {
+    width: 100%;
+  }
 }

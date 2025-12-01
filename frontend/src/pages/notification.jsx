@@ -88,6 +88,33 @@ const Notification = () => {
     setCurrentPage(page);
   };
 
+  // Generate pagination items with ellipses for large page counts
+  const getPaginationItems = () => {
+    const pages = [];
+    // If total pages small (3 or fewer), show all
+    if (totalPages <= 3) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      return pages;
+    }
+
+    // Option A: exactly 3 numeric buttons and a single ellipsis on the side
+    // Near the start: show 1,2,3 and ellipsis on the right
+    if (currentPage <= 3) {
+      pages.push(1, 2, 3, '...', totalPages);
+      return pages;
+    }
+
+    // Near the end: show ellipsis on the left and last 3 pages
+    if (currentPage >= totalPages - 2) {
+      pages.push(1, '...', totalPages - 2, totalPages - 1, totalPages);
+      return pages;
+    }
+
+    // Middle: show ellipsis on the left and three pages centered around current
+    pages.push('...', currentPage - 1, currentPage, currentPage + 1);
+    return pages;
+  };
+
   const handleOpenModal = async (notif) => {
     setActiveNotif(notif);
     setShowModal(true);
@@ -159,39 +186,42 @@ const Notification = () => {
               </button>
             </div>
 
-            <div className="notif-select-all">
-              <input
-                ref={selectAllRef}
-                type="checkbox"
-                checked={paginatedNotifications.length > 0 && selected.length === paginatedNotifications.length}
-                onChange={handleSelectAll}
-                title="Select all notifications"
-                aria-label="Select all notifications"
-                disabled={paginatedNotifications.length === 0}
-              />
-              <span className="select-all-label">Select all</span>
-            </div>
+            <div className="notif-select-actions">
+              <div className="notif-select-all">
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  checked={paginatedNotifications.length > 0 && selected.length === paginatedNotifications.length}
+                  onChange={handleSelectAll}
+                  title="Select all notifications"
+                  aria-label="Select all notifications"
+                  disabled={paginatedNotifications.length === 0}
+                />
+              </div>
 
-            {selected.length > 0 && (
-              <div className="notif-bulk-action-bar">
-                <span>{selected.length} selected</span>
+              {selected.length > 0 && (
+                <span className="selected-count">{selected.length} selected</span>
+              )}
+
+              <div className="notif-action-buttons">
                 <button
                   className="notif-bulk-mark-read-btn"
                   onClick={() => handleMarkSelectedAsRead(selected)}
                   title="Mark selected as read"
-                  disabled={userRole !== "admin"}
+                  disabled={selected.length === 0 || userRole !== "admin"}
                 >
-                  <FiCheck /> Mark as read
+                  <FiCheck /> Mark selected as read
                 </button>
                 <button
                   className="notif-bulk-delete-btn"
                   onClick={() => handleDelete(selected)}
                   title="Delete selected"
+                  disabled={selected.length === 0}
                 >
-                  <FiTrash2 /> Delete
+                  <FiTrash2 /> Delete selected
                 </button>
               </div>
-            )}
+            </div>
 
             <ul className="notif-list">
               {paginatedNotifications.length === 0 && (
@@ -257,11 +287,23 @@ const Notification = () => {
             {totalPages > 1 && (
               <div className="notif-pagination">
                 <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>
-                  Prev
+                  ← Previous
                 </button>
-                <span>{currentPage} / {totalPages}</span>
+                {getPaginationItems().map((item, idx) => (
+                  item === '...' ? (
+                    <span key={`e-${idx}`} className="ellipsis">{item}</span>
+                  ) : (
+                    <button
+                      key={item}
+                      className={currentPage === item ? 'active' : ''}
+                      onClick={() => goToPage(item)}
+                    >
+                      {item}
+                    </button>
+                  )
+                ))}
                 <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>
-                  Next
+                  Next →
                 </button>
               </div>
             )}

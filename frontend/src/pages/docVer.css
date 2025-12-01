@@ -9,7 +9,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
 }
 
 .search-input {
@@ -31,10 +30,11 @@
   cursor: not-allowed;
 }
 
-.table-container {
+.table-container1 {
   overflow-x: auto;
   border: 1px solid #ddd;
   border-radius: 8px;
+  margin-top: 28px !important;
 }
 
 .contact-person-table {

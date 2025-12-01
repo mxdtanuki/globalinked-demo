@@ -34,6 +34,8 @@
   overflow-x: auto;
   border: 1px solid #ddd;
   border-radius: 8px;
+  /* ensure no extra top gap so spacing matches Mobility Office */
+  margin-top: 0;
 }
 
 .point-person-table {
