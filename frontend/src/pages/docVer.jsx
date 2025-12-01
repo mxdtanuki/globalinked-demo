@@ -836,6 +836,7 @@ const DocumentVersion = () => {
                                   type="file"
                                   accept="application/pdf"
                                   onChange={(e) => setEditFile(e.target.files[0])}
+                                  style={{ display: "none" }}
                                 />
 
                                 <label

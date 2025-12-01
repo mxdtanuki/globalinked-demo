@@ -84,54 +84,13 @@
 }
 
 .profile-overlay-text {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: none;
 }
 
-.profile-photo-edit-btn {
-  position: absolute;
-  bottom: 5px;
-  right: calc(50% - 75px + 120px);
-  z-index: 10;
-}
 
-.profile-photo-action-btn.profile-edit {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: white;
-  border: 1px solid #ddd;
-  color: #800000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  transition: all 0.3s ease;
-}
-
-.profile-photo-action-btn.profile-edit:hover {
-  background: #800000;
-  color: white;
-  transform: scale(1.1);
-}
-
-/* Inner edit button placed inside the profile picture (bottom-right) */
-.profile-inner-edit-btn {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  z-index: 20;
-}
-
-.profile-photo-action-btn.profile-edit.inner {
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
 
 .profile-photo-action-panel {
   width: 100%;
@@ -171,14 +130,21 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* Cancel button inside the action panel */
 .profile-cancel-panel-btn {
-  border-color: #666;
-  color: #666;
+  border-color: #e6e6e6;
+  color: #374151;
+  background: white;
 }
 
 .profile-cancel-panel-btn:hover {
-  background: #f5f5f5;
+  color: #4b5563;
+  border-color: #d1d5db;
+  background: #f8fafc;
+}
+
+.profile-cancel-panel-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.06);
 }
 
 .profile-action-btn:disabled {
@@ -188,53 +154,71 @@
 }
 
 .profile-upload-btn {
-  border-color: #800000;
-  color: #800000;
+  border-color: #e6e6e6;
+  color: #374151;
+  background: white;
 }
 
 .profile-upload-btn:hover {
-  background: rgba(128, 0, 0, 0.05);
+  color: #2563eb;
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.profile-upload-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+
+.upload-icon {
+  font-size: 16px;
 }
 
 .profile-remove-btn {
-  border-color: #dc2626;
-  color: #dc2626;
+  border-color: #e6e6e6;
+  color: #374151;
+  background: white;
 }
 
 .profile-remove-btn:hover {
-  background: rgba(220, 38, 38, 0.05);
+  color: #dc2626;
+  border-color: #dc2626;
+  background: rgba(220, 38, 38, 0.06);
 }
 
-.profile-preview-actions {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
-}
+
 
 .profile-cancel-btn {
-  border-color: #666;
-  color: #666;
+  border-color: #e6e6e6;
+  color: #374151;
+  background: white;
 }
 
 .profile-cancel-btn:hover {
-  background: #f5f5f5;
+  color: #4b5563;
+  border-color: #d1d5db;
+  background: #f8fafc;
 }
 
 .profile-save-btn {
-  background: #800000;
-  color: white;
-  border: none;
+  border-color: #e6e6e6;
+  color: #374151;
+  background: white;
 }
 
 .profile-save-btn:hover {
-  background: #a52a2a;
+  background: #16a34a;
+  color: white;
+  border-color: #16a34a;
 }
 
 .profile-save-btn:disabled {
-  background: #ccc;
+  background: #f3f3f3;
+  color: #9ca3af;
+}
+
+.save-icon {
+  font-size: 16px;
 }
 
 .profile-mini-spinner {
@@ -449,9 +433,7 @@
     height: 120px;
   }
 
-  .profile-photo-edit-btn {
-    right: calc(50% - 60px + 100px);
-  }
+  
 
   .profile-photo-action-panel {
     padding: 15px;

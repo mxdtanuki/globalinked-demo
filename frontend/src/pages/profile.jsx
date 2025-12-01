@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/sidebar';
 import TopBar from '../components/topbar';
-import { FiCamera, FiTrash2, FiX, FiCheck, FiEdit2 } from 'react-icons/fi';
+import { FiCamera, FiTrash2, FiX, FiCheck, FiUpload, FiSave } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, updateUserProfile } from '../services/registrationService';
 import '../components/layout.css';
@@ -189,18 +189,6 @@ const Profile = () => {
                       <FiCamera className="profile-camera-icon-large" />
                       <span className="profile-overlay-text">Update Photo</span>
                     </div>
-                    {/* Inner edit button placed inside the photo (bottom-right) */}
-                    <div className="profile-inner-edit-btn">
-                      <button
-                        type="button"
-                        className="profile-photo-action-btn profile-edit inner"
-                        title="Edit photo"
-                        aria-label="Edit photo"
-                        onClick={(e) => { e.stopPropagation(); setShowPhotoActions(true); }}
-                      >
-                        <FiEdit2 />
-                      </button>
-                    </div>
                   </div>
 
 
@@ -212,7 +200,7 @@ const Profile = () => {
                           onClick={() => fileInputRef.current?.click()}
                           disabled={isSaving}
                         >
-                          <FiCamera />
+                          <FiUpload className="upload-icon" />
                           <span>Upload Photo</span>
                         </button>
                         
@@ -234,18 +222,7 @@ const Profile = () => {
                           <FiX />
                           <span>Cancel</span>
                         </button>
-                      </div>
-                      
-                      {previewPhoto && (
-                        <div className="profile-preview-actions">
-                          <button
-                            className="profile-action-btn profile-cancel-btn"
-                            onClick={handleCancelPhotoChange}
-                            disabled={isSaving}
-                          >
-                            <FiX />
-                            <span>Cancel</span>
-                          </button>
+                        {previewPhoto && (
                           <button
                             className="profile-action-btn profile-save-btn"
                             onClick={handleSavePhoto}
@@ -258,13 +235,14 @@ const Profile = () => {
                               </>
                             ) : (
                               <>
-                                <FiCheck />
+                                <FiSave className="save-icon" />
                                 <span>Save</span>
                               </>
                             )}
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                      
                     </div>
                   )}
 
