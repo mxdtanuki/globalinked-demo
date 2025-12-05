@@ -1314,6 +1314,166 @@ class NLPLegalExtractionService:
 
         return point_persons[:5]
 
+    def _extract_signatories_safe(self, text: str) -> List[str]:
+        """Extract signatories as a simple list of names - improved filtering"""
+        signatories = []
+        seen_names = set()
+        
+        try:
+            # Look for signature section first (usually at the end)
+            signature_section = ""
+            sig_markers = [
+                r"IN\s+WITNESS\s+WHEREOF",
+                r"SIGNED\s+BY",
+                r"SIGNATURES?:",
+                r"EXECUTED\s+BY",
+            ]
+            for marker in sig_markers:
+                match = re.search(marker, text, re.IGNORECASE)
+                if match:
+                    # Get text after the marker (signature section)
+                    signature_section = text[match.start():]
+                    break
+            
+            # If no signature section found, use last 20% of document
+            if not signature_section:
+                signature_section = text[int(len(text) * 0.8):]
+
+            # Pattern 1: Title + Name format (e.g., "Dr. John Smith", "Hon. Jane Doe")
+            titled_names = re.findall(
+                r"(?:Dr\.?|Prof\.?|Mr\.?|Ms\.?|Mrs\.?|Hon\.?|Engr\.?|Atty\.?)\s+([A-Z][a-z]+(?:\s+[A-Z]\.?\s*)?(?:\s+[A-Z][a-z]+)+)",
+                signature_section
+            )
+            for name in titled_names:
+                name = re.sub(r'\s+', ' ', name.strip())
+                if self._is_valid_signatory(name, seen_names):
+                    seen_names.add(name.upper())
+                    signatories.append(name)
+
+            # Pattern 2: Names under signature lines (preceded by underscores)
+            underscore_names = re.findall(
+                r"_{3,}\s*\n\s*([A-Z][a-z]+(?:\s+[A-Z]\.?\s*)?(?:\s+[A-Z][a-z]+)+)",
+                signature_section
+            )
+            for name in underscore_names:
+                name = re.sub(r'\s+', ' ', name.strip())
+                if self._is_valid_signatory(name, seen_names):
+                    seen_names.add(name.upper())
+                    signatories.append(name)
+
+            # Pattern 3: ALL CAPS names that look like person names (2-4 words, not blacklisted)
+            all_caps_names = re.findall(
+                r"\n\s*([A-Z]{2,}(?:\s+[A-Z]\.?\s*)?(?:\s+[A-Z]{2,}){1,3})\s*\n",
+                signature_section
+            )
+            for name in all_caps_names:
+                name = re.sub(r'\s+', ' ', name.strip())
+                # Convert to title case for consistency
+                name_title = name.title()
+                if self._is_valid_signatory(name, seen_names):
+                    seen_names.add(name.upper())
+                    signatories.append(name_title)
+
+            logger.info(f"Extracted {len(signatories)} signatories")
+            
+        except Exception as e:
+            logger.debug(f"Error extracting signatories: {e}")
+
+        return signatories[:10]  # Limit to 10 signatories
+
+    def _is_valid_signatory(self, name: str, seen_names: set) -> bool:
+        """Validate if a name is a valid signatory"""
+        if not name:
+            return False
+        
+        name_upper = name.upper()
+        
+        # Already seen
+        if name_upper in seen_names:
+            return False
+        
+        # Too short or too long
+        if len(name) < 5 or len(name) > 60:
+            return False
+        
+        # Check against blacklist
+        for blacklisted in self.signatory_blacklist:
+            if blacklisted in name_upper:
+                return False
+        
+        # Filter out PUP-related
+        if self._is_pup_related(name):
+            return False
+        
+        # Must have at least 2 words (first and last name)
+        words = name.split()
+        if len(words) < 2:
+            return False
+        
+        # Filter out office/department names
+        office_indicators = [
+            "office", "department", "affairs", "international", 
+            "division", "unit", "section", "bureau", "college"
+        ]
+        if any(indicator in name.lower() for indicator in office_indicators):
+            return False
+        
+        # Each word should be reasonably short (names, not sentences)
+        if any(len(word) > 20 for word in words):
+            return False
+        
+        return True
+
+    def _extract_source_unit_validated(self, text: str) -> str:
+        """Source unit extraction - more specific patterns, won't extract generic text"""
+        # Only extract if there's a clear source unit indicator
+        patterns = [
+                       # Explicit "from" or "prepared by" with department/college
+            r"(?:prepared\s+by|from|submitted\s+by|initiated\s+by)\s+(?:the\s+)?(?:Office\s+of\s+)?([A-Za-z\s&\-\.]+?(?:College|Department|Office|Campus|Unit|Division|Institute))(?:\s*[,\.\n]|$)",
+            # College of X pattern
+            r"(?:College|Department|Office)\s+of\s+([A-Za-z\s&\-\.]+?)(?:\s*[,\.\n]|$)",
+            # PUP Campus pattern
+            r"PUP\s+([A-Za-z\s\-\.]+?(?:Campus|Branch))(?:\s*[,\.\n]|$)",
+        ]
+        
+        for pattern in patterns:
+            try:
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    unit = re.sub(r'\s+', ' ', match.group(1).strip())
+                    
+                    # Filter out generic/invalid matches
+                    invalid_terms = [
+                        "agreement", "memorandum", "document", "partnership", 
+                        "cooperation", "understanding", "entering", "similar",
+                        "academic", "research", "organizations", "other",
+                        "the parties", "both parties"
+                    ]
+                    
+                    unit_lower = unit.lower()
+                    if any(term in unit_lower for term in invalid_terms):
+                        continue
+                    
+                    # Must be reasonably short and contain expected keywords
+                    if 3 < len(unit) < 100:
+                        return unit
+            except Exception:
+                continue
+        
+        # Don't return anything if no clear source unit found
+        return ""
+
+    def _is_pup_related(self, text: str) -> bool:
+        """Check if text is related to PUP (our university)"""
+        if not text:
+            return False
+        text_lower = text.lower().strip()
+        
+        for pattern in self.pup_filters:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                return True
+        return False
+
 
 # Compatibility alias
 NlpExtractionService = NLPLegalExtractionService

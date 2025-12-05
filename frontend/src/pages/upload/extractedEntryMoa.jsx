@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import TopbarSidebar from "../../components/topbarSidebar";
 import Select from "react-select";
 import "./globalUpload.css";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { agreementService } from "../../services/agreementService";
+import { documentService } from "../../services/documentService";
 import {
   FiFileText,
   FiCheckCircle,
@@ -328,6 +330,7 @@ const validityOptions = [
 
 const ExtractedEntryMOA = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -474,6 +477,12 @@ const ExtractedEntryMOA = () => {
   // Populate form from initial form data (moa.jsx) - runs first
   useEffect(() => {
     if (initialFormData) {
+      console.debug("=== APPLYING INITIAL FORM DATA ===");
+      console.debug("initialFormData:", initialFormData);
+      console.debug("ulcoApprovalDate:", initialFormData.ulcoApprovalDate);
+      console.debug("pupSignedDate:", initialFormData.pupSignedDate);
+      console.debug("==================================");
+      
       // Apply initial form data from moa.jsx
       if (initialFormData.source) setSource(initialFormData.source);
       if (initialFormData.ulcoApprovalDate) setDateUlcoApproved(initialFormData.ulcoApprovalDate);
@@ -495,20 +504,28 @@ const ExtractedEntryMOA = () => {
 
     setMessage("extracted");
 
-    // Basic fields from extraction
+    // Basic fields from extraction (these don't come from initial form)
     setDocumentType(extractedMetadata.document_type || "");
     setPartnershipType(extractedMetadata.partnership_type || "");
     setDateSigned(extractedMetadata.date_signed || "");
     setValidityPeriod(String(extractedMetadata.validity_period || ""));
-    setDateExpiry(extractedMetadata.date_expiry || "");
     setEventInfo(extractedMetadata.event_info || "");
     setHardcopyLocation(extractedMetadata.hardcopy_location || "");
     setAgreementStatus(extractedMetadata.agreement_status || "");
     setEntryType(extractedMetadata.entry_type || "");
 
-    // Only set these if not already provided by initial form
-    if (!source && extractedMetadata.source_unit) {
-      setSource(extractedMetadata.source_unit);
+    // Only set date_expiry if not already calculated or provided
+    if (!dateExpiry && extractedMetadata.date_expiry) {
+      setDateExpiry(extractedMetadata.date_expiry);
+    }
+
+    // The initial form values should take priority
+    if (!source) {
+      // Only use extracted source_unit if it's meaningful
+      const extractedSource = extractedMetadata.source_unit || "";
+      if (extractedSource && extractedSource.length < 100) {
+        setSource(extractedSource);
+      }
     }
     if (!dtsNumber && extractedMetadata.dts_number) {
       setDtsNumber(extractedMetadata.dts_number);
@@ -519,10 +536,10 @@ const ExtractedEntryMOA = () => {
     if (!datePupSigned && extractedMetadata.date_signed_by_pup) {
       setDatePupSigned(extractedMetadata.date_signed_by_pup);
     }
-    if (extractedMetadata.date_endorsed_to_ulco) {
+    if (!dateEndorsed && extractedMetadata.date_endorsed_to_ulco) {
       setDateEndorsed(extractedMetadata.date_endorsed_to_ulco);
     }
-    if (extractedMetadata.date_received) {
+    if (!dateReceived && extractedMetadata.date_received) {
       setDateReceived(extractedMetadata.date_received);
     }
 
@@ -648,30 +665,137 @@ const ExtractedEntryMOA = () => {
       }
     } else if (!datePupSigned || !validityPeriod) {
       // Only clear if user hasn't manually set an expiry from extraction
-      // Don't clear if it was set from extracted metadata
       if (!extractedMetadata?.date_expiry) {
         setDateExpiry("");
       }
     }
   }, [datePupSigned, validityPeriod, selectedRelatedAgreement, documentType, extractedMetadata]);
 
-  // No-op handlers (replace with real implementations as needed)
+  // Submit handler - creates agreement and uploads file
   const handleSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setLoading(true);
+    setMessage("");
+
     try {
-      // TODO: Add your submit logic here
-      console.log("Submitting form data:", {
-        documentType,
-        partnershipType,
-        partnerData,
-        selectedCountry,
-        selectedRegion,
-        source,
-        dtsNumber,
-        // ... other fields
-      });
-      setMessage("");
+      // Get today's date for entry_date
+      const today = new Date();
+      const entryDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+        .toISOString()
+        .split("T")[0];
+
+      // Build agreement data payload
+      let agreementData = {
+        source_unit: source,
+        dts_number: dtsNumber,
+        document_type: documentType,
+        partnership_type: partnershipType,
+        agreement_status: agreementStatus,
+        entry_type: entryType,
+        entry_date: entryDate,
+        related_agreement_id:
+          selectedRelatedAgreement?.value === "NA"
+            ? null
+            : selectedRelatedAgreement?.value || null,
+        date_received: dateReceived || null,
+        date_endorsed_to_ulco: dateEndorsed || null,
+        date_ulco_approved: dateUlcoApproved || null,
+        date_signed_by_pup: datePupSigned || null,
+        date_signed: dateSigned || null,
+        date_expiry: dateExpiry || null,
+        validity_period: validityPeriod || null,
+        event_info: eventInfo || null,
+        signatories_list: signatories || null,
+        hardcopy_location: hardcopyLocation || null,
+        initial_remarks: remarks ? [{ remark_text: remarks }] : [],
+
+        // Point persons array from state
+        point_persons: pointPersons
+          .filter((pp) => pp.name)
+          .map((pp) => ({
+            point_person_name: pp.name,
+            point_person_position: pp.position || "",
+            point_person_email: pp.email || "",
+          })),
+
+        // MOU to MOA link
+        MOU_to_MOA_id:
+          selectedRelatedAgreement?.value &&
+          selectedRelatedAgreement?.value !== "NA"
+            ? selectedRelatedAgreement.value
+            : null,
+      };
+
+      // Handle partner differently for existing vs new
+      if (partnerEntryType === "Existing") {
+        agreementData.partner_id = selectedPartner?.value || null;
+      } else {
+        agreementData.partner_data = {
+          name: partnerData.name,
+          entity_type: partnerData.entityType,
+          country: selectedCountry?.value || "",
+          region: selectedRegion?.value || "",
+          address: partnerData.address,
+          website_url: partnerData.website || "",
+          description: partnerData.description || "",
+          logo_path: partnerData.logo || "",
+          status: "active",
+          contact_persons: contacts
+            .filter((c) => c.name)
+            .map((c) => ({
+              contact_person_name: c.name,
+              contact_person_position: c.position || "",
+              contact_person_email: c.email || "",
+            })),
+        };
+      }
+
+      // Send request to backend to create agreement
+      const response = await agreementService.createAgreement(agreementData);
+
+      if (response.status === "duplicate") {
+        setMessage(`Duplicate found:
+         Partner: ${response.agreement.name}
+         DTS No.: ${response.agreement.dts_number}
+         Document Type: ${response.agreement.document_type}
+         Partnership Type: ${response.agreement.partnership_type}`);
+        return;
+      }
+
+      if (response.status === "created") {
+        // Upload the file as document version if file exists
+        let fileUploadSuccess = true;
+        if (uploadedFile || uploadedFileName) {
+          try {
+            // Use the actual file if available, otherwise we can't upload
+            if (uploadedFile && uploadedFile instanceof File) {
+              await documentService.uploadVersion(
+                dtsNumber,
+                uploadedFile,
+                versionComment || "Initial upload",
+                agreementStatus
+              );
+            }
+          } catch (uploadError) {
+            console.warn("File upload failed:", uploadError);
+            fileUploadSuccess = false;
+          }
+        }
+
+        if (fileUploadSuccess) {
+          setMessage("Entry created successfully!");
+        } else {
+          setMessage("Entry created successfully, but file upload failed. You can upload the document later from the tracking page.");
+        }
+        
+        // Navigate to the tracking page after showing success message
+        setTimeout(() => {
+          navigate("/tracking");
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Full error:", error);
+      setMessage("Error: " + (error.message || "Failed to create agreement"));
     } finally {
       setLoading(false);
     }
@@ -728,6 +852,22 @@ const ExtractedEntryMOA = () => {
       <div className="moa-manual-container">
         <div className="moa-manual-content">
           <h1 className="moa-manual-form-title">Extracted Entry Form</h1>
+          {/* Success/Error message display */}
+          {message && message !== "manual" && message !== "extracted" && (
+            <div
+              style={{
+                padding: "10px",
+                margin: "10px 0",
+                backgroundColor: message.includes("Error") || message.includes("Duplicate")
+                  ? "#ffebee"
+                  : "#e8f5e8",
+                borderRadius: "8px",
+                whiteSpace: "pre-line",
+              }}
+            >
+              {message}
+            </div>
+          )}
           {message === "manual" && (
             <div
               className="moa-manual-form-group moa-manual-full-width"
@@ -1423,76 +1563,18 @@ const ExtractedEntryMOA = () => {
               />
             </div>
 
-            {/* DATE RECEIVED - also bind to state */}
+            {/* DATE ULCO APPROVED */}
             <div className="moa-manual-form-group">
-              <label htmlFor="dateReceived">
-                <FiCalendar className="moa-manual-label-icon" /> Date Received:*
+              <label htmlFor="dateUlcoApproved">
+                <FiCheck className="moa-manual-label-icon" />
+                Date ULCO Approved:
               </label>
               <input
-                id="dateReceived"
-                name="dateReceived"
+                id="dateUlcoApproved"
+                name="dateUlcoApproved"
                 type="date"
-                value={dateReceived}
-                onChange={(e) => setDateReceived(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* DATE EXPIRY */}
-            <div className="moa-manual-form-group">
-              <label htmlFor="dateExpiry">
-                <FiClock className="moa-manual-label-icon" /> Date Expiry:
-              </label>
-              <input
-                id="dateExpiry"
-                name="dateExpiry"
-                type="date"
-                value={dateExpiry}
-                onChange={(e) => setDateExpiry(e.target.value)}
-              />
-            </div>
-
-            {/* DATE PUP SIGNED */}
-            <div className="moa-manual-form-group">
-              <label htmlFor="datePupSigned">
-                <FiEdit className="moa-manual-label-icon" /> Date PUP Signed:
-              </label>
-              <input
-                id="datePupSigned"
-                name="datePupSigned"
-                type="date"
-                value={datePupSigned}
-                onChange={(e) => setDatePupSigned(e.target.value)}
-              />
-            </div>
-
-            {/* DATE SIGNED */}
-            <div className="moa-manual-form-group">
-              <label htmlFor="dateSigned">
-                <FiCalendar className="moa-manual-label-icon" /> Date/Year of
-                Signing:
-              </label>
-              <input
-                id="dateSigned"
-                name="dateSigned"
-                type="date"
-                value={dateSigned}
-                onChange={(e) => setDateSigned(e.target.value)}
-              />
-            </div>
-
-            {/* DATE ENDORSED */}
-            <div className="moa-manual-form-group">
-              <label htmlFor="dateEndorsed">
-                <FiCalendar className="moa-manual-label-icon" /> Date Endorsed
-                to ULCO:
-              </label>
-              <input 
-                id="dateEndorsed" 
-                name="dateEndorsed" 
-                type="date"
-                value={dateEndorsed}
-                onChange={(e) => setDateEndorsed(e.target.value)}
+                value={dateUlcoApproved}
+                onChange={(e) => setDateUlcoApproved(e.target.value)}
               />
             </div>
 
