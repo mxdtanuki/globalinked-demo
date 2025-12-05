@@ -757,6 +757,7 @@ const ExtractedEntryMOA = () => {
 
       if (response.status === "created") {
         // Upload the file as document version if file exists
+        let fileUploadSuccess = true;
         if (uploadedFile || uploadedFileName) {
           try {
             // Use the actual file if available, otherwise we can't upload
@@ -770,17 +771,20 @@ const ExtractedEntryMOA = () => {
             }
           } catch (uploadError) {
             console.warn("File upload failed:", uploadError);
-            // Continue with success even if file upload fails
-            // The agreement is still created
+            fileUploadSuccess = false;
           }
         }
 
-        setMessage("Entry created successfully!");
+        if (fileUploadSuccess) {
+          setMessage("Entry created successfully!");
+        } else {
+          setMessage("Entry created successfully, but file upload failed. You can upload the document later from the tracking page.");
+        }
         
-        // Navigate to the agreements list after a short delay
+        // Navigate to the tracking page after showing success message
         setTimeout(() => {
           navigate("/tracking");
-        }, 1500);
+        }, 2000);
       }
     } catch (error) {
       console.error("Full error:", error);
