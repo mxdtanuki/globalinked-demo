@@ -467,6 +467,12 @@ const ExtractedEntryMOA = () => {
   // Populate form from initial form data (moa.jsx) - runs first
   useEffect(() => {
     if (initialFormData) {
+      console.debug("=== APPLYING INITIAL FORM DATA ===");
+      console.debug("initialFormData:", initialFormData);
+      console.debug("ulcoApprovalDate:", initialFormData.ulcoApprovalDate);
+      console.debug("pupSignedDate:", initialFormData.pupSignedDate);
+      console.debug("==================================");
+      
       // Apply initial form data from moa.jsx
       if (initialFormData.source) setSource(initialFormData.source);
       if (initialFormData.ulcoApprovalDate) setDateUlcoApproved(initialFormData.ulcoApprovalDate);
@@ -488,20 +494,28 @@ const ExtractedEntryMOA = () => {
 
     setMessage("extracted");
 
-    // Basic fields from extraction
+    // Basic fields from extraction (these don't come from initial form)
     setDocumentType(extractedMetadata.document_type || "");
     setPartnershipType(extractedMetadata.partnership_type || "");
     setDateSigned(extractedMetadata.date_signed || "");
     setValidityPeriod(String(extractedMetadata.validity_period || ""));
-    setDateExpiry(extractedMetadata.date_expiry || "");
     setEventInfo(extractedMetadata.event_info || "");
     setHardcopyLocation(extractedMetadata.hardcopy_location || "");
     setAgreementStatus(extractedMetadata.agreement_status || "");
     setEntryType(extractedMetadata.entry_type || "");
 
-    // Only set these if not already provided by initial form
-    if (!source && extractedMetadata.source_unit) {
-      setSource(extractedMetadata.source_unit);
+    // Only set date_expiry if not already calculated or provided
+    if (!dateExpiry && extractedMetadata.date_expiry) {
+      setDateExpiry(extractedMetadata.date_expiry);
+    }
+
+    // The initial form values should take priority
+    if (!source) {
+      // Only use extracted source_unit if it's meaningful
+      const extractedSource = extractedMetadata.source_unit || "";
+      if (extractedSource && extractedSource.length < 100) {
+        setSource(extractedSource);
+      }
     }
     if (!dtsNumber && extractedMetadata.dts_number) {
       setDtsNumber(extractedMetadata.dts_number);
@@ -512,10 +526,10 @@ const ExtractedEntryMOA = () => {
     if (!datePupSigned && extractedMetadata.date_signed_by_pup) {
       setDatePupSigned(extractedMetadata.date_signed_by_pup);
     }
-    if (extractedMetadata.date_endorsed_to_ulco) {
+    if (!dateEndorsed && extractedMetadata.date_endorsed_to_ulco) {
       setDateEndorsed(extractedMetadata.date_endorsed_to_ulco);
     }
-    if (extractedMetadata.date_received) {
+    if (!dateReceived && extractedMetadata.date_received) {
       setDateReceived(extractedMetadata.date_received);
     }
 
@@ -641,7 +655,6 @@ const ExtractedEntryMOA = () => {
       }
     } else if (!datePupSigned || !validityPeriod) {
       // Only clear if user hasn't manually set an expiry from extraction
-      // Don't clear if it was set from extracted metadata
       if (!extractedMetadata?.date_expiry) {
         setDateExpiry("");
       }
@@ -1416,76 +1429,18 @@ const ExtractedEntryMOA = () => {
               />
             </div>
 
-            {/* DATE RECEIVED - also bind to state */}
+            {/* DATE ULCO APPROVED */}
             <div className="moa-manual-form-group">
-              <label htmlFor="dateReceived">
-                <FiCalendar className="moa-manual-label-icon" /> Date Received:*
+              <label htmlFor="dateUlcoApproved">
+                <FiCheck className="moa-manual-label-icon" />
+                Date ULCO Approved:
               </label>
               <input
-                id="dateReceived"
-                name="dateReceived"
+                id="dateUlcoApproved"
+                name="dateUlcoApproved"
                 type="date"
-                value={dateReceived}
-                onChange={(e) => setDateReceived(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* DATE EXPIRY */}
-            <div className="moa-manual-form-group">
-              <label htmlFor="dateExpiry">
-                <FiClock className="moa-manual-label-icon" /> Date Expiry:
-              </label>
-              <input
-                id="dateExpiry"
-                name="dateExpiry"
-                type="date"
-                value={dateExpiry}
-                onChange={(e) => setDateExpiry(e.target.value)}
-              />
-            </div>
-
-            {/* DATE PUP SIGNED */}
-            <div className="moa-manual-form-group">
-              <label htmlFor="datePupSigned">
-                <FiEdit className="moa-manual-label-icon" /> Date PUP Signed:
-              </label>
-              <input
-                id="datePupSigned"
-                name="datePupSigned"
-                type="date"
-                value={datePupSigned}
-                onChange={(e) => setDatePupSigned(e.target.value)}
-              />
-            </div>
-
-            {/* DATE SIGNED */}
-            <div className="moa-manual-form-group">
-              <label htmlFor="dateSigned">
-                <FiCalendar className="moa-manual-label-icon" /> Date/Year of
-                Signing:
-              </label>
-              <input
-                id="dateSigned"
-                name="dateSigned"
-                type="date"
-                value={dateSigned}
-                onChange={(e) => setDateSigned(e.target.value)}
-              />
-            </div>
-
-            {/* DATE ENDORSED */}
-            <div className="moa-manual-form-group">
-              <label htmlFor="dateEndorsed">
-                <FiCalendar className="moa-manual-label-icon" /> Date Endorsed
-                to ULCO:
-              </label>
-              <input 
-                id="dateEndorsed" 
-                name="dateEndorsed" 
-                type="date"
-                value={dateEndorsed}
-                onChange={(e) => setDateEndorsed(e.target.value)}
+                value={dateUlcoApproved}
+                onChange={(e) => setDateUlcoApproved(e.target.value)}
               />
             </div>
 
