@@ -427,6 +427,13 @@ const ExtractedEntryMOA = () => {
         pointPersons: navPointPersons 
       } = location.state;
       
+      // Debug logging
+      console.log("=== RECEIVED FROM MOA.JSX ===");
+      console.log("navFormData:", navFormData);
+      console.log("navMetadata:", navMetadata);
+      console.log("navPointPersons:", navPointPersons);
+      console.log("=============================");
+      
       if (navFile) setUploadedFile(navFile);
       // Use the separate file name/size if File object didn't serialize
       if (navFileName) setUploadedFileName(navFileName);
