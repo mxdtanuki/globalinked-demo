@@ -131,9 +131,12 @@ const MOAUpload = () => {
 
       setTimeout(() => {
         // Navigate with extracted metadata
+        // Pass file info separately since File objects don't serialize well
         navigate("/upload/extractedEntryMOA", {
           state: {
-            uploadedFile,
+            uploadedFile: uploadedFile,
+            uploadedFileName: uploadedFile.name,
+            uploadedFileSize: uploadedFile.size,
             formData,
             pointPersons: pointPersonsData,
             extractedMetadata,
@@ -149,7 +152,9 @@ const MOAUpload = () => {
       // Navigate without extracted metadata
       navigate("/upload/extractedEntryMOA", {
         state: {
-          uploadedFile,
+          uploadedFile: uploadedFile,
+          uploadedFileName: uploadedFile.name,
+          uploadedFileSize: uploadedFile.size,
           formData,
           pointPersons: pointPersonsData,
           extractedMetadata: null,

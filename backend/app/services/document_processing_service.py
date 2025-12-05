@@ -2,19 +2,24 @@ import io
 from typing import Dict, Any
 import pdfplumber
 import os
+import logging
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
 try:
     from docx import Document as DocxDocument
     DOCX_AVAILABLE = True
 except ImportError:
     DOCX_AVAILABLE = False
-    print("Warning: python-docx not available, DOCX processing disabled")
+    logger.warning("python-docx not available, DOCX processing disabled")
 
 try:
     import fitz  
     FITZ_AVAILABLE = True
 except ImportError:
     FITZ_AVAILABLE = False
-    print("Warning: PyMuPDF not available, advanced PDF processing disabled")
+    logger.warning("PyMuPDF not available, advanced PDF processing disabled")
 
 from PIL import Image
 
@@ -45,8 +50,7 @@ class DocumentProcessingService:
             self.ocr = PaddleOCR(use_angle_cls=True, lang="en")
             return True
         except Exception as e:
-            # Log the error and mark OCR as unavailable (avoid raising)
-            print(f"Warning: PaddleOCR not available or failed to initialize: {e}")
+            logger.warning(f"PaddleOCR not available or failed to initialize: {e}")
             self.ocr = None
             return False
 
@@ -56,6 +60,7 @@ class DocumentProcessingService:
         """
         try:
             img = Image.open(file_path)
+            img_array = np.array(img)
 
             if not self._ensure_ocr():
                 return {
@@ -65,7 +70,9 @@ class DocumentProcessingService:
                     "pages": []
                 }
 
-            ocr_result = self.ocr.ocr(img, cls=True)
+            ocr_result = self.ocr.ocr(img_array, cls=True)
+            img.close()
+
             text = "\n".join(line[1][0] for line in ocr_result[0]) if ocr_result and ocr_result[0] else ""
             return {
                 "success": True,
@@ -101,8 +108,10 @@ class DocumentProcessingService:
             page = pdf_doc.load_page(page_num)
             pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
             img = Image.open(io.BytesIO(pix.tobytes("png")))
+            img_array = np.array(img)
 
-            ocr_result = self.ocr.ocr(img, cls=True)
+            ocr_result = self.ocr.ocr(img_array, cls=True)
+            img.close()
             pdf_doc.close()
 
             return "\n".join(line[1][0] for line in ocr_result[0]) if ocr_result and ocr_result[0] else ""
@@ -127,8 +136,10 @@ class DocumentProcessingService:
                 page = pdf_doc.load_page(page_num)
                 pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
                 img = Image.open(io.BytesIO(pix.tobytes("png")))
+                img_array = np.array(img)
 
-                ocr_result = self.ocr.ocr(img, cls=True)
+                ocr_result = self.ocr.ocr(img_array, cls=True)
+                img.close()
                 if ocr_result and ocr_result[0]:
                     all_text.append("\n".join(line[1][0] for line in ocr_result[0]))
 
@@ -212,8 +223,8 @@ class DocumentProcessingService:
                     "extraction_method": extraction_method
                 }
 
-            # DOCX handling
-            if ext in ("docx", "doc"):
+            # DOCX handling (note: .doc legacy format not supported)
+            if ext == "docx":
                 if not DOCX_AVAILABLE:
                     return {
                         "success": False,
