@@ -797,7 +797,7 @@ class NLPLegalExtractionService:
             "website_url": (metadata.get("partner", {}).get("website", "") or "")[:200],
             "description": (metadata.get("partner", {}).get("description", "") or "")[:500],
             "logo_path": None,
-            "status": "active",
+            "status": "Initial Review",
             "contact_persons": metadata.get("contact_persons", [])[:5]
         }
 
