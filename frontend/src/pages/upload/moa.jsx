@@ -125,7 +125,12 @@ const MOAUpload = () => {
             setExtractionProgress(percent);
           }
         );
-      const extractedMetadata = result.metadata;
+        const extractedMetadata = result.metadata;
+
+      console.log("=== EXTRACTION RESULT ===");
+      console.log("Full result:", result);
+      console.log("Metadata:", result?.metadata);
+      console.log("=========================");
 
       setExtractionProgress(100);
 

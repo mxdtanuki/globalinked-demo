@@ -888,11 +888,18 @@ class NLPLegalExtractionService:
         return "Agreement"
 
     def _extract_event_info_structured(self, text: str) -> str:
-        """Event info extraction with timeout"""
+        """Event info extraction with timeout - handles various document formats"""
         patterns = [
+            # Standard section headers
             r"PURPOSE\s*:?\s*\n?((?:[^\n]|\n(?!\s*(?:ARTICLE|WHEREAS|NOW|SCOPE)))*?)(?:\n\s*(?:ARTICLE|WHEREAS|NOW|SCOPE|$))",
             r"OBJECTIVES?\s*:?\s*\n?((?:[^\n]|\n(?!\s*(?:ARTICLE|WHEREAS|NOW|PURPOSE)))*?)(?:\n\s*(?:ARTICLE|WHEREAS|NOW|PURPOSE|$))",
-            r"SCOPE\s*(?:OF\s+(?:WORK|COOPERATION|COLLABORATION))?\s*:?\s*\n?((?:[^\n]|\n(?!\s*(?:ARTICLE|WHEREAS|NOW|PURPOSE)))*?)(?:\n\s*(?:ARTICLE|WHEREAS|NOW|PURPOSE|$))"
+            r"SCOPE\s*(?:OF\s+(?:WORK|COOPERATION|COLLABORATION))?\s*:?\s*\n?((?:[^\n]|\n(?!\s*(?:ARTICLE|WHEREAS|NOW|PURPOSE)))*?)(?:\n\s*(?:ARTICLE|WHEREAS|NOW|PURPOSE|$))",
+            # Proposed Partnership section (common in MOUs)
+            r"Proposed\s+Partnership\s*\n?((?:[^\n]|\n(?!\s*(?:\d+\.\s+Term|\d+\.\s+Exclusiveness|\d+\.\s+Intellectual)))*?)(?:\n\s*(?:\d+\.\s+Term|\d+\.\s+Exclusiveness|$))",
+            # Areas of Cooperation
+            r"(?:Areas?\s+of\s+)?Cooperation\s*:?\s*\n?((?:[^\n]|\n(?!\s*(?:ARTICLE|WHEREAS|NOW|Term)))*?)(?:\n\s*(?:ARTICLE|Term|$))",
+            # Numbered list format (1.1, 1.2, etc.)
+            r"(?:1\.1|a\)|i\.)\s*(Academic\s+Collaboration[^2]*?)(?=\n\s*(?:2\.|Term|Exclusiveness))",
         ]
 
         for pattern in patterns:
@@ -911,6 +918,23 @@ class NLPLegalExtractionService:
                         return info[:500]
             except Exception:
                 continue
+        
+        # Fallback: Extract key activities mentioned
+        activity_keywords = [
+            "academic exchange", "student exchange", "faculty exchange", 
+            "research collaboration", "professional development", 
+            "joint supervision", "cultural exchange", "training program",
+            "knowledge sharing", "educational cooperation"
+        ]
+        
+        found_activities = []
+        text_lower = text.lower()
+        for keyword in activity_keywords:
+            if keyword in text_lower:
+                found_activities.append(keyword.title())
+        
+        if found_activities:
+            return f"Partnership activities include: {', '.join(found_activities[:5])}"
         
         return ""
 

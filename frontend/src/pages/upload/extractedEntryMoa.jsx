@@ -1352,6 +1352,8 @@ const ExtractedEntryMOA = () => {
                 id="dateReceived"
                 name="dateReceived"
                 type="date"
+                value={dateReceived}
+                onChange={(e) => setDateReceived(e.target.value)}
                 required
               />
             </div>
@@ -1405,21 +1407,85 @@ const ExtractedEntryMOA = () => {
                 <FiCalendar className="moa-manual-label-icon" /> Date Endorsed
                 to ULCO:
               </label>
-              <input id="dateEndorsed" name="dateEndorsed" type="date" />
+              <input 
+                id="dateEndorsed" 
+                name="dateEndorsed" 
+                type="date"
+                value={dateEndorsed}
+                onChange={(e) => setDateEndorsed(e.target.value)}
+              />
             </div>
 
-            {/* DATE ULCO APPROVED */}
+            {/* DATE RECEIVED - also bind to state */}
             <div className="moa-manual-form-group">
-              <label htmlFor="dateUlcoApproved">
-                <FiCheck className="moa-manual-label-icon" /> Date ULCO
-                Approved:
+              <label htmlFor="dateReceived">
+                <FiCalendar className="moa-manual-label-icon" /> Date Received:*
               </label>
               <input
-                id="dateUlcoApproved"
-                name="dateUlcoApproved"
+                id="dateReceived"
+                name="dateReceived"
                 type="date"
-                value={dateUlcoApproved}
-                onChange={(e) => setDateUlcoApproved(e.target.value)}
+                value={dateReceived}
+                onChange={(e) => setDateReceived(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* DATE EXPIRY */}
+            <div className="moa-manual-form-group">
+              <label htmlFor="dateExpiry">
+                <FiClock className="moa-manual-label-icon" /> Date Expiry:
+              </label>
+              <input
+                id="dateExpiry"
+                name="dateExpiry"
+                type="date"
+                value={dateExpiry}
+                onChange={(e) => setDateExpiry(e.target.value)}
+              />
+            </div>
+
+            {/* DATE PUP SIGNED */}
+            <div className="moa-manual-form-group">
+              <label htmlFor="datePupSigned">
+                <FiEdit className="moa-manual-label-icon" /> Date PUP Signed:
+              </label>
+              <input
+                id="datePupSigned"
+                name="datePupSigned"
+                type="date"
+                value={datePupSigned}
+                onChange={(e) => setDatePupSigned(e.target.value)}
+              />
+            </div>
+
+            {/* DATE SIGNED */}
+            <div className="moa-manual-form-group">
+              <label htmlFor="dateSigned">
+                <FiCalendar className="moa-manual-label-icon" /> Date/Year of
+                Signing:
+              </label>
+              <input
+                id="dateSigned"
+                name="dateSigned"
+                type="date"
+                value={dateSigned}
+                onChange={(e) => setDateSigned(e.target.value)}
+              />
+            </div>
+
+            {/* DATE ENDORSED */}
+            <div className="moa-manual-form-group">
+              <label htmlFor="dateEndorsed">
+                <FiCalendar className="moa-manual-label-icon" /> Date Endorsed
+                to ULCO:
+              </label>
+              <input 
+                id="dateEndorsed" 
+                name="dateEndorsed" 
+                type="date"
+                value={dateEndorsed}
+                onChange={(e) => setDateEndorsed(e.target.value)}
               />
             </div>
 
