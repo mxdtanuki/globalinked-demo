@@ -1,11 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import Sidebar from '../components/sidebar';
-import TopBar from '../components/topbar';
-import { FiCamera, FiTrash2, FiX, FiCheck, FiUpload, FiSave } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, updateUserProfile } from '../services/registrationService';
-import '../components/layout.css';
-import './profile.css';
+import React, { useState, useEffect, useRef } from "react";
+import Sidebar from "../components/sidebar";
+import TopBar from "../components/topbar";
+import {
+  FiCamera,
+  FiTrash2,
+  FiX,
+  FiUpload,
+  FiSave,
+} from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import {
+  getCurrentUser,
+  updateUserProfile,
+} from "../services/registrationService";
+import "../components/layout.css";
+import "./profile.css";
 
 const Profile = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -26,7 +35,11 @@ const Profile = () => {
       try {
         const data = await getCurrentUser();
         setCurrentUser(data);
-        setProfilePic(data.user_profile_img ? `data:image/png;base64,${data.user_profile_img}` : null);
+        setProfilePic(
+          data.user_profile_img
+            ? `data:image/png;base64,${data.user_profile_img}`
+            : null
+        );
         localStorage.setItem("user", JSON.stringify(data));
       } catch (err) {
         console.error("Failed to load user from API:", err);
@@ -43,16 +56,16 @@ const Profile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
     const maxSize = 5 * 1024 * 1024;
 
     if (!validTypes.includes(file.type)) {
-      alert('Please select a valid image file (JPEG, PNG, GIF)');
+      alert("Please select a valid image file (JPEG, PNG, GIF)");
       return;
     }
 
     if (file.size > maxSize) {
-      alert('Image size should be less than 5MB');
+      alert("Image size should be less than 5MB");
       return;
     }
 
@@ -70,7 +83,7 @@ const Profile = () => {
 
     const base64Str = tempPhoto.split(",")[1];
     setIsSaving(true);
-    
+
     try {
       const updated = await updateUserProfile(currentUser.user_id, {
         ...currentUser,
@@ -80,15 +93,15 @@ const Profile = () => {
       setCurrentUser(updated);
       setProfilePic(tempPhoto);
       localStorage.setItem("user", JSON.stringify(updated));
-      
+
       setTempPhoto(null);
       setPreviewPhoto(null);
       setShowPhotoActions(false);
-      
+
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
-      
+
       alert("Profile photo updated successfully!");
     } catch (err) {
       alert("Failed to update profile photo: " + err.message);
@@ -108,11 +121,11 @@ const Profile = () => {
       setCurrentUser(updated);
       setProfilePic(null);
       localStorage.setItem("user", JSON.stringify(updated));
-      
+
       setShowRemoveConfirm(false);
       setShowPhotoActions(false);
       setPreviewPhoto(null);
-      
+
       alert("Profile photo removed successfully!");
     } catch (err) {
       alert("Failed to remove profile photo: " + err.message);
@@ -126,7 +139,7 @@ const Profile = () => {
     setTempPhoto(null);
     setShowPhotoActions(false);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -158,12 +171,20 @@ const Profile = () => {
   return (
     <div className="dashboard-container">
       <TopBar toggleSidebar={() => setMobileShow(!mobileShow)} />
-      {mobileShow && <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />}
+      {mobileShow && (
+        <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />
+      )}
 
       <div className="content-body">
-        <Sidebar collapsed={collapsed} toggleCollapse={() => setCollapsed(!collapsed)} mobileShow={mobileShow} />
-        <div className="main-content" onClick={() => mobileShow && setMobileShow(false)}>
-          
+        <Sidebar
+          collapsed={collapsed}
+          toggleCollapse={() => setCollapsed(!collapsed)}
+          mobileShow={mobileShow}
+        />
+        <div
+          className="main-content"
+          onClick={() => mobileShow && setMobileShow(false)}
+        >
           {loading ? (
             <div className="profile-loading-container">
               <div className="profile-spinner"></div>
@@ -175,22 +196,27 @@ const Profile = () => {
                 <h3 className="profile-title">Profile</h3>
 
                 <div className="profile-pic-wrapper">
-                  <div 
-                    className={`profile-pic-container ${showPhotoActions ? 'profile-active' : ''}`}
+                  <div
+                    className={`profile-pic-container ${
+                      showPhotoActions ? "profile-active" : ""
+                    }`}
                     onClick={handlePhotoClick}
                   >
                     <img
-                      src={previewPhoto || profilePic || "/default-profile.png"}
+                      src={
+                        previewPhoto ||
+                        profilePic ||
+                        "/blank-profile-picture-973460_1920.png"
+                      }
                       alt="Profile"
                       className="profile-pic"
                     />
-                    
+
                     <div className="profile-photo-overlay">
                       <FiCamera className="profile-camera-icon-large" />
                       <span className="profile-overlay-text">Update Photo</span>
                     </div>
                   </div>
-
 
                   {showPhotoActions && (
                     <div className="profile-photo-action-panel">
@@ -203,7 +229,7 @@ const Profile = () => {
                           <FiUpload className="upload-icon" />
                           <span>Upload Photo</span>
                         </button>
-                        
+
                         {currentUser?.user_profile_img && (
                           <button
                             className="profile-action-btn profile-remove-btn"
@@ -242,7 +268,6 @@ const Profile = () => {
                           </button>
                         )}
                       </div>
-                      
                     </div>
                   )}
 
@@ -286,7 +311,12 @@ const Profile = () => {
                   <input
                     type="text"
                     value={currentUser?.user_name || ""}
-                    onChange={(e) => setCurrentUser({ ...currentUser, user_name: e.target.value })}
+                    onChange={(e) =>
+                      setCurrentUser({
+                        ...currentUser,
+                        user_name: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -295,7 +325,12 @@ const Profile = () => {
                   <input
                     type="text"
                     value={currentUser?.user_email || ""}
-                    onChange={(e) => setCurrentUser({ ...currentUser, user_email: e.target.value })}
+                    onChange={(e) =>
+                      setCurrentUser({
+                        ...currentUser,
+                        user_email: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -304,22 +339,37 @@ const Profile = () => {
                   <input
                     type="text"
                     value={currentUser?.user_position || ""}
-                    onChange={(e) => setCurrentUser({ ...currentUser, user_position: e.target.value })}
+                    onChange={(e) =>
+                      setCurrentUser({
+                        ...currentUser,
+                        user_position: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
                 <div className="profile-actions">
-                  <button className="profile-btn-save" onClick={handleSave} disabled={isSaving}>
+                  <button
+                    className="profile-btn-save"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                  >
                     {isSaving ? "Saving..." : "Save Changes"}
                   </button>
-                  <button className="profile-btn-cancel" onClick={() => window.location.reload()}>
+                  <button
+                    className="profile-btn-cancel"
+                    onClick={() => window.location.reload()}
+                  >
                     Cancel
                   </button>
                 </div>
 
                 {currentUser?.user_role?.toLowerCase() === "admin" && (
                   <div className="profile-manage-user-requests">
-                    <button className="profile-btn-manage" onClick={() => navigate('/userManagement')}>
+                    <button
+                      className="profile-btn-manage"
+                      onClick={() => navigate("/userManagement")}
+                    >
                       Manage User Requests
                     </button>
                   </div>
