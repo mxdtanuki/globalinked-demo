@@ -3146,6 +3146,125 @@
   margin: 0;
 }
 
+/* Countries List View */
+.countries-list {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.country-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.country-list-item:hover {
+  background: #fff8dc;
+}
+
+.country-list-item:last-child {
+  border-bottom: none;
+}
+
+.country-list-item:focus-visible {
+  outline: 2px solid var(--primary-maroon);
+  outline-offset: -2px;
+}
+
+.list-flag {
+  width: 56px;
+  height: 42px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #e5e7eb;
+}
+
+.list-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.list-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.list-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.list-region {
+  display: inline-block;
+  background: var(--maroon-tint);
+  color: var(--primary-maroon);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.list-details {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.list-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.list-stat-label {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.list-stat-value {
+  font-weight: 600;
+  color: #111827;
+}
+
+.list-stat-separator {
+  margin: 0 8px;
+  color: #d1d5db;
+}
+
+.list-total {
+  background: var(--maroon-tint);
+  color: var(--primary-maroon);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .partners-controls {
@@ -3155,5 +3274,22 @@
 
   .partners-grid {
     grid-template-columns: 1fr;
+  }
+
+  .list-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .list-region {
+    width: 100%;
+  }
+
+  .list-details {
+    gap: 8px;
+  }
+
+  .list-stat-separator {
+    margin: 0 4px;
   }
 }
