@@ -10,28 +10,207 @@ import img4 from "./assets/oia/OIA_P4.jpg";
 import wuriLogo from "./assets/wuri logo.png";
 
 const countryToCode = {
-  "Afghanistan": "af", "Albania": "al", "Algeria": "dz", "Andorra": "ad", "Angola": "ao", "Antigua and Barbuda": "ag", "Argentina": "ar", "Armenia": "am", "Australia": "au", "Austria": "at", "Azerbaijan": "az",
-  "Bahamas": "bs", "Bahrain": "bh", "Bangladesh": "bd", "Barbados": "bb", "Belarus": "by", "Belgium": "be", "Belize": "bz", "Benin": "bj", "Bhutan": "bt", "Bolivia": "bo", "Bosnia and Herzegovina": "ba", "Botswana": "bw", "Brazil": "br", "Brunei": "bn", "Bulgaria": "bg", "Burkina Faso": "bf", "Burundi": "bi",
-  "Cabo Verde": "cv", "Cambodia": "kh", "Cameroon": "cm", "Canada": "ca", "Central African Republic": "cf", "Chad": "td", "Chile": "cl", "China": "cn", "Colombia": "co", "Comoros": "km", "Congo": "cg", "Costa Rica": "cr", "Croatia": "hr", "Cuba": "cu", "Cyprus": "cy", "Czechia": "cz", "Czech Republic": "cz",
-  "Democratic Republic of the Congo": "cd", "Denmark": "dk", "Djibouti": "dj", "Dominica": "dm", "Dominican Republic": "do", "Ecuador": "ec", "Egypt": "eg", "El Salvador": "sv", "Equatorial Guinea": "gq", "Eritrea": "er", "Estonia": "ee", "Eswatini": "sz", "Ethiopia": "et",
-  "Fiji": "fj", "Finland": "fi", "France": "fr", "Gabon": "ga", "Gambia": "gm", "Georgia": "ge", "Germany": "de", "Ghana": "gh", "Greece": "gr", "Grenada": "gd", "Guatemala": "gt", "Guinea": "gn", "Guinea-Bissau": "gw", "Guyana": "gy",
-  "Haiti": "ht", "Honduras": "hn", "Hungary": "hu", "Iceland": "is", "India": "in", "Indonesia": "id", "Iran": "ir", "Iraq": "iq", "Ireland": "ie", "Israel": "il", "Italy": "it",
-  "Jamaica": "jm", "Japan": "jp", "Jordan": "jo",
-  "Kazakhstan": "kz", "Kenya": "ke", "Kiribati": "ki", "Kuwait": "kw", "Kyrgyzstan": "kg",
-  "Laos": "la", "Latvia": "lv", "Lebanon": "lb", "Lesotho": "ls", "Liberia": "lr", "Libya": "ly", "Liechtenstein": "li", "Lithuania": "lt", "Luxembourg": "lu",
-  "Madagascar": "mg", "Malawi": "mw", "Malaysia": "my", "Maldives": "mv", "Mali": "ml", "Malta": "mt", "Marshall Islands": "mh", "Mauritania": "mr", "Mauritius": "mu", "Mexico": "mx", "Micronesia": "fm", "Moldova": "md", "Monaco": "mc", "Mongolia": "mn", "Montenegro": "me", "Morocco": "ma", "Mozambique": "mz", "Myanmar": "mm",
-  "Namibia": "na", "Nauru": "nr", "Nepal": "np", "Netherlands": "nl", "New Zealand": "nz", "Nicaragua": "ni", "Niger": "ne", "Nigeria": "ng", "North Korea": "kp", "North Macedonia": "mk", "Norway": "no",
-  "Oman": "om",
-  "Pakistan": "pk", "Palau": "pw", "Palestine": "ps", "Panama": "pa", "Papua New Guinea": "pg", "Paraguay": "py", "Peru": "pe", "Philippines": "ph", "Poland": "pl", "Portugal": "pt",
-  "Qatar": "qa",
-  "Romania": "ro", "Russia": "ru", "Rwanda": "rw",
-  "Saint Kitts and Nevis": "kn", "Saint Lucia": "lc", "Saint Vincent and the Grenadines": "vc", "Samoa": "ws", "San Marino": "sm", "Sao Tome and Principe": "st", "Saudi Arabia": "sa", "Senegal": "sn", "Serbia": "rs", "Seychelles": "sc", "Sierra Leone": "sl", "Singapore": "sg", "Slovakia": "sk", "Slovenia": "si", "Solomon Islands": "sb", "Somalia": "so", "South Africa": "za", "South Korea": "kr", "South Sudan": "ss", "Spain": "es", "Sri Lanka": "lk", "Sudan": "sd", "Suriname": "sr", "Sweden": "se", "Switzerland": "ch", "Syria": "sy",
-  "Taiwan": "tw", "Tajikistan": "tj", "Tanzania": "tz", "Thailand": "th", "Timor-Leste": "tl", "Togo": "tg", "Tonga": "to", "Trinidad and Tobago": "tt", "Tunisia": "tn", "Turkey": "tr", "Turkmenistan": "tm", "Tuvalu": "tv",
-  "Uganda": "ug", "Ukraine": "ua", "United Arab Emirates": "ae", "United Kingdom": "gb", "United States": "us", "U.S.A.": "us", "Uruguay": "uy", "Uzbekistan": "uz",
-  "Vanuatu": "vu", "Vatican City": "va", "Venezuela": "ve", "Vietnam": "vn",
-  "Yemen": "ye",
-  "Zambia": "zm", "Zimbabwe": "zw",
-  "Hong Kong": "hk", "Macau": "mo", "Palestinian Territories": "ps", "Kosovo": "xk"
+  Afghanistan: "af",
+  Albania: "al",
+  Algeria: "dz",
+  Andorra: "ad",
+  Angola: "ao",
+  "Antigua and Barbuda": "ag",
+  Argentina: "ar",
+  Armenia: "am",
+  Australia: "au",
+  Austria: "at",
+  Azerbaijan: "az",
+  Bahamas: "bs",
+  Bahrain: "bh",
+  Bangladesh: "bd",
+  Barbados: "bb",
+  Belarus: "by",
+  Belgium: "be",
+  Belize: "bz",
+  Benin: "bj",
+  Bhutan: "bt",
+  Bolivia: "bo",
+  "Bosnia and Herzegovina": "ba",
+  Botswana: "bw",
+  Brazil: "br",
+  Brunei: "bn",
+  Bulgaria: "bg",
+  "Burkina Faso": "bf",
+  Burundi: "bi",
+  "Cabo Verde": "cv",
+  Cambodia: "kh",
+  Cameroon: "cm",
+  Canada: "ca",
+  "Central African Republic": "cf",
+  Chad: "td",
+  Chile: "cl",
+  China: "cn",
+  Colombia: "co",
+  Comoros: "km",
+  Congo: "cg",
+  "Costa Rica": "cr",
+  Croatia: "hr",
+  Cuba: "cu",
+  Cyprus: "cy",
+  Czechia: "cz",
+  "Czech Republic": "cz",
+  "Democratic Republic of the Congo": "cd",
+  Denmark: "dk",
+  Djibouti: "dj",
+  Dominica: "dm",
+  "Dominican Republic": "do",
+  Ecuador: "ec",
+  Egypt: "eg",
+  "El Salvador": "sv",
+  "Equatorial Guinea": "gq",
+  Eritrea: "er",
+  Estonia: "ee",
+  Eswatini: "sz",
+  Ethiopia: "et",
+  Fiji: "fj",
+  Finland: "fi",
+  France: "fr",
+  Gabon: "ga",
+  Gambia: "gm",
+  Georgia: "ge",
+  Germany: "de",
+  Ghana: "gh",
+  Greece: "gr",
+  Grenada: "gd",
+  Guatemala: "gt",
+  Guinea: "gn",
+  "Guinea-Bissau": "gw",
+  Guyana: "gy",
+  Haiti: "ht",
+  Honduras: "hn",
+  Hungary: "hu",
+  Iceland: "is",
+  India: "in",
+  Indonesia: "id",
+  Iran: "ir",
+  Iraq: "iq",
+  Ireland: "ie",
+  Israel: "il",
+  Italy: "it",
+  Jamaica: "jm",
+  Japan: "jp",
+  Jordan: "jo",
+  Kazakhstan: "kz",
+  Kenya: "ke",
+  Kiribati: "ki",
+  Kuwait: "kw",
+  Kyrgyzstan: "kg",
+  Laos: "la",
+  Latvia: "lv",
+  Lebanon: "lb",
+  Lesotho: "ls",
+  Liberia: "lr",
+  Libya: "ly",
+  Liechtenstein: "li",
+  Lithuania: "lt",
+  Luxembourg: "lu",
+  Madagascar: "mg",
+  Malawi: "mw",
+  Malaysia: "my",
+  Maldives: "mv",
+  Mali: "ml",
+  Malta: "mt",
+  "Marshall Islands": "mh",
+  Mauritania: "mr",
+  Mauritius: "mu",
+  Mexico: "mx",
+  Micronesia: "fm",
+  Moldova: "md",
+  Monaco: "mc",
+  Mongolia: "mn",
+  Montenegro: "me",
+  Morocco: "ma",
+  Mozambique: "mz",
+  Myanmar: "mm",
+  Namibia: "na",
+  Nauru: "nr",
+  Nepal: "np",
+  Netherlands: "nl",
+  "New Zealand": "nz",
+  Nicaragua: "ni",
+  Niger: "ne",
+  Nigeria: "ng",
+  "North Korea": "kp",
+  "North Macedonia": "mk",
+  Norway: "no",
+  Oman: "om",
+  Pakistan: "pk",
+  Palau: "pw",
+  Palestine: "ps",
+  Panama: "pa",
+  "Papua New Guinea": "pg",
+  Paraguay: "py",
+  Peru: "pe",
+  Philippines: "ph",
+  Poland: "pl",
+  Portugal: "pt",
+  Qatar: "qa",
+  Romania: "ro",
+  Russia: "ru",
+  Rwanda: "rw",
+  "Saint Kitts and Nevis": "kn",
+  "Saint Lucia": "lc",
+  "Saint Vincent and the Grenadines": "vc",
+  Samoa: "ws",
+  "San Marino": "sm",
+  "Sao Tome and Principe": "st",
+  "Saudi Arabia": "sa",
+  Senegal: "sn",
+  Serbia: "rs",
+  Seychelles: "sc",
+  "Sierra Leone": "sl",
+  Singapore: "sg",
+  Slovakia: "sk",
+  Slovenia: "si",
+  "Solomon Islands": "sb",
+  Somalia: "so",
+  "South Africa": "za",
+  "South Korea": "kr",
+  "South Sudan": "ss",
+  Spain: "es",
+  "Sri Lanka": "lk",
+  Sudan: "sd",
+  Suriname: "sr",
+  Sweden: "se",
+  Switzerland: "ch",
+  Syria: "sy",
+  Taiwan: "tw",
+  Tajikistan: "tj",
+  Tanzania: "tz",
+  Thailand: "th",
+  "Timor-Leste": "tl",
+  Togo: "tg",
+  Tonga: "to",
+  "Trinidad and Tobago": "tt",
+  Tunisia: "tn",
+  Turkey: "tr",
+  Turkmenistan: "tm",
+  Tuvalu: "tv",
+  Uganda: "ug",
+  Ukraine: "ua",
+  "United Arab Emirates": "ae",
+  "United Kingdom": "gb",
+  "United States": "us",
+  "U.S.A.": "us",
+  Uruguay: "uy",
+  Uzbekistan: "uz",
+  Vanuatu: "vu",
+  "Vatican City": "va",
+  Venezuela: "ve",
+  Vietnam: "vn",
+  Yemen: "ye",
+  Zambia: "zm",
+  Zimbabwe: "zw",
+  "Hong Kong": "hk",
+  Macau: "mo",
+  "Palestinian Territories": "ps",
+  Kosovo: "xk",
 };
 
 export default function MainBanner() {
@@ -39,7 +218,7 @@ export default function MainBanner() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [flags, setFlags] = useState([]);
   const [partnerLogos, setPartnerLogos] = useState([]);
-  
+
   // slideshow images top ng page
   const defaultSlideshowImages = [
     mainBuilding,
@@ -55,76 +234,80 @@ export default function MainBanner() {
 
   useEffect(() => {
     const fetchData = async () => {
-        try {
-            const agreements = await agreementService.getPublicAgreements();
+      try {
+        const agreements = await agreementService.getPublicAgreements();
 
-            console.log("📦 All Agreements:", agreements);
+        console.log("📦 All Agreements:", agreements);
 
-            const activeAgreements = agreements.filter(
-                (ag) => ag.agreement_status === "Active"
-            );
+        const activeAgreements = agreements.filter(
+          (ag) => ag.agreement_status === "Active"
+        );
 
-            console.log("✅ Active Agreements:", activeAgreements);
+        console.log("✅ Active Agreements:", activeAgreements);
 
-            const countriesSet = new Set();
-            const partnersMap = new Map();
+        const countriesSet = new Set();
+        const partnersMap = new Map();
 
-            activeAgreements.forEach((ag, index) => {
-                if (ag.country) countriesSet.add(ag.country);
+        activeAgreements.forEach((ag, index) => {
+          if (ag.country) countriesSet.add(ag.country);
 
-                console.log(`Agreement ${index}:`, {
-                    logo_path: ag.logo_path,
-                    institution_name: ag.institution_name,
-                    university_name: ag.university_name,
-                    partner_name: ag.partner_name,
-                    name: ag.name,
-                    country: ag.country,
-                    allFields: Object.keys(ag)
-                });
+          console.log(`Agreement ${index}:`, {
+            logo_path: ag.logo_path,
+            institution_name: ag.institution_name,
+            university_name: ag.university_name,
+            partner_name: ag.partner_name,
+            name: ag.name,
+            country: ag.country,
+            allFields: Object.keys(ag),
+          });
 
-                const logoField = ag.logo_path || ag.logo || ag.university_logo;
-                const nameField = ag.institution_name || ag.university_name || ag.partner_name || ag.name;
+          const logoField = ag.logo_path || ag.logo || ag.university_logo;
+          const nameField =
+            ag.institution_name ||
+            ag.university_name ||
+            ag.partner_name ||
+            ag.name;
 
-                if (logoField && nameField) {
-                    partnersMap.set(logoField, {
-                        logo: logoField,
-                        name: nameField,
-                        country: ag.country || "Unknown"
-                    });
-                }
+          if (logoField && nameField) {
+            partnersMap.set(logoField, {
+              logo: logoField,
+              name: nameField,
+              country: ag.country || "Unknown",
             });
+          }
+        });
 
-            console.log("🏳️ Countries Set:", Array.from(countriesSet));
-            console.log("🏛️ Partners Map:", Array.from(partnersMap.values()));
+        console.log("🏳️ Countries Set:", Array.from(countriesSet));
+        console.log("🏛️ Partners Map:", Array.from(partnersMap.values()));
 
-            const countries = Array.from(countriesSet);
-            const partnerFlags = countries
-                .filter((country) => countryToCode[country])
-                .map((country) => ({
-                    country,
-                    flag: `https://flagcdn.com/${countryToCode[country]}.svg`,
-                }));
+        const countries = Array.from(countriesSet);
+        const partnerFlags = countries
+          .filter((country) => countryToCode[country])
+          .map((country) => ({
+            country,
+            flag: `https://flagcdn.com/${countryToCode[country]}.svg`,
+          }));
 
-            setFlags(
-                partnerFlags.length > 0
-                    ? partnerFlags
-                    : [{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]
-            );
+        setFlags(
+          partnerFlags.length > 0
+            ? partnerFlags
+            : [{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]
+        );
 
-            const logos = Array.from(partnersMap.values());
-            console.log("🎯 Final Logos to Display:", logos);
-            setPartnerLogos(logos);
-
-        } catch (error) {
-            console.error("❌ Error fetching data:", error);
-            setFlags([{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]);
-            setPartnerLogos([]);
-        }
+        const logos = Array.from(partnersMap.values());
+        console.log("🎯 Final Logos to Display:", logos);
+        setPartnerLogos(logos);
+      } catch (error) {
+        console.error("❌ Error fetching data:", error);
+        setFlags([
+          { country: "Philippines", flag: "https://flagcdn.com/ph.svg" },
+        ]);
+        setPartnerLogos([]);
+      }
     };
 
     fetchData();
-}, []);
-
+  }, []);
 
   useEffect(() => {
     if (flags.length > 0) {
@@ -156,7 +339,9 @@ export default function MainBanner() {
                 key={index}
                 src={image}
                 alt={`Slide ${index + 1}`}
-                className={`hero-image ${index === currentImageIndex ? "active" : ""}`}
+                className={`hero-image ${
+                  index === currentImageIndex ? "active" : ""
+                }`}
               />
             ))}
           </div>
@@ -168,7 +353,9 @@ export default function MainBanner() {
               <div className="flag-carousel-container">
                 <div
                   className="flag-slider"
-                  style={{ transform: `translateX(-${currentFlagIndex * 100}%)` }}
+                  style={{
+                    transform: `translateX(-${currentFlagIndex * 100}%)`,
+                  }}
                 >
                   {flags.map((flagData) => (
                     <div key={flagData.country} className="flag-slide">
@@ -231,7 +418,9 @@ export default function MainBanner() {
               <img src={wuriLogo} alt="WURI Logo" className="wuri-logo" />
             </div>
           </div>
-          <h3 className="partner-universities-title">OUR PARTNER INSTITUTIONS</h3>
+          <h3 className="partner-universities-title">
+            OUR PARTNER INSTITUTIONS
+          </h3>
           <div className="partner-logos-grid">
             {partnerLogos.length > 0 ? (
               partnerLogos.map((partner, index) => (
