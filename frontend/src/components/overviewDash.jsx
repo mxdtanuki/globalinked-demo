@@ -191,9 +191,9 @@ const LIFECYCLE_OPTIONS = [
   { value: "SignedPUP", label: "Signed by PUP Officials" },
   { value: "SignituresPartner", label: "For Signatures of Partner" },
   { value: "SignedPartner", label: "Signed by Partner Institution" },
-  { value: "Complete", label: "Completely Signed" },
   { value: "Notary", label: "For Notary" },
   { value: "FFUPCopy", label: "FFUP Copy From College/Campus" },
+  { value: "Complete", label: "Completely Signed" },
 ];
 
 const DEFAULT_THRESHOLD_DAYS = 3;
@@ -3459,9 +3459,9 @@ const OverviewMerged = () => {
                             alignItems: "center",
                           }}
                         >
-                          {/* Activate button - shown for FFUP status */}
+                          {/* Activate button - shown for Complete status */}
                           {row.status &&
-                            String(row.status).toLowerCase().includes("ffup") &&
+                            String(row.status).toLowerCase() === "complete" &&
                             isAdminUser() && (
                               <button
                                 className="btn-action activate-btn"
@@ -5151,19 +5151,13 @@ const OverviewMerged = () => {
                               className="config-select"
                             >
                               <option value="All">All statuses</option>
-                              <option value="SignedPUP">
-                                Signed by PUP Officials
-                              </option>
-                              <option value="SignedPartner">
-                                Signed by Partner Institution
-                              </option>
-                              <option value="Complete">
-                                Completely Signed
-                              </option>
-                              <option value="InitialReview">
-                                Initial Review
-                              </option>
-                              <option value="Endorse">Endorsed to ULCO</option>
+                              {LIFECYCLE_OPTIONS.filter((o) => o.value).map(
+                                (o) => (
+                                  <option key={o.value} value={o.value}>
+                                    {o.label}
+                                  </option>
+                                )
+                              )}
                             </select>
                           </div>
                         </div>
