@@ -34,6 +34,7 @@ const MOUMOAPublicPage = () => {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showViewDropdown, setShowViewDropdown] = useState(false);
+  const [showCountryViewDropdown, setShowCountryViewDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [agreementData, setAgreementData] = useState([]);
   const [partnerInstitutions, setPartnerInstitutions] = useState(0);
@@ -41,11 +42,13 @@ const MOUMOAPublicPage = () => {
   const [filteredPartners, setFilteredPartners] = useState([]);
   const [partnerLogosMap, setPartnerLogosMap] = useState(new Map());
   const [partnerViewMode, setPartnerViewMode] = useState("grid");
+  const [countryViewMode, setCountryViewMode] = useState("grid");
 
   const modalRef = useRef(null);
   const filterRef = useRef(null);
   const sortRef = useRef(null);
   const viewRef = useRef(null);
+  const countryViewRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,6 +110,12 @@ const MOUMOAPublicPage = () => {
       }
       if (viewRef.current && !viewRef.current.contains(event.target)) {
         setShowViewDropdown(false);
+      }
+      if (
+        countryViewRef.current &&
+        !countryViewRef.current.contains(event.target)
+      ) {
+        setShowCountryViewDropdown(false);
       }
     };
 
@@ -790,6 +799,76 @@ const MOUMOAPublicPage = () => {
                     </div>
                   )}
 
+                  {/* View Mode Dropdown - Only for Countries */}
+                  {selectedView === "countries" && (
+                    <div
+                      className="moumoa-dropdown-wrapper"
+                      ref={countryViewRef}
+                    >
+                      <button
+                        className={`moumoa-control-btn ${
+                          showCountryViewDropdown ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          setShowCountryViewDropdown(!showCountryViewDropdown)
+                        }
+                        aria-haspopup="menu"
+                        aria-expanded={showCountryViewDropdown}
+                        aria-label="View mode options"
+                        type="button"
+                      >
+                        <span>View:</span>
+                        {countryViewMode === "grid" ? (
+                          <FiGrid size={16} />
+                        ) : (
+                          <FiList size={16} />
+                        )}
+                        <span>
+                          {countryViewMode === "grid" ? "Grid" : "List"}
+                        </span>
+                      </button>
+                      {showCountryViewDropdown && (
+                        <div
+                          className="moumoa-dropdown-menu"
+                          role="menu"
+                          aria-label="View mode options"
+                        >
+                          <div className="moumoa-dropdown-header" role="none">
+                            View
+                          </div>
+                          <button
+                            className={`moumoa-dropdown-item ${
+                              countryViewMode === "grid" ? "active" : ""
+                            }`}
+                            onClick={() => {
+                              setCountryViewMode("grid");
+                              setShowCountryViewDropdown(false);
+                            }}
+                            role="menuitem"
+                            type="button"
+                          >
+                            <FiGrid size={14} style={{ marginRight: "8px" }} />
+                            Grid View
+                          </button>
+                          <button
+                            className={`moumoa-dropdown-item ${
+                              countryViewMode === "list" ? "active" : ""
+                            }`}
+                            onClick={() => {
+                              setCountryViewMode("list");
+                              setShowCountryViewDropdown(false);
+                            }}
+                            role="menuitem"
+                            type="button"
+                          >
+                            <FiList size={14} style={{ marginRight: "8px" }} />
+                            List View
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Sort Dropdown */}
                   <div className="moumoa-dropdown-wrapper" ref={sortRef}>
                     <button
@@ -1252,61 +1331,133 @@ const MOUMOAPublicPage = () => {
               role="tabpanel"
               aria-labelledby="moumoa-countries-tab"
             >
-              <div className="moumoa-countries-grid">
-                {filteredData.length > 0 ? (
-                  filteredData.map((item) => (
-                    <div
-                      key={item.country}
-                      className="moumoa-country-card"
-                      onClick={() => setSelectedCountry(item)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          setSelectedCountry(item);
-                        }
-                      }}
-                      tabIndex="0"
-                      role="button"
-                      aria-label={`View details for ${item.country}. Region: ${item.region}, MOUs: ${item.mou}, MOAs: ${item.moa}, Total: ${item.total}.`}
-                    >
-                      <div className="moumoa-card-header">
-                        <img
-                          src={`https://flagcdn.com/32x24/${item.code}.png`}
-                          alt={`Flag of ${item.country}`}
-                          className="moumoa-card-flag"
-                        />
-                        <h3>{item.country}</h3>
-                      </div>
-                      <div className="moumoa-card-stats">
-                        <div className="moumoa-stat-item">
-                          <span className="moumoa-stat-value">
-                            {item.partnerCount}
-                          </span>
-                          <span className="moumoa-stat-label">Partners</span>
+              {countryViewMode === "grid" ? (
+                /* Grid View */
+                <div className="moumoa-countries-grid">
+                  {filteredData.length > 0 ? (
+                    filteredData.map((item) => (
+                      <div
+                        key={item.country}
+                        className="moumoa-country-card"
+                        onClick={() => setSelectedCountry(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            setSelectedCountry(item);
+                          }
+                        }}
+                        tabIndex="0"
+                        role="button"
+                        aria-label={`View details for ${item.country}. Region: ${item.region}, MOUs: ${item.mou}, MOAs: ${item.moa}, Total: ${item.total}.`}
+                      >
+                        <div className="moumoa-card-header">
+                          <img
+                            src={`https://flagcdn.com/32x24/${item.code}.png`}
+                            alt={`Flag of ${item.country}`}
+                            className="moumoa-card-flag"
+                          />
+                          <h3>{item.country}</h3>
                         </div>
-                        <div className="moumoa-stat-divider"></div>
-                        <div className="moumoa-stat-item">
-                          <span className="moumoa-stat-value">
-                            {item.total}
+                        <div className="moumoa-card-stats">
+                          <div className="moumoa-stat-item">
+                            <span className="moumoa-stat-value">
+                              {item.partnerCount}
+                            </span>
+                            <span className="moumoa-stat-label">Partners</span>
+                          </div>
+                          <div className="moumoa-stat-divider"></div>
+                          <div className="moumoa-stat-item">
+                            <span className="moumoa-stat-value">
+                              {item.total}
+                            </span>
+                            <span className="moumoa-stat-label">
+                              Agreements
+                            </span>
+                          </div>
+                        </div>
+                        <div className="moumoa-card-footer">
+                          <span className="moumoa-region-label">
+                            {item.region}
                           </span>
-                          <span className="moumoa-stat-label">Agreements</span>
+                          <span className="moumoa-total-label">
+                            Total: {item.total}
+                          </span>
                         </div>
                       </div>
-                      <div className="moumoa-card-footer">
-                        <span className="moumoa-region-label">
-                          {item.region}
-                        </span>
-                        <span className="moumoa-total-label">
-                          Total: {item.total}
-                        </span>
+                    ))
+                  ) : (
+                    <p className="moumoa-no-results">
+                      No countries match your search criteria.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                /* List View */
+                <div className="countries-list">
+                  {filteredData.length > 0 ? (
+                    filteredData.map((item) => (
+                      <div
+                        key={item.country}
+                        className="country-list-item"
+                        onClick={() => setSelectedCountry(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            setSelectedCountry(item);
+                          }
+                        }}
+                        tabIndex="0"
+                        role="button"
+                        aria-label={`View details for ${item.country}`}
+                      >
+                        <div className="list-flag">
+                          <img
+                            src={`https://flagcdn.com/48x36/${item.code}.png`}
+                            alt={`Flag of ${item.country}`}
+                          />
+                        </div>
+                        <div className="list-content">
+                          <div className="list-header">
+                            <h4 className="list-title">{item.country}</h4>
+                            <span className="list-region">{item.region}</span>
+                          </div>
+                          <div className="list-details">
+                            <div className="list-stat">
+                              <span className="list-stat-label">Partners:</span>
+                              <span className="list-stat-value">
+                                {item.partnerCount}
+                              </span>
+                            </div>
+                            <div className="list-stat-separator">•</div>
+                            <div className="list-stat">
+                              <span className="list-stat-label">MOUs:</span>
+                              <span className="list-stat-value">
+                                {item.mou}
+                              </span>
+                            </div>
+                            <div className="list-stat-separator">•</div>
+                            <div className="list-stat">
+                              <span className="list-stat-label">MOAs:</span>
+                              <span className="list-stat-value">
+                                {item.moa}
+                              </span>
+                            </div>
+                            <div className="list-stat-separator">•</div>
+                            <div className="list-stat">
+                              <span className="list-stat-label">Total:</span>
+                              <span className="list-stat-value list-total">
+                                {item.total}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="moumoa-no-results">
-                    No countries match your search criteria.
-                  </p>
-                )}
-              </div>
+                    ))
+                  ) : (
+                    <p className="moumoa-no-results">
+                      No countries match your search criteria.
+                    </p>
+                  )}
+                </div>
+              )}
             </section>
           )}
 
