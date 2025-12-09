@@ -4,6 +4,7 @@ export function generatePrintableReport({
   reportLabelMap = {},
   allAgreements = [],
   getLinkedId = () => undefined,
+  wuriLogo = null,
 } = {}) {
   const escapeHtml = (str = "") =>
     String(str)
@@ -12,24 +13,6 @@ export function generatePrintableReport({
       .replace(/>/g, "&gt;");
 
   const total = Array.isArray(items) ? items.length : 0;
-  const activeCount = (items || []).filter((a) => {
-    if (!a) return false;
-    if (
-      a.agreement_status === "Active" ||
-      String(a.status).toLowerCase() === "active"
-    )
-      return true;
-    if (!a.date_expiry) return true;
-    const exp = new Date(a.date_expiry);
-    return exp > new Date();
-  }).length;
-  const expiringCount = (items || []).filter((a) => {
-    if (!a || !a.date_expiry) return false;
-    const days = Math.ceil(
-      (new Date(a.date_expiry) - new Date()) / (1000 * 60 * 60 * 24)
-    );
-    return days > 0 && days <= 90;
-  }).length;
 
   const renderCard = (r) => {
     const daysLeft =
@@ -380,7 +363,6 @@ export function generatePrintableReport({
       window.location.origin) ||
     "";
 
-  // Build absolute URLs that will work in the new window
   const buildAbsoluteUrl = (path) => {
     if (!origin) return path;
     return `${origin}${path.startsWith("/") ? path : "/" + path}`;
@@ -388,9 +370,48 @@ export function generatePrintableReport({
 
   const pupLogoUrl = buildAbsoluteUrl("/pup-logo.png");
   const bagongPilipinasLogoUrl = buildAbsoluteUrl("/Bagong_Pilipinas_logo.png");
-  const wuriLogoUrl = buildAbsoluteUrl("/wurilogo.png");
 
-  // Header HTML to be reused
+  const encodeSpacesOnce = (url = "") =>
+    url.includes("%20") ? url : url.replace(/\s/g, "%20");
+
+  // WURI logo defaults to encoded public file to avoid space-loading issues
+  let wuriLogoUrl = buildAbsoluteUrl("/wurilogo%20(1).jpg");
+  if (wuriLogo) {
+    if (wuriLogo.startsWith("data:image")) {
+      wuriLogoUrl = wuriLogo;
+    } else if (
+      wuriLogo.includes(".png") ||
+      wuriLogo.includes(".jpg") ||
+      wuriLogo.includes(".jpeg")
+    ) {
+      if (wuriLogo.startsWith("/static/")) {
+        wuriLogoUrl = encodeSpacesOnce(origin + wuriLogo);
+      } else if (wuriLogo.startsWith("/")) {
+        wuriLogoUrl = encodeSpacesOnce(buildAbsoluteUrl(wuriLogo));
+      } else {
+        wuriLogoUrl = encodeSpacesOnce(buildAbsoluteUrl("/" + wuriLogo));
+      }
+    } else if (
+      wuriLogo.startsWith("http://") ||
+      wuriLogo.startsWith("https://")
+    ) {
+      wuriLogoUrl = encodeSpacesOnce(wuriLogo);
+    } else {
+      wuriLogoUrl = `data:image/png;base64,${wuriLogo}`;
+    }
+  }
+
+  const safeWuriLogoUrl = encodeSpacesOnce(wuriLogoUrl);
+
+  console.log("Report Generation - Logo URLs:", {
+    pupLogoUrl,
+    bagongPilipinasLogoUrl,
+    wuriLogoUrl,
+    safeWuriLogoUrl,
+    origin,
+    wuriLogoInput: wuriLogo || "none",
+  });
+
   const headerHtml = `
     <div class="report-header">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dotted #999;">
@@ -412,8 +433,6 @@ export function generatePrintableReport({
   const summaryHtml = `
     <div class="summary">
       <div><strong>Total Agreements:</strong> ${total}</div>
-      <div><strong>Active Agreements:</strong> ${activeCount}</div>
-      <div><strong>Expiring Soon:</strong> ${expiringCount}</div>
     </div>
   `;
 
@@ -426,7 +445,7 @@ export function generatePrintableReport({
         <div style="margin-top:4px;font-weight:700;font-size:8px">THE COUNTRY'S 1<sup>st</sup> POLYTECHNICU</div>
       </div>
       <div class="footer-right">
-        <img src="${wuriLogoUrl}" alt="WURI Logo" class="footer-logo" onerror="console.error('Failed to load WURI logo from: ${wuriLogoUrl}'); this.style.display='none';" />
+        <img src="${safeWuriLogoUrl}" alt="WURI Logo" class="footer-logo" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='/wurilogo%20(1).jpg';return;}this.style.display='none';" />
       </div>
     </div>
   `;
@@ -488,10 +507,10 @@ export function generatePrintableReport({
           .remarks ul{margin:4px 0 0 12px;padding:0}
           .remarks li{margin-bottom:2px;font-size:9px;color:#222}
           .page-break{page-break-before: always;}
-          .report-footer{margin-top:10px;padding-top:8px;padding-bottom:20px;border-top:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;gap:10px;position:fixed;left:0;right:0;bottom:0;background:#fff;padding-left:12px;padding-right:12px}
-          .footer-left{display:flex;flex-direction:column;font-size:7px;line-height:1.3;color:#333}
-          .footer-right{display:flex;align-items:center;gap:8px}
-          .footer-logo{height:60px;width:auto;max-width:150px}
+          .report-footer{margin-top:10px;padding-top:8px;padding-bottom:20px;border-top:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;gap:10px;position:fixed;left:0;right:0;bottom:0;background:#fff;padding-left:12px;padding-right:12px;z-index:1000}
+          .footer-left{display:flex;flex-direction:column;font-size:7px;line-height:1.3;color:#333;flex:1}
+          .footer-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-shrink:0;padding:0 8px}
+          .footer-logo{height:80px;width:auto;max-width:200px;object-fit:contain}
           @media (max-width:1200px){ .card-grid{grid-template-columns:1fr 1fr;gap:8px} }
           @media (max-width:900px){ .card-grid{grid-template-columns:1fr} .doc-grid{grid-template-columns:repeat(1,1fr)} }
           @media print{
@@ -533,7 +552,17 @@ export function generatePrintableReport({
               window.addEventListener('load', doPrint);
               return;
             }
-            const promises = imgs.map(img => new Promise(res => {
+            
+            // Filter out the WURI footer logo from the loading wait (it's optional)
+            const criticalImgs = imgs.filter(img => !img.classList.contains('footer-logo'));
+            
+            if(criticalImgs.length === 0){
+              // Only footer logo present, don't wait for it
+              setTimeout(doPrint, 200);
+              return;
+            }
+            
+            const promises = criticalImgs.map(img => new Promise(res => {
               if(img.complete) return res();
               img.addEventListener('load', res);
               img.addEventListener('error', res);
@@ -942,7 +971,6 @@ export async function downloadXLSX({
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet("Agreements");
 
-    // Define headers
     const headers = [
       "DocumentType",
       "DTSNumber",
@@ -975,12 +1003,10 @@ export async function downloadXLSX({
       width: Math.max(12, h.length + 4),
     }));
 
-    // Add rows
     for (const r of rows) {
       ws.addRow(r);
     }
 
-    // Wrap long text
     ws.eachRow({ includeEmpty: false }, function (row) {
       row.eachCell({ includeEmpty: true }, function (cell) {
         if (typeof cell.value === "string" && cell.value.length > 120) {
