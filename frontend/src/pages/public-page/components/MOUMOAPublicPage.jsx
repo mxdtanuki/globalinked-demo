@@ -25,8 +25,18 @@ import {
 import { BiSort } from "react-icons/bi";
 import { IoSchoolSharp } from "react-icons/io5";
 
+import { useLocation } from "react-router-dom";
+
 const MOUMOAPublicPage = () => {
+  const location = useLocation();
   const [selectedView, setSelectedView] = useState("overview");
+  // Auto-select tab if navigated with state
+  useEffect(() => {
+    if (location.state && location.state.tab) {
+      setSelectedView(location.state.tab);
+    }
+    // eslint-disable-next-line
+  }, [location.state]);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name-asc");
