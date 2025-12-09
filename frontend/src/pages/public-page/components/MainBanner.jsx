@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./styles/MainBanner.css";
 import { agreementService } from "../../../services/agreementService";
 
+// React Icons
+import {
+  FaUserGraduate,
+  FaGlobe,
+  FaBookOpen,
+  FaChalkboardTeacher,
+  FaHandshake,
+  FaLink,
+} from "react-icons/fa";
 import mainBuilding from "./assets/pup-main-building.jpg";
 import img1 from "./assets/oia/OIA_P1.jpg";
 import img2 from "./assets/oia/OIA_P2.jpg";
 import img3 from "./assets/oia/OIA_P3.jpg";
 import img4 from "./assets/oia/OIA_P4.jpg";
-import wuriLogo from "./assets/wuri logo.png";
 
 const countryToCode = {
   Afghanistan: "af",
@@ -218,8 +227,9 @@ export default function MainBanner() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [flags, setFlags] = useState([]);
   const [partnerLogos, setPartnerLogos] = useState([]);
+  const [currentPartnerIndex, setCurrentPartnerIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(true);
 
-  // slideshow images top ng page
   const defaultSlideshowImages = [
     mainBuilding,
     img1,
@@ -232,34 +242,28 @@ export default function MainBanner() {
   ];
   const [slideshowImages] = useState(defaultSlideshowImages);
 
+  const services = [
+    { icon: <FaUserGraduate />, title: "International Exchange Students" },
+    { icon: <FaGlobe />, title: "International Seminars/Fora" },
+    { icon: <FaBookOpen />, title: "International Scholarship Grants" },
+    { icon: <FaChalkboardTeacher />, title: "International Faculty Exchange" },
+    { icon: <FaHandshake />, title: "International Organizations Affiliation" },
+    { icon: <FaLink />, title: "International Linkages" },
+  ];
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const agreements = await agreementService.getPublicAgreements();
-
-        console.log("📦 All Agreements:", agreements);
-
         const activeAgreements = agreements.filter(
           (ag) => ag.agreement_status === "Active"
         );
 
-        console.log("✅ Active Agreements:", activeAgreements);
-
         const countriesSet = new Set();
         const partnersMap = new Map();
 
-        activeAgreements.forEach((ag, index) => {
+        activeAgreements.forEach((ag) => {
           if (ag.country) countriesSet.add(ag.country);
-
-          console.log(`Agreement ${index}:`, {
-            logo_path: ag.logo_path,
-            institution_name: ag.institution_name,
-            university_name: ag.university_name,
-            partner_name: ag.partner_name,
-            name: ag.name,
-            country: ag.country,
-            allFields: Object.keys(ag),
-          });
 
           const logoField = ag.logo_path || ag.logo || ag.university_logo;
           const nameField =
@@ -277,9 +281,6 @@ export default function MainBanner() {
           }
         });
 
-        console.log("🏳️ Countries Set:", Array.from(countriesSet));
-        console.log("🏛️ Partners Map:", Array.from(partnersMap.values()));
-
         const countries = Array.from(countriesSet);
         const partnerFlags = countries
           .filter((country) => countryToCode[country])
@@ -295,10 +296,10 @@ export default function MainBanner() {
         );
 
         const logos = Array.from(partnersMap.values());
-        console.log("🎯 Final Logos to Display:", logos);
+        logos.sort((a, b) => a.name.localeCompare(b.name));
         setPartnerLogos(logos);
       } catch (error) {
-        console.error("❌ Error fetching data:", error);
+        console.error("Error fetching data:", error);
         setFlags([
           { country: "Philippines", flag: "https://flagcdn.com/ph.svg" },
         ]);
@@ -327,123 +328,317 @@ export default function MainBanner() {
     }
   }, [slideshowImages.length]);
 
-  return (
-    <section id="main-banner" className="main-banner">
-      <div className="banner-overlay">
-        <div className="banner-content">
-          <h1 className="banner-title">PUP Office of International Affairs</h1>
+  useEffect(() => {
+    if (partnerLogos.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentPartnerIndex((prev) => prev + 1);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [partnerLogos.length]);
 
-          <div className="hero-images">
-            {slideshowImages.map((image, index) => (
-              <img
+  useEffect(() => {
+    if (currentPartnerIndex >= partnerLogos.length && partnerLogos.length > 0) {
+      setTimeout(() => {
+        setIsTransitioning(false);
+        setCurrentPartnerIndex(0);
+      }, 500);
+    } else if (!isTransitioning) {
+      setTimeout(() => {
+        setIsTransitioning(true);
+      }, 50);
+    }
+  }, [currentPartnerIndex, partnerLogos.length, isTransitioning]);
+
+  const navigate = useNavigate();
+
+  const handleCountriesClick = () => {
+    navigate("/mou-moa", { state: { tab: "countries" } });
+  };
+
+  const handleInstitutionsClick = () => {
+    navigate("/mou-moa", { state: { tab: "partnerships" } });
+  };
+
+  return (
+    <section id="main-banner" className="oia-main-banner">
+      {/* Hero Section */}
+      <div className="oia-hero-section">
+        <div className="oia-hero-background">
+          {slideshowImages.map((image, index) => (
+            <div
+              key={index}
+              className={`oia-hero-slide ${
+                index === currentImageIndex ? "oia-hero-slide--active" : ""
+              }`}
+              style={{ backgroundImage: `url(${image})` }}
+            />
+          ))}
+          <div className="oia-hero-overlay" />
+        </div>
+
+        <div className="oia-hero-content">
+          <h1 className="oia-hero-title">
+            <span className="oia-title-accent">
+              Office of International Affairs
+            </span>
+            <span className="oia-title-sub">
+              Polytechnic University of the Philippines
+            </span>
+          </h1>
+          <p className="oia-hero-tagline">
+            <span className="oia-tagline-accent">Connecting Our Campus</span>
+            <span className="oia-tagline-separator">—</span>
+            <span className="oia-tagline-text">To The World</span>
+          </p>
+
+          {/* Slide Indicators */}
+          <div className="oia-slide-indicators">
+            {slideshowImages.map((_, index) => (
+              <button
                 key={index}
-                src={image}
-                alt={`Slide ${index + 1}`}
-                className={`hero-image ${
-                  index === currentImageIndex ? "active" : ""
+                className={`oia-slide-dot ${
+                  index === currentImageIndex ? "oia-slide-dot--active" : ""
                 }`}
+                onClick={() => setCurrentImageIndex(index)}
+                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>
         </div>
+      </div>
 
-        <div className="carousel-quote-grid">
-          <div className="carousel-column">
-            <div className="flag-carousel">
-              <div className="flag-carousel-container">
+      {/* About Section */}
+      <div className="oia-about-section">
+        <div className="oia-section-container">
+          <div className="oia-about-grid">
+            <div className="oia-about-content">
+              <h2 className="oia-about-title">About the Office</h2>
+              <div className="oia-title-underline oia-title-underline--left" />
+              <p className="oia-about-text">
+                The PUP Office of International Affairs is engaged in a wide
+                variety of programs and activities aligned with the vision of
+                President Manuel M. Muhi towards establishment of PUP as a
+                National Polytechnic University.
+              </p>
+              <p className="oia-about-text">
+                The Office for International Affairs provides leadership and
+                coordination for all University-wide international activities
+                for coherence and integration of the institution's international
+                linkages, cooperation, exchanges, programs and services.
+              </p>
+            </div>
+
+            <div className="oia-recognition-card">
+              <div className="oia-recognition-content">
+                <div className="oia-polytechnic-text">
+                  <span className="oia-poly-line">The Country's</span>
+                  <span className="oia-poly-line">1st PolytechnicU</span>
+                </div>
+                <div className="oia-wuri-badge">
+                  <a
+                    href="/577342267_1281755067312027_5041505358784559960_n.jpg"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <img
+                      src="/577342267_1281755067312027_5041505358784559960_n.jpg"
+                      alt="WURI Logo"
+                      className="oia-wuri-logo"
+                    />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Global Reach & Services Section */}
+      <div className="oia-global-section">
+        <div className="oia-section-container">
+          <div className="oia-global-content">
+            {/* Left: Our Global Reach */}
+            <div className="oia-global-left">
+              <div className="oia-global-header">
+                <h2 className="oia-section-title">Our Global Reach</h2>
+                <div className="oia-title-underline oia-title-underline--left" />
+              </div>
+              <div className="oia-flag-display">
+                <div className="oia-flag-carousel-container">
+                  <button
+                    className="oia-carousel-arrow oia-carousel-arrow--left"
+                    onClick={() =>
+                      setCurrentFlagIndex((prev) =>
+                        prev === 0 ? flags.length - 1 : prev - 1
+                      )
+                    }
+                    aria-label="Previous countries"
+                  >
+                    &#10094;
+                  </button>
+
+                  <div className="oia-flag-carousel-wrapper">
+                    {flags.map((flagData, index) => (
+                      <div
+                        key={flagData.country}
+                        className={`oia-flag-item ${
+                          index === currentFlagIndex
+                            ? "oia-flag-item--active"
+                            : ""
+                        }`}
+                      >
+                        <div className="oia-flag-card">
+                          <img
+                            src={flagData.flag}
+                            alt={`${flagData.country} flag`}
+                            className="oia-flag-img"
+                          />
+                        </div>
+                        <span className="oia-flag-name">
+                          {flagData.country}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    className="oia-carousel-arrow oia-carousel-arrow--right"
+                    onClick={() =>
+                      setCurrentFlagIndex((prev) => (prev + 1) % flags.length)
+                    }
+                    aria-label="Next countries"
+                  >
+                    &#10095;
+                  </button>
+                </div>
+                <div className="oia-flag-counter">
+                  <span className="oia-counter-current">
+                    {currentFlagIndex + 1}
+                  </span>
+                  <span className="oia-counter-separator">/</span>
+                  <span className="oia-counter-total">{flags.length}</span>
+                </div>
+              </div>
+
+              <div className="oia-stats-row">
                 <div
-                  className="flag-slider"
+                  className="oia-stat-box oia-stat-box--clickable"
+                  onClick={handleCountriesClick}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="View Partner Countries"
+                  style={{ cursor: "pointer" }}
+                >
+                  <span className="oia-stat-number">{flags.length}</span>
+                  <span className="oia-stat-label">Partner Countries</span>
+                </div>
+                <div
+                  className="oia-stat-box oia-stat-box--clickable"
+                  onClick={handleInstitutionsClick}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="View Institutions"
+                  style={{ cursor: "pointer" }}
+                >
+                  <span className="oia-stat-number">{partnerLogos.length}</span>
+                  <span className="oia-stat-label">Institutions</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Our Services */}
+            <div className="oia-global-right">
+              <div className="oia-services-header">
+                <h2 className="oia-section-title">Our Services</h2>
+                <div className="oia-title-underline oia-title-underline--left" />
+              </div>
+              <div className="oia-services-list">
+                {services.map((service, index) => (
+                  <div key={index} className="oia-service-item">
+                    <span className="oia-service-icon">{service.icon}</span>
+                    <span className="oia-service-title">{service.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Partner Institutions Section */}
+      <div className="oia-partners-section">
+        <div className="oia-section-container">
+          <div className="oia-partners-header">
+            <h2 className="oia-section-title">Partner Institutions</h2>
+            <div className="oia-title-underline" />
+          </div>
+
+          {partnerLogos.length > 0 ? (
+            <div className="oia-partners-carousel-container">
+              <button
+                className="oia-carousel-arrow oia-carousel-arrow--left"
+                onClick={() => {
+                  setIsTransitioning(true);
+                  setCurrentPartnerIndex((prev) =>
+                    prev === 0 ? partnerLogos.length - 1 : prev - 1
+                  );
+                }}
+                aria-label="Previous institutions"
+              >
+                &#10094;
+              </button>
+
+              <div className="oia-partners-carousel-wrapper">
+                <div
+                  className="oia-partners-carousel"
                   style={{
-                    transform: `translateX(-${currentFlagIndex * 100}%)`,
+                    transform: `translateX(-${currentPartnerIndex * 236}px)`,
+                    transition: isTransitioning
+                      ? "transform 0.5s ease-in-out"
+                      : "none",
                   }}
                 >
-                  {flags.map((flagData) => (
-                    <div key={flagData.country} className="flag-slide">
-                      <div className="flag-content">
+                  {[...partnerLogos, ...partnerLogos].map((partner, index) => (
+                    <div
+                      key={`${partner.name}-${index}`}
+                      className="oia-partner-card"
+                    >
+                      <div className="oia-partner-logo-container">
                         <img
-                          src={flagData.flag}
-                          alt={`${flagData.country} flag`}
-                          className="flag-image-main"
+                          src={`data:image/png;base64,${partner.logo}`}
+                          alt={partner.name}
+                          className="oia-partner-logo"
                         />
-                        <div className="flag-country">{flagData.country}</div>
+                      </div>
+                      <div className="oia-partner-info">
+                        <span className="oia-partner-name">{partner.name}</span>
+                        <span className="oia-partner-country">
+                          {partner.country}
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
-            <h3 className="carousel-title">OUR PARTNER COUNTRIES</h3>
-          </div>
 
-          <div className="quote-column">
-            <div className="banner-quote">
-              <h2>
-                <span className="quote-line-1">Connecting Our Campus</span>
-                <span className="quote-line-2">To The World</span>
-              </h2>
+              <button
+                className="oia-carousel-arrow oia-carousel-arrow--right"
+                onClick={() => {
+                  setIsTransitioning(true);
+                  setCurrentPartnerIndex((prev) => prev + 1);
+                }}
+                aria-label="Next institutions"
+              >
+                &#10095;
+              </button>
             </div>
-          </div>
-        </div>
-
-        <div className="banner-description">
-          <p>
-            The PUP Office of International Affairs is engaged in a wide variety
-            of programs and activities aligned with the vision of President
-            Manuel M. Muhi towards establishment of PUP as a National
-            Polytechnic University.
-          </p>
-          <p>
-            Thus, the Office for International Affairs provides leadership and
-            coordination for all University-wide international activities for
-            coherence and integration of the institution's international
-            linkages, cooperation, exchanges, programs and services:
-          </p>
-          <ul className="services-list">
-            <li>International Exchange Students</li>
-            <li>International Seminars/Fora</li>
-            <li>International Scholarship Grants</li>
-            <li>International Faculty Exchange</li>
-            <li>International Organizations Affiliation</li>
-            <li>International Linkages</li>
-          </ul>
-        </div>
-
-        <div className="partner-universities-section">
-          <div className="wuri-container">
-            <div className="polytechnic-wrapper">
-              <div className="poly-line">The Country’s</div>
-              <div className="poly-line">1st PolytechnicU</div>
+          ) : (
+            <div className="oia-partners-loading">
+              <div className="oia-loading-spinner" />
+              <p>Loading partner institutions...</p>
             </div>
-            <div className="wuri-logo-wrap">
-              <img src={wuriLogo} alt="WURI Logo" className="wuri-logo" />
-            </div>
-          </div>
-          <h3 className="partner-universities-title">
-            OUR PARTNER INSTITUTIONS
-          </h3>
-          <div className="partner-logos-grid">
-            {partnerLogos.length > 0 ? (
-              partnerLogos.map((partner, index) => (
-                <div key={index} className="partner-logo-wrapper">
-                  <img
-                    src={`data:image/png;base64,${partner.logo}`}
-                    alt={partner.name}
-                    className="partner-logo-image"
-                  />
-                  <div className="partner-logo-tooltip">
-                    <span className="partner-name">{partner.name}</span>
-                    {partner.country && (
-                      <span className="partner-country">{partner.country}</span>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="no-partners-text">
-                Loading partner institution logos...
-              </p>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </section>
