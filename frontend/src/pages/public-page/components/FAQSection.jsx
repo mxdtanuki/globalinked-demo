@@ -1,5 +1,40 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import "./styles/FAQ.css";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
+};
+
+const titleVariants = {
+  hidden: { opacity: 0, y: -20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
+};
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState(null);
@@ -67,16 +102,37 @@ export default function FAQ() {
   return (
     <section id="faq" className="faq">
       <div className="container">
-        <h2 className="section-title">Frequently Asked Questions</h2>
-        <h3 className="section-subtitle">
+        <motion.h2
+          className="section-title"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+          variants={titleVariants}
+        >
+          Frequently Asked Questions
+        </motion.h2>
+        <motion.h3
+          className="section-subtitle"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+          variants={titleVariants}
+        >
           International Student FAQ For Non-Filipino/International Students
-        </h3>
+        </motion.h3>
 
-        <div className="faq-container">
+        <motion.div
+          className="faq-container"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={containerVariants}
+        >
           {faqs.map((faq, index) => (
-            <div
+            <motion.div
               key={index}
               className={`faq-item ${openIndex === index ? "open" : ""}`}
+              variants={itemVariants}
             >
               <button className="faq-question" onClick={() => toggleFAQ(index)}>
                 <span>{faq.question}</span>
@@ -84,16 +140,27 @@ export default function FAQ() {
                   {openIndex === index ? "−" : "+"}
                 </span>
               </button>
-              <div className="faq-answer">
-                {typeof faq.answer === "string" ? (
-                  <p>{faq.answer}</p>
-                ) : (
-                  faq.answer
+              <AnimatePresence>
+                {openIndex === index && (
+                  <motion.div
+                    className="faq-answer"
+                    initial={{ maxHeight: 0, opacity: 0 }}
+                    animate={{ maxHeight: 500, opacity: 1 }}
+                    exit={{ maxHeight: 0, opacity: 0 }}
+                    transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    {typeof faq.answer === "string" ? (
+                      <p>{faq.answer}</p>
+                    ) : (
+                      <p>{faq.answer}</p>
+                    )}
+                  </motion.div>
                 )}
-              </div>
-            </div>
+              </AnimatePresence>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
