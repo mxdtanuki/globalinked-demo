@@ -280,12 +280,12 @@
   }
 
   .faq .section-subtitle {
-    font-size: 0.95rem;
-    margin-bottom: 2.25rem;
-  }
-
-  .faq-container {
-    gap: 0.75rem;
+    font-size: 1.05rem;
+    color: #6b4a4a;
+    text-align: center;
+    margin-top: 1.75rem;
+    margin-bottom: 2.5rem;
+    font-weight: 500;
   }
 
   .faq-question {

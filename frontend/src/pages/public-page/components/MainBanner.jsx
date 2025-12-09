@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./styles/MainBanner.css";
 import { agreementService } from "../../../services/agreementService";
@@ -12,6 +12,14 @@ import {
   FaHandshake,
   FaLink,
 } from "react-icons/fa";
+import {
+  FiList,
+  FiTarget,
+  FiLayers,
+  FiHelpCircle,
+  FiUsers,
+  FiMail,
+} from "react-icons/fi";
 import mainBuilding from "./assets/pup-main-building.jpg";
 import img1 from "./assets/oia/OIA_P1.jpg";
 import img2 from "./assets/oia/OIA_P2.jpg";
@@ -229,6 +237,11 @@ export default function MainBanner() {
   const [partnerLogos, setPartnerLogos] = useState([]);
   const [currentPartnerIndex, setCurrentPartnerIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
+  const [isTocOpen, setIsTocOpen] = useState(false);
+  const [tocOnLightBg, setTocOnLightBg] = useState(false);
+
+  const aboutRef = useRef(null);
+  const heroRef = useRef(null);
 
   const defaultSlideshowImages = [
     mainBuilding,
@@ -350,6 +363,18 @@ export default function MainBanner() {
     }
   }, [currentPartnerIndex, partnerLogos.length, isTransitioning]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const aboutTop = aboutRef.current?.offsetTop ?? 0;
+      const scrollPos = window.scrollY + 80;
+      setTocOnLightBg(scrollPos >= aboutTop - 40);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const navigate = useNavigate();
 
   const handleCountriesClick = () => {
@@ -360,10 +385,61 @@ export default function MainBanner() {
     navigate("/mou-moa", { state: { tab: "partnerships" } });
   };
 
+  const tocLinks = [
+    { label: "Objectives & Functions", target: "#objectives", icon: <FiTarget /> },
+    { label: "Services", target: "#services", icon: <FiLayers /> },
+    { label: "FAQ", target: "#faq", icon: <FiHelpCircle /> },
+    { label: "Officials & Staff", target: "#officials", icon: <FiUsers /> },
+    { label: "Contact", target: "#contact", icon: <FiMail /> },
+  ];
+
+  const scrollToTarget = (selector) => {
+    const el = document.querySelector(selector);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setIsTocOpen(false);
+    }
+  };
+
   return (
     <section id="main-banner" className="oia-main-banner">
+      <div className="oia-toc-wrapper">
+        <button
+          type="button"
+          className={`oia-toc-button ${
+            tocOnLightBg ? "oia-toc-button--maroon" : "oia-toc-button--white"
+          } ${isTocOpen ? "oia-toc-button--open" : ""}`}
+          onClick={() => setIsTocOpen((open) => !open)}
+          aria-expanded={isTocOpen}
+          aria-label="Open table of contents"
+        >
+          <FiList className="oia-toc-icon" />
+          <span className="oia-toc-label">Table of Contents</span>
+        </button>
+
+        {isTocOpen && (
+          <div
+            className={`oia-toc-menu ${
+              tocOnLightBg ? "oia-toc-menu--light" : "oia-toc-menu--dark"
+            }`}
+          >
+            {tocLinks.map((item) => (
+              <button
+                key={item.target}
+                type="button"
+                className="oia-toc-link"
+                onClick={() => scrollToTarget(item.target)}
+              >
+                <span className="oia-toc-link-icon">{item.icon}</span>
+                <span className="oia-toc-link-text">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Hero Section */}
-      <div className="oia-hero-section">
+      <div className="oia-hero-section" ref={heroRef}>
         <div className="oia-hero-background">
           {slideshowImages.map((image, index) => (
             <div
@@ -409,7 +485,7 @@ export default function MainBanner() {
       </div>
 
       {/* About Section */}
-      <div className="oia-about-section">
+      <div className="oia-about-section" ref={aboutRef}>
         <div className="oia-section-container">
           <div className="oia-about-grid">
             <div className="oia-about-content">
