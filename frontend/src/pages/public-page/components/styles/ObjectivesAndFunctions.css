@@ -1,114 +1,176 @@
 /* Main Section */
 .pup-io-objectives-functions {
-  padding: 1.5rem 0 4.2rem;
-  background: linear-gradient(135deg, #f7f2f2 0%, #fff 100%);
+  padding: 5rem 0 6rem;
+  background: linear-gradient(180deg, #fafafa 0%, #f5f0f0 50%, #fafafa 100%);
   scroll-margin-top: 50px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pup-io-objectives-functions::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(130, 22, 22, 0.2),
+    transparent
+  );
 }
 
 /* Container */
 .pup-io-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 2rem;
 }
 
 /* Layout */
 .pup-io-content-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4rem;
-  margin-top: 3rem;
+  gap: 3rem;
+  margin-top: 0;
 }
 
 /* Section Headers */
 .pup-io-section-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 2rem;
+  justify-content: flex-start;
+  gap: 14px;
+  margin-bottom: 2.5rem;
   position: relative;
+  padding-bottom: 1.25rem;
+}
+
+.pup-io-section-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #821616, #a63939);
+  border-radius: 2px;
 }
 
 .pup-io-section-title {
-  font-size: 2rem;
-  color: #4a1d1d;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #2d1a1a;
   margin: 0;
-  position: relative;
+  letter-spacing: -0.02em;
 }
 
 .pup-io-section-title::after {
-  content: "";
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  height: 2px;
-  background: #a63939;
+  display: none;
 }
 
 .pup-io-section-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   color: #821616;
   flex-shrink: 0;
+  padding: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(130, 22, 22, 0.08),
+    rgba(166, 57, 57, 0.05)
+  );
+  border-radius: 10px;
 }
 
 /* Cards Container */
 .pup-io-cards-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 /* Objective and Function Cards */
 .pup-io-objective-card,
 .pup-io-function-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(74, 29, 29, 0.1);
-  border-left: 4px solid #a63939;
-  transition: all 0.3s ease;
+  background: #ffffff;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(74, 29, 29, 0.04),
+    0 4px 12px rgba(74, 29, 29, 0.03);
+  border: 1px solid rgba(130, 22, 22, 0.06);
+  border-left: 3px solid #821616;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
-  align-items: flex-start;
-  gap: 1rem;
+  align-items: center;
+  gap: 1.25rem;
   opacity: 0;
   transform: translateY(30px);
   animation: pup-io-slideInUp 0.6s ease forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.pup-io-objective-card::before,
+.pup-io-function-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(130, 22, 22, 0.02), transparent);
+  opacity: 0;
+  transition: opacity 0.35s ease;
 }
 
 /* Hover Effects */
 .pup-io-objective-card:hover,
 .pup-io-function-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(74, 29, 29, 0.15);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(74, 29, 29, 0.06),
+    0 12px 28px rgba(74, 29, 29, 0.08);
+  border-color: rgba(130, 22, 22, 0.12);
 }
 
-.pup-io-objective-card,
-.pup-io-function-card {
-  display: flex;
-  align-items: center !important;
-  gap: 1rem;
+.pup-io-objective-card:hover::before,
+.pup-io-function-card:hover::before {
+  opacity: 1;
 }
 
 /* Icon in Cards */
 .pup-io-objective-card .pup-io-card-icon-img,
 .pup-io-function-card .pup-io-card-icon-img {
-  width: 30px !important;
-  height: 30px !important;
+  width: 32px !important;
+  height: 32px !important;
   margin-top: 0 !important;
   flex-shrink: 0;
+  padding: 6px;
+  background: linear-gradient(135deg, #faf5f5, #f5eded);
+  border-radius: 8px;
+  transition: transform 0.3s ease, background 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.pup-io-objective-card:hover .pup-io-card-icon-img,
+.pup-io-function-card:hover .pup-io-card-icon-img {
+  transform: scale(1.08);
+  background: linear-gradient(135deg, #f5eded, #efe5e5);
 }
 
 /* Text inside Cards */
 .pup-io-card-text {
   margin: 0;
-  color: #333;
-  line-height: 1.6;
-  font-size: 0.95rem;
+  color: #4a4a4a;
+  line-height: 1.65;
+  font-size: 0.925rem;
+  font-weight: 400;
+  position: relative;
+  z-index: 1;
 }
 
 /* Animation */
@@ -174,21 +236,36 @@
 @media (max-width: 968px) {
   .pup-io-content-grid {
     grid-template-columns: 1fr;
-    gap: 3rem;
+    gap: 4rem;
+  }
+
+  .pup-io-section-header {
+    justify-content: center;
+  }
+
+  .pup-io-section-header::after {
+    left: 50%;
+    transform: translateX(-50%);
   }
 }
 
 @media (max-width: 768px) {
   .pup-io-objectives-functions {
-    padding: 4rem 0;
+    padding: 3.5rem 0;
+  }
+
+  .pup-io-container {
+    padding: 0 1.25rem;
   }
 
   .pup-io-section-header {
     flex-direction: column;
+    gap: 10px;
+    text-align: center;
   }
 
   .pup-io-section-title {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     text-align: center;
   }
 
@@ -199,13 +276,33 @@
 
   .pup-io-objective-card,
   .pup-io-function-card {
-    padding: 1.2rem;
-    flex-direction: column;
-    text-align: center;
+    padding: 1.1rem 1.25rem;
+    flex-direction: row;
+    text-align: left;
     align-items: center;
+    gap: 1rem;
+  }
+
+  .pup-io-card-text {
+    font-size: 0.875rem;
   }
 
   .pup-io-card-icon-img {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .pup-io-objective-card,
+  .pup-io-function-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+  }
+
+  .pup-io-objective-card .pup-io-card-icon-img,
+  .pup-io-function-card .pup-io-card-icon-img {
+    width: 36px !important;
+    height: 36px !important;
   }
 }
