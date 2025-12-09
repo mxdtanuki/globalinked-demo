@@ -696,10 +696,13 @@ const mapAgreement = (a = {}) => {
     _pk: a.agreement_id ?? a.id ?? a.dts_number ?? a.dts_no,
     id: a.dts_number || a.dts_no || a.id || a.agreement_id || "",
     dts_no: a.dts_number || a.dts_no || "",
+    dts_number: a.dts_number || a.dts_no || "", // alias for report
 
     // core info
     partner_name: a.name || a.partner_name || "",
+    name: a.name || a.partner_name || "", // alias for report
     entity_type: a.entity_type || "",
+    organization_type: a.entity_type || a.organization_type || "", // alias for report
     country: a.country || "",
     region: a.region || "",
     address: a.address || "",
@@ -716,18 +719,26 @@ const mapAgreement = (a = {}) => {
     contact_email: contact_people[0]?.email || a.contact_email || "",
     point_people: point_people.length ? point_people : undefined,
     contact_people: contact_people.length ? contact_people : undefined,
+    // Add aliases for report generation compatibility
+    point_persons: point_people.length ? point_people : undefined,
+    contact_persons: contact_people.length ? contact_people : undefined,
 
     // classification
     document_type: a.document_type || "",
     partnership_classification:
       a.partnership_type || a.partnership_classification || "",
+    partnership_type: a.partnership_type || a.partnership_classification || "", // alias for report
     validity_period: a.validity_period != null ? String(a.validity_period) : "",
 
     // dates/status
     status: normalizeStatusIn(a.agreement_status || a.status || ""),
+    agreement_status: a.agreement_status || a.status || "", // preserve original for report
     date_of_signing: toISODate(a.date_signed || a.date_of_signing || ""),
+    date_signed: toISODate(a.date_signed || a.date_of_signing || ""), // alias for report
     expiry: toISODate(a.date_expiry || a.expiry || ""),
+    date_expiry: toISODate(a.date_expiry || a.expiry || ""), // alias for report
     date_received: toISODate(a.entry_date || a.date_received || a.date || ""),
+    entry_date: toISODate(a.entry_date || a.date_received || a.date || ""), // alias for report
     date_endorsed_ulco: toISODate(
       a.date_endorsed_ulco || a.date_endorsed_to_ulco || ""
     ),
@@ -748,10 +759,15 @@ const mapAgreement = (a = {}) => {
     signatories: signatoriesText,
     signatories_list,
     website_link: a.website_link || a.website_url || "",
+    website: a.website_link || a.website_url || a.website || "", // alias for report
+    website_url: a.website_link || a.website_url || a.website || "", // alias for report
     event_title: a.event_title || a.event_info || "",
     brief_profile: a.brief_profile || a.description || "",
     hardcopy_locator: a.hardcopy_locator || a.hardcopy_location || "",
+    hardcopy_location: a.hardcopy_locator || a.hardcopy_location || "", // alias for report
     logo: asDataUrl(a.logo_url) || asDataUrl(a.logo_path) || asDataUrl(a.logo),
+    logo_path: a.logo_path || a.logo_url || a.logo || "", // preserve original for report
+    logo_url: a.logo_url || a.logo_path || a.logo || "", // alias for report
     remarks: normalizeRemarks(a.remarks_list || a.remarks || a.initial_remarks),
 
     _stage_start_at: stageStartRaw || null,
@@ -2113,7 +2129,7 @@ const OverviewMerged = () => {
       // If it's already a string, return as-is
       if (typeof list === "string" && list.trim()) return list;
       if (typeof sigs === "string" && sigs.trim()) return sigs;
-      
+
       // If it's an array, convert to comma-separated string
       if (Array.isArray(list) && list.length) {
         return list
@@ -2127,7 +2143,7 @@ const OverviewMerged = () => {
           .filter(Boolean)
           .join(", ");
       }
-      
+
       if (Array.isArray(sigs) && sigs.length) {
         return sigs
           .map((item) => {
@@ -2139,7 +2155,7 @@ const OverviewMerged = () => {
           .filter(Boolean)
           .join(", ");
       }
-      
+
       return undefined;
     };
 
@@ -2185,7 +2201,12 @@ const OverviewMerged = () => {
       // related agreement id - prefer explicit numeric parent id when present
       // Only send a numeric id to avoid sending DTS strings (which cause a 422/500 on the server)
       MOU_to_MOA_id: (() => {
-        const raw = s.MOU_to_MOA_id ?? s.linkedMouId ?? s.linked_mou ?? s.related_mou ?? null;
+        const raw =
+          s.MOU_to_MOA_id ??
+          s.linkedMouId ??
+          s.linked_mou ??
+          s.related_mou ??
+          null;
         if (raw == null || raw === "") return undefined;
         // If it's already a number, return it. If it's a numeric string, coerce to Number.
         if (typeof raw === "number") return raw;
@@ -5476,3 +5497,4 @@ const OverviewMerged = () => {
 };
 
 export default OverviewMerged;
+                          
