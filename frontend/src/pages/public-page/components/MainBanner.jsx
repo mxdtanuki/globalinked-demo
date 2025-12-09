@@ -19,6 +19,7 @@ import {
   FiHelpCircle,
   FiUsers,
   FiMail,
+  FiInfo,
 } from "react-icons/fi";
 import mainBuilding from "./assets/pup-main-building.jpg";
 import img1 from "./assets/oia/OIA_P1.jpg";
@@ -386,6 +387,7 @@ export default function MainBanner() {
   };
 
   const tocLinks = [
+    { label: "About Us", target: "#about-hero-edge", icon: <FiInfo /> },
     { label: "Objectives & Functions", target: "#objectives", icon: <FiTarget /> },
     { label: "Services", target: "#services", icon: <FiLayers /> },
     { label: "FAQ", target: "#faq", icon: <FiHelpCircle /> },
@@ -484,8 +486,11 @@ export default function MainBanner() {
         </div>
       </div>
 
+      {/* Scroll marker for About Us TOC link */}
+      <div id="about-hero-edge" style={{ height: 0 }} />
+
       {/* About Section */}
-      <div className="oia-about-section" ref={aboutRef}>
+      <div id="about" className="oia-about-section" ref={aboutRef}>
         <div className="oia-section-container">
           <div className="oia-about-grid">
             <div className="oia-about-content">
