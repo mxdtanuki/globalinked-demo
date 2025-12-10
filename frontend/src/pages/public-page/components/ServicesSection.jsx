@@ -1,8 +1,34 @@
 import React from "react";
+import { motion } from "framer-motion";
 import "./styles/Services.css";
 import { IoSchoolOutline } from "react-icons/io5";
 import { PiChalkboardTeacher } from "react-icons/pi";
 import { HiOutlineGlobeAlt } from "react-icons/hi";
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.15,
+      duration: 0.6,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  }),
+};
+
+const titleVariants = {
+  hidden: { opacity: 0, y: -20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
+};
 
 export default function Services() {
   const services = [
@@ -72,17 +98,30 @@ export default function Services() {
   return (
     <section id="services" className="services">
       <div className="container">
-        <h2 className="section-title">Services</h2>
+        <motion.h2
+          className="section-title"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+          variants={titleVariants}
+        >
+          Services
+        </motion.h2>
 
         <div className="services-grid">
           {services.map((service, index) => (
-            <div
+            <motion.div
               key={index}
               className={`service-card ${
                 service.title === "Faculty and Staff Mobility"
                   ? "faculty-staff"
                   : ""
               }`}
+              custom={index}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.2 }}
+              variants={cardVariants}
             >
               <div className="service-header">
                 <div className="service-icon">
@@ -103,7 +142,7 @@ export default function Services() {
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

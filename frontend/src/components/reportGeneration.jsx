@@ -1,10 +1,10 @@
-
 export function generatePrintableReport({
   items = [],
   reportKey = "all",
   reportLabelMap = {},
   allAgreements = [],
   getLinkedId = () => undefined,
+  wuriLogo = null,
 } = {}) {
   const escapeHtml = (str = "") =>
     String(str)
@@ -13,26 +13,6 @@ export function generatePrintableReport({
       .replace(/>/g, "&gt;");
 
   const total = Array.isArray(items) ? items.length : 0;
-  const activeCount = (items || []).filter((a) => {
-    if (!a) return false;
-    if (
-      a.agreement_status === "Active" ||
-      String(a.status).toLowerCase() === "active"
-    )
-      return true;
-    if (!a.date_expiry) return true;
-    const exp = new Date(a.date_expiry);
-    return exp > new Date();
-  }).length;
-  const expiringCount = (items || []).filter((a) => {
-    if (!a || !a.date_expiry) return false;
-    const days = Math.ceil(
-      (new Date(a.date_expiry) - new Date()) / (1000 * 60 * 60 * 24)
-    );
-    return days > 0 && days <= 90;
-  }).length;
-
-  const formatDateTime = (d) => new Date(d).toLocaleString();
 
   const renderCard = (r) => {
     const daysLeft =
@@ -58,8 +38,7 @@ export function generatePrintableReport({
           for (const k of Object.keys(o)) {
             try {
               if (re.test(k) && o[k]) return o[k];
-            } catch (e) {
-            }
+            } catch (e) {}
           }
           return null;
         };
@@ -79,7 +58,7 @@ export function generatePrintableReport({
           if (position) parts.push(String(position));
           if (name) parts.push(String(name));
           if (email) parts.push(String(email));
-          return parts.join(" \u2022 "); 
+          return parts.join(" \u2022 ");
         }
 
         const fallbackCandidates = [
@@ -264,23 +243,21 @@ export function generatePrintableReport({
       <div class="report-card">
         <div class="card-header" style="border-left:6px solid ${accentColor};">
           <div style="display:flex;align-items:center;gap:12px;flex:1">
-            <div style="display:flex;flex-direction:column;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
               <span class="badge type" style="background:${accentColor}">${docType}</span>
               <small class="dts-small">${escapeHtml(
                 r?.dts_number || ""
               )}</small>
             </div>
-            <div style="flex:1;padding-left:12px">
+            <div style="flex:1;padding-left:6px">
               <h2 class="card-title" style="margin:0">${title}</h2>
               ${subtitle ? `<div class="card-sub">${subtitle}</div>` : ""}
             </div>
-            <div style="text-align:right;min-width:220px">
+            <div style="text-align:right;min-width:140px">
               <div class="status-pill" style="background:${statusBg};color:${statusColor};">${escapeHtml(
       r?.agreement_status || r?.status || ""
-    )}${
-      daysLeft !== null && !isNaN(daysLeft) ? ` - ${daysLeft} days left` : ""
-    }</div>
-              <div class="small-muted" style="margin-top:6px">${entryDate}</div>
+    )}${daysLeft !== null && !isNaN(daysLeft) ? ` - ${daysLeft}d` : ""}</div>
+              <div class="small-muted" style="margin-top:2px">${entryDate}</div>
             </div>
           </div>
         </div>
@@ -311,11 +288,11 @@ export function generatePrintableReport({
               <div class="doc-grid">
                 <div class="doc-item">
                   <div class="label">Partner</div>
-                  <div class="value"><div style="display:flex;align-items:center;gap:12px"><div style="min-width:64px">${
+                  <div class="value"><div style="display:flex;align-items:center;gap:6px"><div style="min-width:40px">${
                     logoSrc
                       ? `<img src="${logoSrcEsc}" class="partner-logo" alt="logo" onerror="this.style.display='none'"/>`
                       : `<div class="partner-logo placeholder"></div>`
-                  }</div><div style="min-width:0"><div style="font-weight:700">${partner}</div><div class="muted">${region} ${
+                  }</div><div style="min-width:0"><div style="font-weight:700;font-size:9px">${partner}</div><div class="muted" style="font-size:8px">${region} ${
       country ? `• ${country}` : ""
     }</div></div></div></div>
                 </div>
@@ -339,12 +316,12 @@ export function generatePrintableReport({
               </div>
             </div>
 
-            <div class="section-box" style="margin-top:12px">
+            <div class="section-box" style="margin-top:6px">
               <h4 class="section-title">Contact Information</h4>
               <div class="label">PUP Point Person</div><div class="value">${
                 pupContact || "-"
               }</div>
-              <div class="label" style="margin-top:8px">Partner Contact</div><div class="value">${
+              <div class="label" style="margin-top:4px">Partner Contact</div><div class="value">${
                 partnerContact || "-"
               }</div>
             </div>
@@ -356,21 +333,21 @@ export function generatePrintableReport({
               <div class="label">Date of Signing</div><div class="value">${
                 dateSigning || "-"
               }</div>
-              <div class="label" style="margin-top:8px">Expiry Date</div><div class="value">${
+              <div class="label" style="margin-top:4px">Expiry Date</div><div class="value">${
                 dateExpiry || "-"
               }</div>
-              <div class="label" style="margin-top:8px">Validity Period</div><div class="value">${
+              <div class="label" style="margin-top:4px">Validity Period</div><div class="value">${
                 validity || "-"
               }</div>
             </div>
 
-             <div class="section-box" style="margin-top:12px">
+             <div class="section-box" style="margin-top:6px">
               <h4 class="section-title">Brief Profile</h4>
               <div class="brief">${brief}</div>
             </div>
           </div>
 
-            <div class="section-box" style="margin-top:12px">
+            <div class="section-box" style="margin-top:6px">
               <h4 class="section-title">Remarks</h4>
               ${remarksHtml || `<div class="value">-</div>`}
             </div>
@@ -380,77 +357,189 @@ export function generatePrintableReport({
     `;
   };
 
-  const cardsHtml = (items || []).map((it) => renderCard(it)).join("");
+  const origin =
+    (typeof window !== "undefined" &&
+      window.location &&
+      window.location.origin) ||
+    "";
+
+  const buildAbsoluteUrl = (path) => {
+    if (!origin) return path;
+    return `${origin}${path.startsWith("/") ? path : "/" + path}`;
+  };
+
+  const pupLogoUrl = buildAbsoluteUrl("/pup-logo.png");
+  const bagongPilipinasLogoUrl = buildAbsoluteUrl("/Bagong_Pilipinas_logo.png");
+
+  const encodeSpacesOnce = (url = "") =>
+    url.includes("%20") ? url : url.replace(/\s/g, "%20");
+
+  // WURI logo defaults to encoded public file to avoid space-loading issues
+  let wuriLogoUrl = buildAbsoluteUrl("/wurilogo%20(1).jpg");
+  if (wuriLogo) {
+    if (wuriLogo.startsWith("data:image")) {
+      wuriLogoUrl = wuriLogo;
+    } else if (
+      wuriLogo.includes(".png") ||
+      wuriLogo.includes(".jpg") ||
+      wuriLogo.includes(".jpeg")
+    ) {
+      if (wuriLogo.startsWith("/static/")) {
+        wuriLogoUrl = encodeSpacesOnce(origin + wuriLogo);
+      } else if (wuriLogo.startsWith("/")) {
+        wuriLogoUrl = encodeSpacesOnce(buildAbsoluteUrl(wuriLogo));
+      } else {
+        wuriLogoUrl = encodeSpacesOnce(buildAbsoluteUrl("/" + wuriLogo));
+      }
+    } else if (
+      wuriLogo.startsWith("http://") ||
+      wuriLogo.startsWith("https://")
+    ) {
+      wuriLogoUrl = encodeSpacesOnce(wuriLogo);
+    } else {
+      wuriLogoUrl = `data:image/png;base64,${wuriLogo}`;
+    }
+  }
+
+  const safeWuriLogoUrl = encodeSpacesOnce(wuriLogoUrl);
+
+  console.log("Report Generation - Logo URLs:", {
+    pupLogoUrl,
+    bagongPilipinasLogoUrl,
+    wuriLogoUrl,
+    safeWuriLogoUrl,
+    origin,
+    wuriLogoInput: wuriLogo || "none",
+  });
+
+  const headerHtml = `
+    <div class="report-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dotted #999;">
+        <div style="display:flex;align-items:center;gap:8px;flex:1">
+          <img src="${pupLogoUrl}" alt="PUP Logo" style="height:35px;width:auto;flex-shrink:0" onerror="this.src='/pup-logo.png'" />
+          <div style="text-align:left;min-width:0">
+            <p style="margin:0;font-size:8px;color:#333;letter-spacing:0.3px">Republic of the Philippines</p>
+            <h1 style="margin:1px 0;font-size:11px;font-weight:700;color:#000;letter-spacing:0.2px">POLYTECHNIC UNIVERSITY OF THE PHILIPPINES</h1>
+            <p style="margin:0;font-size:8px;color:#333">Office of the President</p>
+            <h2 style="margin:1px 0;font-size:9px;font-weight:700;color:#000;letter-spacing:0.2px">OFFICE OF INTERNATIONAL AFFAIRS</h2>
+          </div>
+        </div>
+        <img src="${bagongPilipinasLogoUrl}" alt="Bagong Pilipinas Logo" style="height:35px;width:auto;flex-shrink:0" onerror="this.src='/Bagong_Pilipinas_logo.png'" />
+      </div>
+    </div>
+    <div class="rule"></div>
+  `;
+
+  const summaryHtml = `
+    <div class="summary">
+      <div><strong>Total Agreements:</strong> ${total}</div>
+    </div>
+  `;
+
+  const footerHtml = `
+    <div class="report-footer">
+      <div class="footer-left">
+        <div>PUP A. Mabini Campus, Anonas Street, Sta. Mesa, Manila 1016</div>
+        <div>Direct Line: 5335-1752 | Trunk Line: 5335-1787 or 5335-1777 local 622</div>
+        <div>Website: www.pup.edu.ph | Email: yourofficeemail@pup.edu.ph</div>
+        <div style="margin-top:4px;font-weight:700;font-size:8px">THE COUNTRY'S 1<sup>st</sup> POLYTECHNICU</div>
+      </div>
+      <div class="footer-right">
+        <img src="${safeWuriLogoUrl}" alt="WURI Logo" class="footer-logo" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='/wurilogo%20(1).jpg';return;}this.style.display='none';" />
+      </div>
+    </div>
+  `;
+
+  const cardsHtml = (items || [])
+    .map((it, idx) => {
+      const card = renderCard(it);
+      const isFirst = idx === 0;
+      const isLast = idx === items.length - 1;
+
+      if (isFirst) {
+        return `${headerHtml}${summaryHtml}${card}${
+          !isLast ? '<div class="page-break"></div>' : ""
+        }`;
+      }
+
+      return `${headerHtml}${card}${
+        !isLast ? '<div class="page-break"></div>' : ""
+      }`;
+    })
+    .join("");
 
   const html = `
     <html>
       <head>
-        <title>${escapeHtml(
-          reportLabelMap[reportKey] || reportLabelMap.all || "Agreements Report"
-        )}</title>
+        <title>Agreements Report</title>
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <style>
-          body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;padding:20px;color:#111;background:#fff;line-height:1.35}
-          .report-header{text-align:center;margin-bottom:8px}
-          .report-header h1{color:#1f4db3;margin:0;font-size:22px;font-weight:700}
-          .report-header p{margin:6px 0 0;color:#6b7280}
-          .rule{height:3px;background:#1f4db3;margin:16px 0;border-radius:2px}
-          .summary{background:#fbfdff;border:1px solid #e8eef8;padding:14px;border-radius:8px;max-width:100%;margin-bottom:18px;box-shadow:0 1px 0 rgba(0,0,0,0.02)}
-          .summary div{margin-bottom:6px}
-          .report-card{border:1px solid #e9eef6;border-radius:8px;padding:16px;margin:12px 0;background:#fff;box-shadow:0 4px 14px rgba(28,44,70,0.04)}
-          .card-header{display:flex;gap:8px;align-items:center;margin-bottom:12px}
-          .badge.type{background:#2f6de0;color:#fff;padding:6px 10px;border-radius:8px;font-weight:700;font-size:12px;display:inline-block}
-          .dts-small{color:#556;font-size:12px;margin-top:6px}
-          .card-title{color:#0f3f91;margin:6px 0;font-size:18px;font-weight:700}
-          .card-sub{color:#6b7280;margin-top:6px}
-          .card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:start}
+          body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;padding:12px;color:#111;background:#fff;line-height:1.2;font-size:10px;padding-bottom:120px}
+          .report-header{text-align:center;margin-bottom:4px;margin-top:20px}
+          .report-header h1{color:#1f4db3;margin:0;font-size:14px;font-weight:700}
+          .report-header p{margin:2px 0 0;color:#6b7280;font-size:9px}
+          .rule{height:2px;background:#1f4db3;margin:8px 0;border-radius:1px}
+          .summary{background:#fbfdff;border:1px solid #e8eef8;padding:8px;border-radius:4px;max-width:100%;margin-bottom:10px;box-shadow:0 1px 0 rgba(0,0,0,0.02);font-size:10px}
+          .summary div{margin-bottom:3px}
+          .report-card{border:1px solid #e9eef6;border-radius:4px;padding:8px;margin:6px 0;background:#fff;box-shadow:0 2px 6px rgba(28,44,70,0.04)}
+          .card-header{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+          .badge.type{background:#2f6de0;color:#fff;padding:3px 6px;border-radius:4px;font-weight:700;font-size:9px;display:inline-block}
+          .dts-small{color:#556;font-size:8px;margin-top:2px}
+          .card-title{color:#0f3f91;margin:2px 0;font-size:12px;font-weight:700}
+          .card-sub{color:#6b7280;margin-top:2px;font-size:9px}
+          .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:start}
           .card-col{min-width:0}
-          .section-box{background:#fbfcff;border:1px solid #eef2f8;padding:14px;border-radius:8px}
-          /* Layout: make timeline and simple label/value sections two-column while keeping nested grids full-width */
-          .section-box{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+          .section-box{background:#fbfcff;border:1px solid #eef2f8;padding:6px;border-radius:4px}
+          .section-box{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:start}
           .section-box > .section-title{grid-column:1 / -1}
           .section-box > .doc-grid, .section-box > .brief, .section-box > .partner-box, .section-box > .remarks{grid-column:1 / -1}
-          .section-title{font-size:13px;margin:0 0 8px 0;display:flex;align-items:center;color:#1f2937}
-          .doc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-          .doc-item .label{font-size:11px;color:#667;font-weight:700;margin-bottom:6px;text-transform:uppercase}
-          .doc-item .value{font-size:14px;color:#111}
-          .value a{color:#1f4db3;text-decoration:none}
-          .partner-logo{width:72px;height:72px;object-fit:cover;border-radius:8px;background:#fff;border:1px solid #eef2f6}
-          .partner-logo.placeholder{width:72px;height:72px;border-radius:8px;background:linear-gradient(180deg,#f3f6fb,#fff);border:1px solid #eef2f6}
-          .label{font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase}
-          .small-muted{font-size:12px;color:#6b7280}
-          .brief{font-size:14px;color:#111;white-space:pre-wrap;margin-top:6px}
-          .status-pill{display:inline-block;padding:8px 14px;border-radius:999px;font-weight:700;font-size:13px;box-shadow:0 2px 10px rgba(31,64,128,0.06)}
-          .remarks ul{margin:8px 0 0 18px;padding:0}
-          .remarks li{margin-bottom:6px;font-size:13px;color:#222}
-          @media (max-width:1200px){ .card-grid{grid-template-columns:1fr 1fr;gap:14px} }
+          .section-title{font-size:10px;margin:0 0 4px 0;display:flex;align-items:center;color:#1f2937;font-weight:700}
+          .doc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+          .doc-item .label{font-size:8px;color:#667;font-weight:700;margin-bottom:2px;text-transform:uppercase}
+          .doc-item .value{font-size:9px;color:#111}
+          .value a{color:#1f4db3;text-decoration:none;font-size:9px}
+          .partner-logo{width:40px;height:40px;object-fit:cover;border-radius:4px;background:#fff;border:1px solid #eef2f6}
+          .partner-logo.placeholder{width:40px;height:40px;border-radius:4px;background:linear-gradient(180deg,#f3f6fb,#fff);border:1px solid #eef2f6}
+          .label{font-size:8px;color:#6b7280;font-weight:700;text-transform:uppercase}
+          .small-muted{font-size:9px;color:#6b7280}
+          .brief{font-size:9px;color:#111;white-space:pre-wrap;margin-top:3px;max-height:80px;overflow:hidden}
+          .status-pill{display:inline-block;padding:4px 8px;border-radius:999px;font-weight:700;font-size:9px;box-shadow:0 1px 4px rgba(31,64,128,0.06)}
+          .remarks ul{margin:4px 0 0 12px;padding:0}
+          .remarks li{margin-bottom:2px;font-size:9px;color:#222}
+          .page-break{page-break-before: always;}
+          .report-footer{margin-top:10px;padding-top:8px;padding-bottom:20px;border-top:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;gap:10px;position:fixed;left:0;right:0;bottom:0;background:#fff;padding-left:12px;padding-right:12px;z-index:1000}
+          .footer-left{display:flex;flex-direction:column;font-size:7px;line-height:1.3;color:#333;flex:1}
+          .footer-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-shrink:0;padding:0 8px}
+          .footer-logo{height:80px;width:auto;max-width:200px;object-fit:contain}
+          @media (max-width:1200px){ .card-grid{grid-template-columns:1fr 1fr;gap:8px} }
           @media (max-width:900px){ .card-grid{grid-template-columns:1fr} .doc-grid{grid-template-columns:repeat(1,1fr)} }
-          @media print{ body{padding:8px} .report-card{page-break-inside:avoid} }
+          @media print{
+            body{padding:6px 12px 80px 12px;font-size:9px}
+            .report-card{page-break-inside:avoid}
+            .report-header{display:block;}
+            .page-break{display:block;page-break-before:always;}
+            .card-grid{gap:6px}
+            .section-box{padding:5px}
+            .report-footer{display:flex;position:fixed;left:0;right:0;bottom:0;padding-left:12px;padding-right:12px;background:#fff;}
+          }
+          @page {
+            margin: 0;
+            size: auto;
+          }
+          @media print {
+            html, body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
         </style>
       </head>
       <body>
-        <div class="report-header">
-          <h1>${escapeHtml(
-            reportLabelMap[reportKey] ||
-              reportLabelMap.all ||
-              "Complete Agreements Report"
-          )}</h1>
-          <p>Polytechnic University of the Philippines - Agreement Management System</p>
-        </div>
-        <div class="rule"></div>
-
         <div class="report-container">
-        <div class="summary">
-          <div><strong>Report Generated:</strong> ${escapeHtml(
-            formatDateTime(new Date())
-          )}</div>
-          <div><strong>Total Agreements:</strong> ${total}</div>
-          <div><strong>Active Agreements:</strong> ${activeCount}</div>
-          <div><strong>Expiring Soon:</strong> ${expiringCount}</div>
+          ${cardsHtml}
         </div>
 
-        ${cardsHtml}
-        </div>
+        ${footerHtml}
 
         <script>
           (function(){
@@ -463,7 +552,17 @@ export function generatePrintableReport({
               window.addEventListener('load', doPrint);
               return;
             }
-            const promises = imgs.map(img => new Promise(res => {
+            
+            // Filter out the WURI footer logo from the loading wait (it's optional)
+            const criticalImgs = imgs.filter(img => !img.classList.contains('footer-logo'));
+            
+            if(criticalImgs.length === 0){
+              // Only footer logo present, don't wait for it
+              setTimeout(doPrint, 200);
+              return;
+            }
+            
+            const promises = criticalImgs.map(img => new Promise(res => {
               if(img.complete) return res();
               img.addEventListener('load', res);
               img.addEventListener('error', res);
@@ -872,7 +971,6 @@ export async function downloadXLSX({
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet("Agreements");
 
-    // Define headers 
     const headers = [
       "DocumentType",
       "DTSNumber",
@@ -905,12 +1003,10 @@ export async function downloadXLSX({
       width: Math.max(12, h.length + 4),
     }));
 
-    // Add rows
     for (const r of rows) {
       ws.addRow(r);
     }
 
-    // Wrap long text
     ws.eachRow({ includeEmpty: false }, function (row) {
       row.eachCell({ includeEmpty: true }, function (cell) {
         if (typeof cell.value === "string" && cell.value.length > 120) {
