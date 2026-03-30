@@ -1763,7 +1763,7 @@ const OverviewMerged = () => {
   const getPk = (row) =>
     row?.agreement_id ?? row?._pk ?? row?.id ?? row?.dts_no;
 
-  // robust key equality: coerce to trimmed strings before comparing
+  // Compare trimmed strings
   const equalsKey = (a, b) => {
     try {
       const sa = a == null ? "" : String(a).trim();
@@ -2255,9 +2255,7 @@ const OverviewMerged = () => {
     try {
       const payload = buildPayloadFromSelected(selected);
 
-      // Local smart-update: try multiple id candidates against the existing
-      // `agreementService.updateAgreement` method. This mirrors the service
-      // flexibility without editing the service file.
+      // Try multiple ID candidates
       const rawCandidates = [
         getPk(selected),
         selected?.agreement_id,
@@ -2266,7 +2264,7 @@ const OverviewMerged = () => {
         selected?.dts_no,
         selected?.dts_number,
       ];
-      // Unique and prefer numeric ids first (so we try integer path param before string DTS)
+      // Prefer numeric IDs first
       const idCandidates = Array.from(new Set(rawCandidates))
         .filter((x) => x != null && x !== "")
         .sort((a, b) => {

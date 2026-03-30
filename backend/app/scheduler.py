@@ -214,16 +214,7 @@ def _recommended_actions_for_category(category, status=None):
     return ["Review and act accordingly."]
 
 def agreement_notification_job():
-    """
-    Main scheduler job: Scans for expiring, pending, and renewal-needed agreements,
-    then creates notifications if new ones are found.
-    
-    OPTIMIZED:
-    - Uses batch loading with selectinload() to prevent N+1 queries
-    - Single session lifecycle per job
-    - Efficient filtering at database level
-    - Proper error handling and logging
-    """
+    """Scan and create notifications for agreements."""
     from app.services.notif_service import create_notification_if_new
 
     today = datetime.now(PH_TZ).date()
@@ -232,7 +223,7 @@ def agreement_notification_job():
     with _open_session() as db:
         try:
             # ===== 1) EXPIRING SOON =====
-            # Single optimized query with eager loading
+            # Query with eager loading
             horizon = today + timedelta(days=EXPIRY_WINDOW_DAYS)
             expiring_query = (
                 db.query(Agreements)

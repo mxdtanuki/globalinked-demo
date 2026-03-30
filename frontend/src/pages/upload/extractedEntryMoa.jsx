@@ -365,6 +365,9 @@ const ExtractedEntryMOA = () => {
   const [pointPersons, setPointPersons] = useState([
     { position: "", name: "", email: "" },
   ]);
+  
+  // Track which fields were auto-filled from extraction
+  const [autoFilledFields, setAutoFilledFields] = useState(new Set());
 
   const [versionComment, setVersionComment] = useState("");
   const [selectedRelatedAgreement, setSelectedRelatedAgreement] = useState(null);
@@ -503,20 +506,47 @@ const ExtractedEntryMOA = () => {
     }
 
     setMessage("extracted");
+    
+    const filledFields = new Set();
 
     // Basic fields from extraction (these don't come from initial form)
-    setDocumentType(extractedMetadata.document_type || "");
-    setPartnershipType(extractedMetadata.partnership_type || "");
-    setDateSigned(extractedMetadata.date_signed || "");
-    setValidityPeriod(String(extractedMetadata.validity_period || ""));
-    setEventInfo(extractedMetadata.event_info || "");
-    setHardcopyLocation(extractedMetadata.hardcopy_location || "");
-    setAgreementStatus(extractedMetadata.agreement_status || "");
-    setEntryType(extractedMetadata.entry_type || "");
+    if (extractedMetadata.document_type) {
+      setDocumentType(extractedMetadata.document_type || "");
+      filledFields.add("document_type");
+    }
+    if (extractedMetadata.partnership_type) {
+      setPartnershipType(extractedMetadata.partnership_type || "");
+      filledFields.add("partnership_type");
+    }
+    if (extractedMetadata.date_signed) {
+      setDateSigned(extractedMetadata.date_signed || "");
+      filledFields.add("date_signed");
+    }
+    if (extractedMetadata.validity_period) {
+      setValidityPeriod(String(extractedMetadata.validity_period || ""));
+      filledFields.add("validity_period");
+    }
+    if (extractedMetadata.event_info) {
+      setEventInfo(extractedMetadata.event_info || "");
+      filledFields.add("event_info");
+    }
+    if (extractedMetadata.hardcopy_location) {
+      setHardcopyLocation(extractedMetadata.hardcopy_location || "");
+      filledFields.add("hardcopy_location");
+    }
+    if (extractedMetadata.agreement_status) {
+      setAgreementStatus(extractedMetadata.agreement_status || "");
+      filledFields.add("agreement_status");
+    }
+    if (extractedMetadata.entry_type) {
+      setEntryType(extractedMetadata.entry_type || "");
+      filledFields.add("entry_type");
+    }
 
     // Only set date_expiry if not already calculated or provided
     if (!dateExpiry && extractedMetadata.date_expiry) {
       setDateExpiry(extractedMetadata.date_expiry);
+      filledFields.add("date_expiry");
     }
 
     // The initial form values should take priority
@@ -525,27 +555,34 @@ const ExtractedEntryMOA = () => {
       const extractedSource = extractedMetadata.source_unit || "";
       if (extractedSource && extractedSource.length < 100) {
         setSource(extractedSource);
+        filledFields.add("source");
       }
     }
     if (!dtsNumber && extractedMetadata.dts_number) {
       setDtsNumber(extractedMetadata.dts_number);
+      filledFields.add("dts_number");
     }
     if (!dateUlcoApproved && extractedMetadata.date_ulco_approved) {
       setDateUlcoApproved(extractedMetadata.date_ulco_approved);
+      filledFields.add("date_ulco_approved");
     }
     if (!datePupSigned && extractedMetadata.date_signed_by_pup) {
       setDatePupSigned(extractedMetadata.date_signed_by_pup);
+      filledFields.add("date_signed_by_pup");
     }
     if (!dateEndorsed && extractedMetadata.date_endorsed_to_ulco) {
       setDateEndorsed(extractedMetadata.date_endorsed_to_ulco);
+      filledFields.add("date_endorsed_to_ulco");
     }
     if (!dateReceived && extractedMetadata.date_received) {
       setDateReceived(extractedMetadata.date_received);
+      filledFields.add("date_received");
     }
 
     // Signatories (List[str] -> comma-separated string)
     if (Array.isArray(extractedMetadata.signatories_list) && extractedMetadata.signatories_list.length > 0) {
       setSignatories(extractedMetadata.signatories_list.join(", "));
+      filledFields.add("signatories");
     }
 
     // Partner data from extraction
@@ -637,6 +674,9 @@ const ExtractedEntryMOA = () => {
       dateSigned: extractedMetadata.date_signed,
       validityPeriod: extractedMetadata.validity_period,
     });
+    
+    // Update auto-filled fields tracking
+    setAutoFilledFields(filledFields);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extractedMetadata]);

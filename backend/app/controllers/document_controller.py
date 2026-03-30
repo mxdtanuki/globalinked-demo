@@ -40,7 +40,7 @@ async def upload_version(
 ):
     print(f"UPLOAD VERSION HIT: dts_number={dts_number}, file={file.filename}, version_comment={version_comment}, status_at_upload={status_at_upload}")
 
-    """Upload a new version for an agreement identified by dts_number."""
+    # Upload a new version
     # 1 Validate agreement exists
     agreement = db.query(Agreements).filter(Agreements.dts_number == dts_number).first()
     if not agreement:
@@ -103,7 +103,7 @@ async def upload_version(
 # -------------------------------
 @router.get("/{dts_number}/versions", response_model=List[DocumentVersionResponse])
 async def list_versions(dts_number: str, db: Session = Depends(get_db)):
-    """List all document versions for a dts_number (descending by version_number)."""
+    """List all versions for a dts_number."""
     versions = db.query(DocumentVersions)\
         .filter(DocumentVersions.dts_number == dts_number)\
         .order_by(DocumentVersions.version_number.desc())\
@@ -130,7 +130,7 @@ async def list_versions(dts_number: str, db: Session = Depends(get_db)):
 # -------------------------------
 @router.get("/versions/{version_id}/download", response_model=dict)
 async def get_download_url(version_id: int, db: Session = Depends(get_db)):
-    """Get a signed download URL for one version by version_id."""
+    """Get signed download URL."""
     v = db.query(DocumentVersions).filter(DocumentVersions.version_id == version_id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Version not found")
@@ -175,7 +175,7 @@ async def list_all_versions(db: Session = Depends(get_db)):
         try:
             download_url = get_signed_url(r.file_path)
         except Exception as e:
-            print(f"⚠️ Could not sign URL for {r.file_path}: {e}")
+            print(f"Error signing URL for {r.file_path}: {e}")
             download_url = None
 
         response.append({
@@ -303,7 +303,7 @@ async def update_version(
         }
 
     except Exception as e:
-        print("🔥 Unhandled error in update_version:", e)
+        print("Unhandled error in update_version:", e)
         traceback.print_exc()
         raise
 

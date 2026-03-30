@@ -27,26 +27,26 @@ if "supabase.co" in db_url and "sslmode" not in db_url:
 
 print("LOADED DB URL:", raw_url)
 
-# Pool settings optimized for psycopg3 + Supabase pooler
-POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 20))        # SMALLER for pooler
-MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 2))  # MINIMAL overflow
-POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 10))  # FAIL FAST
+# Pool settings
+POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 20))
+MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 2))
+POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 10))
 POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", 1800))
 CONNECT_TIMEOUT = int(os.getenv("DB_CONNECT_TIMEOUT", 10))
 ECHO = os.getenv("DB_ECHO", "false").lower() == "true"
 
 def _make_engine(application_name: str):
-    """Create SQLAlchemy engine with optimal psycopg3 + Supabase settings."""
+    """Create engine."""
     engine = create_engine(
         db_url,
         # Pool configuration
         poolclass=QueuePool,
         pool_size=POOL_SIZE,
         max_overflow=MAX_OVERFLOW,
-        pool_pre_ping=True,           # ← TEST connections before use (psycopg3 optimized)
-        pool_recycle=POOL_RECYCLE,    # ← Recycle every 30 min
-        pool_timeout=POOL_TIMEOUT,    # ← FAIL FAST on timeout
-        pool_use_lifo=False,          # ← FIFO prevents connection starvation
+        pool_pre_ping=True,
+        pool_recycle=POOL_RECYCLE,
+        pool_timeout=POOL_TIMEOUT,
+        pool_use_lifo=False,
         echo=False,
         future=True,
         # Connection args
@@ -57,20 +57,19 @@ def _make_engine(application_name: str):
         },
     )
 
-    # Event listeners for better debugging
     @event.listens_for(Engine, "connect")
     def receive_connect(dbapi_conn, connection_record):
-        """Log successful connections."""
+        """Log connections."""
         logger.debug(f"DB connection established: {application_name}")
 
     @event.listens_for(Engine, "checkin")
     def receive_checkin(dbapi_conn, connection_record):
-        """Log connection returns to pool."""
+        """Log checkin."""
         logger.debug("DB connection returned to pool")
 
     @event.listens_for(Engine, "checkout")
     def receive_checkout(dbapi_conn, connection_record, connection_proxy):
-        """Log connection checkout from pool."""
+        """Log checkout."""
         logger.debug("DB connection checked out from pool")
 
     return engine
@@ -89,10 +88,7 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 def get_db() -> Session:
-    """
-    FastAPI dependency providing a short-lived session.
-    Ensures the session is always closed, even in case of errors.
-    """
+    """Get database session."""
     db = SessionLocal()
     try:
         # Test connection immediately
@@ -106,25 +102,22 @@ def get_db() -> Session:
         db.close()
 
 def reset_connection_pool():
-    """
-    Emergency reset of the connection pool.
-    Disposes all connections and rebinds to fresh engine.
-    """
+    """Reset connection pool."""
     global engine, SessionLocal
-    logger.info("🔴 RESETTING CONNECTION POOL...")
+    logger.info("Resetting connection pool...")
     try:
         engine.dispose()
-        logger.info("✅ Old connections disposed")
+        logger.info("Connections disposed")
     except Exception as e:
         logger.warning(f"Dispose warning: {e}")
 
     engine = _make_engine("globalinked_reset")
     SessionLocal.configure(bind=engine)
-    logger.info("🟢 POOL RESET COMPLETE")
+    logger.info("Pool reset complete")
     return {"status": "success", "message": "Connection pool reset"}
 
 def check_pool_status():
-    """Return current pool status."""
+    """Get pool status."""
     pool = engine.pool
     try:
         status = {
@@ -146,7 +139,7 @@ def check_pool_status():
     return status
 
 def test_connection():
-    """Short health check that opens and closes a connection quickly."""
+    """Test connection."""
     try:
         with engine.connect() as conn:
             conn.exec_driver_sql("SELECT 1")

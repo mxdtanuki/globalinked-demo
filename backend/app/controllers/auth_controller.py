@@ -27,10 +27,7 @@ async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     db: Session = Depends(get_db)
 ):
-
-    # Login endpoint.
-    # Accepts username and password, verifies them, and returns an access token if valid.
-    # Check if the user exists and the password is correct
+    # Login endpoint
     user = authenticate_user(db, form_data.username, form_data.password)
     
     if not user:

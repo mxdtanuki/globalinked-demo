@@ -118,25 +118,46 @@ const MOAUpload = () => {
 
     try {
       // Call NLP extraction with progress
-      const result =
-        await agreementService.extractAgreementMetadataWithProgress(
+      let result;
+      try {
+        result = await agreementService.extractAgreementMetadataWithProgress(
           uploadedFile,
           (percent) => {
-            setExtractionProgress(percent);
+            setExtractionProgress(Math.min(percent, 90)); // Cap at 90% until done
           }
         );
-        const extractedMetadata = result.metadata;
+      } catch (extractionError) {
+        console.error("Extraction error:", extractionError);
+        
+        // Check if it's a network/server error
+        const errorDetail = extractionError?.detail || extractionError?.message || String(extractionError);
+        
+        // Determine if it's a critical error or just extraction failure
+        if (errorDetail.includes("PDF") || errorDetail.includes("document") || errorDetail.includes("text")) {
+          // Non-critical extraction error - allow manual entry
+          console.warn("Document processing warning:", errorDetail);
+          result = { metadata: null, error: errorDetail };
+        } else {
+          // Critical error - re-throw
+          throw extractionError;
+        }
+      }
+      
+      const extractedMetadata = result?.metadata;
 
       console.log("=== EXTRACTION RESULT ===");
       console.log("Full result:", result);
-      console.log("Metadata:", result?.metadata);
+      console.log("Metadata:", extractedMetadata);
+      console.log("Has error:", result?.error);
       console.log("=========================");
 
+      // If extraction succeeded but returned partial data, still proceed (frontend can fill remaining fields)
+      // If it failed completely, set extractedMetadata to null to trigger manual entry mode
+      
       setExtractionProgress(100);
 
       setTimeout(() => {
-        // Navigate with extracted metadata
-        // Pass file info separately since File objects don't serialize well
+        // Navigate with extracted metadata (can be null if extraction failed)
         navigate("/upload/extractedEntryMOA", {
           state: {
             uploadedFile: uploadedFile,
@@ -144,17 +165,19 @@ const MOAUpload = () => {
             uploadedFileSize: uploadedFile.size,
             formData,
             pointPersons: pointPersonsData,
-            extractedMetadata,
+            extractedMetadata: extractedMetadata || null,
+            extractionError: result?.error || null, // Pass error message to frontend
           },
         });
       }, 500);
     } catch (error) {
       console.error("Extraction failed:", error);
-      alert(
-        "Failed to extract metadata from the document. Please proceed with manual entry."
-      );
+      
+      // Show more specific error message
+      const errorMsg = error?.response?.data?.detail || error?.message || "Failed to extract metadata from the document";
+      alert(`${errorMsg}\n\nPlease use manual entry instead.`);
 
-      // Navigate without extracted metadata
+      // Navigate to manual entry mode (no extracted metadata)
       navigate("/upload/extractedEntryMOA", {
         state: {
           uploadedFile: uploadedFile,
@@ -163,6 +186,7 @@ const MOAUpload = () => {
           formData,
           pointPersons: pointPersonsData,
           extractedMetadata: null,
+          extractionError: error?.message,
         },
       });
     } finally {

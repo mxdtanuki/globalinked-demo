@@ -142,23 +142,65 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ Failed to start scheduler: {e}")
     
-    # ✅ NLP models will lazy-load on first use
-    logger.info("✅ NLP models will load on first extraction request")
-    logger.info("✅ Startup complete - ready to accept requests")
+    # ✅ ENSURE SPACY MODEL IS AVAILABLE
+    try:
+        import spacy
+        try:
+            nlp = spacy.load("en_core_web_sm")
+            logger.info("✅ spaCy model 'en_core_web_sm' is ready")
+        except OSError:
+            logger.warning("spaCy model not found, downloading...")
+            import subprocess
+            import sys
+            result = subprocess.run(
+                [sys.executable, "-m", "spacy", "download", "en_core_web_sm"],
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+            if result.returncode == 0:
+                logger.info("spaCy model downloaded")
+            else:
+                logger.error(f"Failed to download spaCy model: {result.stderr}")
+    except Exception as e:
+        logger.error(f"spaCy setup error: {e}")
+    
+    # Verify Document Processing Service
+    try:
+        doc_service = getattr(app.state, "doc_processing_service", None)
+        if doc_service:
+            logger.info("DocumentProcessingService initialized")
+        else:
+            logger.warning("DocumentProcessingService not initialized")
+    except Exception as e:
+        logger.error(f"DocumentProcessingService error: {e}")
+    
+    # Verify NLP Service
+    try:
+        nlp_service = getattr(app.state, "nlp_service", None)
+        if nlp_service:
+            logger.info("NLPLegalExtractionService initialized")
+            logger.info("Legal-BERT model will load on first request")
+        else:
+            logger.warning("NLPLegalExtractionService not initialized")
+    except Exception as e:
+        logger.error(f"NLPLegalExtractionService error: {e}")
+    
+    logger.info("Startup complete")
 
 
 @app.on_event("shutdown")
 def on_shutdown():
-    """Cleanly shut down scheduler."""
+    """Shutdown scheduler."""
     try:
         from app.scheduler import shutdown_scheduler
         shutdown_scheduler()
-        logger.info("✅ Scheduler stopped successfully.")
+        logger.info("Scheduler stopped.")
     except Exception as e:
-        logger.warning(f"⚠️ Scheduler shutdown issue: {e}")
+        logger.warning(f"Scheduler shutdown issue: {e}")
 
 # ---------------------------
-# NLP Health Endpoint
+# NLP Health Endpoints
 # ---------------------------
 @app.get("/health/qa")
 def qa_health():
@@ -178,20 +220,80 @@ def qa_health():
         info = {}
     return {"ready": ready, "info": info}
 
+
+@app.get("/health/models")
+def models_health():
+    """Check model availability."""
+    models_status = {
+        "spacy": {"available": False, "version": None},
+        "legal_bert": {"available": False, "model": None},
+        "ocr": {"available": False, "disabled": False},
+        "document_processing": {"available": False},
+    }
+    
+    # Check spaCy
+    try:
+        import spacy
+        try:
+            nlp = spacy.load("en_core_web_sm")
+            models_status["spacy"]["available"] = True
+            models_status["spacy"]["version"] = spacy.__version__
+        except OSError:
+            models_status["spacy"]["available"] = False
+    except Exception as e:
+        models_status["spacy"]["error"] = str(e)
+    
+    # Check Legal-BERT / NLP Service
+    try:
+        svc = getattr(app.state, "nlp_service", None)
+        if svc and hasattr(svc, "is_qa_ready"):
+            models_status["legal_bert"]["available"] = svc.is_qa_ready()
+            if hasattr(svc, "model_name_in_use"):
+                models_status["legal_bert"]["model"] = svc.model_name_in_use
+    except Exception as e:
+        models_status["legal_bert"]["error"] = str(e)
+    
+    # Check OCR
+    try:
+        import os
+        disabled = os.environ.get("DISABLE_PADDLEOCR", "0") in ("1", "true", "True")
+        models_status["ocr"]["disabled"] = disabled
+        if not disabled:
+            try:
+                from paddleocr import PaddleOCR
+                models_status["ocr"]["available"] = True
+            except Exception:
+                models_status["ocr"]["available"] = False
+    except Exception as e:
+        models_status["ocr"]["error"] = str(e)
+    
+    # Check Document Processing
+    try:
+        doc_svc = getattr(app.state, "doc_processing_service", None)
+        models_status["document_processing"]["available"] = doc_svc is not None
+    except Exception as e:
+        models_status["document_processing"]["error"] = str(e)
+    
+    return {
+        "timestamp": time.time(),
+        "models": models_status,
+        "all_ready": all(m.get("available", False) for m in models_status.values() if "disabled" not in m or not m["disabled"])
+    }
+
 # database connection health check middleware
 @app.middleware("http")
 async def db_session_middleware(request, call_next):
-    """Ensure database connection is alive before processing request"""
+    """Handle database connection errors."""
     try:
         response = await call_next(request)
         return response
     except (DBAPIError, OperationalError) as e:
         if "DbHandler exited" in str(e) or "connection" in str(e).lower():
-            logger.error(f"🔄 Database connection lost, attempting to reset pool: {e}")
+            logger.error(f"Database connection lost: {e}")
             try:
                 from app.database import reset_connection_pool
                 reset_connection_pool()
-                logger.info("✅ Connection pool reset successfully")
+                logger.info("Connection pool reset")
             except Exception as reset_err:
-                logger.error(f"❌ Failed to reset connection pool: {reset_err}")
+                logger.error(f"Failed to reset pool: {reset_err}")
         raise HTTPException(status_code=503, detail="Database connection error. Please try again.")

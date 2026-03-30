@@ -19,7 +19,7 @@ def render_template(body_html: str, context: dict) -> str:
     return template.render(context)
 
 def send_email(to: str, subject: str, body: str):
-    """Send email via Brevo API"""
+    """Send email via Brevo API."""
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
         to=[{"email": to}],
         sender={"name": "PUP International Affairs", "email": "no-reply@globalinked.systems"},
@@ -30,13 +30,13 @@ def send_email(to: str, subject: str, body: str):
         api_response = api_instance.send_transac_email(send_smtp_email)
         # Handle response: check if it's a dict or object
         if isinstance(api_response, dict) and 'messageId' in api_response:
-            print("✅ Email sent. Message ID:", api_response['messageId'])
-        elif hasattr(api_response, 'message_id'):  # If it's an object with message_id
-            print("✅ Email sent. Message ID:", api_response.message_id)
+            print("Email sent. Message ID:", api_response['messageId'])
+        elif hasattr(api_response, 'message_id'):
+            print("Email sent. Message ID:", api_response.message_id)
         else:
-            print("✅ Email sent successfully (response type:", type(api_response).__name__, ")")
+            print("Email sent successfully (response type:", type(api_response).__name__, ")")
     except ApiException as e:
-        print("❌ Exception when sending email: %s\n" % e)
+        print("Exception when sending email: %s\n" % e)
         raise
 
 def send_reset_email(recipient_email, reset_link):

@@ -29,25 +29,25 @@ def verify_password(plain_password: str, hashed_password: str):
             sha256_hash = hashlib.sha256(plain_password.encode()).hexdigest()
             is_match = sha256_hash == hashed_password
             if is_match:
-                print("⚠️ User authenticated with legacy SHA-256 hash. Consider updating password.")
+                print("User authenticated with legacy SHA-256 hash. Consider updating.")
             return is_match
         except Exception:
             return False
 
 def get_user(db: Session, username: str):
-    """Get user by username using your existing Users model"""
+    """Get user by username."""
     user = db.query(Users).filter(Users.user_name == username).first()
     
     # Check if user is approved
     if user and hasattr(user, 'user_status'):
         if user.user_status != "approved":
-            print(f"⚠️ User {username} login attempt but status is: {user.user_status}")
-            return None  # Don't allow login if not approved
+            print(f"User {username} login attempt but status is: {user.user_status}")
+            return None
     
     return user
 
 def authenticate_user(db: Session, username: str, password: str):
-    """Authenticate user using your existing Users model"""
+    """Authenticate user."""
     user = get_user(db, username)
     if not user:
         print(f" User {username} not found or not approved")

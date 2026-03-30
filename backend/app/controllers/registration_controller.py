@@ -17,7 +17,7 @@ router = APIRouter(
 )
 
 def get_role_from_position(position: str) -> str:
-    """Determine access role based on job position"""
+    """Get role from position."""
     admin_positions = [
         "Director",
         "Partnership and Linkages Section"

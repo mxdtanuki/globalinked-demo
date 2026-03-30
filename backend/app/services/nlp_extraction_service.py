@@ -336,72 +336,138 @@ class NLPLegalExtractionService:
             return {"error": f"Extraction failed: {str(e)}"}
 
     def _extract_date_signed_validated(self, text: str) -> str:
-        """Date extraction with validation - handles multiple date formats"""
+        """Date extraction with validation - handles multiple date formats including ordinals"""
+        
+        # Month mapping for reliable parsing
+        months = {
+            'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
+            'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12,
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7, 'aug': 8,
+            'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+        }
+        
         patterns = [
-            # "12th day of September 2025" format
-            r"(?:this\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+day\s+of\s+(\w+)\s+(\d{4})",
-            # "entered into this 12th day of September 2025"
-            r"entered\s+into\s+(?:this\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+day\s+of\s+(\w+)\s+(\d{4})",
-            # "signed on September 12, 2025"
-            r"signed\s+(?:on\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})",
-            # "September 12, 2025" standalone
-            r"(\w+)\s+(\d{1,2}),?\s+(\d{4})",
-            # "12 September 2025"
-            r"(\d{1,2})\s+(\w+)\s+(\d{4})",
-            # "2025-09-12" ISO format
-            r"(\d{4})-(\d{2})-(\d{2})",
-            # "12/09/2025" or "09/12/2025"
-            r"(\d{1,2})[/-](\d{1,2})[/-](\d{4})",
-            # "expiring on September 10, 2028" - for expiry
-            r"expir(?:ing|es?)\s+(?:on\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})",
+            # "22nd day of April 2020" - ordinal with "day of"
+            (r"(?:this\s+)?(\d{1,2})(?:st|nd|rd|th)\s+day\s+of\s+(\w+)\s+(\d{4})", 'ordinal'),
+            # "entered into this 22nd day of April 2020"
+            (r"entered\s+into\s+(?:this\s+)?(\d{1,2})(?:st|nd|rd|th)\s+day\s+of\s+(\w+)\s+(\d{4})", 'ordinal'),
+            # "signed on April 22, 2020"
+            (r"signed\s+(?:on\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})", 'mdy'),
+            # "April 22, 2020" or "April 22 2020"
+            (r"(\w+)\s+(\d{1,2}),?\s+(\d{4})", 'mdy'),
+            # "22 April 2020"
+            (r"(\d{1,2})\s+(\w+)\s+(\d{4})", 'dmy'),
+            # "2020-04-22" ISO format
+            (r"(\d{4})-(\d{2})-(\d{2})", 'iso'),
+            # "22/04/2020" or "04/22/2020" (try both interpretations)
+            (r"(\d{1,2})[/-](\d{1,2})[/-](\d{4})", 'ambiguous'),
+            # "expiring on April 22, 2020" - for expiry
+            (r"expir(?:ing|es?)\s+(?:on\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})", 'mdy'),
         ]
 
         # Look in signature section first (more reliable)
         signature_section = ""
-        sig_markers = [r"IN\s+WITNESS\s+WHEREOF", r"WITNESS\s+MY\s+HAND", r"SIGNED"]
+        sig_markers = [r"IN\s+WITNESS\s+WHEREOF", r"WITNESS\s+MY\s+HAND", r"SIGNED", r"Date\s*:"]
         for marker in sig_markers:
             match = re.search(marker, text, re.IGNORECASE)
             if match:
-                signature_section = text[match.start():match.start() + 500]
+                signature_section = text[match.start():min(match.start() + 1000, len(text))]
                 break
 
         # Try signature section first, then full text
         search_texts = [signature_section, text] if signature_section else [text]
 
         for search_text in search_texts:
-            for pattern in patterns:
+            for pattern, date_format in patterns:
                 try:
                     match = re.search(pattern, search_text, re.IGNORECASE)
                     if match:
                         groups = match.groups()
                         
-                        # Try to parse the date
                         try:
-                            if len(groups) == 3:
-                                # Determine format based on pattern
-                                if pattern.startswith(r"(\d{4})"):
-                                    # ISO format: year-month-day
-                                    date_str = f"{groups[0]}-{groups[1]}-{groups[2]}"
-                                elif re.match(r'\d+', groups[0]):
-                                    # Day first: "12th day of September 2025" or "12 September 2025"
-                                    date_str = f"{groups[0]} {groups[1]} {groups[2]}"
+                            year = None
+                            month = None
+                            day = None
+                            
+                            if date_format == 'iso':
+                                # ISO format: YYYY-MM-DD
+                                year, month, day = int(groups[0]), int(groups[1]), int(groups[2])
+                            
+                            elif date_format == 'ordinal':
+                                # DD Ordinal MMMM YYYY
+                                day = int(groups[0])
+                                month_str = groups[1].lower()
+                                year = int(groups[2])
+                                month = months.get(month_str)
+                                
+                                if not month:
+                                    try:
+                                        # Fallback: try parser
+                                        parsed = parser.parse(f"{groups[0]} {groups[1]} {groups[2]}", fuzzy=True)
+                                        day, month, year = parsed.day, parsed.month, parsed.year
+                                    except Exception:
+                                        continue
+                            
+                            elif date_format == 'mdy':
+                                # MMMM DD YYYY
+                                month_str = groups[0].lower()
+                                day = int(groups[1])
+                                year = int(groups[2])
+                                month = months.get(month_str)
+                                
+                                if not month:
+                                    try:
+                                        parsed = parser.parse(f"{groups[0]} {groups[1]} {groups[2]}", fuzzy=True)
+                                        day, month, year = parsed.day, parsed.month, parsed.year
+                                    except Exception:
+                                        continue
+                            
+                            elif date_format == 'dmy':
+                                # DD MMMM YYYY
+                                day = int(groups[0])
+                                month_str = groups[1].lower()
+                                year = int(groups[2])
+                                month = months.get(month_str)
+                                
+                                if not month:
+                                    try:
+                                        parsed = parser.parse(f"{groups[0]} {groups[1]} {groups[2]}", fuzzy=True)
+                                        day, month, year = parsed.day, parsed.month, parsed.year
+                                    except Exception:
+                                        continue
+                            
+                            elif date_format == 'ambiguous':
+                                # Could be DD/MM/YYYY or MM/DD/YYYY - try both
+                                d1, d2, year = int(groups[0]), int(groups[1]), int(groups[2])
+                                # Assume DD/MM/YYYY first (more common globally)
+                                if d1 <= 31 and d2 <= 12:
+                                    day, month = d1, d2
+                                elif d1 <= 12 and d2 <= 31:
+                                    day, month = d2, d1
                                 else:
-                                    # Month first: "September 12, 2025"
-                                    date_str = f"{groups[0]} {groups[1]} {groups[2]}"
-                                
-                                parsed = parser.parse(date_str, fuzzy=True)
-                                current_year = datetime.now().year
-                                
-                                # Validate year range
-                                if 1990 <= parsed.year <= current_year + 20:
-                                    return parsed.strftime("%Y-%m-%d")
-                        except Exception as e:
-                            logger.debug(f"Date parsing failed for '{match.group()}': {e}")
+                                    continue
+                            
+                            # Validate the date
+                            if month and day and year:
+                                if 1 <= month <= 12 and 1 <= day <= 31 and 1990 <= year <= datetime.now().year + 20:
+                                    try:
+                                        parsed_date = datetime(year, month, day)
+                                        logger.info(f"✅ Extracted date: {parsed_date.strftime('%Y-%m-%d')} from '{match.group()}'")
+                                        return parsed_date.strftime("%Y-%m-%d")
+                                    except ValueError:
+                                        # Invalid date like Feb 30
+                                        logger.debug(f"Invalid date constructed: {year}-{month}-{day}")
+                                        continue
+                        
+                        except (ValueError, TypeError, AttributeError) as e:
+                            logger.debug(f"Date parsing exception for '{match.group()}': {e}")
                             continue
+                
                 except Exception as e:
-                    logger.debug(f"Date pattern error: {e}")
+                    logger.debug(f"Date extraction pattern error: {e}")
                     continue
-
+        
+        logger.debug("No valid date found in document")
         return ""
 
     def _extract_date_expiry_from_text(self, text: str) -> str:
@@ -432,33 +498,31 @@ class NLPLegalExtractionService:
         return ""
 
     def extract_moa_for_agreement_response(self, text: str) -> Dict[str, Any]:
-        """Combined spaCy NER + Legal-BERT QA extraction"""
+        """Extract MOA/MOU metadata"""
         clean_text = self._preprocess_text(text)
         extracted: Dict[str, Any] = {}
 
         logger.info(f"Starting combined extraction from text length: {len(clean_text)}")
 
-        # Step 1: spaCy NER extraction
         ner_results = {}
         if self.nlp is not None:
-            logger.info("Step 1: spaCy NER extraction...")
             ner_results = self._extract_with_spacy_ner(clean_text)
-        else:
-            logger.warning("Skipping NER extraction (spaCy not available)")
 
-        # Step 2: Legal-BERT QA extraction
-        logger.info("Step 2: Legal-BERT QA extraction...")
         qa_results = self._extract_with_legal_bert_qa(clean_text)
 
-        # Step 3: Combine results
-        logger.info("Step 3: Combining results...")
         extracted = self._combine_extraction_results(ner_results, qa_results)
 
-        # Step 4: Regex fallback for missing fields
+        # Fill in missing fields
         logger.info("Step 4: Regex fallback extraction...")
         
         if not extracted.get("partner_name"):
-            extracted["partner_name"] = self._extract_partner_name_with_timeout(clean_text)
+            # Try NER first
+            partner_name = self._extract_partner_name_ner_based(clean_text, self.nlp)
+            if not partner_name:
+                # Fallback to regex for simple cases
+                partner_name = self._extract_partner_name_with_timeout(clean_text)
+            if partner_name:
+                extracted["partner_name"] = partner_name
 
         if not extracted.get("partner_address"):
             extracted["partner_address"] = self._extract_partner_address_safe(clean_text)
@@ -473,15 +537,17 @@ class NLPLegalExtractionService:
             extracted["document_type"] = self._extract_document_type(clean_text)
 
         if not extracted.get("date_signed"):
-            extracted["date_signed"] = self._extract_date_signed_validated(clean_text)
+            date_signed = self._extract_date_signed_enhanced(clean_text)
+            if date_signed:
+                extracted["date_signed"] = date_signed
 
-        # Extract validity period
+        # Get validity period
         if not extracted.get("validity_period"):
-            validity_period = self._extract_validity_period_comprehensive(clean_text)
+            validity_period = self._extract_validity_period_keyword_based(clean_text)
             if validity_period:
                 extracted["validity_period"] = validity_period
 
-        # Extract expiry date - try direct extraction first, then compute
+        # Get expiry date
         if not extracted.get("date_expiry"):
             extracted["date_expiry"] = self._extract_date_expiry_from_text(clean_text)
         
@@ -493,13 +559,19 @@ class NLPLegalExtractionService:
             )
 
         if not extracted.get("partnership_type"):
-            extracted["partnership_type"] = self._extract_partnership_type_with_confidence(clean_text)
+            # Get partnership type
+            partnership_type = self._extract_partnership_type_keyword_based(clean_text)
+            if partnership_type:
+                extracted["partnership_type"] = partnership_type
 
         if not extracted.get("event_info"):
             extracted["event_info"] = self._extract_event_info_structured(clean_text)
 
         if not extracted.get("signatories_list"):
-            extracted["signatories_list"] = self._extract_signatories_safe(clean_text)
+            # Get signatories
+            signatories = self._extract_signatories_ner_based(clean_text, self.nlp)
+            if signatories:
+                extracted["signatories_list"] = signatories
 
         if not extracted.get("contact_persons"):
             extracted["contact_persons"] = self._extract_contact_persons_validated(clean_text)
@@ -508,7 +580,13 @@ class NLPLegalExtractionService:
             extracted["point_persons"] = self._extract_point_persons_validated(clean_text)
 
         if extracted.get("partner_name") and not extracted.get("partner_entity_type"):
-            extracted["partner_entity_type"] = self._infer_entity_type(extracted["partner_name"])
+            # Try to extract entity type from document context first
+            entity_type_from_context = self._extract_entity_type_from_context(clean_text, extracted["partner_name"])
+            if entity_type_from_context:
+                extracted["partner_entity_type"] = entity_type_from_context
+            else:
+                # Fall back to inferring from partner name
+                extracted["partner_entity_type"] = self._infer_entity_type(extracted["partner_name"])
 
         if not extracted.get("source_unit"):
             extracted["source_unit"] = self._extract_source_unit_validated(clean_text)
@@ -517,7 +595,7 @@ class NLPLegalExtractionService:
         return self._map_to_agreement_fields(extracted, clean_text)
 
     def _extract_with_spacy_ner(self, text: str) -> Dict[str, Any]:
-        """Extract using spaCy NER"""
+        """NER extraction"""
         results = {}
         
         if not self.nlp:
@@ -549,7 +627,7 @@ class NLPLegalExtractionService:
         return results
 
     def _extract_with_legal_bert_qa(self, text: str) -> Dict[str, Any]:
-        """Extract using Legal-BERT Question Answering"""
+        """Legal-BERT QA extraction"""
         results = {}
 
         if not self.is_qa_ready():
@@ -733,21 +811,296 @@ class NLPLegalExtractionService:
             return ""
 
     def _infer_entity_type(self, partner_name: str) -> str:
-        """Infer entity type from partner name"""
+        """Infer entity type from name."""
         if not partner_name:
             return "Organization"
         
         name_lower = partner_name.lower()
 
-        if any(kw in name_lower for kw in ["university", "college", "institute", "school", "academy"]):
+        # Educational institutions
+        edu_keywords = ["university", "college", "institute", "school", "academy", 
+                       "polytechnic", "technical college", "high school"]
+        if any(kw in name_lower for kw in edu_keywords):
+            logger.debug(f"[Entity Type] Inferred 'University' from name: {partner_name}")
             return "University"
-        if any(kw in name_lower for kw in ["company", "corp", "corporation", "inc", "ltd", "llc", "limited"]):
+        
+        # Companies and businesses
+        company_keywords = ["company", "corp", "corporation", "inc", "ltd", "llc", 
+                            "limited", "enterprises", "co.", "co"]
+        if any(kw in name_lower for kw in company_keywords):
             return "Company"
-        if any(kw in name_lower for kw in ["government", "ministry", "department", "agency", "bureau", "council"]):
+        
+        # Government organizations
+        gov_keywords = ["government", "ministry", "department", "agency", "bureau", 
+                       "council", "senate", "parliament", "commission"]
+        if any(kw in name_lower for kw in gov_keywords):
             return "Government"
-        if any(kw in name_lower for kw in ["foundation", "association", "ngo", "society", "federation"]):
+        
+        # NGOs and non-profit
+        ngo_keywords = ["foundation", "association", "ngo", "society", "federation", 
+                       "trust", "organization", "institute of international"]
+        if any(kw in name_lower for kw in ngo_keywords):
             return "NGO"
+        
         return "Organization"
+
+    def _extract_entity_type_from_context(self, text: str, partner_name: str) -> str:
+        """Extract entity type directly from document context describing the partner"""
+        if not partner_name:
+            return ""
+        
+        # Create a regex pattern to find the partner name and its description
+        partner_name_escaped = re.escape(partner_name)
+        
+        # Pattern to find partner name description - captures ~200 chars after partner name mention
+        pattern = "(?:The\\s+)?" + partner_name_escaped + "[,\\.]?\\s+(?:is\\s+)?(?:an?\\s+)?(.{10,200}?)(?:,|established|with|represented|\\.|$)"
+        
+        try:
+            match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+            if match:
+                description = match.group(1).strip()
+                
+                # Keywords to detect entity type from description
+                edu_keywords = ["institution of higher learning", "university", "college", 
+                               "educational institution", "academic institution", "polytechnic"]
+                company_keywords = ["company", "corporation", "business", "commercial enterprise"]
+                gov_keywords = ["government", "ministry", "agency", "bureau", "commission", "state"]
+                ngo_keywords = ["foundation", "organization", "ngo", "association", "non-profit"]
+                
+                desc_lower = description.lower()
+                
+                if any(kw in desc_lower for kw in edu_keywords):
+                    logger.info(f"[Entity Type] Extracted from context: University")
+                    return "University"
+                if any(kw in desc_lower for kw in company_keywords):
+                    return "Company"
+                if any(kw in desc_lower for kw in gov_keywords):
+                    return "Government"
+                if any(kw in desc_lower for kw in ngo_keywords):
+                    return "NGO"
+        except Exception as e:
+            logger.debug(f"Error extracting entity type from context: {e}")
+        
+        return ""
+
+    def _extract_partner_name_ner_based(self, text: str, nlp) -> str:
+        """Extract partner name using spaCy NER"""
+        if not nlp:
+            return ""
+        
+        try:
+            doc = nlp(text[:100000])
+            
+            orgs = []
+            for ent in doc.ents:
+                if ent.label_ == "ORG":
+                    org_text = ent.text.strip()
+                    # Skip PUP, doc titles, and very long/short names
+                    if (len(org_text) > 3 and len(org_text) < 150 and
+                        "polytechnic" not in org_text.lower() and 
+                        "pup" not in org_text.lower() and
+                        "memorandum" not in org_text.lower() and
+                        "agreement" not in org_text.lower() and
+                        "moa" not in org_text.lower() and
+                        "mou" not in org_text.lower()):
+                        orgs.append(org_text)
+                        logger.debug(f"[NER] Found ORG: {org_text}")
+            
+            # Return first valid org
+            if orgs:
+                logger.info(f"[Partner Name] NER-based extraction: {orgs[0]}")
+                return orgs[0]
+        except Exception as e:
+            logger.debug(f"NER-based partner name extraction error: {e}")
+        
+        return ""
+
+    def _extract_date_signed_enhanced(self, text: str) -> str:
+        """Extract date from text with multiple formats"""
+        # Look for signature section first (dates more reliable there)
+        signature_markers = [
+            r"IN\s+WITNESS\s+WHEREOF",
+            r"WITNESS\s+MY\s+HAND",
+            r"SIGNED\s+IN\s+THE\s+PRESENCE",
+        ]
+        
+        signature_pos = -1
+        for marker in signature_markers:
+            match = re.search(marker, text, re.IGNORECASE)
+            if match:
+                signature_pos = match.start()
+                break
+        
+        # Search in signature section first, then full document
+        search_order = []
+        if signature_pos > 0:
+            search_order.append(text[signature_pos:min(signature_pos + 2000, len(text))])
+        search_order.append(text)
+        
+        # Month mapping
+        months = {
+            'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
+            'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12,
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7, 'aug': 8,
+            'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+        }
+        
+        # Comprehensive date patterns
+        patterns = [
+            # Ordinal format: "17th day of October 2024" or "17th day of October\n2024"
+            (r"(\d{1,2})(?:st|nd|rd|th)\s+day\s+of\s+([A-Za-z]+)\s*(\d{4})", 'ordinal'),
+            # Standard format: "October 17, 2024" or "October 17 2024"
+            (r"([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})", 'mdy'),
+            # ISO format: "2024-10-17"
+            (r"(\d{4})-(\d{2})-(\d{2})", 'iso'),
+            # Date range start: "from October 17, 2024"
+            (r"from\s+([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})", 'mdy'),
+        ]
+        
+        for search_text in search_order:
+            for pattern, fmt in patterns:
+                try:
+                    matches = re.finditer(pattern, search_text, re.IGNORECASE)
+                    for match in matches:
+                        groups = match.groups()
+                        try:
+                            if fmt == 'ordinal':
+                                day, month_str, year = int(groups[0]), groups[1], int(groups[2])
+                                month = months.get(month_str.lower())
+                            elif fmt == 'mdy':
+                                month_str, day, year = groups[0], int(groups[1]), int(groups[2])
+                                month = months.get(month_str.lower())
+                            elif fmt == 'iso':
+                                year, month, day = int(groups[0]), int(groups[1]), int(groups[2])
+                            
+                            if month and 1 <= month <= 12 and 1 <= day <= 31 and 1990 <= year <= 2100:
+                                date_obj = datetime(year, month, day)
+                                logger.info(f"[Date Signed] Extracted: {date_obj.strftime('%Y-%m-%d')}")
+                                return date_obj.strftime("%Y-%m-%d")
+                        except (ValueError, TypeError):
+                            continue
+                except Exception as e:
+                    logger.debug(f"Date pattern error: {e}")
+                    continue
+        
+        logger.debug("No valid date found")
+        return ""
+
+    def _extract_validity_period_keyword_based(self, text: str) -> int:
+        """Extract validity period from text"""
+        number_words = {
+            'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+            'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+        }
+        
+        # Look for validity period patterns
+        validity_keywords = [
+            # Match "for the period of five (5) years" or "for the period of 5 years"
+            r"\bfor\s+the\s+period\s+of\s+(\w+|\d+)\s*(?:\(\d+\))?\s+years",
+            # Match "for period of X years" or "for X years"
+            r"for\s+(?:the\s+)?(?:period\s+)?of\s+(\w+|\d+)\s*(?:\(\d+\))?\s+years",
+            # Match "Valid for X years" 
+            r"valid\s+for\s+(\w+|\d+)\s+years",
+            # Match "Term of X years"
+            r"(?:term|duration)\s+(?:of|is)\s+(\w+|\d+)\s*(?:\(\d+\))?\s+years",
+            # Match standalone numbers before "year"
+            r"(\d+)\s*(?:\(\w+\))?\s+years?(?:\s+(?:term|validity|period|duration))?",
+        ]
+        
+        for pattern in validity_keywords:
+            try:
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    # Extract the captured value
+                    captured = match.group(1).strip() if match.groups() else match.group(0)
+                    
+                    # Try to convert to number
+                    if captured.isdigit():
+                        value = int(captured)
+                    else:
+                        # Try word-based number
+                        value = number_words.get(captured.lower(), 0)
+                    
+                    if 1 <= value <= 100:
+                        logger.info(f"[Validity Period] Extracted: {value} years from pattern: {pattern}")
+                        return value
+            except Exception as e:
+                logger.debug(f"Validity period error: {e}")
+                continue
+        
+        return 0
+
+    def _extract_signatories_ner_based(self, text: str, nlp) -> List[str]:
+        """Extract signatories using spaCy NER"""
+        if not nlp:
+            return []
+        
+        signatories = []
+        seen = set()
+        
+        try:
+            # Find where signatures are
+            sig_markers = ["IN WITNESS", "WITNESS MY", "SIGNED IN", "SIGNATURES"]
+            sig_pos = -1
+            for marker in sig_markers:
+                match = re.search(marker, text, re.IGNORECASE)
+                if match:
+                    sig_pos = max(sig_pos, match.start())
+            
+            # Get signature section
+            if sig_pos > 0:
+                sig_section = text[sig_pos:]
+            else:
+                sig_section = text[max(0, len(text) - 3000):]
+            
+            # Find person names
+            doc = nlp(sig_section[:8000])  # Limit to 8K chars
+            
+            for ent in doc.ents:
+                if ent.label_ == "PERSON":
+                    name = ent.text.strip()
+                    # Skip invalid names
+                    if (len(name) > 3 and len(name) < 60 and 
+                        name.upper() not in seen and
+                        "notary" not in name.lower() and
+                        "page" not in name.lower()):
+                        seen.add(name.upper())
+                        signatories.append(name)
+                        logger.debug(f"[Signatory] NER found: {name}")
+            
+            logger.info(f"[Signatories] NER-based extraction: {len(signatories)} found")
+            
+        except Exception as e:
+            logger.debug(f"NER-based signatory extraction error: {e}")
+        
+        return signatories[:15]
+
+    def _extract_partnership_type_keyword_based(self, text: str) -> str:
+        """Identify partnership type from document"""
+        partnership_keywords = {
+            "Faculty Exchange": ["faculty exchange", "academic exchange", "faculty training"],
+            "Research Collaboration": ["research collaboration", "collaborative research", "joint research"],
+            "Student Exchange": ["student exchange", "student mobility"],
+            "Joint Degree": ["joint degree", "dual degree"],
+            "Capacity Building": ["capacity building", "training program"],
+            "Academic Cooperation": ["academic cooperation", "academic collaboration"],
+        }
+        
+        text_lower = text.lower()
+        
+        # Count keyword matches for each type
+        scores = {}
+        for ptype, keywords in partnership_keywords.items():
+            score = sum(text_lower.count(kw) for kw in keywords)
+            if score > 0:
+                scores[ptype] = score
+        
+        if scores:
+            best_type = max(scores.items(), key=lambda x: x[1])[0]
+            logger.info(f"[Partnership Type] Extracted: {best_type}")
+            return best_type
+        
+        return ""
 
     def _map_to_agreement_fields(self, extracted: Dict[str, Any], full_text: str) -> Dict[str, Any]:
         """Map extracted data to agreement structure"""
@@ -856,37 +1209,41 @@ class NLPLegalExtractionService:
         if len(text) > 50000:
             text = text[:50000]
         
+        # Extract the first few lines which often contain the parties (BETWEEN X AND Y)
+        header_section = '\n'.join(text.split('\n')[:20])
+        
         patterns = [
-            # Pattern: "BETWEEN [ORG] AND PUP" or "BETWEEN PUP AND [ORG]"
-            # Look for the non-PUP party in BETWEEN...AND structure
-            r"BETWEEN\s+(?:the\s+)?([A-Z][A-Za-z\s\(\)]{5,100}?)(?:\s*,|\s*\n)\s*(?:a\s+)?(?:leading\s+)?(?:public\s+)?(?:private\s+)?(?:state\s+)?(?:research\s+)?(?:university|college|institute|institution|organization|company)",
-            # Pattern: Organization name followed by description, before "AND"
-            r"([A-Z][A-Z\s\(\)]{3,60})\s*(?:\([A-Z]+\))?\s*,\s*\n?\s*a\s+(?:leading\s+)?(?:public\s+)?(?:research\s+)?university.*?(?=\s+AND\s+)",
-            # Pattern: between PUP and PARTNER (partner comes after PUP)
-            r"(?:POLYTECHNIC\s+UNIVERSITY\s+OF\s+THE\s+PHILIPPINES|PUP)\s*(?:\([A-Z]+\))?\s*,?\s*\n?\s*(?:a\s+state.*?)?\s*AND\s+(?:the\s+)?([A-Z][A-Za-z\s\(\)]{5,80}?)(?:\s*,|\s*\(|\s*\n)",
-            # Pattern: between PARTNER and PUP (partner comes before PUP)
-            r"BETWEEN\s+(?:the\s+)?([A-Z][A-Za-z\s\(\)]{5,80}?)\s+(?:and|AND)\s+(?:the\s+)?(?:POLYTECHNIC\s+UNIVERSITY\s+OF\s+THE\s+PHILIPPINES|PUP)",
+            # Pattern: "BETWEEN X AND Y" - extract first party if second is PUP
+            (r"BETWEEN\s+\n\s*([A-Z][A-Za-z\s\(\)\&\-\.]{5,100}?)\s*\n\s*(?:and|AND)\s*\n\s*(?:POLYTECHNIC|PUP)", header_section, 1),
+            # Pattern: "BETWEEN X AND Y" - extract second party if first is PUP
+            (r"BETWEEN\s+(?:POLYTECHNIC|PUP)[A-Za-z\s\.]*\n\s*(?:and|AND)\s*\n\s*([A-Z][A-Za-z\s\(\)\&\-\.]{5,100}?)(?:\n|$)", header_section, 1),
+            # Pattern: "University : [NAME]" or "University: [NAME]"
+            (r"University\s*:\s*([A-Z][A-Za-z\s\(\)\&\-\.]{5,100}?)(?:\n|$)", header_section, 1),
+            # Pattern: "Organization : [NAME]"
+            (r"Organization\s*:\s*([A-Z][A-Za-z\s\(\)\&\-\.]{5,100}?)(?:\n|$)", header_section, 1),
+            # Pattern: Standard "BETWEEN [ORG] AND PUP"
+            (r"BETWEEN\s+(?:the\s+)?([A-Z][A-Za-z\s\(\)]{5,100}?)(?:\s*,|\s*\n).*?(?:university|college|institute|institution|organization|company).*?AND", text, 1),
             # Pattern: Partner/Counterpart label
-            r"(?:Partner|Counterpart|Second\s+Party|Party\s+B)\s*:?\s*([A-Z][A-Za-z\s&\-\.,]{5,100}?)(?:\n|,|;|\(|$)",
-            # Pattern: hereinafter referred to as + name (for partner, not PUP)
-            r"([A-Z][A-Za-z\s&\-\.]{10,80}?),?\s*hereinafter\s+referred\s+to\s+as\s+[\"']?(?:the\s+)?(?:Partner|Second\s+Party|University|Institute|Company)",
-            # Pattern: "a [type] established/organized in [country]" - captures institution before this (not Philippines)
-            r"([A-Z][A-Za-z\s&\-\.]{5,80}?),?\s+a\s+(?:leading\s+)?(?:public\s+|private\s+)?(?:research\s+)?(?:university|college|institute|institution|organization|company)\s+(?:duly\s+)?(?:established|organized|incorporated)\s+(?:in|under)\s+(?:the\s+laws\s+of\s+)?(?:the\s+)?(?:Republic\s+of\s+)?(?!Philippines)([A-Za-z]+)",
+            (r"(?:Partner|Counterpart|Second\s+Party|Party\s+B)\s*:?\s*([A-Z][A-Za-z\s&\-\.,]{5,100}?)(?:\n|,|;|\(|$)", text, 1),
+            # Pattern: hereinafter referred to as
+            (r"([A-Z][A-Za-z\s&\-\.]{10,80}?),?\s*hereinafter\s+referred\s+to\s+as\s+[\"']?(?:the\s+)?(?:Partner|Second\s+Party|University|Institute|Company)", text, 1),
+            # Pattern: "a [type] established in [country]" (not Philippines)
+            (r"([A-Z][A-Za-z\s&\-\.]{5,80}?),?\s+a\s+(?:leading\s+)?(?:public\s+|private\s+)?(?:research\s+)?(?:university|college|institute|institution|organization|company)\s+(?:duly\s+)?(?:established|organized|incorporated)\s+(?:in|under).*?(?!Philippines)([A-Za-z]+)", text, 1),
         ]
 
-        for i, pattern in enumerate(patterns):
+        for pattern, search_text, group_idx in patterns:
             try:
                 def regex_search():
-                    return re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+                    return re.search(pattern, search_text, re.IGNORECASE | re.DOTALL)
                 
                 try:
                     match = run_with_timeout(regex_search, timeout_duration=5)
                 except ExtractionTimeoutError:
-                    logger.warning(f"Regex timeout on partner name pattern {i+1}")
+                    logger.warning(f"Regex timeout on partner name pattern")
                     continue
                 
                 if match:
-                    name = match.group(1).strip()
+                    name = match.group(group_idx).strip()
                     name = re.sub(r'\s+', ' ', name)
                     name = re.sub(r'[,;\.]\s*$', '', name)
                     name = re.sub(r'^(?:the|a|an)\s+', '', name, flags=re.IGNORECASE)
@@ -901,49 +1258,55 @@ class NLPLegalExtractionService:
                     # Additional strict PUP check
                     pup_keywords = [
                         "polytechnic", "pup", "sta. mesa", "sta mesa",
-                        "mabini", "manila"
+                        "mabini", "manila", "philippines"
                     ]
                     name_lower = name.lower()
                     if any(kw in name_lower for kw in pup_keywords):
                         logger.debug(f"Filtered out name with PUP keyword: {name}")
                         continue
                     
-                    # Don't filter out "Philippines" if it's part of partner name like "Bank of the Philippines"
-                    # but do filter if it's standalone or in PUP context
-                    if name_lower == "philippines" or name_lower == "republic of the philippines":
-                        continue
-                    
                     if 5 <= len(name) <= 100 and any(c.isupper() for c in name):
-                        logger.info(f"Extracted partner name: {name}")
+                        logger.info(f"✅ Extracted partner name: {name}")
                         return name
             except Exception as e:
-                logger.debug(f"Partner name pattern {i+1} error: {e}")
+                logger.debug(f"Partner name extraction error: {e}")
                 continue
 
+        logger.debug("No partner name found")
         return ""
 
     def _extract_partner_address_safe(self, text: str) -> str:
-        """Address extraction with timeout protection - filters out PUP addresses"""
+        """Extract partner address."""
+        # Patterns for address capture
         patterns = [
-            r"(?:principal\s+)?offices?\s+(?:located\s+)?at\s+(.{10,200}?)(?:\s*,\s*represented|,\s*herein|\.|$)",
-            r"(?:is\s+)?located\s+at\s+(.{10,200}?)(?:\s*,\s*represented|,\s*herein|\.|$)",
-            r"(?:address|location)\s*:?\s*(.{10,200}?)(?:\s*,|\n|$)",
-            r"principal\s+office\s*:?\s*(.{10,200}?)(?:\n|$)",
-            r"headquarters?\s*:?\s*(.{10,200}?)(?:\n|$)"
+            # "with principal office at ADDRESS, CITY" - most common in legal docs
+            r"principal\s+office\s+at\s+(.{10,200}?),\s*(?:[A-Z][a-z]+)(?:,|\s+represented|\s+herein)",
+            # "with principal office at ADDRESS, CITY, COUNTRY"
+            r"principal\s+office\s+at\s+(.{8,100}?),\s+([A-Za-z]+)(?:,|\s+[A-Z]|\s+represented)",
+            # Direct match pattern for street address then comma then city
+            r"office\s+at\s+(.{8,120}?),\s+([A-Z][a-z]+)(?:[,.]|\s+represented|\s+herein)",
+            # Located at pattern
+            r"(?:is\s+)?located\s+at\s+(.{10,200}?)(?:\s*,\s*represented|,\s*herein|\s*[a-z]+[,.]|$)",
+            # Address label pattern
+            r"(?:address|location|headquarters?)\s*:?\s*(.{10,150}?)(?:\n|,|;|$)",
+            # Pattern for street number and name
+            r"(\d+\s+[A-Z][a-z]+\s+(?:Avenue|Street|Road|Drive|Court|Boulevard|Way|Parkway|Lane))(?:[,.]|\s+[A-Z][a-z]+[,.])",
         ]
 
         for pattern in patterns:
             try:
-                def regex_findall():
-                    return re.findall(pattern, text, re.IGNORECASE | re.DOTALL)
+                def regex_search():
+                    return re.finditer(pattern, text, re.IGNORECASE | re.DOTALL)
                 
                 try:
-                    matches = run_with_timeout(regex_findall, timeout_duration=3)
+                    matches = run_with_timeout(regex_search, timeout_duration=3)
                 except ExtractionTimeoutError:
                     continue
                 
                 for match in matches:
-                    address = re.sub(r'\s+', ' ', match.strip())
+                    # Get the first capture group (address)
+                    address = match.group(1) if match.lastindex and match.lastindex >= 1 else match.group(0)
+                    address = re.sub(r'\s+', ' ', address.strip())
                     
                     # Filter out PUP-related addresses
                     if self._is_pup_related(address):
@@ -955,12 +1318,14 @@ class NLPLegalExtractionService:
                         r"santa\s+mesa",
                         r"manila,?\s*philippines",
                         r"mabini\s*campus",
+                        r"a\.?\s*mabini\s*campus",
                         r"room\s+\d+.*main\s*campus",
                         r"south\s+wing.*main\s*campus",
                     ]
                     is_pup_address = any(re.search(p, address, re.IGNORECASE) for p in pup_address_indicators)
                     
-                    if not is_pup_address and 10 <= len(address) <= 300:
+                    if not is_pup_address and 8 <= len(address) <= 300:
+                        logger.info(f"[Address] Extracted: {address}")
                         return address
             except Exception as e:
                 logger.debug(f"Error in address pattern: {e}")
@@ -969,7 +1334,34 @@ class NLPLegalExtractionService:
         return ""
 
     def _extract_partner_country_validated(self, text: str) -> str:
-        """Country extraction with context validation - filters out Philippines/PUP context"""
+        """Extract country from text."""
+        # Pattern matching for countries mentioned after "principal office at ADDRESS,"
+        country_patterns = [
+            # Pattern: "principal office at ADDRESS, CITY, COUNTRY"
+            r"principal\s+office\s+at\s+.{10,100},\s+[A-Za-z]+,\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)(?:,|\s+represented|\s+herein)",
+            # Pattern: "location is COUNTRY" or "located in COUNTRY"
+            r"(?:located|established)\s+(?:in|on)\s+([A-Z][a-z]+)(?:,|\s+with|\s+represented)",
+            # Pattern: comma-separated after address mention
+            r"office\s+at\s+.{8,100},\s+([A-Za-z]+)(?:,|\s+represented)",
+        ]
+        
+        # Try patterns first
+        for pattern in country_patterns:
+            try:
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    country_text = match.group(1).strip()
+                    # Check if it's actually a country
+                    for country in self.country_options:
+                        if country.lower() == country_text.lower():
+                            if country.lower() != "philippines":
+                                logger.info(f"[Country] Extracted from pattern: {country}")
+                                return country
+            except Exception as e:
+                logger.debug(f"Error in country pattern: {e}")
+                continue
+        
+        # Fall back to existing method
         for country in self.country_options:
             # Skip Philippines as it's PUP's country
             if country.lower() == "philippines":
@@ -986,7 +1378,9 @@ class NLPLegalExtractionService:
                 # Skip if this appears in PUP context
                 pup_indicators = [
                     "pup ", "polytechnic university of the philippines", 
-                    "sta. mesa", "manila, philippines", "republic of the philippines"
+                    "sta. mesa", "sta.mesa", "santa mesa",
+                    "manila, philippines", "manila,philippines",
+                    "republic of the philippines"
                 ]
                 if any(indicator in context for indicator in pup_indicators):
                     # Check if the country appears BEFORE PUP mention (likely partner)
@@ -996,10 +1390,12 @@ class NLPLegalExtractionService:
                         default=len(context)
                     )
                     if country_pos < pup_pos:
+                        logger.info(f"[Country] Extracted: {country}")
                         return country
                     continue
                 
                 # Valid country found in non-PUP context
+                logger.info(f"[Country] Extracted: {country}")
                 return country
         
         return ""
@@ -1292,11 +1688,18 @@ class NLPLegalExtractionService:
         return point_persons[:5]
 
     def _extract_source_unit_validated(self, text: str) -> str:
-        """Source unit extraction - more specific patterns"""
+        """Source unit extraction - finds college, department, or office name"""
         patterns = [
+            # "Office of International Affairs"
+            r"(?:Attention\s*:\s*)?(?:Office\s+of\s+)?([A-Za-z\s&\-\.]+?(?:Affairs|International|Sciences|Engineering|Department|Unit))(?:\s*\n|$)",
+            # "prepared by / from / submitted by [unit]"
             r"(?:prepared\s+by|from|submitted\s+by|initiated\s+by)\s+(?:the\s+)?(?:Office\s+of\s+)?([A-Za-z\s&\-\.]+?(?:College|Department|Office|Campus|Unit|Division|Institute))(?:\s*[,\.\n]|$)",
-            r"(?:College|Department|Office)\s+of\s+([A-Za-z\s&\-\.]+?)(?:\s*[,\.\n]|$)",
-            r"PUP\s+([A-Za-z\s\-\.]+?(?:Campus|Branch))(?:\s*[,\.\n]|$)",
+            # "College of X" or "Department of X"
+            r"(?:College|Department|Office|Faculty)\s+of\s+([A-Za-z\s&\-\.]+?)(?:\s*[,\.\n]|$)",
+            # "PUP X Campus" or "PUP X Branch"
+            r"PUP\s+([A-Za-z\s\-\.]+?(?:Campus|Branch|Center|Office))(?:\s*[,\.\n]|$)",
+            # Standalone mentions in signature area
+            r"(?:COLLEGE|DEPARTMENT|OFFICE|UNIT)\s+(?:OF\s+)?([A-Za-z\s&\-\.]+?)(?:\n|$)",
         ]
         
         for pattern in patterns:
@@ -1305,22 +1708,27 @@ class NLPLegalExtractionService:
                 if match:
                     unit = re.sub(r'\s+', ' ', match.group(1).strip())
                     
+                    # Filter out invalid/generic terms
                     invalid_terms = [
                         "agreement", "memorandum", "document", "partnership", 
                         "cooperation", "understanding", "entering", "similar",
-                        "academic", "research", "organizations", "other",
-                        "the parties", "both parties"
+                        "parties", "both", "entire", "shall", "this", "that",
+                        "any", "all", "other", "such", "nothing", "no", "or", "and"
                     ]
                     
                     unit_lower = unit.lower()
                     if any(term in unit_lower for term in invalid_terms):
                         continue
                     
-                    if 3 < len(unit) < 100:
+                    # Check minimum length and format
+                    if 3 < len(unit) < 150:
+                        logger.info(f"✅ Extracted source unit: {unit}")
                         return unit
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Source unit extraction error: {e}")
                 continue
         
+        logger.debug("No source unit found")
         return ""
 
     def _is_pup_related(self, text: str) -> bool:
@@ -1355,7 +1763,7 @@ class NLPLegalExtractionService:
         return False
 
     def _extract_signatories_safe(self, text: str) -> List[str]:
-        """Extract signatories as a simple list of person names - filters out organizations"""
+        """Extract signatories as list of person names."""
         signatories = []
         seen_names = set()
         
@@ -1365,10 +1773,12 @@ class NLPLegalExtractionService:
             sig_markers = [
                 r"IN\s+WITNESS\s+WHEREOF",
                 r"SIGNED\s+BY",
-                r"SIGNATURES?:",
+                r"SIGNATURES?:\s*",
                 r"EXECUTED\s+BY",
                 r"FOR\s+AND\s+ON\s+BEHALF",
                 r"CONFORME:",
+                r"WITNESS\s+MY\s+HAND",
+                r"SIGNED\s+IN\s+THE\s+PRESENCE",
             ]
             
             # Find the LAST occurrence of signature markers (more reliable)
@@ -1394,9 +1804,11 @@ class NLPLegalExtractionService:
                 name = re.sub(r'\s+', ' ', name.strip())
                 # Title case the name
                 name = name.title()
-                if self._is_valid_signatory(name, seen_names):
-                    seen_names.add(name.upper())
-                    signatories.append(name)
+                if name and len(name) > 4:  # Basic length check
+                    if self._is_valid_signatory(name, seen_names):
+                        seen_names.add(name.upper())
+                        signatories.append(name)
+                        logger.debug(f"[Signatory] Found titled name: {name}")
 
             # Pattern 2: Names after position titles like "Rector", "President"
             position_then_name = re.findall(
@@ -1446,12 +1858,23 @@ class NLPLegalExtractionService:
                     seen_names.add(name.upper())
                     signatories.append(name_title)
 
-            logger.info(f"Extracted {len(signatories)} signatories: {signatories}")
+            # Additional pattern: Names immediately after institutional roles
+            role_pattern = r"(?:Vice President|President|Dean|Rector|Chancellor|Director|Chair|Secretary)\s+(?:for|of)?\s*(?:[A-Za-z\s]+)?\n\s*(?:DR\.?|PROF\.?|MR\.?|MS\.?)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})"
+            role_names = re.findall(role_pattern, signature_section, re.IGNORECASE | re.MULTILINE)
+            for name in role_names:
+                name = re.sub(r'\s+', ' ', name.strip()).title()
+                if name and len(name) > 4:
+                    if self._is_valid_signatory(name, seen_names):
+                        seen_names.add(name.upper())
+                        signatories.append(name)
+                        logger.debug(f"[Signatory] Found from role pattern: {name}")
+
+            logger.info(f"[Signatories] Extracted {len(signatories)} signatories: {signatories}")
             
         except Exception as e:
             logger.debug(f"Error extracting signatories: {e}")
 
-        return signatories[:10]
+        return signatories[:15]  # Return up to 15 signatories
 
     def _is_valid_signatory(self, name: str, seen_names: set) -> bool:
         """Validate if a name is a valid signatory (person name, not organization)"""
