@@ -29,11 +29,11 @@
 
 ## Overview
 
-GlobalInked is a comprehensive monitoring and management system for bilateral and multilateral agreements (MOUs/MOAs) handled by the Office of International Affairs. The system provides:
+GlobalInked is a comprehensive monitoring and management system for international agreements (MOUs/MOAs) handled by the Office of International Affairs. The system provides:
 
 - **Agreement Management**: Create, update, and track MOUs and MOAs
 - **Document Processing**: Upload and version control for agreement documents
-- **NLP Extraction**: Intelligent field extraction from PDF documents using spaCy and Legal-BERT
+- **NLP Extraction**: extraction from PDF documents using spaCy and Legal-BERT
 - **Partner Management**: Maintain partner institutions and contact information
 - **User Management**: Role-based access control and registration workflows
 - **Email Notifications**: Automated agreement status notifications
@@ -196,7 +196,7 @@ Create new user account (starts as pending, requires admin approval).
 {
   "user_name": "jsmith",
   "user_password": "securepassword123",
-  "user_position": "Partnership Specialist",
+  "user_position": "Partnership and Linkages Section",
   "user_email": "jsmith@pup.edu.ph"
 }
 ```
@@ -208,8 +208,8 @@ Create new user account (starts as pending, requires admin approval).
   "user_id": 5,
   "user_name": "jsmith",
   "user_email": "jsmith@pup.edu.ph",
-  "user_position": "Partnership Specialist",
-  "user_role": "staff",
+  "user_position": "Partnership and Linkages Section",
+  "user_role": "admin",
   "user_status": "pending"
 }
 ```
@@ -217,7 +217,7 @@ Create new user account (starts as pending, requires admin approval).
 ### Notes
 
 - Role determined by position:
-  - "Director" or "Partnership and Linkages Section" → admin
+  - Partnership and Linkages Section or Director → admin
   - Others → staff
 - Default status: "pending" (requires admin approval)
 - Admins notified of new registration
@@ -244,16 +244,8 @@ List all users in system.
     "user_position": "Director",
     "user_role": "admin",
     "user_status": "approved"
-  },
-  {
-    "user_id": 2,
-    "user_name": "jdoe",
-    "user_email": "jdoe@pup.edu.ph",
-    "user_position": "Coordinator",
-    "user_role": "staff",
-    "user_status": "pending"
   }
-]
+  ]
 ```
 
 ---
@@ -273,8 +265,8 @@ Get authenticated user's own profile.
   "user_id": 1,
   "user_name": "jsmith",
   "user_email": "jsmith@pup.edu.ph",
-  "user_position": "Partnership Specialist",
-  "user_role": "staff",
+  "user_position": "Partnership and Linkages Section",
+  "user_role": "admin",
   "user_status": "approved"
 }
 ```
@@ -298,8 +290,8 @@ List users awaiting admin approval.
     "user_id": 5,
     "user_name": "jsmith",
     "user_email": "jsmith@pup.edu.ph",
-    "user_position": "Partnership Specialist",
-    "user_role": "staff",
+    "user_position": "Partnership and Linkages Section",
+    "user_role": "admin",
     "user_status": "pending"
   }
 ]
@@ -326,7 +318,7 @@ Update user profile information.
 {
   "user_name": "jsmith_updated",
   "user_email": "newjsmith@pup.edu.ph",
-  "user_position": "Senior Partnership Specialist"
+  "user_position": "Partnership and Linkages Section"
 }
 ```
 
@@ -337,8 +329,8 @@ Update user profile information.
   "user_id": 5,
   "user_name": "jsmith_updated",
   "user_email": "newjsmith@pup.edu.ph",
-  "user_position": "Senior Partnership Specialist",
-  "user_role": "staff",
+  "user_position": "Partnership and Linkages Section",
+  "user_role": "admin",
   "user_status": "approved"
 }
 ```
