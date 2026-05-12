@@ -60,9 +60,7 @@ import ReportGen from "./reportGeneration";
 import TopBar from "./topbar";
 import Sidebar from "./sidebar";
 
-/* ---------- Constants & helpers (copied/adapted from uploaded files) ---------- */
-
-/* Reusable searchable select */
+// Reusable searchable select
 const SearchableSelect = ({
   options = [],
   value,
@@ -80,7 +78,6 @@ const SearchableSelect = ({
   useEffect(() => {
     const onDoc = (e) => {
       if (!ref.current) return;
-      // Don't close if clicking inside the searchable select component
       if (ref.current.contains(e.target)) return;
       setOpen(false);
     };
@@ -570,14 +567,12 @@ const toISODate = (val) => {
   if (!val) return "";
   if (val instanceof Date && !isNaN(val)) return val.toISOString().slice(0, 10);
   const s = String(val).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; // already ISO
-  // MM/DD/YYYY or DD/MM/YYYY
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (m) {
     let mm = parseInt(m[1], 10),
       dd = parseInt(m[2], 10),
       yyyy = parseInt(m[3], 10);
-    // if first part > 12, treat as DD/MM/YYYY
     if (mm > 12) [dd, mm] = [mm, dd];
     const pad = (n) => String(n).padStart(2, "0");
     return `${yyyy}-${pad(mm)}-${pad(dd)}`;
@@ -599,7 +594,6 @@ const mapAgreement = (a = {}) => {
     a.date_of_signing ||
     a.date_signed;
 
-  // normalize people arrays -> {position,name,email}
   const normalizePeople = (arr = [], kind) =>
     Array.isArray(arr)
       ? arr.map((p) => ({
@@ -630,29 +624,29 @@ const mapAgreement = (a = {}) => {
             .map((x) => {
               if (!x) return null;
               if (typeof x === "string") return { name: x };
-              // handle objects that already have signatory_name/name fields
+
               return x;
             })
             .filter(Boolean)
         : [];
 
-    // 1) Try explicit array fields (may be actual arrays or JSON-encoded strings)
+
     if (Array.isArray(a.signatories_list))
       return makeListFromArray(a.signatories_list);
     if (Array.isArray(a.signatories)) return makeListFromArray(a.signatories);
 
-    // 2) If fields are strings, try parsing JSON; otherwise fall back to using the raw string
+
     const tryParse = (val) => {
       if (typeof val !== "string" || !val.trim()) return null;
       const trimmed = val.trim();
-      // ignore em-dash placeholder
+
       if (trimmed === "—" || trimmed === "-" || /^\u2014+$/.test(trimmed))
         return null;
       try {
         const parsed = JSON.parse(trimmed);
         if (Array.isArray(parsed)) return makeListFromArray(parsed);
       } catch (e) {
-        // not JSON, continue
+
       }
       return trimmed
         .split(/[,;\n]+/)
@@ -691,7 +685,6 @@ const mapAgreement = (a = {}) => {
   })();
 
   return {
-    // identifiers
     agreement_id: a.agreement_id || a.id || null,
     _pk: a.agreement_id ?? a.id ?? a.dts_number ?? a.dts_no,
     id: a.dts_number || a.dts_no || a.id || a.agreement_id || "",
@@ -723,7 +716,6 @@ const mapAgreement = (a = {}) => {
     point_persons: point_people.length ? point_people : undefined,
     contact_persons: contact_people.length ? contact_people : undefined,
 
-    // classification
     document_type: a.document_type || "",
     partnership_classification:
       a.partnership_type || a.partnership_classification || "",
@@ -1043,9 +1035,7 @@ const excludeActive = (list = []) => {
   });
 };
 
-/* ---------- Small UI helpers reused from overview1 ---------- */
 
-/* Minimal MultiPersonField and MultiRemarkField compatible with overview1 modal */
 
 const MultiPersonField = ({
   listKey,
@@ -1267,7 +1257,6 @@ const OverviewMerged = () => {
   const [isEditing, setIsEditing] = useState(false);
   const originalRef = useRef(null);
 
-  // editing from legacy OverviewDash
   const [editingRow, setEditingRow] = useState(null);
   const [editedData, setEditedData] = useState({});
   const [savingRows, setSavingRows] = useState(new Set());
