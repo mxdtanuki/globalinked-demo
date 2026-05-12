@@ -33,7 +33,7 @@ GlobalLinked System is an enterprise-grade application designed to streamline ag
 ## Tech Stack
 
 ### Backend
-- **Framework**: Python Flask
+- **Framework**: FastAPI (Python 3.10+)
 - **Database**: PostgreSQL (via Supabase)
 - **Storage**: Supabase Storage
 - **ORM**: SQLAlchemy
@@ -51,14 +51,14 @@ GlobalLinked System is an enterprise-grade application designed to streamline ag
 
 ```
 globalinked-system/
-├── backend/                    # Python Flask API
+├── backend/                    # Python FastAPI
 │   ├── app/
 │   │   ├── controllers/       # API endpoints
 │   │   ├── models/            # Database models
 │   │   ├── schemas/           # Data validation schemas
 │   │   ├── services/          # Business logic
 │   │   ├── utils/             # Utility functions
-│   │   ├── main.py            # Flask app initialization
+│   │   ├── main.py            # FastAPI app initialization
 │   │   ├── database.py        # Database configuration
 │   │   └── scheduler.py       # Task scheduling
 │   ├── alembic/               # Database migrations
@@ -144,7 +144,7 @@ You'll need a `.env` file in the backend directory with:
 
 3. Create a `.env` file with API configuration:
    ```
-   REACT_APP_API_URL=http://localhost:5000
+   REACT_APP_API_BASE_URL=http://localhost:8000
    ```
 
 ## Configuration
@@ -173,12 +173,17 @@ You'll need a `.env` file in the backend directory with:
    source venv/bin/activate  # macOS/Linux
    ```
 
-2. Run the Flask application:
+2. Run the FastAPI application:
    ```bash
    python app/main.py
    ```
+   
+   Or using uvicorn directly:
+   ```bash
+   uvicorn app.main:app --reload
+   ```
 
-The API will be available at `http://localhost:5000`
+The API will be available at `http://localhost:8000`
 
 ### Frontend
 

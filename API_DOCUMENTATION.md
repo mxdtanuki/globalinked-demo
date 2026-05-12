@@ -19,11 +19,6 @@
 - [Partner APIs](#partner-apis)
 - [Document APIs](#document-apis)
 - [Email Template APIs](#email-template-apis)
-- [Notification APIs](#notification-apis)
-- [Audit Logging APIs](#audit-logging-apis)
-- [NLP Extraction APIs](#nlp-extraction-apis)
-- [Admin & Diagnostics APIs](#admin--diagnostics-apis)
-- [Error Handling](#error-handling)
 
 ---
 
@@ -433,7 +428,7 @@ List all agreements with optional filters.
 [
   {
     "agreement_id": 1,
-    "dts_number": "DTS-2024-001",
+    "dts_number": "DTS2024000001",
     "partner_id": 3,
     "partner_name": "Universiti Malaya",
     "document_type": "MOU",
@@ -463,7 +458,7 @@ Create new MOA/MOU agreement record.
 
 ```json
 {
-  "dts_number": "DTS-2024-002",
+  "dts_number": "DTS2024000002",
   "partner_id": 3,
   "document_type": "MOA",
   "partnership_type": "Research",
@@ -497,7 +492,7 @@ Create new MOA/MOU agreement record.
   "status": "success",
   "agreement": {
     "agreement_id": 2,
-    "dts_number": "DTS-2024-002",
+    "dts_number": "DTS2024000002",
     "partner_id": 3,
     "document_type": "MOA",
     "agreement_status": "Under Review",
@@ -525,7 +520,7 @@ Get full details of specific agreement.
 ```json
 {
   "agreement_id": 1,
-  "dts_number": "DTS-2024-001",
+  "dts_number": "DTS2024000001",
   "partner": {
     "partner_id": 3,
     "name": "Universiti Malaya",
@@ -573,7 +568,7 @@ Update agreement information.
 ```json
 {
   "agreement_id": 1,
-  "dts_number": "DTS-2024-001",
+  "dts_number": "DTS2024000001",
   "agreement_status": "Active",
   "remarks": "Updated partnership details"
 }
@@ -581,32 +576,93 @@ Update agreement information.
 
 ---
 
-## 5. Check for Duplicate
+## 5. Get Public Agreements
 
-**GET** `/agreements/check-duplicate`
+**GET** `/agreements/public`
 
-Check if agreement with same DTS, type, and partnership already exists.
+Get all active agreements (public view - no authentication required).
+
+### Response (200 OK)
+
+```json
+[
+  {
+    "agreement_id": 1,
+    "dts_number": "DTS2024000001",
+    "agreement_status": "Active",
+    "document_type": "MOU",
+    "partner_name": "Universiti Malaya",
+    "country": "Malaysia",
+    "region": "Southeast Asia",
+    "date_signed": "2024-01-15",
+    "date_expiry": "2027-01-14",
+    "partnership_type": "Academic",
+    "entity_type": "Educational Institution",
+    "address": "Kuala Lumpur, Malaysia",
+    "website_url": "https://www.um.edu.my",
+    "description": "Premier university in Malaysia"
+  }
+]
+```
+
+---
+
+## 6. Get Archived Agreements
+
+**GET** `/agreements/archive`
+
+Get all archived/withdrawn agreements.
 
 **Authentication**: Required (Bearer Token)
 
-### Query Parameters
+### Response (200 OK)
 
-- `dts_number` (required): DTS number
-- `document_type` (required): Document type
-- `partnership_type` (required): Partnership type
+```json
+[
+  {
+    "agreement_id": 2,
+    "dts_number": "DTS2024000002",
+    "agreement_status": "Withdrawn",
+    "document_type": "MOA",
+    "partner_name": "Partner Name",
+    "partnership_type": "Research"
+  }
+]
+```
+
+---
+
+## 7. Get Agreement Summary
+
+**GET** `/agreements/summary`
+
+Get summary statistics of all agreements.
+
+**Authentication**: Required (Bearer Token)
 
 ### Response (200 OK)
 
 ```json
 {
-  "exists": false,
-  "message": "Agreement does not already exist"
+  "total_agreements": 25,
+  "active_agreements": 18,
+  "expired_agreements": 3,
+  "withdrawn_agreements": 4,
+  "by_type": {
+    "MOU": 15,
+    "MOA": 10
+  },
+  "by_status": {
+    "Active": 18,
+    "Expired": 3,
+    "Withdrawn": 4
+  }
 }
 ```
 
 ---
 
-## 6. Delete Agreement
+## 8. Delete Agreement
 
 **DELETE** `/agreements/{agreement_id}`
 
@@ -667,7 +723,7 @@ Get partners with active MOUs.
     "name": "Universiti Malaya",
     "country": "Malaysia",
     "entity_type": "Educational Institution",
-    "dts_number": "DTS-2024-001",
+    "dts_number": "DTS2024000001",
     "date_expiry": "2027-01-14"
   }
 ]
@@ -723,7 +779,7 @@ Get all agreements for specific partner.
   },
   "agreements": [
     {
-      "dts_number": "DTS-2024-001",
+      "dts_number": "DTS2024000001",
       "agreement_status": "Active",
       "date_expiry": "2027-01-14"
     }
@@ -878,9 +934,9 @@ Upload new version of agreement document.
   "status": "uploaded",
   "version": {
     "version_id": 5,
-    "dts_number": "DTS-2024-001",
+    "dts_number": "DTS2024000001",
     "version_number": 2,
-    "file_path": "dts-2024-001/v2/agreement.pdf",
+    "file_path": "dts2024000001/v2/agreement.pdf",
     "download_url": "https://signed-url-with-token...",
     "uploaded_at": "2024-03-15T15:45:00Z",
     "version_comment": "Final signed version"
@@ -898,7 +954,7 @@ Get all versions of document.
 
 ### Path Parameters
 
-- `dts_number` (required): DTS number
+- `dts_number` (required): DTS number (format: DTSYEAR000000, e.g., DTS2024000001)
 
 ### Response (200 OK)
 
@@ -906,9 +962,9 @@ Get all versions of document.
 [
   {
     "version_id": 5,
-    "dts_number": "DTS-2024-001",
+    "dts_number": "DTS2024000001",
     "version_number": 2,
-    "file_path": "dts-2024-001/v2/agreement.pdf",
+    "file_path": "dts2024000001/v2/agreement.pdf",
     "download_url": "https://signed-url...",
     "uploaded_at": "2024-03-15T15:45:00Z"
   }
@@ -949,12 +1005,12 @@ Get all document versions across all agreements.
 [
   {
     "version_id": 5,
-    "dts_number": "DTS-2024-001",
+    "dts_number": "DTS2024000001",
     "version_number": 2,
     "uploaded_at": "2024-03-15T15:45:00Z",
     "document_type": "MOU",
     "partnership_type": "Academic",
-    "partner_name": "Universiti Malaya",
+    "partner_name": "Universiti Malaya"
     "download_url": "https://signed-url..."
   }
 ]
@@ -1153,7 +1209,7 @@ Get notifications for current user.
     "user_id": 1,
     "notification_type": "agreement_expiring",
     "title": "Agreement Expiring Soon",
-    "description": "DTS-2024-001 expires in 30 days",
+    "description": "DTS2024000001 expires in 30 days",
     "is_read": false,
     "created_at": "2024-03-15T10:30:00Z"
   }
@@ -1209,7 +1265,7 @@ Get audit logs of system activities.
     "audit_id": 1,
     "user_name": "admin",
     "audit_timestamp": "2024-03-15T10:30:00Z",
-    "audit_description": "Agreement DTS-2024-001 created"
+    "audit_description": "Agreement DTS2024000001 created"
   }
 ]
 ```
