@@ -961,6 +961,7 @@ const Archive = () => {
       .toUpperCase();
   };
 
+  /* global API_BASE_URL */
   // Demo version - API_BASE_URL not used
 
   const LogoSrc = (lp) => {

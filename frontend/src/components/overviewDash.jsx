@@ -1,3 +1,4 @@
+/* global API_BASE_URL */
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   FiEye,
