@@ -961,8 +961,7 @@ const Archive = () => {
       .toUpperCase();
   };
 
-  const API_BASE_URL =
-    process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+  // Demo version - API_BASE_URL not used
 
   const LogoSrc = (lp) => {
     if (!lp) return null;

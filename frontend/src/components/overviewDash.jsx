@@ -971,8 +971,7 @@ const LogoSrc = (lp) => {
       if (lp.startsWith("iVBORw0")) return `data:image/png;base64,${lp}`;
       if (lp.startsWith("/9j/")) return `data:image/jpeg;base64,${lp}`;
       if (lp.startsWith("http://") || lp.startsWith("https://")) return lp;
-      const API_BASE_URL =
-        process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+      // Demo version - API_BASE_URL not used
       return `${API_BASE_URL.replace(/\/$/, "")}/${lp.replace(/^\/+/, "")}`;
     }
   } catch (err) {

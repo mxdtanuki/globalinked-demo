@@ -81,49 +81,60 @@
 }
 
 .footer-logo {
-  width: 60px;
-  height: 60px;
+  width: clamp(50px, 8vw, 60px);
+  height: clamp(50px, 8vw, 60px);
   object-fit: contain;
   animation: pulse 2s infinite;
+  flex-shrink: 0;
 }
 
-.footer-university-name a { /*pup link*/
+.footer-university-name a {
+  /*pup link*/
   color: inherit;
   text-decoration: none;
   font: inherit;
 }
 
-.footer-university-info h3 {  /*pup info*/
+.footer-university-info h3 {
+  /*pup info*/
   font-family: "Trajan Pro", serif;
-  font-size: 0.8rem;
+  font-size: clamp(0.6875rem, 2vw, 0.8rem);
   font-weight: 700;
   margin: 0 0 0.25rem 0;
   color: #ffd700;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .footer-office-name {
   font-family: "Trajan Pro", serif;
-  font-size: 0.6rem;
+  font-size: clamp(0.5625rem, 1.75vw, 0.6rem);
   color: rgba(255, 255, 255, 0.9);
   margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .footer-description {
-  font-size: 0.9rem;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.8);
   margin: 0;
   white-space: pre-line;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Section Titles */
 .footer-section-title {
   font-family: "Trajan Pro", serif;
-  font-size: 1.1rem;
+  font-size: clamp(0.875rem, 2.5vw, 1.1rem);
   font-weight: 600;
   margin-bottom: 1rem;
   color: #ffd700;
   position: relative;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .footer-section-title::after {
@@ -152,10 +163,12 @@
 .footer-services-text li {
   margin-bottom: 0.5rem;
   color: rgba(255, 255, 255, 0.8);
-  font-size: 0.9rem;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
   transform: translateX(-10px);
   opacity: 0;
   animation: slideInRight 0.5s ease-out forwards;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .footer-services-text li:nth-child(1) {
@@ -183,8 +196,8 @@
 }
 
 .social-icon-clean {
-  width: 28px;
-  height: 28px;
+  width: clamp(24px, 4vw, 28px);
+  height: clamp(24px, 4vw, 28px);
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -218,10 +231,12 @@
 .footer-link {
   color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
   transition: all 0.3s ease;
   position: relative;
   display: inline-block;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .footer-link:hover {
@@ -516,52 +531,338 @@
   }
 }
 
+/* Responsive Design */
+
+/* Better touch feedback on mobile */
+@media (hover: none) and (pointer: coarse) {
+  .footer-link:active {
+    color: #ffd700;
+    transform: translateX(3px);
+  }
+}
+
+/* Tablet - 768px */
 @media (max-width: 768px) {
-  .footer-content {
-    grid-template-columns: 1fr;
-    gap: 2rem;
+  .footer-container {
+    padding: 2.5rem 1.5rem 2.5rem;
   }
 
-  .footer-social-inline {
-    flex-direction: column;
-    align-items: center;
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    padding-bottom: 1.75rem;
+  }
+
+  .footer-section:nth-child(2),
+  .footer-section:nth-child(3),
+  .footer-section:nth-child(4),
+  .footer-section:nth-child(5) {
+    margin-left: 0;
+  }
+
+  .footer-section {
     text-align: center;
   }
 
   .footer-logo-section {
     justify-content: center;
+    margin-top: 0;
+  }
+
+  .footer-logo {
+    width: clamp(48px, 8vw, 56px);
+    height: clamp(48px, 8vw, 56px);
+  }
+
+  .footer-university-info h3 {
+    font-size: clamp(0.6875rem, 2.25vw, 0.75rem);
+  }
+
+  .footer-office-name {
+    font-size: clamp(0.5625rem, 2vw, 0.625rem);
+  }
+
+  .footer-description {
+    font-size: clamp(0.75rem, 2.25vw, 0.85rem);
+    text-align: center;
+  }
+
+  .footer-section-title {
+    font-size: clamp(0.875rem, 2.75vw, 1rem);
+  }
+
+  .footer-section-title::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .footer-links,
+  .footer-services-text {
+    text-align: center;
+  }
+
+  .footer-link {
+    font-size: clamp(0.75rem, 2.25vw, 0.85rem);
+  }
+
+  .footer-services-text li {
+    font-size: clamp(0.75rem, 2.25vw, 0.85rem);
+  }
+
+  .footer-social-inline {
+    justify-content: center;
+  }
+
+  .footer-social-clean {
+    justify-content: center;
+  }
+
+  .social-icon-clean {
+    width: clamp(24px, 5vw, 28px);
+    height: clamp(24px, 5vw, 28px);
+  }
+
+  .social-text {
+    font-size: clamp(0.8125rem, 2.25vw, 0.9rem);
   }
 
   .footer-bottom-content {
     flex-direction: column;
     text-align: center;
   }
-
-  .footer-social-links {
-    gap: 0.75rem;
-  }
-
-  .footer-social-link {
-    width: 40px;
-    height: 40px;
-  }
 }
 
+/* Small tablet - 480px */
 @media (max-width: 480px) {
   .footer-container {
-    padding: 2rem 1rem 0;
+    padding: 2.25rem 1.25rem 2.25rem;
+  }
+
+  .footer-content {
+    gap: 2rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .footer-logo {
+    width: clamp(44px, 9vw, 52px);
+    height: clamp(44px, 9vw, 52px);
+  }
+
+  .footer-university-info h3 {
+    font-size: clamp(0.625rem, 2.5vw, 0.6875rem);
+  }
+
+  .footer-office-name {
+    font-size: clamp(0.5rem, 2.25vw, 0.5625rem);
+  }
+
+  .footer-description {
+    font-size: clamp(0.6875rem, 2.5vw, 0.8125rem);
   }
 
   .footer-section-title {
-    font-size: 1rem;
+    font-size: clamp(0.8125rem, 3vw, 0.9375rem);
+    margin-bottom: 0.875rem;
   }
 
   .footer-link {
-    font-size: 0.85rem;
+    font-size: clamp(0.6875rem, 2.5vw, 0.8125rem);
   }
 
-  .footer-copyright {
-    font-size: 0.8rem;
+  .footer-services-text li {
+    font-size: clamp(0.6875rem, 2.5vw, 0.8125rem);
+    margin-bottom: 0.4375rem;
+  }
+
+  .social-icon-clean {
+    width: clamp(22px, 5.5vw, 26px);
+    height: clamp(22px, 5.5vw, 26px);
+  }
+
+  .social-text {
+    font-size: clamp(0.75rem, 2.5vw, 0.8125rem);
+  }
+}
+
+/* Extra small - 414px */
+@media (max-width: 414px) {
+  .footer-container {
+    padding: 2rem 1.125rem 2rem;
+  }
+
+  .footer-content {
+    gap: 1.75rem;
+  }
+
+  .footer-logo {
+    width: clamp(40px, 10vw, 48px);
+    height: clamp(40px, 10vw, 48px);
+  }
+
+  .footer-logo-section {
+    gap: 0.75rem;
+  }
+
+  .footer-university-info h3 {
+    font-size: clamp(0.5625rem, 2.75vw, 0.6875rem);
+  }
+
+  .footer-office-name {
+    font-size: clamp(0.4375rem, 2.5vw, 0.5625rem);
+  }
+
+  .footer-description {
+    font-size: clamp(0.625rem, 2.75vw, 0.75rem);
+  }
+
+  .footer-section-title {
+    font-size: clamp(0.75rem, 3.25vw, 0.875rem);
+  }
+
+  .footer-link {
+    font-size: clamp(0.625rem, 2.75vw, 0.75rem);
+  }
+
+  .footer-services-text li {
+    font-size: clamp(0.625rem, 2.75vw, 0.75rem);
+  }
+
+  .social-icon-clean {
+    width: clamp(20px, 6vw, 24px);
+    height: clamp(20px, 6vw, 24px);
+  }
+
+  .social-text {
+    font-size: clamp(0.6875rem, 2.75vw, 0.75rem);
+  }
+}
+
+/* Extra small - 375px */
+@media (max-width: 375px) {
+  .footer-container {
+    padding: 1.875rem 1rem 1.875rem;
+  }
+
+  .footer-content {
+    gap: 1.5rem;
+  }
+
+  .footer-logo {
+    width: clamp(38px, 10.5vw, 46px);
+    height: clamp(38px, 10.5vw, 46px);
+  }
+
+  .footer-logo-section {
+    gap: 0.625rem;
+  }
+
+  .footer-university-info h3 {
+    font-size: clamp(0.5625rem, 3vw, 0.625rem);
+  }
+
+  .footer-office-name {
+    font-size: clamp(0.4375rem, 2.75vw, 0.5rem);
+  }
+
+  .footer-description {
+    font-size: clamp(0.5625rem, 3vw, 0.6875rem);
+  }
+
+  .footer-section-title {
+    font-size: clamp(0.6875rem, 3.5vw, 0.8125rem);
+    margin-bottom: 0.75rem;
+  }
+
+  .footer-link {
+    font-size: clamp(0.5625rem, 3vw, 0.6875rem);
+  }
+
+  .footer-services-text li {
+    font-size: clamp(0.5625rem, 3vw, 0.6875rem);
+    margin-bottom: 0.375rem;
+  }
+
+  .footer-links li {
+    margin-bottom: 0.375rem;
+  }
+
+  .social-icon-clean {
+    width: clamp(18px, 6.5vw, 22px);
+    height: clamp(18px, 6.5vw, 22px);
+  }
+
+  .social-text {
+    font-size: clamp(0.625rem, 3vw, 0.6875rem);
+  }
+}
+
+/* Minimum - 320px */
+@media (max-width: 320px) {
+  .footer-container {
+    padding: 1.75rem 0.875rem 1.75rem;
+  }
+
+  .footer-content {
+    gap: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .footer-logo {
+    width: clamp(36px, 11vw, 44px);
+    height: clamp(36px, 11vw, 44px);
+  }
+
+  .footer-logo-section {
+    gap: 0.5rem;
+  }
+
+  .footer-university-info h3 {
+    font-size: clamp(0.5rem, 3.25vw, 0.5625rem);
+    line-height: 1.3;
+  }
+
+  .footer-office-name {
+    font-size: clamp(0.375rem, 3vw, 0.4375rem);
+  }
+
+  .footer-description {
+    font-size: clamp(0.5rem, 3.25vw, 0.625rem);
+    line-height: 1.5;
+  }
+
+  .footer-section-title {
+    font-size: clamp(0.625rem, 3.75vw, 0.75rem);
+    margin-bottom: 0.625rem;
+  }
+
+  .footer-section-title::after {
+    width: 24px;
+  }
+
+  .footer-link {
+    font-size: clamp(0.5rem, 3.25vw, 0.625rem);
+  }
+
+  .footer-services-text li {
+    font-size: clamp(0.5rem, 3.25vw, 0.625rem);
+    margin-bottom: 0.3125rem;
+  }
+
+  .footer-links li {
+    margin-bottom: 0.3125rem;
+  }
+
+  .social-icon-clean {
+    width: clamp(16px, 7vw, 20px);
+    height: clamp(16px, 7vw, 20px);
+  }
+
+  .social-text {
+    font-size: clamp(0.5625rem, 3.25vw, 0.625rem);
+  }
+
+  .footer-social-clean {
+    gap: 0.375rem;
   }
 }
 
@@ -572,7 +873,9 @@
   text-decoration: none;
   color: #fff;
   font-weight: 500;
-  transition: transform 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
 }
 
 .footer-social-link:hover {

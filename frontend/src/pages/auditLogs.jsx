@@ -3,10 +3,8 @@ import Sidebar from "../components/sidebar";
 import TopBar from "../components/topbar";
 import "../components/layout.css";
 import "./auditLogs.css";
-import axios from "axios";
 import { FiTrash2 } from "react-icons/fi";
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+import { mockAuditLogs } from "../mock/auditLogs";
 
 const FILTERS = [
   { label: "All", value: "all" },
@@ -35,11 +33,9 @@ const AuditLogsPage = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("access_token");
-      const res = await axios.get(`${API_BASE_URL}/audit/logs`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setLogs(res.data);
+      // Use mock audit logs instead of API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setLogs(mockAuditLogs);
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
     } finally {
@@ -50,19 +46,20 @@ const AuditLogsPage = () => {
   // Filtered logs
   const filteredLogs = logs.filter((log) => {
     if (filter === "all") return true;
+    const desc = (log.audit_description || log.action || "").toLowerCase();
     if (filter === "user") {
       return (
-        log.audit_description.toLowerCase().includes("user") ||
-        log.audit_description.toLowerCase().includes("approved request") ||
-        log.audit_description.toLowerCase().includes("rejected request") ||
-        log.audit_description.toLowerCase().includes("deleted a user")
+        desc.includes("user") ||
+        desc.includes("approved") ||
+        desc.includes("rejected") ||
+        desc.includes("deleted")
       );
     }
     if (filter === "agreement") {
       return (
-        log.audit_description.toLowerCase().includes("agreement") ||
-        log.audit_description.toLowerCase().includes("moa entry") ||
-        log.audit_description.toLowerCase().includes("mou entry")
+        desc.includes("agreement") ||
+        desc.includes("moa") ||
+        desc.includes("mou")
       );
     }
     return true;

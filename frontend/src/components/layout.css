@@ -1,4 +1,6 @@
-body, html, #root {
+body,
+html,
+#root {
   margin: 0;
   padding: 0;
   height: 100%;
@@ -97,7 +99,10 @@ body, html, #root {
   padding: 8px 10px;
   border-radius: 4px;
   position: relative;
-  transition: background 0.2s ease, padding-left 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    padding-left 0.2s ease,
+    color 0.2s ease;
 }
 
 .sidebar-item:hover {
@@ -162,7 +167,7 @@ body, html, #root {
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   padding: 10px;
   max-height: 400px;
@@ -221,7 +226,7 @@ body, html, #root {
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   padding: 0;
   max-height: 500px;
@@ -230,8 +235,14 @@ body, html, #root {
 }
 
 @keyframes fadeInScale {
-  from { opacity: 0; transform: translateY(-10px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .notif-dropdown-header {
@@ -494,7 +505,7 @@ body, html, #root {
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   padding: 10px;
 }
@@ -607,4 +618,256 @@ body, html, #root {
   overflow-y: auto;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* ================================================
+   RESPONSIVE MOBILE STYLES
+   ================================================ */
+
+/* Base: hide mobile-only elements on desktop */
+.sidebar-mobile-header {
+  display: none;
+}
+
+.logout-icon-only {
+  display: none;
+}
+
+/* Ensure hamburger button has no default browser styling */
+.hamburger {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 0;
+  line-height: 1;
+}
+
+/* ---- Tablet & Mobile (≤ 768px) ---- */
+@media (max-width: 768px) {
+  /* Topbar */
+  .topbar {
+    padding: 0 16px;
+    min-height: 56px;
+    height: 56px;
+  }
+
+  .topbar-left {
+    gap: 4px;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .topbar-title {
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+  }
+
+  .logo-globe {
+    width: 26px;
+    flex-shrink: 0;
+  }
+
+  .topbar-right {
+    gap: 4px;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  /* Increase touch target size for all topbar icons */
+  .topbar-icon {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+  }
+
+  .topbar-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .topbar-logout {
+    font-size: 11px;
+    padding: 6px 8px;
+    min-height: 36px;
+    white-space: nowrap;
+  }
+
+  /* Show hamburger on mobile */
+  .hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 22px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-right: 2px;
+  }
+
+  .hamburger:hover,
+  .hamburger:focus-visible {
+    background: rgba(255, 255, 255, 0.15);
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 1px;
+  }
+
+  /* Sidebar: off-canvas drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 260px;
+    max-width: 80vw;
+    z-index: 1001;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    border-right: none;
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar.show {
+    transform: translateX(0);
+  }
+
+  .sidebar-menu {
+    flex: 1;
+  }
+
+  /* Mobile sidebar header with close button */
+  .sidebar-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px 0 16px;
+    height: 56px;
+    min-height: 56px;
+    background: #800000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+  }
+
+  .sidebar-mobile-title {
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+  }
+
+  .sidebar-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 4px;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .sidebar-close-btn:hover,
+  .sidebar-close-btn:focus-visible {
+    background: rgba(255, 255, 255, 0.15);
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 1px;
+  }
+
+  /* Backdrop z-index below sidebar */
+  .mobile-backdrop {
+    z-index: 1000;
+  }
+
+  /* Dropdowns: keep within viewport width */
+  .notif-dropdown {
+    width: min(360px, calc(100vw - 24px));
+    right: 0;
+    left: auto;
+  }
+
+  .auditlog-dropdown {
+    width: min(300px, calc(100vw - 24px));
+    right: 0;
+    left: auto;
+  }
+
+  /* Reduce main content padding on mobile */
+  .main-content {
+    padding: 16px;
+  }
+}
+
+/* ---- Small Mobile (≤ 480px) ---- */
+@media (max-width: 480px) {
+  .topbar {
+    padding: 0 12px;
+  }
+
+  .topbar-title {
+    font-size: 14px;
+    max-width: 100px;
+  }
+
+  .topbar-right {
+    gap: 2px;
+  }
+
+  .topbar-logout {
+    padding: 5px 7px;
+    font-size: 10px;
+  }
+}
+
+/* ---- Very Small (≤ 360px) ---- */
+@media (max-width: 360px) {
+  .topbar {
+    padding: 0 10px;
+  }
+
+  .topbar-title {
+    max-width: 72px;
+    font-size: 13px;
+  }
+
+  .topbar-icon {
+    min-width: 36px;
+  }
+
+  .hamburger {
+    min-width: 36px;
+  }
+
+  /* Hide LOG OUT text, show icon only */
+  .logout-label {
+    display: none;
+  }
+
+  .logout-icon-only {
+    display: block;
+  }
+
+  .topbar-logout {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
 }

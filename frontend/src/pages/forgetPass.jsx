@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaEnvelope } from "react-icons/fa";
 import "./login.css";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+// Demo version - password reset not available
 
 const ForgetPass = () => {
   const navigate = useNavigate();
@@ -19,24 +19,12 @@ const ForgetPass = () => {
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }), // send email 
-      });
-
-      if (response.ok) {
-        setMessage(
-          "If an account exists with that email, you will receive reset instructions shortly."
-        );
-      } else {
-        const errorData = await response.json();
-        setError(errorData.detail || "Request failed");
-      }
-    } catch (err) {
+      // Demo version - password reset not available
       setError(
-        "Cannot connect to backend."
+        "Password reset is not available in demo mode. Please use demo credentials: demo@globalinked.com / demo123",
       );
+    } catch (err) {
+      setError("Password reset is not available in demo mode.");
     } finally {
       setLoading(false);
     }

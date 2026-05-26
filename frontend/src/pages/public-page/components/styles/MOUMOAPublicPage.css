@@ -24,6 +24,9 @@
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .moumoa-loading-container {
@@ -84,7 +87,8 @@
 .moumoa-hero-pattern {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(
+  background-image:
+    radial-gradient(
       circle at 20% 50%,
       rgba(255, 255, 255, 0.03) 0%,
       transparent 50%
@@ -120,6 +124,7 @@
   width: 100%;
   padding: 100px 40px 60px 40px;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .moumoa-hero-badge {
@@ -133,10 +138,12 @@
   border-radius: 50px;
   margin-bottom: 24px;
   color: white;
-  font-size: 14px;
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .moumoa-badge-icon {
@@ -157,12 +164,14 @@
 }
 
 .moumoa-hero-title {
-  font-size: 3.5rem;
+  font-size: clamp(1.75rem, 7vw, 3.5rem);
   font-weight: 800;
   color: white;
   margin-bottom: 16px;
   letter-spacing: -1px;
   line-height: 1.1;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .moumoa-title-highlight {
@@ -174,18 +183,20 @@
 }
 
 .moumoa-hero-subtitle {
-  font-size: 1.15rem;
+  font-size: clamp(0.875rem, 2.5vw, 1.15rem);
   color: rgba(255, 255, 255, 0.85);
   max-width: 600px;
   margin: 0 auto 40px;
   line-height: 1.7;
   font-weight: 400;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .moumoa-hero-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: clamp(12px, 2.5vw, 20px);
   max-width: 900px;
   margin: 0 auto;
 }
@@ -195,10 +206,10 @@
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
-  padding: 24px 20px;
+  padding: clamp(16px, 3vw, 24px) clamp(14px, 2.5vw, 20px);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: clamp(12px, 2vw, 16px);
   transition: all 0.3s ease;
 }
 
@@ -232,19 +243,23 @@
 }
 
 .moumoa-hero-stat-card .moumoa-stat-number {
-  font-size: 2rem;
+  font-size: clamp(1.25rem, 4vw, 2rem);
   font-weight: 800;
   color: white;
   line-height: 1;
   margin-bottom: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .moumoa-hero-stat-card .moumoa-stat-label {
-  font-size: 0.85rem;
+  font-size: clamp(0.625rem, 1.75vw, 0.85rem);
   color: rgba(255, 255, 255, 0.75);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Floating Decorations */
@@ -309,11 +324,13 @@
   padding: 0;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 2rem;
   max-width: 1200px;
   border-radius: 0;
   box-shadow: none;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .moumoa-info-card {
@@ -355,6 +372,8 @@
   max-width: 1200px;
   margin: -2rem auto 3rem;
   padding: 0 2rem;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .moumoa-quick-stats-row {
@@ -366,6 +385,8 @@
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(139, 35, 50, 0.1);
   border: 1px solid #e9ecef;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .moumoa-stat-item-row {
@@ -410,23 +431,29 @@
 }
 
 .moumoa-stat-number-row {
-  font-size: 1.8rem;
+  font-size: clamp(1.125rem, 3.5vw, 1.8rem);
   font-weight: 800;
   color: #2d3748;
   line-height: 1;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .moumoa-stat-label-row {
-  font-size: 0.9rem;
+  font-size: clamp(0.6875rem, 2vw, 0.9rem);
   color: #4a5568;
   font-weight: 500;
   margin-top: 0.25rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .moumoa-main-container {
   max-width: 1200px;
   margin: 0px auto 0;
-  padding: 0 24px 60px;
+  padding: 0 clamp(16px, 3vw, 24px) 60px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .moumoa-view-navigation {
@@ -437,6 +464,11 @@
   margin-bottom: 40px;
   border-bottom: 2px solid var(--light-gray);
   padding-bottom: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  box-sizing: border-box;
 }
 
 .moumoa-nav-tab {
@@ -448,13 +480,15 @@
   border: none;
   border-bottom: 4px solid transparent;
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: clamp(0.75rem, 2.25vw, 1rem);
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
   position: relative;
   margin-bottom: -2px;
   border-radius: 8px 8px 0 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .moumoa-nav-tab:hover {
@@ -475,26 +509,27 @@
   margin-right: 0.5rem;
 }
 
-/* CONTROLS BAR */
 .moumoa-controls-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: clamp(12px, 2vw, 16px);
+  margin-bottom: clamp(24px, 3vw, 32px);
   background: white;
-  padding: 20px;
+  padding: clamp(16px, 2.5vw, 20px);
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   border: 1px solid #e9ecef;
   width: 100%;
   box-sizing: border-box;
+  overflow: visible;
 }
 
 .moumoa-search-wrapper {
   position: relative;
   flex: 1 1 300px;
-  min-width: 300px;
+  min-width: 0;
+  width: 100%;
 }
 
 .moumoa-search-wrapper .moumoa-search-icon {
@@ -584,7 +619,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  min-width: 100px;
+  min-width: 0;
   justify-content: center;
   height: 48px;
   box-sizing: border-box;
@@ -690,18 +725,23 @@
 .moumoa-content-area {
   background-color: var(--white);
   border-radius: 16px;
-  padding: 40px;
+  padding: clamp(20px, 4vw, 40px);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--light-gray);
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 
 .moumoa-section-title {
-  font-size: 32px;
+  font-size: clamp(1.25rem, 5vw, 2rem);
   font-weight: 700;
   color: var(--primary-maroon);
   margin-bottom: 40px;
   text-align: center;
   position: relative;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .moumoa-section-title::after {
@@ -738,6 +778,8 @@
   transition: var(--transition);
   box-shadow: var(--shadow-sm);
   border: 1px solid transparent;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .moumoa-chart-item:hover {
@@ -765,7 +807,9 @@
 .moumoa-country-name {
   font-weight: 600;
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: clamp(0.75rem, 2.25vw, 1rem);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .moumoa-progress-container {
@@ -824,8 +868,10 @@
 
 .moumoa-countries-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: clamp(20px, 3vw, 30px);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 /* update: Country Card Styles */
@@ -834,12 +880,14 @@
   color: #000000;
   border: 2px solid var(--light-gray);
   border-radius: 20px;
-  padding: 32px;
+  padding: clamp(20px, 3.5vw, 32px);
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 /* Left accent bar on hover */
@@ -913,7 +961,7 @@
   align-items: center;
   justify-content: space-around;
   margin-bottom: 24px;
-  padding: 24px 0;
+  padding: clamp(18px, 3vw, 24px) 0;
   background: linear-gradient(
     135deg,
     var(--maroon-tint) 0%,
@@ -921,6 +969,8 @@
   );
   border-radius: 12px;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .moumoa-stat-item {
@@ -1014,8 +1064,8 @@
 
 .moumoa-regions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: clamp(20px, 3vw, 30px);
 }
 
 /* Region Card Styles */
@@ -1023,7 +1073,7 @@
   background-color: var(--white);
   border: 2px solid var(--light-gray);
   border-radius: 16px;
-  padding: 36px;
+  padding: clamp(24px, 4vw, 36px);
   padding-top: 1rem;
   padding-bottom: 3.2rem;
   transition: var(--transition);
@@ -1045,8 +1095,8 @@
 
 .moumoa-region-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 100px), 1fr));
+  gap: clamp(16px, 2.5vw, 20px);
   margin-bottom: 28px;
 }
 
@@ -1109,8 +1159,8 @@
 
 .moumoa-partnerships-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: clamp(16px, 2.5vw, 24px);
   margin-top: 24px;
 }
 
@@ -1122,13 +1172,13 @@
   );
   border: 2px solid var(--light-gray);
   border-radius: 14px;
-  padding: 24px;
+  padding: clamp(16px, 3vw, 24px);
   transition: var(--transition);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: clamp(12px, 2vw, 16px);
 }
 
 .moumoa-partner-card:hover {
@@ -1158,10 +1208,9 @@
 .moumoa-partner-logo {
   width: 48px;
   height: 48px;
-  object-fit: contain;
+  object-fit: cover;
   flex-shrink: 0;
-  border-radius: 8px;
-  padding: 4px;
+  border-radius: 50%;
   background: white;
   border: 1px solid var(--light-gray);
   box-shadow: var(--shadow-sm);
@@ -1228,7 +1277,8 @@
   max-width: 90vw;
   max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(139, 35, 50, 0.25),
+  box-shadow:
+    0 20px 60px rgba(139, 35, 50, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.1);
   animation: moumoa-modal-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
@@ -1306,7 +1356,9 @@
   height: 48px;
   object-fit: cover;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(139, 35, 50, 0.1);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(139, 35, 50, 0.1);
   position: relative;
   z-index: 2;
 }
@@ -1443,9 +1495,8 @@
 .moumoa-modal-university-logo {
   width: 36px;
   height: 36px;
-  object-fit: contain;
-  border-radius: 8px;
-  padding: 4px;
+  object-fit: cover;
+  border-radius: 50%;
   background: white;
   border: 1px solid #e9ecef;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -1459,7 +1510,7 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--maroon-tint), #ffffff);
-  border-radius: 8px;
+  border-radius: 50%;
   font-size: 18px;
   color: var(--primary-maroon);
   border: 1px solid rgba(139, 35, 50, 0.2);
@@ -1506,8 +1557,8 @@
 /* Summary Cards */
 .moumoa-overview-summary {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: clamp(16px, 2.5vw, 24px);
   margin-bottom: 20px;
 }
 
@@ -1602,8 +1653,8 @@
 
 .moumoa-top-countries-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: clamp(16px, 2.5vw, 20px);
 }
 
 .moumoa-top-countries-section .moumoa-country-card {
@@ -1830,8 +1881,8 @@
 
 .moumoa-countries-table {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: clamp(20px, 3vw, 30px);
 }
 
 .moumoa-table-header {
@@ -1989,74 +2040,201 @@
   order: 6;
 }
 
+/* Responsive Design */
+
+/* Better touch feedback on mobile */
+@media (hover: none) and (pointer: coarse) {
+  .moumoa-chart-item:active,
+  .moumoa-country-card:active,
+  .moumoa-partner-card:active {
+    transform: scale(0.98);
+  }
+
+  .moumoa-nav-tab:active {
+    background-color: rgba(139, 35, 50, 0.1);
+  }
+}
+
+/* Desktop - 1024px */
 @media (max-width: 1024px) {
-  .moumoa-countries-table {
-    grid-template-columns: repeat(2, 1fr);
+  .moumoa-hero-content {
+    padding: 80px clamp(24px, 4vw, 32px) 50px clamp(24px, 4vw, 32px);
+  }
+
+  .moumoa-main-container {
+    padding: 0 clamp(18px, 3vw, 20px) 50px;
+  }
+
+  .moumoa-content-area {
+    padding: clamp(24px, 4vw, 32px);
+  }
+
+  .moumoa-nav-tab {
+    padding: 14px 24px;
+    gap: 10px;
+    min-height: 48px;
   }
 }
 
+/* Tablet - 768px */
 @media (max-width: 768px) {
-  .moumoa-countries-table {
+  .moumoa-hero-section {
+    min-height: 400px;
+    padding: 0;
+  }
+
+  .moumoa-hero-content {
+    padding: 60px clamp(16px, 4vw, 24px) 40px clamp(16px, 4vw, 24px);
+  }
+
+  .moumoa-hero-title {
+    font-size: clamp(1.5rem, 6vw, 2.5rem);
+    margin-bottom: 12px;
+  }
+
+  .moumoa-hero-subtitle {
+    font-size: clamp(0.8125rem, 2.75vw, 1rem);
+    margin-bottom: 32px;
+  }
+
+  .moumoa-hero-badge {
+    font-size: clamp(0.6875rem, 2.25vw, 0.8125rem);
+    padding: 8px 16px;
+    margin-bottom: 20px;
+  }
+
+  .moumoa-hero-stat-card {
+    padding: 18px 16px;
+    gap: 12px;
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .moumoa-stat-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+
+  .moumoa-hero-stat-card .moumoa-stat-number {
+    font-size: clamp(1.125rem, 3.5vw, 1.625rem);
+  }
+
+  .moumoa-hero-stat-card .moumoa-stat-label {
+    font-size: clamp(0.5625rem, 1.75vw, 0.75rem);
+  }
+
+  .moumoa-info-section {
     grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .moumoa-countries-table {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 1024px) {
-  .moumoa-overview-summary {
-    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
   }
 
-  .moumoa-top-countries-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .moumoa-info-card {
+    padding: 1.5rem;
   }
 
-  .moumoa-table-header,
-  .moumoa-table-row {
-    grid-template-columns: 1.5fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .moumoa-overview-summary {
-    grid-template-columns: 1fr;
+  .moumoa-info-icon {
+    font-size: 2rem;
   }
 
-  .moumoa-top-countries-grid {
-    grid-template-columns: 1fr;
+  .moumoa-info-card h4 {
+    font-size: clamp(0.875rem, 2.5vw, 1rem);
   }
 
-  .moumoa-table-header,
-  .moumoa-table-row {
-    grid-template-columns: 2fr 1fr 0.8fr 0.8fr;
+  .moumoa-info-card p {
+    font-size: clamp(0.75rem, 2.25vw, 0.875rem);
   }
 
-  .moumoa-table-header-cell:nth-child(4),
-  .moumoa-table-row > :nth-child(4) {
-    display: none;
+  .moumoa-quick-stats-section {
+    margin: -2rem auto 2.5rem;
+    padding: 0 clamp(16px, 4vw, 24px);
   }
 
-  .moumoa-section-header {
-    margin-bottom: 16px;
+  .moumoa-quick-stats-row {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+    gap: 1.25rem;
+    padding: 1.5rem;
+  }
+
+  .moumoa-stat-item-row {
+    flex-direction: column;
+    text-align: center;
+    padding: 0.875rem;
+    gap: 0.75rem;
+  }
+
+  .moumoa-stat-item-row .moumoa-stat-icon-row,
+  .moumoa-stat-item-row img.moumoa-stat-icon-row {
+    width: 40px;
+    height: 40px;
+    font-size: 1.75rem;
+  }
+
+  .moumoa-stat-number-row {
+    font-size: clamp(1rem, 3.25vw, 1.5rem);
+  }
+
+  .moumoa-stat-label-row {
+    font-size: clamp(0.6875rem, 2.25vw, 0.8125rem);
+  }
+
+  .moumoa-main-container {
+    padding: 0 clamp(16px, 4vw, 20px) 40px;
+  }
+
+  .moumoa-view-navigation {
+    margin-top: 32px;
+    margin-bottom: 32px;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .moumoa-nav-tab {
+    padding: 12px 20px;
+    gap: 8px;
+    font-size: clamp(0.6875rem, 2.25vw, 0.875rem);
+    white-space: nowrap;
+    min-height: 48px;
+  }
+
+  .moumoa-tab-icon {
+    font-size: 1rem;
   }
 
   .moumoa-controls-bar {
     flex-direction: column;
+    gap: 12px;
+    padding: clamp(14px, 3vw, 16px);
+    margin-bottom: 24px;
+  }
+
+  .moumoa-search-wrapper {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .moumoa-search-input {
+    padding: 12px 40px 12px 44px;
+    min-height: 48px;
+    font-size: 14px;
   }
 
   .moumoa-controls-actions {
     width: 100%;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .moumoa-control-btn {
-    width: 100%;
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    max-width: none;
     justify-content: center;
+    font-size: 13px;
+    padding: 12px 16px;
+    min-height: 48px;
   }
 
   .moumoa-dropdown-menu {
@@ -2064,29 +2242,261 @@
     right: 0;
     min-width: 100%;
   }
+
+  .moumoa-content-area {
+    padding: clamp(18px, 3.5vw, 24px);
+    border-radius: 12px;
+  }
+
+  .moumoa-countries-grid {
+    gap: clamp(16px, 2.5vw, 20px);
+  }
+
+  .moumoa-country-card {
+    padding: clamp(18px, 3vw, 24px);
+  }
+
+  .moumoa-section-title {
+    font-size: clamp(1.125rem, 4.5vw, 1.75rem);
+    margin-bottom: 32px;
+  }
+
+  .moumoa-overview-summary,
+  .moumoa-top-countries-grid {
+    gap: clamp(16px, 2.5vw, 20px);
+  }
+
+  .moumoa-chart-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    text-align: center;
+    padding: 12px 16px;
+  }
+
+  .moumoa-country-info {
+    justify-content: center;
+  }
+
+  .moumoa-progress-container {
+    order: 2;
+  }
+
+  .moumoa-total-badge {
+    order: 3;
+    margin: 0 auto;
+  }
+
+  .moumoa-modal-content {
+    width: 90vw;
+    max-height: 80vh;
+  }
+
+  .moumoa-modal-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .moumoa-modal-stat h4 {
+    font-size: clamp(1.5rem, 6vw, 2.25rem);
+  }
+
+  .moumoa-modal-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .moumoa-region-tag,
+  .moumoa-total-tag {
+    text-align: center;
+    width: 100%;
+  }
 }
 
+/* Small tablet - 480px */
 @media (max-width: 480px) {
-  .moumoa-overview-summary {
-    grid-template-columns: 1fr;
+  .moumoa-hero-section {
+    min-height: 350px;
   }
 
-  .moumoa-summary-value {
-    font-size: 28px;
+  .moumoa-hero-content {
+    padding: 50px clamp(16px, 4.5vw, 20px) 35px clamp(16px, 4.5vw, 20px);
   }
 
-  .moumoa-top-countries-grid {
-    grid-template-columns: 1fr;
+  .moumoa-hero-title {
+    font-size: clamp(1.375rem, 6.5vw, 2rem);
+    margin-bottom: 10px;
   }
 
-  .moumoa-table-header,
-  .moumoa-table-row {
-    grid-template-columns: 1.5fr 1fr 0.8fr;
+  .moumoa-hero-subtitle {
+    font-size: clamp(0.75rem, 3vw, 0.9375rem);
+    margin-bottom: 28px;
   }
 
-  .moumoa-table-header-cell:nth-child(n + 5),
-  .moumoa-table-row > :nth-child(n + 5) {
-    display: none;
+  .moumoa-hero-badge {
+    font-size: clamp(0.625rem, 2.5vw, 0.75rem);
+    padding: 7px 14px;
+    margin-bottom: 16px;
+  }
+
+  .moumoa-badge-icon {
+    font-size: 12px;
+  }
+
+  .moumoa-hero-stat-card {
+    padding: 16px 14px;
+    gap: 10px;
+  }
+
+  .moumoa-stat-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .moumoa-hero-stat-card .moumoa-stat-number {
+    font-size: clamp(1rem, 3.75vw, 1.375rem);
+  }
+
+  .moumoa-hero-stat-card .moumoa-stat-label {
+    font-size: clamp(0.5rem, 1.75vw, 0.6875rem);
+  }
+
+  .moumoa-info-card {
+    padding: 1.25rem;
+  }
+
+  .moumoa-info-icon {
+    font-size: 1.75rem;
+  }
+
+  .moumoa-info-card h4 {
+    font-size: clamp(0.8125rem, 2.75vw, 0.9375rem);
+  }
+
+  .moumoa-info-card p {
+    font-size: clamp(0.6875rem, 2.5vw, 0.8125rem);
+  }
+
+  .moumoa-quick-stats-section {
+    padding: 0 clamp(16px, 4.5vw, 20px);
+    margin: -1.75rem auto 2rem;
+  }
+
+  .moumoa-quick-stats-row {
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+
+  .moumoa-stat-item-row {
+    padding: 0.75rem;
+  }
+
+  .moumoa-stat-item-row .moumoa-stat-icon-row,
+  .moumoa-stat-item-row img.moumoa-stat-icon-row {
+    width: 36px;
+    height: 36px;
+    font-size: 1.5rem;
+  }
+
+  .moumoa-stat-number-row {
+    font-size: clamp(0.9375rem, 3.5vw, 1.25rem);
+  }
+
+  .moumoa-stat-label-row {
+    font-size: clamp(0.625rem, 2.5vw, 0.75rem);
+  }
+
+  .moumoa-main-container {
+    padding: 0 clamp(16px, 4.5vw, 18px) 35px;
+  }
+
+  .moumoa-view-navigation {
+    margin-top: 28px;
+    margin-bottom: 28px;
+    gap: 6px;
+  }
+
+  .moumoa-nav-tab {
+    padding: 10px 16px;
+    gap: 6px;
+    font-size: clamp(0.625rem, 2.5vw, 0.8125rem);
+    min-height: 44px;
+  }
+
+  .moumoa-tab-icon {
+    font-size: 0.875rem;
+  }
+
+  .moumoa-controls-bar {
+    gap: 10px;
+    padding: clamp(14px, 3.5vw, 16px);
+    margin-bottom: 20px;
+  }
+
+  .moumoa-search-wrapper {
+    flex: 1 1 100%;
+  }
+
+  .moumoa-search-input {
+    font-size: clamp(0.75rem, 2.5vw, 0.875rem);
+    padding: 12px 40px 12px 44px;
+    min-height: 44px;
+  }
+
+  .moumoa-controls-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .moumoa-control-btn {
+    flex: 1 1 100%;
+    width: 100%;
+    font-size: clamp(0.6875rem, 2.25vw, 0.8125rem);
+    padding: 12px 16px;
+    min-height: 44px;
+  }
+
+  .moumoa-content-area {
+    padding: clamp(16px, 4vw, 20px);
+  }
+
+  .moumoa-countries-grid,
+  .moumoa-partnerships-grid {
+    gap: clamp(14px, 2.5vw, 16px);
+  }
+
+  .moumoa-country-card,
+  .moumoa-partner-card {
+    padding: clamp(16px, 3.5vw, 20px);
+  }
+
+  .moumoa-section-title {
+    font-size: clamp(1rem, 4.75vw, 1.5rem);
+    margin-bottom: 28px;
+  }
+
+  .moumoa-section-title::after {
+    width: 60px;
+    height: 2.5px;
+  }
+
+  .moumoa-chart-item {
+    padding: 10px 14px;
+  }
+
+  .moumoa-country-flag {
+    width: 20px;
+    height: 15px;
+  }
+
+  .moumoa-country-name {
+    font-size: clamp(0.6875rem, 2.5vw, 0.875rem);
+  }
+
+  .moumoa-progress-bar {
+    height: 16px;
   }
 
   .moumoa-country-header {
@@ -2103,118 +2513,451 @@
   .moumoa-country-stats {
     grid-template-columns: 1fr;
   }
-} /* Responsive Design */
-@media (max-width: 768px) {
-  .moumoa-hero-section {
-    padding: 4rem 1rem 4rem;
-  }
-
-  .moumoa-hero-title {
-    font-size: 2.5rem;
-  }
-
-  .moumoa-info-section {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .moumoa-quick-stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .moumoa-controls-bar {
-    flex-direction: column;
-    max-width: 100%;
-  }
-
-  .moumoa-search-wrapper {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .moumoa-sort-select {
-    width: 100%;
-  }
-
-  .moumoa-modal-content {
-    width: 90vw;
-    max-height: 80vh;
-  }
-
-  .moumoa-modal-stats {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 20px;
-  }
-
-  .moumoa-modal-stat h4 {
-    font-size: 36px;
-  }
-
-  .moumoa-modal-footer {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-
-  .moumoa-region-tag,
-  .moumoa-total-tag {
-    text-align: center;
-    width: 100%;
-  }
-
-  .moumoa-chart-item {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    text-align: center;
-  }
-
-  .moumoa-progress-container {
-    order: 2;
-  }
-
-  .moumoa-total-badge {
-    order: 3;
-    margin: 0 auto;
-  }
-}
-
-@media (max-width: 480px) {
-  .moumoa-hero-title {
-    font-size: 2rem;
-  }
-
-  .moumoa-quick-stats-row {
-    grid-template-columns: 1fr;
-  }
-
-  .moumoa-stat-number-row {
-    font-size: 1.5rem;
-  }
-
-  .moumoa-main-container {
-    padding: 40px 16px;
-  }
-
-  .moumoa-content-area {
-    padding: 24px;
-  }
-
-  .moumoa-partnerships-grid {
-    grid-template-columns: 1fr;
-  }
 
   .moumoa-modal-header {
-    padding: 30px 20px 20px;
+    padding: 28px 18px 18px;
   }
 
   .moumoa-modal-header h3 {
-    font-size: 22px;
+    font-size: clamp(1.125rem, 4.5vw, 1.375rem);
   }
 
   .moumoa-modal-universities,
   .moumoa-modal-footer {
-    padding: 20px;
+    padding: 18px;
+  }
+}
+
+/* Extra small - 414px */
+@media (max-width: 414px) {
+  .moumoa-hero-section {
+    min-height: 320px;
+  }
+
+  .moumoa-hero-content {
+    padding: 45px 18px 32px 18px;
+  }
+
+  .moumoa-hero-title {
+    font-size: clamp(1.25rem, 7vw, 1.875rem);
+  }
+
+  .moumoa-hero-subtitle {
+    font-size: clamp(0.6875rem, 3.25vw, 0.875rem);
+  }
+
+  .moumoa-hero-badge {
+    font-size: clamp(0.5625rem, 2.75vw, 0.6875rem);
+    padding: 6px 12px;
+  }
+
+  .moumoa-hero-stat-card {
+    padding: 14px 12px;
+  }
+
+  .moumoa-stat-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .moumoa-info-card {
+    padding: 1.125rem;
+  }
+
+  .moumoa-quick-stats-section {
+    padding: 0 1.125rem;
+  }
+
+  .moumoa-quick-stats-row {
+    padding: 1.125rem;
+  }
+
+  .moumoa-main-container {
+    padding: 0 12px 32px;
+  }
+
+  .moumoa-countries-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .moumoa-country-card {
+    padding: 18px;
+  }
+
+  .moumoa-nav-tab {
+    padding: 9px 14px;
+  }
+
+  .moumoa-controls-bar {
+    padding: 12px;
+  }
+
+  .moumoa-content-area {
+    padding: 18px;
+  }
+
+  .moumoa-section-title {
+    font-size: clamp(0.9375rem, 5vw, 1.375rem);
+    margin-bottom: 24px;
+  }
+}
+
+/* Extra small - 375px */
+@media (max-width: 375px) {
+  .moumoa-hero-section {
+    min-height: 300px;
+  }
+
+  .moumoa-hero-content {
+    padding: 40px 16px 30px 16px;
+  }
+
+  .moumoa-hero-title {
+    font-size: clamp(1.1875rem, 7.5vw, 1.75rem);
+  }
+
+  .moumoa-hero-subtitle {
+    font-size: clamp(0.625rem, 3.5vw, 0.8125rem);
+    margin-bottom: 24px;
+  }
+
+  .moumoa-hero-badge {
+    font-size: clamp(0.5rem, 3vw, 0.625rem);
+    padding: 5px 10px;
+  }
+
+  .moumoa-hero-stat-card {
+    padding: 12px 10px;
+  }
+
+  .moumoa-stat-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .moumoa-hero-stat-card .moumoa-stat-number {
+    font-size: clamp(0.9375rem, 4vw, 1.25rem);
+  }
+
+  .moumoa-hero-stat-card .moumoa-stat-label {
+    font-size: clamp(0.4375rem, 2vw, 0.625rem);
+  }
+
+  .moumoa-info-card {
+    padding: 1rem;
+  }
+
+  .moumoa-info-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .moumoa-quick-stats-section {
+    padding: 0 16px;
+  }
+
+  .moumoa-quick-stats-row {
+    padding: 1rem;
+    gap: 0.875rem;
+  }
+
+  .moumoa-stat-item-row {
+    padding: 0.625rem;
+  }
+
+  .moumoa-main-container {
+    padding: 0 16px 28px;
+  }
+
+  .moumoa-countries-grid,
+  .moumoa-partnerships-grid,
+  .moumoa-regions-grid {
+    gap: 12px;
+  }
+
+  .moumoa-country-card,
+  .moumoa-partner-card {
+    padding: 16px;
+  }
+
+  .moumoa-view-navigation {
+    margin-top: 24px;
+    margin-bottom: 24px;
+  }
+
+  .moumoa-nav-tab {
+    padding: 8px 12px;
+    min-height: 42px;
+  }
+
+  .moumoa-controls-bar {
+    padding: 14px;
+  }
+
+  .moumoa-search-input {
+    padding: 10px 36px 10px 40px;
+    min-height: 42px;
+    font-size: clamp(0.6875rem, 2.75vw, 0.8125rem);
+  }
+
+  .moumoa-control-btn {
+    padding: 10px 14px;
+    min-height: 42px;
+  }
+
+  .moumoa-content-area {
+    padding: 16px;
+  }
+
+  .moumoa-section-title {
+    font-size: clamp(0.875rem, 5.25vw, 1.25rem);
+    margin-bottom: 20px;
+  }
+
+  .moumoa-section-title::after {
+    width: 50px;
+  }
+
+  .moumoa-chart-item {
+    padding: 9px 12px;
+  }
+}
+
+/* Minimum - 320px */
+@media (max-width: 320px) {
+  .moumoa-hero-section {
+    min-height: 280px;
+  }
+
+  .moumoa-hero-content {
+    padding: 36px 14px 28px 14px;
+  }
+
+  .moumoa-hero-title {
+    font-size: clamp(1.0625rem, 8vw, 1.625rem);
+    letter-spacing: -0.5px;
+  }
+
+  .moumoa-hero-subtitle {
+    font-size: clamp(0.5625rem, 3.75vw, 0.75rem);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .moumoa-hero-badge {
+    font-size: clamp(0.4375rem, 3.25vw, 0.5625rem);
+    padding: 4px 8px;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .moumoa-badge-icon {
+    font-size: 10px;
+  }
+
+  .moumoa-hero-stats {
+    gap: 8px;
+  }
+
+  .moumoa-hero-stat-card {
+    padding: 10px 8px;
+    gap: 8px;
+  }
+
+  .moumoa-stat-icon-wrapper {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+    border-radius: 8px;
+  }
+
+  .moumoa-hero-stat-card .moumoa-stat-number {
+    font-size: clamp(0.875rem, 4.25vw, 1.125rem);
+  }
+
+  .moumoa-hero-stat-card .moumoa-stat-label {
+    font-size: clamp(0.375rem, 2.25vw, 0.5625rem);
+    letter-spacing: 0.25px;
+  }
+
+  .moumoa-info-section {
+    gap: 1rem;
+  }
+
+  .moumoa-info-card {
+    padding: 0.875rem;
+  }
+
+  .moumoa-info-icon {
+    font-size: 1.375rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .moumoa-info-card h4 {
+    font-size: clamp(0.75rem, 3vw, 0.8125rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .moumoa-info-card p {
+    font-size: clamp(0.625rem, 2.75vw, 0.6875rem);
+    line-height: 1.5;
+  }
+
+  .moumoa-quick-stats-section {
+    padding: 0 14px;
+    margin: -1.5rem auto 1.75rem;
+  }
+
+  .moumoa-quick-stats-row {
+    padding: 0.875rem;
+    gap: 0.75rem;
+  }
+
+  .moumoa-stat-item-row {
+    padding: 0.5rem;
+  }
+
+  .moumoa-stat-item-row .moumoa-stat-icon-row,
+  .moumoa-stat-item-row img.moumoa-stat-icon-row {
+    width: 32px;
+    height: 32px;
+    font-size: 1.25rem;
+  }
+
+  .moumoa-stat-number-row {
+    font-size: clamp(0.875rem, 3.75vw, 1.125rem);
+  }
+
+  .moumoa-stat-label-row {
+    font-size: clamp(0.5625rem, 2.75vw, 0.6875rem);
+  }
+
+  .moumoa-main-container {
+    padding: 0 14px 24px;
+  }
+
+  .moumoa-countries-grid,
+  .moumoa-partnerships-grid,
+  .moumoa-regions-grid {
+    gap: 10px;
+  }
+
+  .moumoa-country-card,
+  .moumoa-partner-card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .moumoa-view-navigation {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    gap: 4px;
+  }
+
+  .moumoa-nav-tab {
+    padding: 7px 10px;
+    gap: 5px;
+    font-size: clamp(0.5625rem, 2.75vw, 0.6875rem);
+    min-height: 40px;
+  }
+
+  .moumoa-tab-icon {
+    font-size: 0.75rem;
+  }
+
+  .moumoa-controls-bar {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .moumoa-search-wrapper .moumoa-search-icon {
+    left: 12px;
+    font-size: 14px;
+  }
+
+  .moumoa-search-input {
+    padding: 8px 32px 8px 36px;
+    min-height: 40px;
+    font-size: clamp(0.625rem, 3vw, 0.75rem);
+    border-radius: 10px;
+  }
+
+  .moumoa-search-clear {
+    width: 20px;
+    height: 20px;
+    right: 10px;
+  }
+
+  .moumoa-control-btn {
+    padding: 8px 12px;
+    min-height: 40px;
+    font-size: clamp(0.625rem, 2.5vw, 0.75rem);
+    border-radius: 10px;
+    min-width: 80px;
+  }
+
+  .moumoa-filter-badge {
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+  }
+
+  .moumoa-content-area {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .moumoa-section-title {
+    font-size: clamp(0.8125rem, 5.5vw, 1.125rem);
+    margin-bottom: 18px;
+  }
+
+  .moumoa-section-title::after {
+    width: 40px;
+    height: 2px;
+    bottom: -8px;
+  }
+
+  .moumoa-chart-item {
+    padding: 8px 10px;
+    gap: 8px;
+    border-radius: 10px;
+  }
+
+  .moumoa-country-flag {
+    width: 18px;
+    height: 13px;
+  }
+
+  .moumoa-country-name {
+    font-size: clamp(0.625rem, 2.75vw, 0.8125rem);
+  }
+
+  .moumoa-progress-bar {
+    height: 14px;
+    border-radius: 7px;
+  }
+
+  .moumoa-modal-header {
+    padding: 24px 16px 16px;
+  }
+
+  .moumoa-modal-header h3 {
+    font-size: clamp(1rem, 5vw, 1.25rem);
+  }
+
+  .moumoa-close-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .moumoa-modal-universities,
+  .moumoa-modal-footer {
+    padding: 16px;
   }
 }
 
@@ -2390,8 +3133,8 @@
 /* Grid View */
 .moumoa-grid-view {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: clamp(16px, 2.5vw, 20px);
   margin-bottom: 20px;
 }
 
@@ -2487,7 +3230,7 @@
 .moumoa-institution-logo {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
+  border-radius: 50%;
   background: #f9fafb;
   display: flex;
   align-items: center;
@@ -2499,8 +3242,8 @@
 .moumoa-institution-logo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  padding: 4px;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .moumoa-logo-fallback {
@@ -2687,7 +3430,7 @@
 .moumoa-table-logo {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: 50%;
   background: #f9fafb;
   display: flex;
   align-items: center;
@@ -2698,8 +3441,8 @@
 .moumoa-table-logo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  padding: 2px;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .moumoa-table-logo-fallback {
@@ -3004,15 +3747,15 @@
 /* Grid View */
 .partners-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: clamp(16px, 2.5vw, 24px);
 }
 
 .partner-card {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  padding: 24px;
+  padding: clamp(18px, 3vw, 24px);
   text-align: center;
   transition: all 0.3s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -3031,7 +3774,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 50%;
   overflow: hidden;
   background: #f9fafb;
 }
@@ -3039,8 +3782,8 @@
 .partner-logo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  padding: 8px;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .logo-placeholder {
@@ -3053,6 +3796,7 @@
   color: white;
   font-size: 24px;
   font-weight: 700;
+  border-radius: 50%;
 }
 
 .partner-name {
@@ -3084,8 +3828,8 @@
 .partner-list-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
+  gap: clamp(12px, 2vw, 16px);
+  padding: clamp(14px, 2.5vw, 16px) clamp(18px, 3vw, 24px);
   border-bottom: 1px solid #f3f4f6;
   transition: background 0.2s;
 }
@@ -3101,7 +3845,7 @@
 .list-logo {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
+  border-radius: 50%;
   overflow: hidden;
   background: #f9fafb;
   display: flex;
@@ -3113,8 +3857,8 @@
 .list-logo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  padding: 4px;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .logo-placeholder-small {
@@ -3127,6 +3871,7 @@
   color: white;
   font-size: 16px;
   font-weight: 600;
+  border-radius: 50%;
 }
 
 .list-info {
@@ -3158,10 +3903,12 @@
 .country-list-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
+  gap: clamp(12px, 2vw, 16px);
+  padding: clamp(14px, 2.5vw, 16px) clamp(18px, 3vw, 24px);
   border-bottom: 1px solid #f3f4f6;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
   cursor: pointer;
 }
 

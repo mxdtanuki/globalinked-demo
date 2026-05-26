@@ -1,36 +1,41 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
-
+import { ADMIN_NOTIFICATIONS } from '../adminDummyData';
 
 export const notificationService = {
-  async fetchNotifications() {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(`${API_BASE_URL}/notifications/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error("Failed to fetch notifications");
-    return res.json();
+  fetchNotifications() {
+    // Return admin notifications
+    return Promise.resolve([...ADMIN_NOTIFICATIONS]);
   },
 
-  
-
-  async markAsRead(id) {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error("Failed to mark read");
-    return res.json();
+  getNotificationsByUser(userId) {
+    // Return notifications for specific user
+    return Promise.resolve(ADMIN_NOTIFICATIONS.filter(n => 
+      !n.user_id || n.user_id === userId
+    ));
   },
 
-async deleteNotification(id) {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(`${API_BASE_URL}/notifications/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+  getUnreadNotifications(userId) {
+    // Return unread notifications for user
+    return Promise.resolve(ADMIN_NOTIFICATIONS.filter(n => 
+      (!n.user_id || n.user_id === userId) && !n.read
+    ));
+  },
+
+  markAsRead(id) {
+    // Simulate marking notification as read
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, id });
+      }, 300);
     });
-    if (!res.ok) throw new Error("Failed to delete notification");
-    return res.json();
+  },
+
+  deleteNotification(id) {
+    // Simulate notification deletion
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, deleted: true });
+      }, 300);
+    });
   },
 };
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./styles/MainBanner.css";
-import { agreementService } from "../../../services/agreementService";
+import { DUMMY_PARTNERS } from "../dummyData";
 
 // React Icons
 import {
@@ -240,6 +240,7 @@ export default function MainBanner() {
   const [isTransitioning, setIsTransitioning] = useState(true);
   const [isTocOpen, setIsTocOpen] = useState(false);
   const [tocOnLightBg, setTocOnLightBg] = useState(false);
+  const [carouselCardWidth, setCarouselCardWidth] = useState(236);
 
   const aboutRef = useRef(null);
   const heroRef = useRef(null);
@@ -266,62 +267,28 @@ export default function MainBanner() {
   ];
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const agreements = await agreementService.getPublicAgreements();
-        const activeAgreements = agreements.filter(
-          (ag) => ag.agreement_status === "Active"
-        );
+    const countriesSet = new Set(DUMMY_PARTNERS.map((p) => p.country));
+    const countries = Array.from(countriesSet);
+    const partnerFlags = countries
+      .filter((country) => countryToCode[country])
+      .map((country) => ({
+        country,
+        flag: `https://flagcdn.com/${countryToCode[country]}.svg`,
+      }));
 
-        const countriesSet = new Set();
-        const partnersMap = new Map();
+    setFlags(
+      partnerFlags.length > 0
+        ? partnerFlags
+        : [{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }],
+    );
 
-        activeAgreements.forEach((ag) => {
-          if (ag.country) countriesSet.add(ag.country);
-
-          const logoField = ag.logo_path || ag.logo || ag.university_logo;
-          const nameField =
-            ag.institution_name ||
-            ag.university_name ||
-            ag.partner_name ||
-            ag.name;
-
-          if (logoField && nameField) {
-            partnersMap.set(logoField, {
-              logo: logoField,
-              name: nameField,
-              country: ag.country || "Unknown",
-            });
-          }
-        });
-
-        const countries = Array.from(countriesSet);
-        const partnerFlags = countries
-          .filter((country) => countryToCode[country])
-          .map((country) => ({
-            country,
-            flag: `https://flagcdn.com/${countryToCode[country]}.svg`,
-          }));
-
-        setFlags(
-          partnerFlags.length > 0
-            ? partnerFlags
-            : [{ country: "Philippines", flag: "https://flagcdn.com/ph.svg" }]
-        );
-
-        const logos = Array.from(partnersMap.values());
-        logos.sort((a, b) => a.name.localeCompare(b.name));
-        setPartnerLogos(logos);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setFlags([
-          { country: "Philippines", flag: "https://flagcdn.com/ph.svg" },
-        ]);
-        setPartnerLogos([]);
-      }
-    };
-
-    fetchData();
+    const logos = DUMMY_PARTNERS.map((p) => ({
+      logo: p.logo,
+      name: p.name,
+      country: p.country,
+    }));
+    logos.sort((a, b) => a.name.localeCompare(b.name));
+    setPartnerLogos(logos);
   }, []);
 
   useEffect(() => {
@@ -376,6 +343,33 @@ export default function MainBanner() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Calculate carousel card width based on viewport
+  useEffect(() => {
+    const calculateCardWidth = () => {
+      const width = window.innerWidth;
+      // Card width + gap
+      if (width <= 320) {
+        setCarouselCardWidth(120 + 12); // 120px card + 0.75rem gap
+      } else if (width <= 375) {
+        setCarouselCardWidth(140 + 14); // 140px card + 0.875rem gap
+      } else if (width <= 414) {
+        setCarouselCardWidth(160 + 16); // 160px card + 1rem gap
+      } else if (width <= 480) {
+        setCarouselCardWidth(150 + 16); // 150px card + 1rem gap
+      } else if (width <= 768) {
+        setCarouselCardWidth(180 + 20); // 180px card + 1.25rem gap
+      } else if (width <= 1024) {
+        setCarouselCardWidth(200 + 20); // 200px card + 1.25rem gap
+      } else {
+        setCarouselCardWidth(220 + 24); // 220px card + 1.5rem gap
+      }
+    };
+
+    calculateCardWidth();
+    window.addEventListener("resize", calculateCardWidth);
+    return () => window.removeEventListener("resize", calculateCardWidth);
+  }, []);
+
   const navigate = useNavigate();
 
   const handleCountriesClick = () => {
@@ -388,7 +382,11 @@ export default function MainBanner() {
 
   const tocLinks = [
     { label: "About Us", target: "#about-hero-edge", icon: <FiInfo /> },
-    { label: "Objectives & Functions", target: "#objectives", icon: <FiTarget /> },
+    {
+      label: "Objectives & Functions",
+      target: "#objectives",
+      icon: <FiTarget />,
+    },
     { label: "Services", target: "#services", icon: <FiLayers /> },
     { label: "FAQ", target: "#faq", icon: <FiHelpCircle /> },
     { label: "Officials & Staff", target: "#officials", icon: <FiUsers /> },
@@ -551,7 +549,7 @@ export default function MainBanner() {
                     className="oia-carousel-arrow oia-carousel-arrow--left"
                     onClick={() =>
                       setCurrentFlagIndex((prev) =>
-                        prev === 0 ? flags.length - 1 : prev - 1
+                        prev === 0 ? flags.length - 1 : prev - 1,
                       )
                     }
                     aria-label="Previous countries"
@@ -662,7 +660,7 @@ export default function MainBanner() {
                 onClick={() => {
                   setIsTransitioning(true);
                   setCurrentPartnerIndex((prev) =>
-                    prev === 0 ? partnerLogos.length - 1 : prev - 1
+                    prev === 0 ? partnerLogos.length - 1 : prev - 1,
                   );
                 }}
                 aria-label="Previous institutions"
@@ -674,7 +672,7 @@ export default function MainBanner() {
                 <div
                   className="oia-partners-carousel"
                   style={{
-                    transform: `translateX(-${currentPartnerIndex * 236}px)`,
+                    transform: `translateX(-${currentPartnerIndex * carouselCardWidth}px)`,
                     transition: isTransitioning
                       ? "transform 0.5s ease-in-out"
                       : "none",
@@ -687,7 +685,7 @@ export default function MainBanner() {
                     >
                       <div className="oia-partner-logo-container">
                         <img
-                          src={`data:image/png;base64,${partner.logo}`}
+                          src={partner.logo}
                           alt={partner.name}
                           className="oia-partner-logo"
                         />
@@ -714,12 +712,7 @@ export default function MainBanner() {
                 &#10095;
               </button>
             </div>
-          ) : (
-            <div className="oia-partners-loading">
-              <div className="oia-loading-spinner" />
-              <p>Loading partner institutions...</p>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </section>

@@ -43,7 +43,7 @@
     FiPlus,
     } from "react-icons/fi";
     import { agreementService } from "../services/agreementService";
-    import axios from "axios";
+    // axios removed for frontend-only demo
     import { documentService } from "../services/documentService";
     import {
     generatePrintableReport as generatePrintableReportShared,
@@ -180,20 +180,13 @@
     const [filterClassification, setFilterClassification] = useState("");
     const [filterCountryScope, setFilterCountryScope] = useState("all"); // all | local | international
     const [filterSource, setFilterSource] = useState("");
-
-    const API_BASE_URL =
-        process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const createAuditLog = async (description) => {
         try {
-        const token = localStorage.getItem("access_token");
-        await axios.post(
-            `${API_BASE_URL}/audit/logs`,
-            { audit_description: description },
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
+        // Simulate audit log creation - demo version only
+        console.log("[Demo] Audit log:", description);
         } catch (err) {
         console.error("Failed to create audit log:", err);
         }
@@ -1016,8 +1009,8 @@
             if (lp.startsWith("iVBORw0")) return `data:image/png;base64,${lp}`;
             if (lp.startsWith("/9j/")) return `data:image/jpeg;base64,${lp}`;
             if (lp.startsWith("http://") || lp.startsWith("https://")) return lp;
-            // otherwise treat as a server-relative path
-            return `${API_BASE_URL.replace(/\/$/, "")}/${lp.replace(/^\/+/, "")}`;
+            // Demo mode - return logo path as-is
+            return lp;
         }
         } catch (err) {
         console.warn("LogoSrc error:", err, lp);

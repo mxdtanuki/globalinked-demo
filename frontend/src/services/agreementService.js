@@ -1,408 +1,175 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+import { ADMIN_AGREEMENTS } from '../adminDummyData';
+
+// Status overrides for archive page requirements (12 expired, 7 withdrawn)
+const STATUS_OVERRIDES = {
+  3: { status: 'EXPIRED', agreement_status: 'Expired' },    // UP Diliman
+  12: { status: 'EXPIRED', agreement_status: 'Expired' },   // Aga Khan
+  18: { status: 'EXPIRED', agreement_status: 'Expired' },   // EHL
+  24: { status: 'EXPIRED', agreement_status: 'Expired' },   // KTH
+  28: { status: 'EXPIRED', agreement_status: 'Expired' },   // Warsaw
+  32: { status: 'EXPIRED', agreement_status: 'Expired' },   // USP
+  37: { status: 'EXPIRED', agreement_status: 'Expired' },   // Cairo
+  40: { status: 'EXPIRED', agreement_status: 'Expired' },   // UAEU
+  // Withdrawn overrides
+  5: { status: 'WITHDRAWN', agreement_status: 'Withdrawn', withdrawal_reason: 'Partner institutional restructuring', withdrawal_date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], withdrawn_by: 'Dr. Maria Santos' },
+  14: { status: 'WITHDRAWN', agreement_status: 'Withdrawn', withdrawal_reason: 'Budget constraints', withdrawal_date: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], withdrawn_by: 'Dr. Maria Santos' },
+  19: { status: 'WITHDRAWN', agreement_status: 'Withdrawn', withdrawal_reason: 'Policy changes', withdrawal_date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], withdrawn_by: 'Dr. Maria Santos' },
+  21: { status: 'WITHDRAWN', agreement_status: 'Withdrawn', withdrawal_reason: 'Program discontinuation', withdrawal_date: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], withdrawn_by: 'Prof. John Reyes' },
+  39: { status: 'WITHDRAWN', agreement_status: 'Withdrawn', withdrawal_reason: 'Partnership realignment', withdrawal_date: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], withdrawn_by: 'Dr. Maria Santos' },
+  35: { status: 'WITHDRAWN', agreement_status: 'Withdrawn', withdrawal_reason: 'Mutual agreement to terminate', withdrawal_date: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], withdrawn_by: 'Dr. Sarah Chen' },
+};
+
+// Apply status overrides
+const applyStatusOverrides = (agreements) => {
+  return agreements.map(agreement => {
+    const override = STATUS_OVERRIDES[agreement.agreement_id];
+    if (override) {
+      return { ...agreement, ...override };
+    }
+    return agreement;
+  });
+};
 
 export const agreementService = {
-  async getPartners() {
-    const token = localStorage.getItem("access_token");
-
-    const response = await fetch(`${API_BASE_URL}/partners`, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("Failed to load partners", error);
-      throw error;
-    }
-
-    return response.json();
+  getPartners() {
+    // Return unique partners from admin data
+    const partners = Array.from(new Set(ADMIN_AGREEMENTS.map(a => a.partner_name)));
+    return Promise.resolve(partners.map(name => ({ name })));
   },
 
-async createAgreement(formData) {
-    const token = localStorage.getItem('access_token');
-    
-    if (!token) {
-      throw new Error('Please login first');
-    }
-    
-    console.log('Sending agreement data:', formData);
-
-    const response = await fetch(`${API_BASE_URL}/agreements/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(formData)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("API Error (422):", error);
-      
-      // ✅ FIXED: Extract validation errors from detail array
-      if (error.detail && Array.isArray(error.detail)) {
-        const validationErrors = error.detail
-          .map(err => `${err.loc?.[1] || 'Field'}: ${err.msg || err.type}`)
-          .join('\n');
-        
-        const formattedError = new Error(`Validation errors:\n${validationErrors}`);
-        formattedError.detail = validationErrors;
-        formattedError.rawErrors = error.detail;
-        throw formattedError;
-      }
-      
-      throw error;
-    }
-
-    return response.json();
-  },
-
-  async getAgreements(filters = {}) {
-    const token = localStorage.getItem('access_token');
-    
-    if (!token) {
-      throw new Error('Please login first');
-    }
-    
-    const queryParams = new URLSearchParams();
-    Object.keys(filters).forEach(key => {
-      if (filters[key]) {
-        queryParams.append(key, filters[key]);
-      }
-    });
-    
-    const response = await fetch(`${API_BASE_URL}/agreements/?${queryParams.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch agreements');
-    }
-
-    return response.json();
-  },
-
-   async getPublicAgreements(filters = {}) {
-    const queryParams = new URLSearchParams();
-    Object.keys(filters).forEach(key => {
-      if (filters[key]) {
-        queryParams.append(key, filters[key]);
-      }
-    });
-
-    const response = await fetch(`${API_BASE_URL}/agreements/public?${queryParams.toString()}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch public agreements');
-    }
-    return response.json();
-  },
-
-    // Get withdrawn agreements with server-side filtering
-  async getWithdrawnAgreements() {
-    return this.getAgreements({ status_filter: 'WITHDRAWN' });
-  },
-  
-  // Get only active agreements
-  async getActiveAgreements() {
-    return this.getAgreements({ status_filter: 'ACTIVE' });
-  },
-
-  // Get only open agreements  
-  async getOpenAgreements() {
-    return this.getAgreements({ status_filter: 'OPEN' });
-  },
-
-  // Get mobility agreements with specific partnership types
-  async getMobilityAgreements() {
-    return this.getAgreements({ 
-      status_filter: 'ACTIVE',
-      partnership_type: 'MOA on Student Competition,MOA on Internship,MOA on Faculty Exchange,MOA on Student Exchange,MOA on Faculty and Student Exchange'
+  createAgreement(formData) {
+    // Simulate agreement creation with a delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, ...formData });
+      }, 800);
     });
   },
-  // Lightweight summary for dashboard
-  async getAgreementsSummary() {
-    const token = localStorage.getItem('access_token');
-    
-    if (!token) {
-      throw new Error('Please login first');
-    }
-    
-    const response = await fetch(`${API_BASE_URL}/agreements/summary`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch summary');
+  getAgreements(filters = {}) {
+    // Filter admin agreements by status or other fields
+    let data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
+    if (filters.status_filter) {
+      data = data.filter(a => a.status === filters.status_filter);
     }
-
-    return response.json();
+    return Promise.resolve(data);
   },
 
-  async getAgreementById(id) {
-  const token = localStorage.getItem('access_token');
-  if (!token) throw new Error('Please login first');
-
-  const headers = { 'Authorization': `Bearer ${token}` };
-
-  // Try multiple detail routes (with/without trailing slash, api prefix, singular)
-  const detailPaths = [
-    `/agreements/${id}/`,
-    `/agreements/${id}`,
-    `/api/agreements/${id}/`,
-    `/agreement/${id}`,
-  ];
-
-  const tried = [];
-  for (const path of detailPaths) {
-    const url = `${API_BASE_URL}${path}`;
-    try {
-      const res = await fetch(url, { headers });
-      tried.push({ url, status: res.status });
-      if (res.ok) return res.json();
-      if (res.status === 404 || res.status === 405) continue;
-    } catch (e) {
-      tried.push({ url, error: e.message });
-      continue;
-    }
-  }
-
-  // Fallback: list endpoint with filters (agreement_id, id, or dts_number)
-  const queryPaths = [
-    `/agreements/?agreement_id=${encodeURIComponent(id)}`,
-    `/agreements/?id=${encodeURIComponent(id)}`,
-    `/agreements/?dts_number=${encodeURIComponent(id)}`,
-  ];
-  for (const path of queryPaths) {
-    const url = `${API_BASE_URL}${path}`;
-    try {
-      const res = await fetch(url, { headers });
-      tried.push({ url, status: res.status });
-      if (!res.ok) continue;
-      const data = await res.json();
-      return Array.isArray(data) ? data[0] : data;
-    } catch (e) {
-      tried.push({ url, error: e.message });
-      continue;
-    }
-  }
-
-  console.warn('getAgreementById failed. Tried:', tried);
-  throw new Error('Failed to fetch agreement');
-},
-
-async getAgreementByDts(dts) {
-  const token = localStorage.getItem('access_token');
-  if (!token) throw new Error('Please login first');
-  const headers = { 'Authorization': `Bearer ${token}` };
-
-  const paths = [
-    `/agreements/by-dts/${encodeURIComponent(dts)}`,
-    `/agreements/?dts_number=${encodeURIComponent(dts)}`,
-  ];
-  for (const path of paths) {
-    const url = `${API_BASE_URL}${path}`;
-    const res = await fetch(url, { headers });
-    if (res.ok) {
-      const data = await res.json();
-      return Array.isArray(data) ? data[0] : data;
-    }
-  }
-  throw new Error('Failed to fetch by DTS');
-},
-
-  async updateAgreement(id, formData) {
-    const token = localStorage.getItem('access_token');
-    
-    if (!token) {
-      throw new Error('Please login first');
-    }
-
-    const response = await fetch(`${API_BASE_URL}/agreements/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(formData)
-    });
-
-    if (!response.ok) {
-      // Parse JSON body when possible and produce a helpful Error
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch (parseErr) {
-        throw new Error(`Failed to update agreement (status ${response.status})`);
-      }
-
-      // If detail is an array (validation errors), flatten it
-      if (errorData && Array.isArray(errorData.detail)) {
-        const validationErrors = errorData.detail
-          .map((err) => {
-            if (typeof err === 'string') return err;
-            return `${err.loc?.[1] || 'Field'}: ${err.msg || err.type || JSON.stringify(err)}`;
-          })
-          .join('\n');
-        const ex = new Error(`Validation errors:\n${validationErrors}`);
-        ex.raw = errorData;
-        throw ex;
-      }
-
-      // If detail is an object or string, include it in the Error message
-      const detail =
-        typeof errorData.detail === 'string'
-          ? errorData.detail
-          : JSON.stringify(errorData.detail || errorData);
-      const ex = new Error(detail || `Failed to update agreement (status ${response.status})`);
-      ex.raw = errorData;
-      throw ex;
-    }
-
-    return response.json();
+  getPublicAgreements(filters = {}) {
+    // Return active agreements for public
+    const data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
+    return Promise.resolve(data.filter(a => 
+      ['ACTIVE', 'NEARING_EXPIRATION'].includes(a.status)
+    ));
   },
 
-  async deleteAgreement(id) {
-    const token = localStorage.getItem('access_token');
-    console.log("DeleteAgreement token:", token);
-    const [, payloadB64] = token.split(".");
-    console.log(JSON.parse(atob(payloadB64)));
-
-    if (!token) {
-      throw new Error('Please login first');
-    }
-
-    const response = await fetch(`${API_BASE_URL}/agreements/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to delete agreement');
-    }
-
-    // 204 means no content, so just return true
-    if (response.status === 204) {
-      return true;
-    }
-
-    return response.json();
+  getWithdrawnAgreements() {
+    const data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
+    return Promise.resolve(data.filter(a => a.status === 'WITHDRAWN'));
   },
 
-    async getArchivedAgreements() {
-    const token = localStorage.getItem('access_token');
-    console.log("Fetching:", `${API_BASE_URL}/agreements/archive`);
-    console.log("With method: GET");
-
-
-    if (!token) {
-      throw new Error('Please login first');
-    }
-
-    const response = await fetch(`${API_BASE_URL}/agreements/archive`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      // try to parse API error body if possible, otherwise throw generic
-      let err;
-      try {
-        err = await response.json();
-      } catch (_e) {
-        err = { detail: 'Failed to fetch archived agreements' };
-      }
-      console.error('Failed to load archived agreements', err);
-      throw err;
-    }
-
-    return response.json();
+  getActiveAgreements() {
+    const data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
+    return Promise.resolve(data.filter(a => 
+      ['ACTIVE', 'NEARING_EXPIRATION'].includes(a.status)
+    ));
   },
 
-  async extractAgreementMetadata(file) {
-    const token = localStorage.getItem('access_token');
-    
-    if (!token) {
-      throw new Error('Please login first');
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch(`${API_BASE_URL}/documents/extract-metadata`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      body: formData
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("NLP extraction failed:", error);
-      throw error;
-    }
-
-    return response.json();
+  getOpenAgreements() {
+    const data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
+    return Promise.resolve(data.filter(a => a.status === 'OPEN'));
   },
 
-  async extractAgreementMetadataWithProgress(file, onProgress) {
-    const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
+  getAgreementById(id) {
+    // Find agreement by ID from admin data
+    const data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
+    const agreement = data.find(a => a.agreement_id == id);
+    return Promise.resolve(agreement || null);
+  },
 
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      const url = `${API_BASE_URL}/documents/extract-metadata`;
-      const formData = new FormData();
-      formData.append('file', file);
+  getAgreementByDts(dts) {
+    // Find agreement by DTS number from admin data
+    const data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
+    const agreement = data.find(a => a.dts_number === dts);
+    return Promise.resolve(agreement || null);
+  },
 
-      xhr.open('POST', url, true);
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+  updateAgreement(id, formData) {
+    // Simulate agreement update with a delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, agreement_id: id, ...formData });
+      }, 800);
+    });
+  },
 
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable && typeof onProgress === 'function') {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          onProgress(percent);
-        }
-      };
+  deleteAgreement(id) {
+    // Simulate agreement deletion with a delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, deleted: true });
+      }, 600);
+    });
+  },
 
-      xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4) {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const resp = JSON.parse(xhr.responseText);
-              resolve(resp);
-            } catch (err) {
-              reject({ detail: 'Invalid JSON response from server' });
-            }
-          } else {
-            // Provide detailed error with HTTP status and response body for debugging
-            let parsed;
-            try {
-              parsed = JSON.parse(xhr.responseText);
-            } catch (e) {
-              parsed = { detail: xhr.responseText || `Upload failed with status ${xhr.status}` };
-            }
-            parsed.status = xhr.status;
-            parsed.responseText = xhr.responseText;
-            console.error('XHR upload error', parsed);
-            reject(parsed);
+  getArchivedAgreements() {
+    // Return expired and withdrawn agreements from admin data
+    const data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
+    return Promise.resolve(data.filter(a => 
+      ['EXPIRED', 'WITHDRAWN'].includes(a.status)
+    ));
+  },
+
+  extractAgreementMetadata(file) {
+    // Simulate metadata extraction from file
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          filename: file.name,
+          extracted_fields: {
+            title: 'Extracted Agreement Title',
+            parties: ['Party A', 'Party B'],
           }
-        }
-      };
-
-      xhr.onerror = () => reject({ detail: 'Network error during upload' });
-      xhr.send(formData);
+        });
+      }, 1500);
     });
+  },
+
+  extractAgreementMetadataWithProgress(file, onProgress) {
+    // Simulate progress-based metadata extraction
+    return new Promise((resolve) => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 30;
+        if (progress >= 100) progress = 100;
+        if (onProgress) onProgress(Math.round(progress));
+        if (progress >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            resolve({
+              success: true,
+              filename: file.name,
+              extracted_fields: {
+                title: 'Extracted Agreement Title',
+                parties: ['Party A', 'Party B'],
+              }
+            });
+          }, 300);
+        }
+      }, 200);
+    });
+  },
+
+  getMobilityAgreements() {
+    // Return agreements relevant for mobility/exchange programs
+    const data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
+    return Promise.resolve(data.filter(a => 
+      ['ACTIVE', 'NEARING_EXPIRATION'].includes(a.status) &&
+      (a.scope_of_partnership?.includes('Student Exchange') || 
+       a.scope_of_partnership?.includes('Faculty Exchange') ||
+       a.partnership_type === 'Student Mobility')
+    ));
   },
 
 };

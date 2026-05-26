@@ -55,7 +55,7 @@ export default function Officials() {
 
         <div className="officials-grid">
           <div className="officials-row top">
-            {officials.slice(0, 3).map((official, index) => (
+            {officials.slice(0, 4).map((official, index) => (
               <div key={index} className="official-card">
                 <div className="official-image">
                   <img
@@ -76,8 +76,8 @@ export default function Officials() {
           </div>
 
           <div className="officials-row bottom">
-            {officials.slice(3).map((official, index) => (
-              <div key={index + 3} className="official-card">
+            {officials.slice(4).map((official, index) => (
+              <div key={index + 4} className="official-card">
                 <div className="official-image">
                   <img
                     src={official.image}

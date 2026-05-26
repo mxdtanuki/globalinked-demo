@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useNotifications } from '../pages/notificationContext';
-import { useAuditLogs } from '../pages/auditContext';
-import './layout.css';
-import { MdOutlineManageHistory } from 'react-icons/md';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useNotifications } from "../pages/notificationContext";
+import { useAuditLogs } from "../pages/auditContext";
+import "./layout.css";
+import { MdOutlineManageHistory, MdLogout } from "react-icons/md";
 
-const TopBar = ({ toggleSidebar }) => {
+const TopBar = ({ toggleSidebar, sidebarOpen = false }) => {
   const navigate = useNavigate();
   const { notifications, markAsRead, refresh } = useNotifications();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -16,10 +16,10 @@ const TopBar = ({ toggleSidebar }) => {
   const unreadNotifications = notifications.filter((n) => !n.read);
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('token_type');
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("token_type");
     sessionStorage.clear();
-    navigate('/');
+    navigate("/");
   };
 
   const toggleDropdown = () => {
@@ -47,7 +47,17 @@ const TopBar = ({ toggleSidebar }) => {
   return (
     <div className="topbar">
       <div className="topbar-left">
-        <span className="hamburger" onClick={toggleSidebar}>☰</span>
+        <button
+          className="hamburger"
+          onClick={toggleSidebar}
+          aria-label={
+            sidebarOpen ? "Close navigation menu" : "Open navigation menu"
+          }
+          aria-expanded={sidebarOpen}
+          aria-controls="main-sidebar"
+        >
+          ☰
+        </button>
         <img src="/globalMap.png" alt="Globe" className="logo-globe" />
         <span className="topbar-title">Globalinked</span>
       </div>
@@ -55,8 +65,16 @@ const TopBar = ({ toggleSidebar }) => {
       <div className="topbar-right">
         {currentUser?.user_role?.toLowerCase() === "admin" && (
           <div className="auditlog-wrapper">
-            <span className="topbar-icon" title="Audit Logs" onClick={toggleAuditDropdown}>
-              <MdOutlineManageHistory className="audit-icon" size={24} color="#ffffffff" />
+            <span
+              className="topbar-icon"
+              title="Audit Logs"
+              onClick={toggleAuditDropdown}
+            >
+              <MdOutlineManageHistory
+                className="audit-icon"
+                size={24}
+                color="#ffffffff"
+              />
             </span>
             {showAuditDropdown && (
               <div className="auditlog-dropdown">
@@ -69,7 +87,10 @@ const TopBar = ({ toggleSidebar }) => {
                       <p className="auditlog-title">{log.audit_description}</p>
                       <div className="auditlog-footer">
                         <span className="auditlog-timestamp">
-                          {new Date(new Date(log.audit_timestamp).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
+                          {new Date(
+                            new Date(log.audit_timestamp).getTime() +
+                              8 * 60 * 60 * 1000,
+                          ).toLocaleString("en-US", { hour12: true })}
                         </span>
                       </div>
                     </div>
@@ -92,7 +113,11 @@ const TopBar = ({ toggleSidebar }) => {
         )}
 
         <div className="notification-wrapper">
-          <span className="topbar-icon" onClick={toggleDropdown} title="Show notifications">
+          <span
+            className="topbar-icon"
+            onClick={toggleDropdown}
+            title="Show notifications"
+          >
             🔔
             {unreadNotifications.length > 0 && (
               <span className="notif-badge">{unreadNotifications.length}</span>
@@ -103,26 +128,40 @@ const TopBar = ({ toggleSidebar }) => {
             <div className="notif-dropdown">
               <div className="notif-dropdown-header">
                 <span className="notif-dropdown-title">Notifications</span>
-                <button className="notif-dropdown-refresh" onClick={() => refresh()}>
+                <button
+                  className="notif-dropdown-refresh"
+                  onClick={() => refresh()}
+                >
                   Refresh
                 </button>
               </div>
 
               {unreadNotifications.length > 0 ? (
                 unreadNotifications.slice(0, 5).map((notif) => (
-                  <div key={notif.id} className={`notif-dropdown-item ${notif.read ? 'read' : 'unread'}`}>
-                    <div className="notif-dropdown-content" onClick={() => {
-                      markAsRead(notif.id);
-                      setShowDropdown(false);
-                      navigate('/notification');
-                    }}>
+                  <div
+                    key={notif.id}
+                    className={`notif-dropdown-item ${notif.read ? "read" : "unread"}`}
+                  >
+                    <div
+                      className="notif-dropdown-content"
+                      onClick={() => {
+                        markAsRead(notif.id);
+                        setShowDropdown(false);
+                        navigate("/notification");
+                      }}
+                    >
                       <p className="notif-dropdown-title-text">{notif.title}</p>
-                      {notif.raw?.message && notif.raw.message !== notif.title ? (
-                        <p className="notif-dropdown-recommend">{notif.raw.message}</p>
+                      {notif.raw?.message &&
+                      notif.raw.message !== notif.title ? (
+                        <p className="notif-dropdown-recommend">
+                          {notif.raw.message}
+                        </p>
                       ) : null}
                       <div className="notif-dropdown-footer">
                         <span className="notif-dropdown-time">
-                          {new Date(new Date(notif.time).getTime() + 8 * 60 * 60 * 1000).toLocaleString("en-US", { hour12: true })}
+                          {new Date(
+                            new Date(notif.time).getTime() + 8 * 60 * 60 * 1000,
+                          ).toLocaleString("en-US", { hour12: true })}
                         </span>
                       </div>
                     </div>
@@ -134,10 +173,13 @@ const TopBar = ({ toggleSidebar }) => {
                 </div>
               )}
 
-              <div className="notif-dropdown-footer-link" onClick={() => {
-                setShowDropdown(false);
-                navigate('/notification');
-              }}>
+              <div
+                className="notif-dropdown-footer-link"
+                onClick={() => {
+                  setShowDropdown(false);
+                  navigate("/notification");
+                }}
+              >
                 View All Notifications →
               </div>
             </div>
@@ -146,16 +188,25 @@ const TopBar = ({ toggleSidebar }) => {
 
         <span
           className="topbar-icon"
-          onClick={() => navigate('/profile')}
-          style={{ cursor: 'pointer' }}
+          onClick={() => navigate("/profile")}
+          style={{ cursor: "pointer" }}
           title="Profile Settings"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && navigate("/profile")}
         >
           ⚙️
         </span>
 
-        <span className="topbar-logout" title="Logout" onClick={handleLogout}>
-          LOG OUT
-        </span>
+        <button
+          className="topbar-logout"
+          title="Log out"
+          onClick={handleLogout}
+          aria-label="Log out"
+        >
+          <span className="logout-label">LOG OUT</span>
+          <MdLogout className="logout-icon-only" size={18} aria-hidden="true" />
+        </button>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { FaLock } from "react-icons/fa";
 import "./login.css"; // reuse 
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+// Demo version - password reset not available
 
 const ResetPass = () => {
   const location = useLocation();
@@ -30,26 +30,10 @@ const ResetPass = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          new_password: password,
-        }),
-      });
-
-      if (response.ok) {
-        setMessage("Password reset successful! You can now log in.");
-        setTimeout(() => navigate("/login"), 2000); // redirect after 2s
-      } else {
-        const errorData = await response.json();
-        setError(errorData.detail || "Reset failed");
-      }
+      // Demo version - password reset not available
+      setError("Password reset is not available in demo mode. Please use demo credentials: demo@globalinked.com / demo123");
     } catch (err) {
-      setError(
-        "Cannot connect to backend. Make sure the server is running on http://localhost:8000"
-      );
+      setError("Password reset is not available in demo mode.");
     } finally {
       setLoading(false);
     }

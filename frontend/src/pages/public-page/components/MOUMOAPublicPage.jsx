@@ -1,6 +1,6 @@
 // MOUMOAPublicPage.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { agreementService } from "../../../services/agreementService";
+import { DUMMY_AGREEMENTS } from "../dummyData";
 import Header from "./Header";
 import Footer from "./Footer";
 import "./styles/MOUMOAPublicPage.css";
@@ -29,6 +29,12 @@ import { useLocation } from "react-router-dom";
 
 const MOUMOAPublicPage = () => {
   const location = useLocation();
+
+  // Detect mobile device for default view mode
+  const isMobileDevice = () => {
+    return window.innerWidth <= 768;
+  };
+
   const [selectedView, setSelectedView] = useState("overview");
   // Auto-select tab if navigated with state
   useEffect(() => {
@@ -51,8 +57,12 @@ const MOUMOAPublicPage = () => {
   const [partnerSearchTerm, setPartnerSearchTerm] = useState("");
   const [filteredPartners, setFilteredPartners] = useState([]);
   const [partnerLogosMap, setPartnerLogosMap] = useState(new Map());
-  const [partnerViewMode, setPartnerViewMode] = useState("grid");
-  const [countryViewMode, setCountryViewMode] = useState("grid");
+  const [partnerViewMode, setPartnerViewMode] = useState(
+    isMobileDevice() ? "list" : "grid",
+  );
+  const [countryViewMode, setCountryViewMode] = useState(
+    isMobileDevice() ? "list" : "grid",
+  );
 
   const modalRef = useRef(null);
   const filterRef = useRef(null);
@@ -61,46 +71,28 @@ const MOUMOAPublicPage = () => {
   const countryViewRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const agreements = await agreementService.getPublicAgreements();
-        const activeAgreements = agreements.filter(
-          (ag) => ag.agreement_status === "Active"
-        );
-        setAgreementData(activeAgreements);
+    const uniquePartners = new Set();
+    const logosMap = new Map();
 
-        // Extract unique partner institutions and their logos
-        const uniquePartners = new Set();
-        const logosMap = new Map();
-
-        activeAgreements.forEach((ag) => {
-          if (ag.partner_name) {
-            const partnerName = ag.partner_name.trim();
-            uniquePartners.add(partnerName);
-
-            // Extract logo similar to MainBanner.jsx
-            const logoField = ag.logo_path || ag.logo || ag.university_logo;
-            if (logoField && !logosMap.has(partnerName)) {
-              logosMap.set(partnerName, {
-                logo: logoField,
-                name: ag.institution_name || ag.university_name || partnerName,
-                country: ag.country || "Unknown",
-              });
-            }
-          }
-        });
-
-        setPartnerInstitutions(uniquePartners.size);
-        setFilteredPartners(Array.from(uniquePartners).sort());
-        setPartnerLogosMap(logosMap);
-      } catch (err) {
-        console.error("Error fetching agreements:", err);
-      } finally {
-        setIsLoading(false);
+    DUMMY_AGREEMENTS.forEach((ag) => {
+      if (ag.partner_name) {
+        const partnerName = ag.partner_name.trim();
+        uniquePartners.add(partnerName);
+        if (!logosMap.has(partnerName)) {
+          logosMap.set(partnerName, {
+            logo: ag.logo,
+            name: ag.institution_name || partnerName,
+            country: ag.country || "Unknown",
+          });
+        }
       }
-    };
-    fetchData();
+    });
+
+    setAgreementData(DUMMY_AGREEMENTS);
+    setPartnerInstitutions(uniquePartners.size);
+    setFilteredPartners(Array.from(uniquePartners).sort());
+    setPartnerLogosMap(logosMap);
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -133,6 +125,20 @@ const MOUMOAPublicPage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Handle responsive view mode changes on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        setPartnerViewMode("list");
+        setCountryViewMode("list");
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Filter partners based on search term, region filter, and sort
   useEffect(() => {
     let partners = Array.from(
@@ -140,8 +146,8 @@ const MOUMOAPublicPage = () => {
         agreementData
           .map((ag) => ag.partner_name)
           .filter(Boolean)
-          .map((p) => p.trim())
-      )
+          .map((p) => p.trim()),
+      ),
     );
 
     // Apply search filter
@@ -153,7 +159,7 @@ const MOUMOAPublicPage = () => {
         const matchesCountry = agreementData.some(
           (ag) =>
             ag.partner_name?.trim() === partner &&
-            ag.country?.toLowerCase().includes(searchLower)
+            ag.country?.toLowerCase().includes(searchLower),
         );
         return matchesPartner || matchesCountry;
       });
@@ -165,18 +171,18 @@ const MOUMOAPublicPage = () => {
         agreementData.some(
           (ag) =>
             ag.partner_name?.trim() === partner &&
-            mapRegionToFilter(ag.region) === filterRegion
-        )
+            mapRegionToFilter(ag.region) === filterRegion,
+        ),
       );
     }
 
     // Apply sort
     partners = partners.sort((a, b) => {
       const aCount = agreementData.filter(
-        (ag) => ag.partner_name?.trim() === a
+        (ag) => ag.partner_name?.trim() === a,
       ).length;
       const bCount = agreementData.filter(
-        (ag) => ag.partner_name?.trim() === b
+        (ag) => ag.partner_name?.trim() === b,
       ).length;
 
       switch (sortBy) {
@@ -463,7 +469,7 @@ const MOUMOAPublicPage = () => {
   const mapRegionToFilter = (region) => {
     const cleanRegion = (region || "").trim().toLowerCase();
     const match = Object.entries(regionMap).find(([, detailed]) =>
-      detailed.some((r) => r.toLowerCase() === cleanRegion)
+      detailed.some((r) => r.toLowerCase() === cleanRegion),
     );
     return match ? match[0] : "Other";
   };
@@ -476,7 +482,7 @@ const MOUMOAPublicPage = () => {
         item.country.toLowerCase().includes(searchLower) ||
         regionLower.includes(searchLower) ||
         Array.from(item.partners).some((partner) =>
-          partner.toLowerCase().includes(searchLower)
+          partner.toLowerCase().includes(searchLower),
         );
 
       const mappedRegion = mapRegionToFilter(item.region);
@@ -528,7 +534,7 @@ const MOUMOAPublicPage = () => {
     regionTotals[bucket].countries += 1;
     regionTotals[bucket].agreements += item.total;
     item.partners.forEach((partner) =>
-      regionTotals[bucket].partners.add(partner)
+      regionTotals[bucket].partners.add(partner),
     );
   });
 
@@ -1027,7 +1033,7 @@ const MOUMOAPublicPage = () => {
                   <div className="moumoa-summary-value">
                     {filteredData.reduce(
                       (sum, country) => sum + country.total,
-                      0
+                      0,
                     )}
                   </div>
                   <div className="moumoa-summary-unit">MOUs + MOAs</div>
@@ -1039,7 +1045,7 @@ const MOUMOAPublicPage = () => {
                   <div className="moumoa-summary-value">
                     {
                       new Set(
-                        filteredData.flatMap((c) => Array.from(c.partners))
+                        filteredData.flatMap((c) => Array.from(c.partners)),
                       ).size
                     }
                   </div>
@@ -1059,7 +1065,7 @@ const MOUMOAPublicPage = () => {
                       ? Math.round(
                           (filteredData.reduce((sum, c) => sum + c.total, 0) /
                             filteredData.length) *
-                            10
+                            10,
                         ) / 10
                       : 0}
                   </div>
@@ -1226,7 +1232,7 @@ const MOUMOAPublicPage = () => {
                   {filteredPartners.map((partner) => {
                     const partnerInfo = partnerLogosMap.get(partner);
                     const countryData = data.find(
-                      (c) => c.country === partnerInfo?.country
+                      (c) => c.country === partnerInfo?.country,
                     );
                     return (
                       <div
@@ -1254,7 +1260,7 @@ const MOUMOAPublicPage = () => {
                         <div className="partner-logo">
                           {partnerInfo?.logo ? (
                             <img
-                              src={`data:image/png;base64,${partnerInfo.logo}`}
+                              src={partnerInfo.logo}
                               alt={`${partner} logo`}
                             />
                           ) : (
@@ -1281,7 +1287,7 @@ const MOUMOAPublicPage = () => {
                   {filteredPartners.map((partner) => {
                     const partnerInfo = partnerLogosMap.get(partner);
                     const countryData = data.find(
-                      (c) => c.country === partnerInfo?.country
+                      (c) => c.country === partnerInfo?.country,
                     );
                     return (
                       <div
@@ -1310,7 +1316,7 @@ const MOUMOAPublicPage = () => {
                         <div className="list-logo">
                           {partnerInfo?.logo ? (
                             <img
-                              src={`data:image/png;base64,${partnerInfo.logo}`}
+                              src={partnerInfo.logo}
                               alt={`${partner} logo`}
                             />
                           ) : (
@@ -1597,13 +1603,13 @@ const MOUMOAPublicPage = () => {
                         const logoField =
                           ag.logo_path || ag.logo || ag.university_logo;
                         return [nameField, { nameField, logoField }];
-                      })
-                  ).values()
+                      }),
+                  ).values(),
                 ).map((item, idx) => (
                   <div key={idx} className="moumoa-modal-university-item">
                     {item.logoField ? (
                       <img
-                        src={`data:image/png;base64,${item.logoField}`}
+                        src={item.logoField}
                         alt={item.nameField}
                         className="moumoa-modal-university-logo"
                       />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FiGrid, FiList } from "react-icons/fi";
-import agreementService from "../../../services/agreementService";
+import { DUMMY_PARTNERS } from "../dummyData";
 
 const PartnerInstitutions = () => {
   const [institutions, setInstitutions] = useState([]);
@@ -9,35 +9,21 @@ const PartnerInstitutions = () => {
   const [filterRegion, setFilterRegion] = useState("");
 
   useEffect(() => {
-    fetchInstitutions();
+    const grouped = {};
+    DUMMY_PARTNERS.forEach((p) => {
+      if (!grouped[p.name]) {
+        grouped[p.name] = {
+          name: p.name,
+          logo: p.logo,
+          country: p.country,
+          region: p.region,
+          agreements: p.mou + p.moa,
+        };
+      }
+    });
+    setInstitutions(Object.values(grouped));
+    setLoading(false);
   }, []);
-
-  const fetchInstitutions = async () => {
-    try {
-      const data = await agreementService.getPublicPartners();
-      // Group by institution name and count agreements
-      const grouped = data.reduce((acc, item) => {
-        const name = item.partner_name || item.name;
-        if (!acc[name]) {
-          acc[name] = {
-            name: name,
-            logo: item.logo_path || item.logo_url,
-            country: item.country,
-            region: item.region,
-            agreements: 0,
-          };
-        }
-        acc[name].agreements++;
-        return acc;
-      }, {});
-
-      setInstitutions(Object.values(grouped));
-      setLoading(false);
-    } catch (err) {
-      console.error("Failed to load institutions:", err);
-      setLoading(false);
-    }
-  };
 
   const filteredInstitutions = filterRegion
     ? institutions.filter((inst) => inst.region === filterRegion)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "./assets/logo.png";
 import searchIcon from "./assets/search.png";
@@ -7,8 +7,7 @@ import "./styles/Header.css";
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  // const [isSearchOpen, setIsSearchOpen] = useState(false);
-  // const [searchKeyword, setSearchKeyword] = useState("");
+  const headerRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,6 +18,18 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Close mobile menu when clicking outside the header
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const handleClickOutside = (e) => {
+      if (headerRef.current && !headerRef.current.contains(e.target)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMobileMenuOpen]);
 
   // useEffect(() => {
   //   const handleClickOutside = (event) => {
@@ -76,7 +87,10 @@ export default function Header() {
 
   return (
     <>
-      <header className={`header ${isScrolled ? "scrolled" : ""}`}>
+      <header
+        ref={headerRef}
+        className={`header ${isScrolled ? "scrolled" : ""}`}
+      >
         <div className="header-container">
           <Link to="/" className="logo-section">
             <img src={logo} alt="PUP Logo" className="logo" />
@@ -87,18 +101,18 @@ export default function Header() {
           </Link>
 
           <div className="header-right">
-            <nav className={`nav ${isMobileMenuOpen ? "nav-open" : ""}`}>
+            <nav
+              id="mobile-nav"
+              className={`nav ${isMobileMenuOpen ? "nav-open" : ""}`}
+            >
               <button
                 className="nav-item"
                 onClick={() => {
                   if (location.pathname !== "/") {
                     navigate("/");
-                    setTimeout(
-                      () => window.scrollTo({ top: 0, behavior: "smooth" }),
-                      200
-                    );
                   } else {
                     window.scrollTo({ top: 0, behavior: "smooth" });
+                    document.documentElement.scrollTop = 0;
                   }
                   setIsMobileMenuOpen(false);
                 }}
@@ -143,8 +157,11 @@ export default function Header() {
             </button> */}
 
             <button
-              className="mobile-menu-toggle"
+              className={`mobile-menu-toggle ${isMobileMenuOpen ? "is-open" : ""}`}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-nav"
             >
               <span></span>
               <span></span>

@@ -1,127 +1,107 @@
-import axios from "axios";
-
-const API_BASE = `${process.env.REACT_APP_API_BASE_URL}/documents` || 'http://localhost:8000/documents';
+import { ADMIN_DOCUMENT_VERSIONS } from '../adminDummyData';
 
 export const documentService = {
-  // upload a new version (multipart/form-data)
-  uploadVersion: async (dtsNumber, file, versionComment, statusAtUpload) => {
-    const token = localStorage.getItem("access_token");
-    const formData = new FormData();
-    formData.append("file", file);
-    if (versionComment) formData.append("version_comment", versionComment);
-    if (statusAtUpload) formData.append("status_at_upload", statusAtUpload);
-
-    const headers = {
-      "Content-Type": "multipart/form-data",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-
-    const res = await axios.post(`${API_BASE}/${dtsNumber}/versions`, formData, { headers });
-    return res.data;
+  uploadVersion(dtsNumber, file, versionComment, statusAtUpload) {
+    // Simulate file upload with fake success
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          dtsNumber,
+          file_name: file.name,
+          version_comment: versionComment,
+        });
+      }, 1000);
+    });
   },
 
-  // list all versions across all DTS (used by docVer.jsx)
-  getAllVersions: async () => {
-    const token = localStorage.getItem("access_token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await axios.get(`${API_BASE}/versions/all`, { headers });
-    return res.data;
+  getAllVersions() {
+    // Return all admin document versions
+    return Promise.resolve([...ADMIN_DOCUMENT_VERSIONS]);
   },
 
-  // list versions for a single DTS
-  getVersionsByDts: async (dtsNumber) => {
-    const token = localStorage.getItem("access_token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await axios.get(`${API_BASE}/${dtsNumber}/versions`, { headers });
-    return res.data;
+  getVersionsByDts(dtsNumber) {
+    // Filter versions by DTS number
+    const versions = ADMIN_DOCUMENT_VERSIONS.filter(v => v.dtsNumber === dtsNumber);
+    return Promise.resolve([...versions]);
   },
 
-  // convenience: latest version object (or null)
-  getLatestVersion: async (dtsNumber) => {
-    const versions = await documentService.getVersionsByDts(dtsNumber);
+  getVersionsByAgreementId(agreementId) {
+    // Filter versions by agreement ID
+    const versions = ADMIN_DOCUMENT_VERSIONS.filter(v => v.agreement_id === agreementId);
+    return Promise.resolve([...versions]);
+  },
+
+  async getLatestVersion(dtsNumber) {
+    const versions = await this.getVersionsByDts(dtsNumber);
     if (!versions || versions.length === 0) return null;
     return versions.reduce((a, b) => (a.version_number >= b.version_number ? a : b));
   },
 
-  // get a signed download url for a version_id (returns { download_url })
-  getDownloadUrl: async (versionId) => {
-    const token = localStorage.getItem("access_token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await axios.get(`${API_BASE}/versions/${versionId}/download`, { headers });
-    return res.data;
+  getDownloadUrl(versionId) {
+    // Simulate download URL generation
+    return Promise.resolve({
+      download_url: `/downloads/document-${versionId}.pdf`
+    });
   },
 
-  // update version metadata and/or replace file (multipart/form-data)
-  updateVersion: async (versionId, formData) => {
-    const token = localStorage.getItem("access_token");
-    const headers = {
-      "Content-Type": "multipart/form-data",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-    const res = await axios.put(`${API_BASE}/versions/${versionId}`, formData, { headers });
-    return res.data;
+  updateVersion(versionId, formData) {
+    // Simulate version update
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, versionId, ...formData });
+      }, 800);
+    });
   },
 
-  // delete a version
-  deleteVersion: async (versionId) => {
-    const token = localStorage.getItem("access_token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await axios.delete(`${API_BASE}/versions/${versionId}`, { headers });
-    return res.data;
+  deleteVersion(versionId) {
+    // Simulate version deletion
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, deleted: true });
+      }, 600);
+    });
   },
 
-  // extract metadata (NLP) - simple POST
-  extractMetadata: async (file) => {
-    const token = localStorage.getItem("access_token");
-    const formData = new FormData();
-    formData.append("file", file);
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await axios.post(`${API_BASE}/extract-metadata`, formData, { headers });
-    return res.data;
-  },
-
-  // optional: upload with progress using XHR for progress events
-  extractMetadataWithProgress: (file, onProgress) => {
-    const token = localStorage.getItem("access_token");
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      const url = `${API_BASE}/extract-metadata`;
-      const formData = new FormData();
-      formData.append("file", file);
-
-      xhr.open("POST", url, true);
-      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable && typeof onProgress === "function") {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          onProgress(percent);
-        }
-      };
-
-      xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4) {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch (err) {
-              reject({ detail: "Invalid JSON response" });
-            }
-          } else {
-            let parsed;
-            try {
-              parsed = JSON.parse(xhr.responseText);
-            } catch (e) {
-              parsed = { detail: xhr.responseText || `Upload failed with status ${xhr.status}` };
-            }
-            parsed.status = xhr.status;
-            reject(parsed);
+  extractMetadata(file) {
+    // Simulate NLP extraction with fake metadata
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          filename: file.name,
+          extracted_fields: {
+            title: 'Extracted Title',
+            parties: ['Party A', 'Party B'],
+            date: new Date().toISOString(),
           }
-        }
-      };
+        });
+      }, 1500);
+    });
+  },
 
-      xhr.onerror = () => reject({ detail: "Network error during upload" });
-      xhr.send(formData);
+  extractMetadataWithProgress(file, onProgress) {
+    // Simulate progress-based metadata extraction
+    return new Promise((resolve) => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 30;
+        if (progress >= 100) progress = 100;
+        if (onProgress) onProgress(Math.round(progress));
+        if (progress >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            resolve({
+              success: true,
+              filename: file.name,
+              extracted_fields: {
+                title: 'Extracted Title',
+                parties: ['Party A', 'Party B'],
+              }
+            });
+          }, 300);
+        }
+      }, 200);
     });
   },
 };

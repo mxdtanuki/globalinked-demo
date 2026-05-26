@@ -1,57 +1,37 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
-
+import { ADMIN_EMAIL_TEMPLATES } from '../adminDummyData';
 
 export const emailService = {
-  // Fetch email templates from backend
-  async getTemplates() {
-    const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
-
-    const res = await fetch(`${API_BASE_URL}/emails/templates`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Failed to fetch email templates');
-    return res.json();
+  getTemplates() {
+    // Return admin email templates
+    return Promise.resolve([...ADMIN_EMAIL_TEMPLATES]);
   },
 
-  // Create or update email template
-  async saveTemplate(templateData) {
-    const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
-
-    const res = await fetch(`${API_BASE_URL}/emails/templates`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` 
-      },
-      body: JSON.stringify(templateData)
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to save template');
-    }
-    return res.json();
+  getActiveTemplates() {
+    // Return only active templates
+    return Promise.resolve(ADMIN_EMAIL_TEMPLATES.filter(t => t.active));
   },
 
-  // Send email using template
-  async sendEmail(emailData) {
-    const token = localStorage.getItem('access_token');
-    if (!token) throw new Error('Please login first');
+  getTemplatesByCategory(category) {
+    // Return templates by category
+    return Promise.resolve(ADMIN_EMAIL_TEMPLATES.filter(t => t.category === category));
+  },
 
-    const res = await fetch(`${API_BASE_URL}/emails/send`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` 
-      },
-      body: JSON.stringify(emailData)
+  saveTemplate(templateData) {
+    // Simulate template save
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, ...templateData });
+      }, 600);
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to send email');
-    }
-    return res.json();
+  },
+
+  sendEmail(emailData) {
+    // Simulate email send
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, message_id: Math.random() });
+      }, 800);
+    });
   }
 };
 

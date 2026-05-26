@@ -1,13 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
-
+import { ADMIN_AUDIT_LOGS } from '../adminDummyData';
 
 export async function fetchAuditLogs() {
-  const token = localStorage.getItem("access_token");
-  const res = await fetch(`${API_BASE_URL}/audit/logs`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  if (!res.ok) throw new Error("Failed to fetch audit logs");
-  return res.json();
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return ADMIN_AUDIT_LOGS;
+}
+
+export async function getAuditLogsByUser(userId) {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return ADMIN_AUDIT_LOGS.filter(log => log.user_id === userId);
+}
+
+export async function getAuditLogsByEntity(entityType, entityId) {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return ADMIN_AUDIT_LOGS.filter(log => 
+    log.entity_type === entityType && log.entity_id === entityId
+  );
 }
 

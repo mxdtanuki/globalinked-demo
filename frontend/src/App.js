@@ -1,5 +1,6 @@
 import React from 'react';
 import ProtectedRoute from './ProtectedRoute';
+import DemoNoticeModal from './components/DemoNoticeModal';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -62,7 +63,12 @@ function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    if (window.history.scrollRestoration) {
+      window.history.scrollRestoration = 'manual';
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [pathname]);
 
   return null;
@@ -161,6 +167,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <DemoNoticeModal />
       <NotificationsProvider>
         <AuditProvider>
           <Router>

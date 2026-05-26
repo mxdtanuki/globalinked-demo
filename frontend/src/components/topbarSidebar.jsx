@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import Sidebar from './sidebar';
-import TopBar from './topbar';
-import '../components/layout.css';
+import React, { useState, useEffect } from "react";
+import Sidebar from "./sidebar";
+import TopBar from "./topbar";
+import "../components/layout.css";
 
 const TopbarSidebar = ({ children }) => {
   const [mobileShow, setMobileShow] = useState(false);
@@ -16,13 +16,13 @@ const TopbarSidebar = ({ children }) => {
       if (isNowDesktop) setMobileShow(false);
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return (
     <div className="dashboard-container">
-      <TopBar toggleSidebar={toggleMobileSidebar} />
+      <TopBar toggleSidebar={toggleMobileSidebar} sidebarOpen={mobileShow} />
 
       {mobileShow && (
         <div className="mobile-backdrop" onClick={() => setMobileShow(false)} />
@@ -30,7 +30,10 @@ const TopbarSidebar = ({ children }) => {
 
       <div className="content-body">
         {/* Sidebar */}
-        <Sidebar mobileShow={mobileShow} />
+        <Sidebar
+          mobileShow={mobileShow}
+          closeMobile={() => setMobileShow(false)}
+        />
 
         {/* Main content */}
         <div
