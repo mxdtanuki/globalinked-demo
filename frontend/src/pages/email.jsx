@@ -127,7 +127,7 @@ const Email = () => {
       setSelectedPersons([]);
       setTo('');
     }
-  }, [agreements, currentTemplate]);  
+  }, [agreements, currentTemplate, selectedAgreement]);
 
   const fetchTemplates = async () => {
     try {

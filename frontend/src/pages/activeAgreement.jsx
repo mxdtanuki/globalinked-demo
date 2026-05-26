@@ -170,7 +170,6 @@
     const [filter, setFilter] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
-    const [reportType, setReportType] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
     const [selectedAgreement, setSelectedAgreement] = useState(null);

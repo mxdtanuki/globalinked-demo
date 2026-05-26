@@ -21,7 +21,6 @@ import {
   FiCalendar,
   FiMapPin,
   FiUsers,
-  FiChevronDown,
   FiCheck,
   FiBarChart,
   FiSettings,
@@ -33,11 +32,9 @@ import {
   FiBookOpen,
   FiClock,
   FiAward,
-  FiGrid,
   FiPlus,
   FiSave,
   FiUser,
-  FiActivity,
   FiGlobe,
   FiImage,
 } from "react-icons/fi";
@@ -49,14 +46,7 @@ import "./overview1.css";
 import "../pages/activeAgreement.css";
 import { agreementService } from "../services/agreementService";
 import { documentService } from "../services/documentService";
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQueryClient,
-  useQuery,
-} from "@tanstack/react-query";
-import ExcelJS from "exceljs";
-import { saveAs } from "file-saver";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import ReportGen from "./reportGeneration";
 import TopBar from "./topbar";
 import Sidebar from "./sidebar";
@@ -72,7 +62,7 @@ const SearchableSelect = ({
   allowClear = true,
 }) => {
   const normalized = options.map((o) =>
-    typeof o === "string" ? { value: o, label: o } : o
+    typeof o === "string" ? { value: o, label: o } : o,
   );
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -90,7 +80,7 @@ const SearchableSelect = ({
   }, []);
 
   const filtered = normalized.filter((o) =>
-    o.label.toLowerCase().includes(query.toLowerCase())
+    o.label.toLowerCase().includes(query.toLowerCase()),
   );
   const selectedLabel =
     normalized.find((o) => String(o.value) === String(value))?.label || "";
@@ -514,7 +504,7 @@ const normalizeRemarks = (r) => {
     return r.map((item) =>
       typeof item === "object"
         ? item.remark_text || item.text || item.remark || ""
-        : String(item)
+        : String(item),
     );
   if (typeof r === "string")
     return r
@@ -684,7 +674,7 @@ const mapAgreement = (a = {}) => {
       return Number(v);
     if (v && typeof v === "object" && v instanceof Date && !isNaN(v)) {
       const diff = Math.floor(
-        (Date.now() - v.getTime()) / (1000 * 60 * 60 * 24)
+        (Date.now() - v.getTime()) / (1000 * 60 * 60 * 24),
       );
       return Math.max(0, diff);
     }
@@ -741,11 +731,11 @@ const mapAgreement = (a = {}) => {
     date_received: toISODate(a.entry_date || a.date_received || a.date || ""),
     entry_date: toISODate(a.entry_date || a.date_received || a.date || ""), // alias for report
     date_endorsed_ulco: toISODate(
-      a.date_endorsed_ulco || a.date_endorsed_to_ulco || ""
+      a.date_endorsed_ulco || a.date_endorsed_to_ulco || "",
     ),
     ulco_approval: toISODate(a.ulco_approval || a.date_ulco_approved || ""),
     pup_official_sign: toISODate(
-      a.pup_official_sign || a.date_signed_by_pup || ""
+      a.pup_official_sign || a.date_signed_by_pup || "",
     ),
 
     // computed timing
@@ -789,8 +779,8 @@ const applyBackendStageData = (agreement) => {
     days >= CRITICAL_THRESHOLD_DAYS
       ? "critical"
       : delayed
-      ? "warning"
-      : undefined;
+        ? "warning"
+        : undefined;
 
   return {
     ...agreement,
@@ -1025,7 +1015,7 @@ const formatContactEmails = (v) => {
           : item.point_person_email ||
             item.email ||
             item.contact_person_email ||
-            ""
+            "",
       )
       .filter(Boolean)
       .join(", ");
@@ -1063,8 +1053,8 @@ const MultiPersonField = ({
   const value = list.length
     ? list
     : legacyItem.name || legacyItem.position || legacyItem.email
-    ? [legacyItem]
-    : [];
+      ? [legacyItem]
+      : [];
 
   const updateAt = (idx, key, val) => {
     if (disabled) return;
@@ -1164,8 +1154,8 @@ const MultiRemarkField = ({
   const list = Array.isArray(selected?.[listKey])
     ? selected[listKey]
     : selected?.remarks
-    ? [selected.remarks]
-    : [];
+      ? [selected.remarks]
+      : [];
   const updateAt = (idx, val) => {
     if (disabled) return;
     setSelected((s) => {
@@ -1493,34 +1483,34 @@ const OverviewMerged = () => {
 
   const STAGE_LIST = useMemo(
     () => LIFECYCLE_OPTIONS.filter((o) => o.value),
-    []
+    [],
   );
   const classificationOptions = useMemo(
     () =>
       Array.from(
         new Set(
-          agreements.map((a) => a.partnership_classification).filter(Boolean)
-        )
+          agreements.map((a) => a.partnership_classification).filter(Boolean),
+        ),
       ),
-    [agreements]
+    [agreements],
   );
   const validityOptions = useMemo(
     () =>
       Array.from(
-        new Set(agreements.map((a) => a.validity_period).filter(Boolean))
+        new Set(agreements.map((a) => a.validity_period).filter(Boolean)),
       ).sort((a, b) => parseInt(a) - parseInt(b)),
-    [agreements]
+    [agreements],
   );
   const countryOptions = useMemo(
     () => Array.from(new Set(agreements.map((a) => a.country).filter(Boolean))),
-    [agreements]
+    [agreements],
   );
   const sourceOptions = useMemo(
     () =>
       Array.from(
-        new Set(agreements.map((a) => a.source_unit).filter(Boolean))
+        new Set(agreements.map((a) => a.source_unit).filter(Boolean)),
       ).sort(),
-    [agreements]
+    [agreements],
   );
 
   const baseList = useMemo(
@@ -1564,7 +1554,7 @@ const OverviewMerged = () => {
       filterSource,
       debouncedSearchText,
       filterDelayed,
-    ]
+    ],
   );
 
   const filtered = baseList.filter((a) => {
@@ -1578,7 +1568,7 @@ const OverviewMerged = () => {
   }, [totalPages, currentPage]);
   const paged = filtered.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   useEffect(() => {
@@ -1602,8 +1592,8 @@ const OverviewMerged = () => {
             resp && resp.agreement
               ? resp.agreement
               : resp && resp.data
-              ? resp.data
-              : resp;
+                ? resp.data
+                : resp;
           const dts =
             full && (full.dts_number || full.dts_no || full.dtsNumber)
               ? String(full.dts_number || full.dts_no || full.dtsNumber)
@@ -1626,8 +1616,8 @@ const OverviewMerged = () => {
               resp2 && resp2.agreement
                 ? resp2.agreement
                 : resp2 && resp2.data
-                ? resp2.data
-                : resp2;
+                  ? resp2.data
+                  : resp2;
             const dts2 =
               full2 && (full2.dts_number || full2.dts_no || full2.dtsNumber)
                 ? String(full2.dts_number || full2.dts_no || full2.dtsNumber)
@@ -1725,7 +1715,7 @@ const OverviewMerged = () => {
         console.debug &&
           console.debug(
             "RelatedMouLabel.handleOpen: parent not found in agreements (no local parent).",
-            { key, row }
+            { key, row },
           );
       } catch (e) {}
 
@@ -1803,7 +1793,7 @@ const OverviewMerged = () => {
       const mouList = (agreementsList || []).filter(
         (a) =>
           String(a.document_type || a.documentType || "").toUpperCase() ===
-          "MOU"
+          "MOU",
       );
       const mouWithChildren = mouList
         .map((mou) => {
@@ -1880,7 +1870,7 @@ const OverviewMerged = () => {
       filterCountry,
       filterValidity,
       debouncedSearchText,
-    ]
+    ],
   );
 
   const needsAttention = baseList.filter((a) => a.delayed).length;
@@ -1915,7 +1905,7 @@ const OverviewMerged = () => {
 
   const loadAgreementDetails = async (rowOrId) => {
     const row = typeof rowOrId === "object" ? rowOrId : null;
-    const byId = row ? row.agreement_id ?? row._pk ?? null : rowOrId;
+    const byId = row ? (row.agreement_id ?? row._pk ?? null) : rowOrId;
     const byDts = row ? row.dts_no || row.id || null : null;
     // mark this load with a unique token so late responses don't overwrite
     const req = ++loadRequestRef.current;
@@ -2120,7 +2110,7 @@ const OverviewMerged = () => {
       return arr.map((item) =>
         typeof item === "object"
           ? { remark_text: item.remark_text || item.text || item }
-          : { remark_text: item }
+          : { remark_text: item },
       );
     };
 
@@ -2229,7 +2219,7 @@ const OverviewMerged = () => {
       // signatories for compatibility: send only string list for DB storage
       signatories_list: normalizeSignatoriesList(
         s.signatories,
-        s.signatories_list
+        s.signatories_list,
       ),
       // partner metadata
       website_url: s.website_link || s.website_url || undefined,
@@ -2240,7 +2230,7 @@ const OverviewMerged = () => {
       remarks: transformRemarks(s.remarks || s.remarks_list || []),
     };
     Object.keys(payload).forEach(
-      (k) => payload[k] === undefined && delete payload[k]
+      (k) => payload[k] === undefined && delete payload[k],
     );
     return payload;
   };
@@ -2442,7 +2432,7 @@ const OverviewMerged = () => {
       setSavingRows((prev) => new Set(prev).add(agreementId));
       const updated = await agreementService.updateAgreement(
         agreementId,
-        editedData
+        editedData,
       );
       // update cache immediately if possible
       try {
@@ -2480,7 +2470,7 @@ const OverviewMerged = () => {
       return;
     }
     const proceed = window.confirm(
-      "Are you sure you want to delete this agreement? This action cannot be undone."
+      "Are you sure you want to delete this agreement? This action cannot be undone.",
     );
     if (!proceed) return;
     try {
@@ -2630,7 +2620,7 @@ const OverviewMerged = () => {
         const payload = { agreement_status: "Active" };
         const updated = await agreementService.updateAgreement(
           getPk(agreement),
-          payload
+          payload,
         );
         let mapped = applyBackendStageData(mapAgreement(updated));
         mapped = await RelatedMou(mapped, agreements);
@@ -2646,7 +2636,7 @@ const OverviewMerged = () => {
         // Notify other parts of the app (ActiveAgreement page) that an agreement was activated
         try {
           window.dispatchEvent(
-            new CustomEvent("agreementActivated", { detail: mapped })
+            new CustomEvent("agreementActivated", { detail: mapped }),
           );
         } catch (e) {
           // ignore if dispatch fails in some environments
@@ -2666,7 +2656,7 @@ const OverviewMerged = () => {
         const payload = { agreement_status: "Withdrawn" };
         const updated = await agreementService.updateAgreement(
           getPk(agreement),
-          payload
+          payload,
         );
         let mapped = applyBackendStageData(mapAgreement(updated));
         mapped = await RelatedMou(mapped, agreements);
@@ -2678,14 +2668,14 @@ const OverviewMerged = () => {
         queryClient.invalidateQueries(["agreements"]);
         try {
           window.dispatchEvent(
-            new CustomEvent("agreementWithdrawn", { detail: mapped })
+            new CustomEvent("agreementWithdrawn", { detail: mapped }),
           );
         } catch (e) {}
         alert("Agreement marked as Withdrawn.");
       } catch (err) {
         console.error("Failed to withdraw agreement:", err);
         alert(
-          "Failed to mark agreement as Withdrawn: " + (err?.message || err)
+          "Failed to mark agreement as Withdrawn: " + (err?.message || err),
         );
       }
     })();
@@ -2781,7 +2771,7 @@ const OverviewMerged = () => {
           selectedAgreement.id,
         uploadFile,
         uploadComment,
-        selectedAgreement.status
+        selectedAgreement.status,
       );
       alert("Upload successful!");
       setShowUploadForm(false);
@@ -3254,7 +3244,7 @@ const OverviewMerged = () => {
                               (x) =>
                                 String(x.id) === String(parentId) ||
                                 String(x.agreement_id) === String(parentId) ||
-                                String(x.linkedMouId) === String(parentId)
+                                String(x.linkedMouId) === String(parentId),
                             );
                             try {
                               console.debug &&
@@ -3269,7 +3259,7 @@ const OverviewMerged = () => {
                                           dts_no: parent.dts_no,
                                         }
                                       : null,
-                                  }
+                                  },
                                 );
                             } catch (e) {}
                           }
@@ -3320,7 +3310,7 @@ const OverviewMerged = () => {
                       <td>
                         <span
                           className={`status-badge status-${slugifyStatus(
-                            row.status
+                            row.status,
                           )}`}
                         >
                           {LIFECYCLE_OPTIONS.find((o) => o.value === row.status)
@@ -3348,8 +3338,8 @@ const OverviewMerged = () => {
                             (row.point_email
                               ? ` (${row.point_email})`
                               : row.contact_email
-                              ? ` (${row.contact_email})`
-                              : "")}
+                                ? ` (${row.contact_email})`
+                                : "")}
                         </div>
                       </td>
                       {/* Actions */}
@@ -3425,7 +3415,7 @@ const OverviewMerged = () => {
                                     className="menu-item"
                                     onClick={() => {
                                       handleViewLatestFile(
-                                        row.dts_no || row.id
+                                        row.dts_no || row.id,
                                       );
                                       setMenuOpenId(null);
                                     }}
@@ -3441,7 +3431,7 @@ const OverviewMerged = () => {
                                       navigate(
                                         `/docVer?dts_number=${
                                           row.dts_no || row.id
-                                        }`
+                                        }`,
                                       );
                                       setMenuOpenId(null);
                                     }}
@@ -3464,7 +3454,7 @@ const OverviewMerged = () => {
                                     </button>
                                   )}
                                 </div>,
-                                document.body
+                                document.body,
                               )}
                           </div>
                         </div>
@@ -3563,7 +3553,7 @@ const OverviewMerged = () => {
                 {filtered.length
                   ? Math.min(
                       filtered.length,
-                      (currentPage - 1) * itemsPerPage + 1
+                      (currentPage - 1) * itemsPerPage + 1,
                     )
                   : 0}{" "}
                 - {Math.min(filtered.length, currentPage * itemsPerPage)} of{" "}
@@ -3587,7 +3577,7 @@ const OverviewMerged = () => {
                       {/* Updated Agreement Type Badge */}
                       <span
                         className={`header-badge doc ${String(
-                          selected.document_type || ""
+                          selected.document_type || "",
                         ).toLowerCase()}`}
                       >
                         <FiFileText className="badge-icon" />
@@ -3660,7 +3650,7 @@ const OverviewMerged = () => {
                               <div className="details-sub">
                                 {selected.document_type || "—"} •{" "}
                                 {LIFECYCLE_OPTIONS.find(
-                                  (o) => o.value === selected.status
+                                  (o) => o.value === selected.status,
                                 )?.label ||
                                   selected.status ||
                                   "—"}
@@ -3674,7 +3664,7 @@ const OverviewMerged = () => {
                                 className="btn action view-file"
                                 onClick={() =>
                                   handleViewLatestFile(
-                                    selected.dts_no || selected.id
+                                    selected.dts_no || selected.id,
                                   )
                                 }
                                 title="View Latest File"
@@ -3689,7 +3679,7 @@ const OverviewMerged = () => {
                                   navigate(
                                     `/docVer?dts_number=${
                                       selected.dts_no || selected.id
-                                    }`
+                                    }`,
                                   )
                                 }
                                 title="View Older Files"
@@ -3734,7 +3724,7 @@ const OverviewMerged = () => {
                               <div className="value">
                                 {selected.date_received
                                   ? new Date(
-                                      selected.date_received
+                                      selected.date_received,
                                     ).toLocaleDateString()
                                   : "—"}
                               </div>
@@ -3765,11 +3755,11 @@ const OverviewMerged = () => {
                               <div className="value">
                                 <span
                                   className={`status-badge status-${slugifyStatus(
-                                    selected.status
+                                    selected.status,
                                   )}`}
                                 >
                                   {LIFECYCLE_OPTIONS.find(
-                                    (o) => o.value === selected.status
+                                    (o) => o.value === selected.status,
                                   )?.label ||
                                     selected.status ||
                                     "—"}
@@ -3796,7 +3786,7 @@ const OverviewMerged = () => {
                           // If the currently selected record is an MOU, render it with its MOA children
                           if (
                             String(
-                              selected.document_type || ""
+                              selected.document_type || "",
                             ).toUpperCase() === "MOU"
                           ) {
                             const mid = selected.id || selected.agreement_id;
@@ -3804,11 +3794,11 @@ const OverviewMerged = () => {
                               ? agreements.filter(
                                   (c) =>
                                     String(
-                                      c.document_type || c.documentType || ""
+                                      c.document_type || c.documentType || "",
                                     ).toUpperCase() === "MOA" &&
                                     (getLinkedId(c) === mid ||
                                       c.linkedMouId === mid ||
-                                      c.MOU_to_MOA_id === mid)
+                                      c.MOU_to_MOA_id === mid),
                                 )
                               : [];
 
@@ -3851,7 +3841,7 @@ const OverviewMerged = () => {
                                       {selected.expiry || selected.date_expiry
                                         ? new Date(
                                             selected.expiry ||
-                                              selected.date_expiry
+                                              selected.date_expiry,
                                           ).toLocaleDateString()
                                         : "—"}
                                     </div>
@@ -3901,13 +3891,13 @@ const OverviewMerged = () => {
                                             {c.date_signed || c.dateOfSigning
                                               ? new Date(
                                                   c.date_signed ||
-                                                    c.dateOfSigning
+                                                    c.dateOfSigning,
                                                 ).toLocaleDateString()
                                               : "—"}{" "}
                                             →{" "}
                                             {c.date_expiry || c.expiryDate
                                               ? new Date(
-                                                  c.date_expiry || c.expiryDate
+                                                  c.date_expiry || c.expiryDate,
                                                 ).toLocaleDateString()
                                               : "—"}
                                           </div>
@@ -3963,7 +3953,7 @@ const OverviewMerged = () => {
                               a.mou_number,
                             ];
                             return candidates.some(
-                              (c) => c != null && String(c).trim() === lidStr
+                              (c) => c != null && String(c).trim() === lidStr,
                             );
                           });
 
@@ -3980,7 +3970,7 @@ const OverviewMerged = () => {
                                   String(a.dts_no).trim() === mapped) ||
                                 (a.dts_number &&
                                   String(a.dts_number).trim() === mapped) ||
-                                (a.id && String(a.id).trim() === mapped)
+                                (a.id && String(a.id).trim() === mapped),
                             );
                           }
 
@@ -4019,7 +4009,7 @@ const OverviewMerged = () => {
                                     Valid until:{" "}
                                     {target.expiry || target.date_expiry
                                       ? new Date(
-                                          target.expiry || target.date_expiry
+                                          target.expiry || target.date_expiry,
                                         ).toLocaleDateString()
                                       : "—"}
                                   </div>
@@ -4045,7 +4035,7 @@ const OverviewMerged = () => {
                               {LogoSrc(selected.logo_path || selected.logo) ? (
                                 <img
                                   src={LogoSrc(
-                                    selected.logo_path || selected.logo
+                                    selected.logo_path || selected.logo,
                                   )}
                                   alt={`${
                                     selected.partner_name || selected.name
@@ -4053,7 +4043,7 @@ const OverviewMerged = () => {
                                   onError={(e) => {
                                     console.warn(
                                       "Logo failed to load:",
-                                      e.target.src
+                                      e.target.src,
                                     );
                                     e.target.onerror = null;
                                     e.target.style.display = "none";
@@ -4062,7 +4052,7 @@ const OverviewMerged = () => {
                               ) : (
                                 <div className="partner-fallback">
                                   {getInitials(
-                                    selected.partner_name || selected.name
+                                    selected.partner_name || selected.name,
                                   )}
                                 </div>
                               )}
@@ -4161,7 +4151,7 @@ const OverviewMerged = () => {
                                   selected.point_people ||
                                     selected.point_persons ||
                                     selected.point_name ||
-                                    selected.point_person
+                                    selected.point_person,
                                 )}
                               </div>
                               <div className="contact-org">
@@ -4170,21 +4160,21 @@ const OverviewMerged = () => {
                               {formatContactEmails(
                                 selected.point_people ||
                                   selected.point_persons ||
-                                  selected.point_email
+                                  selected.point_email,
                               ) ? (
                                 <a
                                   className="contact-email"
                                   href={`mailto:${formatContactEmails(
                                     selected.point_people ||
                                       selected.point_persons ||
-                                      selected.point_email
+                                      selected.point_email,
                                   )}`}
                                 >
                                   <FiMessageCircle className="inline-icon" />{" "}
                                   {formatContactEmails(
                                     selected.point_people ||
                                       selected.point_persons ||
-                                      selected.point_email
+                                      selected.point_email,
                                   )}
                                 </a>
                               ) : null}
@@ -4200,7 +4190,7 @@ const OverviewMerged = () => {
                                   selected.contact_people ||
                                     selected.contact_persons ||
                                     selected.contact_name ||
-                                    selected.contact_person
+                                    selected.contact_person,
                                 )}
                               </div>
                               <div className="contact-org">
@@ -4209,21 +4199,21 @@ const OverviewMerged = () => {
                               {formatContactEmails(
                                 selected.contact_people ||
                                   selected.contact_persons ||
-                                  selected.contact_email
+                                  selected.contact_email,
                               ) ? (
                                 <a
                                   className="contact-email"
                                   href={`mailto:${formatContactEmails(
                                     selected.contact_people ||
                                       selected.contact_persons ||
-                                      selected.contact_email
+                                      selected.contact_email,
                                   )}`}
                                 >
                                   <FiMessageCircle className="inline-icon" />{" "}
                                   {formatContactEmails(
                                     selected.contact_people ||
                                       selected.contact_persons ||
-                                      selected.contact_email
+                                      selected.contact_email,
                                   )}
                                 </a>
                               ) : null}
@@ -4250,7 +4240,7 @@ const OverviewMerged = () => {
                               <div className="value">
                                 {selected.date_of_signing
                                   ? new Date(
-                                      selected.date_of_signing
+                                      selected.date_of_signing,
                                     ).toLocaleDateString()
                                   : "—"}
                               </div>
@@ -4263,7 +4253,7 @@ const OverviewMerged = () => {
                               <div className="value">
                                 {selected.expiry
                                   ? new Date(
-                                      selected.expiry
+                                      selected.expiry,
                                     ).toLocaleDateString()
                                   : "—"}
                               </div>
@@ -4276,7 +4266,7 @@ const OverviewMerged = () => {
                               <div className="value">
                                 {selected.date_endorsed_ulco
                                   ? new Date(
-                                      selected.date_endorsed_ulco
+                                      selected.date_endorsed_ulco,
                                     ).toLocaleDateString()
                                   : "—"}
                               </div>
@@ -4289,7 +4279,7 @@ const OverviewMerged = () => {
                               <div className="value">
                                 {selected.ulco_approval
                                   ? new Date(
-                                      selected.ulco_approval
+                                      selected.ulco_approval,
                                     ).toLocaleDateString()
                                   : "—"}
                               </div>
@@ -4302,7 +4292,7 @@ const OverviewMerged = () => {
                               <div className="value">
                                 {selected.pup_official_sign
                                   ? new Date(
-                                      selected.pup_official_sign
+                                      selected.pup_official_sign,
                                     ).toLocaleDateString()
                                   : "—"}
                               </div>
@@ -4355,9 +4345,9 @@ const OverviewMerged = () => {
                               selected.signatories_list.length
                                 ? selected.signatories_list
                                 : Array.isArray(selected.signatories) &&
-                                  selected.signatories.length
-                                ? selected.signatories
-                                : null;
+                                    selected.signatories.length
+                                  ? selected.signatories
+                                  : null;
 
                             let text = "";
                             if (maybeArray) {
@@ -4538,11 +4528,11 @@ const OverviewMerged = () => {
                                   <option key={o.value} value={o.value}>
                                     {o.label}
                                   </option>
-                                )
+                                ),
                               )}
                               {selected.status &&
                                 !LIFECYCLE_OPTIONS.some(
-                                  (o) => o.value === selected.status
+                                  (o) => o.value === selected.status,
                                 ) && (
                                   <option value={selected.status}>
                                     {selected.status}
@@ -4666,7 +4656,7 @@ const OverviewMerged = () => {
                                 const selectedCountryValue = e.target.value;
                                 const countryObj =
                                   countryOptionsWithRegions.find(
-                                    (c) => c.value === selectedCountryValue
+                                    (c) => c.value === selectedCountryValue,
                                   );
                                 setSelected((s) => ({
                                   ...s,
@@ -5112,8 +5102,8 @@ const OverviewMerged = () => {
                             {generateDocType === "All"
                               ? "All Agreements"
                               : generateDocType === "linked"
-                              ? "Linked MOU → MOA"
-                              : generateDocType + " Only"}
+                                ? "Linked MOU → MOA"
+                                : generateDocType + " Only"}
                           </div>
                         </div>
                         <div className="stat-item">
@@ -5122,7 +5112,7 @@ const OverviewMerged = () => {
                             {generateStatus === "All"
                               ? "All statuses"
                               : LIFECYCLE_OPTIONS.find(
-                                  (o) => o.value === generateStatus
+                                  (o) => o.value === generateStatus,
                                 )?.label || generateStatus}
                           </div>
                         </div>
@@ -5175,7 +5165,7 @@ const OverviewMerged = () => {
                                   <option key={o.value} value={o.value}>
                                     {o.label}
                                   </option>
-                                )
+                                ),
                               )}
                             </select>
                           </div>
@@ -5242,12 +5232,12 @@ const OverviewMerged = () => {
                                 try {
                                   const items = getGenerateItems(
                                     generateDocType,
-                                    generateStatus
+                                    generateStatus,
                                   );
                                   ReportGen.generatePrintableReport({
                                     items,
                                     reportKey: String(
-                                      generateDocType || "all"
+                                      generateDocType || "all",
                                     ).toLowerCase(),
                                     reportLabelMap: {
                                       all: "Agreements Report",
@@ -5259,7 +5249,7 @@ const OverviewMerged = () => {
                                   console.error("Printable report failed", e);
                                   alert(
                                     "Printable report failed: " +
-                                      (e?.message || e)
+                                      (e?.message || e),
                                   );
                                 }
                                 setShowGenerateModal(false);
@@ -5285,7 +5275,7 @@ const OverviewMerged = () => {
                               onClick={async () => {
                                 await exportToExcel(
                                   generateDocType,
-                                  generateStatus
+                                  generateStatus,
                                 );
                                 setShowGenerateModal(false);
                               }}
@@ -5495,4 +5485,3 @@ const OverviewMerged = () => {
 };
 
 export default OverviewMerged;
-                          

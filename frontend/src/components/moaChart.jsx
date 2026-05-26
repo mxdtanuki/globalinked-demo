@@ -130,7 +130,7 @@ const MOAChart = forwardRef(({ data, onDataUpdate, selectedYear: propSelectedYea
         }
       }
     }
-  }, [data, propSelectedYear, visibleStartMonth, visibleEndMonth]);
+  }, [data, propSelectedYear, visibleStartMonth, visibleEndMonth, chartData]);
 
   const handleApplyFilter = () => {
     if (!selectedYear || months.length === 0) return;

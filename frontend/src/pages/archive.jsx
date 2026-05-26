@@ -37,7 +37,6 @@ import {
   FiEdit,
   FiAward,
   FiHome,
-  FiGrid,
 } from "react-icons/fi";
 import ReportGen from "../components/reportGeneration";
 

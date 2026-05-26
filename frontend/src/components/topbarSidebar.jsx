@@ -5,14 +5,12 @@ import "../components/layout.css";
 
 const TopbarSidebar = ({ children }) => {
   const [mobileShow, setMobileShow] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   const toggleMobileSidebar = () => setMobileShow(!mobileShow);
 
   useEffect(() => {
     const handleResize = () => {
       const isNowDesktop = window.innerWidth >= 768;
-      setIsDesktop(isNowDesktop);
       if (isNowDesktop) setMobileShow(false);
     };
 

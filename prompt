@@ -1,89 +1,73 @@
-## Fix for Vercel Build Failure
+Fix all ESLint errors causing production build failure (Vercel CI treats warnings as errors).
 
-The build is failing because **CI=true treats ESLint warnings as errors**. Here are your options:
+STRICT RULES
+Do NOT refactor architecture or redesign components.
+Do NOT remove features or UI logic.
+Only apply minimal fixes required to satisfy ESLint.
+Do NOT add new comments.
+Keep existing indentation and formatting unless required for fix.
+CRITICAL BUILD-STOPPING ISSUES TO FIX
+1. import/no-anonymous-default-export
 
----
+File: src/adminDummyData.js
 
-### Option 1: Quickest Fix — Set CI=false in Vercel
+Export is currently anonymous object.
+Fix by assigning the object to a named constant first, then exporting it.
+2. React Hook dependency issues (react-hooks/exhaustive-deps)
 
-In your Vercel project settings:
-- Go to **Settings → Environment Variables**
-- Add: `CI = false`
+Fix missing dependencies in useEffect hooks:
 
-Or update your `package.json` build script:
+src/components/moaActChart.jsx → add chartData
+src/components/moaChart.jsx → add chartData
+src/components/mouChart.jsx → add chartData
+src/pages/analytics.jsx → fix missing deps (fetchAndProcessData, MONTHS_ORDER, getMonthsForYear, getYearlyData)
+src/pages/email.jsx → add selectedAgreement
+src/pages/userManagement.jsx → add fetchAllUsers
 
-```json
-{
-  "scripts": {
-    "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build"
-  }
-}
-```
+If a dependency causes re-render loops:
 
----
+Wrap functions or objects in useCallback or useMemo instead of removing dependency.
+3. Unused variables (no-unused-vars)
 
-### Option 2: Fix the ESLint Errors Properly
+Remove or properly use:
 
-#### `src/adminDummyData.js` — Line 4355
-```js
-// Change from:
-export default { ... }
+overviewDash.jsx → remove unused imports:
+FiChevronDown, FiGrid, FiActivity
+QueryClient, QueryClientProvider
+ExcelJS, saveAs
+STATUS_THRESHOLDS, regionOptions, etc.
+topbarSidebar.jsx
+remove isDesktop
+activeAgreement.jsx
+remove unused setters and variables (setReportType, editingField, etc.)
+docVer.jsx
+remove unused icons and currentUser
+mobility.jsx
+remove jsPDF, autoTable, ExcelJS, saveAs if unused
+resetPass.jsx
+remove unused token
+upload/moa.jsx
+remove unused icons
+archive.jsx
+remove FiGrid and escapeHtml if unused
+upload/extractedEntryMoa.jsx
+remove dtsStatus, autoFilledFields if unused
+4. Unsafe equality
 
-// Change to:
-const adminDummyData = { ... }
-export default adminDummyData
-```
+File: src/services/agreementService.js
 
-#### `src/components/moaActChart.jsx`, `moaChart.jsx`, `mouChart.jsx` — Line 133
-```js
-// Change from:
-useEffect(() => {
-  // uses chartData
-}, []) // missing chartData
+Replace all == with ===
+5. Other ESLint rules
+Fix no-useless-escape in regex (remove unnecessary backslashes)
+Ensure stable references for agreements object in overviewDash.jsx
+Wrap in useMemo to prevent dependency churn
+IMPORTANT BUILD RULE
 
-// Change to:
-useEffect(() => {
-  // uses chartData
-}, [chartData]) // add missing dependency
-```
+After fixes:
 
-#### `src/services/agreementService.js` — Line 86
-```js
-// Change from:
-if (something == value)
+Run npm run build
+Ensure ZERO ESLint errors
+Do not suppress lint rules globally unless absolutely necessary
+GOAL
 
-// Change to:
-if (something === value)
-```
-
-#### For all `no-unused-vars` errors
-Either **remove the unused imports/variables** or add ESLint disable comments:
-```js
-// eslint-disable-next-line no-unused-vars
-const unusedVar = ...
-```
-
----
-
-### Option 3: Add `.eslintrc` Overrides (Recommended)
-
-Create or update `frontend/.eslintrc.json`:
-
-```json
-{
-  "extends": ["react-app"],
-  "rules": {
-    "no-unused-vars": "warn",
-    "react-hooks/exhaustive-deps": "warn",
-    "import/no-anonymous-default-export": "warn",
-    "no-useless-escape": "warn",
-    "eqeqeq": "warn"
-  }
-}
-```
-
----
-
-### Recommendation
-
-**Fastest fix**: Use **Option 1** (`CI=false`) to unblock deployment immediately, then clean up the ESLint issues properly over time using **Option 3**.
+Make Vercel production build succeed without disabling ESLint or CI checks.

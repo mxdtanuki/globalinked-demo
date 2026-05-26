@@ -37,7 +37,7 @@ const UserManagement = () => {
   // Fetch all users on component mount
   useEffect(() => {
     fetchAllUsers();
-  }, []);
+  }, [fetchAllUsers]);
 
   const fetchAllUsers = async () => {
     try {
