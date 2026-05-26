@@ -2,6 +2,18 @@
 
 This guide will help you deploy the GlobalLinked System frontend to Vercel.
 
+## ✅ Fixed Issues
+
+The following issues have been resolved for deployment:
+- ✅ Removed `torch` and `transformers` packages (unused ML libraries causing build failures)
+- ✅ Removed `accelerate` package (unused dependency)
+- ✅ Fixed `package.json` formatting issues
+- ✅ Removed development proxy configuration
+- ✅ Updated `vercel.json` to modern format
+- ✅ Fixed `manifest.json` to use existing icons
+- ✅ Added `.nvmrc` for Node.js version consistency
+- ✅ Added `.npmrc` for npm configuration
+
 ## Prerequisites
 
 1. A [Vercel account](https://vercel.com/signup) (free tier is sufficient)
