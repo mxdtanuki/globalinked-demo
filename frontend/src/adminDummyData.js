@@ -4352,7 +4352,7 @@ export const ADMIN_OVERVIEW_STATS = {
 };
 
 // Export all data
-export default {
+const adminData = {
   users: ADMIN_USERS,
   registrations: ADMIN_REGISTRATIONS,
   agreements: ADMIN_AGREEMENTS,
@@ -4364,3 +4364,5 @@ export default {
   pointPersons: ADMIN_POINT_PERSONS,
   overviewStats: ADMIN_OVERVIEW_STATS,
 };
+
+export default adminData;

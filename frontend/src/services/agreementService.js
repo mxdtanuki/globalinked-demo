@@ -83,7 +83,7 @@ export const agreementService = {
   getAgreementById(id) {
     // Find agreement by ID from admin data
     const data = applyStatusOverrides([...ADMIN_AGREEMENTS]);
-    const agreement = data.find(a => a.agreement_id == id);
+    const agreement = data.find(a => a.agreement_id === id);
     return Promise.resolve(agreement || null);
   },
 
