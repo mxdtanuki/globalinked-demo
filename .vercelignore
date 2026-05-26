@@ -29,6 +29,7 @@ Thumbs.db
 
 # Build artifacts (will be rebuilt)
 frontend/build/
+frontend/dist/
 
 # Logs
 npm-debug.log*
